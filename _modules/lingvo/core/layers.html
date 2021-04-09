@@ -1394,7 +1394,7 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])),</span> <span class="n">w</span><span class="p">)</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]))</span>
       <span class="c1"># TODO(shivaniagrawal): There are the following dimmensions: bn, nmk, the</span>
@@ -1402,7 +1402,7 @@
       <span class="c1"># while we are doing every k only.</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bn,nmk-&gt;bmk&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="c1"># Create an output layer [b, num_outputs].</span>
       <span class="n">bsz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">out</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[</span><span class="n">bsz</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
@@ -2586,7 +2586,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FpropImpl</span><span class="p">(</span><span class="n">wm</span><span class="p">,</span> <span class="n">flat_ids</span><span class="p">)</span>
 
-    <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">,</span> <span class="n">embs_result</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">,</span> <span class="n">embs_result</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;vn&#39;</span><span class="p">):</span>
       <span class="n">embs_result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">embs_result</span><span class="p">)</span>
 
@@ -3275,7 +3275,7 @@
 
       <span class="c1"># We used weight&#39;s output_dimension, i.e. p.num_classes as feature axis</span>
       <span class="c1"># while quantizing weight.</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;softmax_aqt&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;softmax_aqt&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>

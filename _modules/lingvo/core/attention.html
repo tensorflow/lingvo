@@ -1555,8 +1555,8 @@
                   <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_vec_depth</span><span class="p">]),</span>
                   <span class="n">w_source_proj</span><span class="p">,</span>
                   <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">))</span>
-          <span class="n">source_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span>
-              <span class="s1">&#39;source_proj_aqt&#39;</span><span class="p">,</span> <span class="n">source_projected</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+          <span class="n">source_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;source_proj_aqt&#39;</span><span class="p">,</span>
+                                                <span class="n">source_projected</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
             <span class="n">source_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
                 <span class="n">source_projected</span><span class="p">,</span>
@@ -1587,7 +1587,7 @@
               <span class="n">w_ctx_proj</span><span class="p">,</span>
               <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">)</span>
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span>
-              <span class="s1">&#39;ctx_pre_proj_aqt&#39;</span><span class="p">,</span> <span class="n">source_contexts_projected</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+              <span class="s1">&#39;ctx_pre_proj_aqt&#39;</span><span class="p">,</span> <span class="n">source_contexts_projected</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
             <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
                 <span class="n">source_contexts_projected</span><span class="p">,</span>
@@ -1801,8 +1801,8 @@
       <span class="n">w_query_proj</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">w_query_proj</span><span class="p">)</span>
       <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
           <span class="n">query_vec</span><span class="p">,</span> <span class="n">w_query_proj</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">)</span>
-      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span>
-          <span class="s1">&#39;query_proj_aqt&#39;</span><span class="p">,</span> <span class="n">query_vec_projected</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;query_proj_aqt&#39;</span><span class="p">,</span>
+                                               <span class="n">query_vec_projected</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
         <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
             <span class="n">query_vec_projected</span><span class="p">,</span>
@@ -1857,8 +1857,7 @@
         <span class="n">w_ctx_post_proj</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">w_ctx_post_proj</span><span class="p">)</span>
         <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
             <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">w_ctx_post_proj</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">)</span>
-        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span>
-            <span class="s1">&#39;ctx_post_proj_aqt&#39;</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_aqt&#39;</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
           <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
               <span class="n">ctx_vec</span><span class="p">,</span>

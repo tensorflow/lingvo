@@ -493,7 +493,7 @@ Defaults to None.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">
-<code class="sig-name descname"><span class="pre">FromAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">FromAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales the output corresponding to AQT style quantized matmul’s weight.</p>
 <p>Uses the same scale used by <a class="reference internal" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ToAqtWeight</span></code></a> and apply its inverse to rescale.</p>
 <p>w_name must have been previously created via CreateAqtWeight.</p>
@@ -502,8 +502,6 @@ Defaults to None.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>w_name</strong> – Previously created w_name QWeight to quantize weight.</p></li>
 <li><p><strong>out</strong> – The tensor to rescale.</p></li>
-<li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for quantized
-weight in ToAqtWeight. None would correspond to per layer quantization.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1042,7 +1040,7 @@ if None.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.quant_utils.QDomain.FromAqtWeight">
-<code class="sig-name descname"><span class="pre">FromAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname"><span class="pre">FromAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales the output corresponding to AQT quantized matmuls’ weight.</p>
 <p>Refer to quantizable_layer.FromAqtWeight.</p>
 <dl class="field-list simple">
@@ -1050,8 +1048,6 @@ if None.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>w_name</strong> – weight name.</p></li>
 <li><p><strong>out</strong> – The tensor to rescale.</p></li>
-<li><p><strong>feature_axis</strong> – axis corresponding to output channel/feature for quantized
-weight in ToAqtWeight.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

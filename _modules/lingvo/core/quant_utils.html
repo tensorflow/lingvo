@@ -525,7 +525,7 @@
         <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">,</span>
         <span class="n">expected_scale_shape</span><span class="o">=</span><span class="n">expected_scale_shape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizableLayer.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Rescales the output corresponding to AQT style quantized matmul&#39;s weight.</span>
 
 <span class="sd">    Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.</span>
@@ -535,8 +535,6 @@
 <span class="sd">    Args:</span>
 <span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
 <span class="sd">      out: The tensor to rescale.</span>
-<span class="sd">      feature_axis: axis corresponding to output channel/feature for quantized</span>
-<span class="sd">        weight in ToAqtWeight. None would correspond to per layer quantization.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Rescaled output.</span>
@@ -545,8 +543,7 @@
         <span class="p">(</span><span class="s1">&#39;Call to FromAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
          <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span>
-        <span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">out</span></div>
+    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">out</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.GetQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.GetQDomain">[docs]</a>  <span class="k">def</span> <span class="nf">GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the QDomain matching a given domain name.</span>
@@ -1088,7 +1085,7 @@
     <span class="k">del</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="p">,</span> <span class="n">w_name</span>
     <span class="k">return</span> <span class="n">w</span></div>
 
-<div class="viewcode-block" id="QDomain.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">):</span>
+<div class="viewcode-block" id="QDomain.FromAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.FromAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Rescales the output corresponding to AQT quantized matmuls&#39; weight.</span>
 
 <span class="sd">    Refer to quantizable_layer.FromAqtWeight.</span>
@@ -1096,8 +1093,6 @@
 <span class="sd">    Args:</span>
 <span class="sd">      w_name: weight name.</span>
 <span class="sd">      out: The tensor to rescale.</span>
-<span class="sd">      feature_axis: axis corresponding to output channel/feature for quantized</span>
-<span class="sd">        weight in ToAqtWeight.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Rescaled output.</span>
