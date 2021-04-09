@@ -1060,7 +1060,14 @@
       <span class="c1"># Calls batch_mat_mul since dim &gt; 2 for per-instance matmul.</span>
       <span class="c1"># [source_batch, time, source_dim] * [source_batch, source_dim, n]</span>
       <span class="c1"># =&gt; [source_batch, time, n]</span>
+      <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtActActInputs</span><span class="p">(</span>
+          <span class="n">act_lhs</span><span class="o">=</span><span class="n">concated_source_vecs</span><span class="p">,</span>
+          <span class="n">act_rhs</span><span class="o">=</span><span class="n">query_vec</span><span class="p">,</span>
+          <span class="n">act_lhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+          <span class="n">act_rhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">)</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtActActMatmul</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+
       <span class="n">logits</span> <span class="o">*=</span> <span class="n">logit_scale</span>
       <span class="c1"># Exclude padding frames.</span>
       <span class="c1"># [source_batch, time] =&gt; [source_batch, time, 1]</span>
@@ -1147,7 +1154,15 @@
       <span class="c1"># =&gt; [source_batch, n, context_dim].</span>
       <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
           <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concated_source_contexts&#39;</span><span class="p">)</span>
+      <span class="n">probs</span><span class="p">,</span> <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtActActInputs</span><span class="p">(</span>
+          <span class="n">act_lhs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span>
+          <span class="n">act_rhs</span><span class="o">=</span><span class="n">concated_source_contexts</span><span class="p">,</span>
+          <span class="n">act_lhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span>
+          <span class="n">act_rhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">)</span>
+
       <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">)</span>
+      <span class="n">context_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtActActMatmul</span><span class="p">(</span><span class="n">context_vector</span><span class="p">)</span>
+
       <span class="c1"># =&gt; [n, source_batch, context_dim].</span>
       <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
       <span class="c1"># =&gt; [n * source_batch, context_dim].</span>
