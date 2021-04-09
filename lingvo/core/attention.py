@@ -1403,8 +1403,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                   tf.reshape(source_vecs, [-1, source_vec_depth]),
                   w_source_proj,
                   qt='source_proj_matmul'))
-          source_projected = self.FromAqtWeight(
-              'source_proj_aqt', source_projected, feature_axis=-1)
+          source_projected = self.FromAqtWeight('source_proj_aqt',
+                                                source_projected)
           if p.use_bias:
             source_projected = fns.qadd(
                 source_projected,
@@ -1435,7 +1435,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
               w_ctx_proj,
               qt='ctx_pre_proj_matmul')
           source_contexts_projected = self.FromAqtWeight(
-              'ctx_pre_proj_aqt', source_contexts_projected, feature_axis=-1)
+              'ctx_pre_proj_aqt', source_contexts_projected)
           if p.use_bias:
             source_contexts_projected = fns.qadd(
                 source_contexts_projected,
@@ -1649,8 +1649,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       w_query_proj = fns.qweight(w_query_proj)
       query_vec_projected = fns.qbatchmatmul(
           query_vec, w_query_proj, qt='query_proj_matmul')
-      query_vec_projected = self.FromAqtWeight(
-          'query_proj_aqt', query_vec_projected, feature_axis=-1)
+      query_vec_projected = self.FromAqtWeight('query_proj_aqt',
+                                               query_vec_projected)
       if p.use_bias:
         query_vec_projected = fns.qadd(
             query_vec_projected,
@@ -1705,8 +1705,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         w_ctx_post_proj = fns.qweight(w_ctx_post_proj)
         ctx_vec = fns.qbatchmatmul(
             ctx_vec, w_ctx_post_proj, qt='ctx_post_proj_matmul')
-        ctx_vec = self.FromAqtWeight(
-            'ctx_post_proj_aqt', ctx_vec, feature_axis=-1)
+        ctx_vec = self.FromAqtWeight('ctx_post_proj_aqt', ctx_vec)
         if p.use_bias:
           ctx_vec = fns.qadd(
               ctx_vec,

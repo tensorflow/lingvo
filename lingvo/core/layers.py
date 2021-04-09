@@ -1242,7 +1242,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       else:
         out = py_utils.Matmul(
             tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
-      out = self.FromAqtWeight('projection_aqt', out, feature_axis=-1)
+      out = self.FromAqtWeight('projection_aqt', out)
     else:
       x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
       # TODO(shivaniagrawal): There are the following dimmensions: bn, nmk, the
@@ -1250,7 +1250,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       # while we are doing every k only.
       w = self.ToAqtWeight('projection_aqt', w, feature_axis=-1)
       out = tf.einsum('bn,nmk->bmk', x, w)
-      out = self.FromAqtWeight('projection_aqt', out, feature_axis=-1)
+      out = self.FromAqtWeight('projection_aqt', out)
       # Create an output layer [b, num_outputs].
       bsz = py_utils.GetShape(out)[0]
       out = tf.reshape(out, [bsz, -1])
@@ -2434,7 +2434,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     else:
       embs_result = self._FpropImpl(wm, flat_ids)
 
-    embs_result = self.FromAqtWeight('emb_aqt', embs_result, feature_axis=-1)
+    embs_result = self.FromAqtWeight('emb_aqt', embs_result)
     with tf.name_scope('vn'):
       embs_result = py_utils.AddVN(p, embs_result)
 
@@ -3123,7 +3123,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
       # We used weight's output_dimension, i.e. p.num_classes as feature axis
       # while quantizing weight.
-      logits = self.FromAqtWeight('softmax_aqt', logits, feature_axis=-1)
+      logits = self.FromAqtWeight('softmax_aqt', logits)
 
     else:
       logits = py_utils.Matmul(

@@ -1126,7 +1126,7 @@ class LayerNormalizedLSTMCell(RNNCell):
     # for LayerNormalizedLSTM cell might run into errors.
     wm = self.ToAqtWeight('rnn_aqt', theta.wm, feature_axis=-1)
     out = py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), wm)
-    return self.FromAqtWeight('rnn_aqt', out, feature_axis=-1)
+    return self.FromAqtWeight('rnn_aqt', out)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""

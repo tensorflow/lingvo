@@ -373,7 +373,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         feature_axis=feature_axis,
         expected_scale_shape=expected_scale_shape)
 
-  def FromAqtWeight(self, w_name, out, feature_axis):
+  def FromAqtWeight(self, w_name, out):
     """Rescales the output corresponding to AQT style quantized matmul's weight.
 
     Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.
@@ -383,8 +383,6 @@ class QuantizableLayer(base_layer.BaseLayer):
     Args:
       w_name: Previously created w_name QWeight to quantize weight.
       out: The tensor to rescale.
-      feature_axis: axis corresponding to output channel/feature for quantized
-        weight in ToAqtWeight. None would correspond to per layer quantization.
 
     Returns:
       Rescaled output.
@@ -393,8 +391,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         ('Call to FromAqtWeight without first calling CreateAqtWeight: %s '
          '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
     qd = self._aqt_weights[w_name]
-    return qd.FromAqtWeight(
-        w_name, out, feature_axis=feature_axis) if qd else out
+    return qd.FromAqtWeight(w_name, out) if qd else out
 
   def GetQDomain(self, domain):
     """Gets the QDomain matching a given domain name.
@@ -936,7 +933,7 @@ class QDomain(base_layer.BaseLayer):
     del feature_axis, expected_scale_shape, w_name
     return w
 
-  def FromAqtWeight(self, w_name, out, feature_axis):
+  def FromAqtWeight(self, w_name, out):
     """Rescales the output corresponding to AQT quantized matmuls' weight.
 
     Refer to quantizable_layer.FromAqtWeight.
@@ -944,8 +941,6 @@ class QDomain(base_layer.BaseLayer):
     Args:
       w_name: weight name.
       out: The tensor to rescale.
-      feature_axis: axis corresponding to output channel/feature for quantized
-        weight in ToAqtWeight.
 
     Returns:
       Rescaled output.
