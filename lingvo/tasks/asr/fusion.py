@@ -69,7 +69,7 @@ class FusionBase(base_layer.BaseLayer):
         children.
       state0: A NestedMap of states (specific to the layer).
       ids: Target ids, of shape [batch_size] for single step unrolling or
-        [batch_size, base_model_logits_dim] for the entire sequence.
+        [seq_len, batch_size] for the entire sequence.
       paddings: Target paddings, of the same shape as 'ids'.
       misc: NestedMap of miscellaneous items, which might be needed during
         training.
@@ -117,7 +117,7 @@ class FusionBase(base_layer.BaseLayer):
         [batch_size, base_model_logits_dim] for a single step unrolling or
         [seq_len, batch_size, base_model_logits_dim] for the entire sequence.
       ids: Target ids, of shape [batch_size] for single step unrolling or
-        [batch_size, base_model_logits_dim] for the entire sequence.
+        [seq_len, batch_size] for the entire sequence.
       paddings: Target paddings, of the same shape as 'ids'.
       misc: NestedMap of miscellaneous items, which might be needed during
         training.
