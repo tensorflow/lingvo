@@ -235,7 +235,10 @@
 <span class="sd">      - state1: A NestedMap of updated states.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">state1</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
-    <span class="n">is_single_step</span> <span class="o">=</span> <span class="p">(</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
+      <span class="n">is_single_step</span> <span class="o">=</span> <span class="p">(</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">is_single_step</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">is_single_step</span><span class="p">:</span>
       <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
