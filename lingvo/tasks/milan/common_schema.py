@@ -29,15 +29,19 @@ def _Feature(shape, dtype=tf.float32):
         shape[1:], dtype=dtype, allow_missing=True)
 
 
-def ImageFeatures():
+def ImageFeatures(images_per_example=1):
   """Returns definitions of common image features.
 
+  Args:
+    images_per_example: Number of images stored in each example.
   Returns:
     A dict of feature definitions usable with `tf.io.parse_example`.
   """
+  images_shape = ([images_per_example] if images_per_example > 1 else [])
+
   return {
-      'image/encoded': _Feature([], tf.string),
-      'image/id': _Feature([], tf.int64),
+      'image/encoded': _Feature(images_shape, tf.string),
+      'image/id': _Feature(images_shape, tf.int64),
   }
 
 
