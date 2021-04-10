@@ -83,7 +83,10 @@ class FusionBase(base_layer.BaseLayer):
       - state1: A NestedMap of updated states.
     """
     state1 = state0.DeepCopy()
-    is_single_step = (ids.shape.ndims == 1)
+    if isinstance(ids.shape, tf.TensorShape):
+      is_single_step = (ids.shape.rank == 1)
+    else:
+      is_single_step = len(ids.shape) == 1
     if is_single_step:
       seq_len = 1
     else:
