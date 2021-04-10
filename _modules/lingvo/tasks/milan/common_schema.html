@@ -181,15 +181,19 @@
         <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">allow_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ImageFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.common_schema.html#lingvo.tasks.milan.common_schema.ImageFeatures">[docs]</a><span class="k">def</span> <span class="nf">ImageFeatures</span><span class="p">():</span>
+<div class="viewcode-block" id="ImageFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.common_schema.html#lingvo.tasks.milan.common_schema.ImageFeatures">[docs]</a><span class="k">def</span> <span class="nf">ImageFeatures</span><span class="p">(</span><span class="n">images_per_example</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns definitions of common image features.</span>
 
+<span class="sd">  Args:</span>
+<span class="sd">    images_per_example: Number of images stored in each example.</span>
 <span class="sd">  Returns:</span>
 <span class="sd">    A dict of feature definitions usable with `tf.io.parse_example`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">images_shape</span> <span class="o">=</span> <span class="p">([</span><span class="n">images_per_example</span><span class="p">]</span> <span class="k">if</span> <span class="n">images_per_example</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="p">[])</span>
+
   <span class="k">return</span> <span class="p">{</span>
-      <span class="s1">&#39;image/encoded&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
-      <span class="s1">&#39;image/id&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+      <span class="s1">&#39;image/encoded&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">(</span><span class="n">images_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
+      <span class="s1">&#39;image/id&#39;</span><span class="p">:</span> <span class="n">_Feature</span><span class="p">(</span><span class="n">images_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
   <span class="p">}</span></div>
 
 
