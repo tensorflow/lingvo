@@ -946,8 +946,8 @@ class GraphLayer(base_layer.BaseLayer):
         template = py_utils.NestedMap(inputs=sig.inputs)
         packed = template.Transform(graph_tensors.GetTensor)
         input_args = packed.inputs
-        tf.logging.info('signature: %s', p.sub[i][0])
-        tf.logging.info('GraphLayer: call %s %s %d %s', ch.params.name, ch,
+        tf.logging.vlog(1, 'signature: %s', p.sub[i][0])
+        tf.logging.vlog(1, 'GraphLayer: call %s %s %d %s', ch.params.name, ch,
                         len(input_args), str(input_args))
         ch_out = ch.FProp(th, *input_args)
         if len(sig.outputs) == 1:
