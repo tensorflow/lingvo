@@ -16,11 +16,12 @@
 r"""Test code for Mixture-of-Experts builder."""
 
 from lingvo import compat as tf
+from lingvo.core import cluster_factory
 from lingvo.core import gshard_builder
 from lingvo.core import gshard_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
-
+from lingvo.core import tpu_summary
 import numpy as np
 
 tf.flags.DEFINE_integer('num_partitions', 2, 'Number of partitions')
@@ -386,6 +387,141 @@ class MoEBuilderTest(test_utils.TestCase):
         sess.run(tf.assign(var, val))
       dec_out = dec_out.eval(session=sess)
       self.assertAllClose(dec_out, rep_out)
+
+  def testLayerStackSummary(self):
+    # In this test we very that summaries created inside stack layers
+    # are processed properly with and without RepeatedLayer
+    model_dim = 4
+    num_heads = 2
+    d_kv = 2
+    d_ff = 8
+    num_experts = 2
+    builder = gshard_builder.DenseBuilder.Params().Set(
+        deterministic_dropout=True,
+        dtype=tf.float32,
+        relative_attention_type='bias',
+        model_dim=model_dim,
+        attention_num_heads=num_heads,
+        attention_combine_dims=True,
+        attention_num_memory_heads=1,
+        model_dim_reshape_segments=None,
+        ff_dim=d_ff,
+        moe_hidden_dim=d_ff,
+        e_dim=num_experts,
+        c_dim=1,
+        num_groups=num_experts,
+        num_devices=num_experts,
+        attention_key_value_dim=d_kv).Instantiate()
+
+    def _GetInputs():
+      x = tf.constant([[[.1, .2, .3, .4], [.3, .4, .5, .6], [.5, .6, .1, .2]],
+                       [[.7, .8, .4, .5], [.9, .1, .2, .3], [.0, .9, .3, .7]]],
+                      dtype=tf.float32)
+      seg_id = tf.constant([[1, 1, 1], [1, 1, 1]], dtype=tf.int32)
+      pos_id = tf.constant([[0, 1, 2], [0, 1, 2]], dtype=tf.int32)
+      return x, seg_id, pos_id
+
+    def _GetOutputs(enc, dec):
+      x, seg_id, pos_id = _GetInputs()
+      enc_inputs = py_utils.NestedMap(
+          vec=x,
+          segment_id=seg_id,
+          segment_pos=pos_id,
+          aux_loss=tf.constant(0.0))
+      enc_outs = enc.FPropDefaultTheta(enc_inputs)
+      dec_inputs = py_utils.NestedMap(
+          vec=x,
+          segment_id=seg_id,
+          segment_pos=pos_id,
+          encoder_output=enc_outs.vec,
+          encoder_segment_id=tf.zeros_like(seg_id),
+          encoder_segment_pos=tf.zeros_like(pos_id),
+          aux_loss=enc_outs.aux_loss)
+      return dec.FPropDefaultTheta(dec_inputs).vec
+
+    # Build a graph with RepeatLayer unrolled.
+    g = tf.Graph()
+    with g.as_default(), tpu_summary.context(), cluster_factory.SetEval(
+        mode=True):
+      tf.random.set_seed(None)
+      enc = builder.EncoderLayerStack(
+          'encoder',
+          sub_layers=[builder.DenseReluDense('ffw')],
+          num=2,
+          use_repeat_layer=True).Instantiate()
+      dec = builder.DecoderLayerStack(
+          'decoder',
+          sub_layers=[builder.MoE('moe', decoder=True)],
+          num=2,
+          use_repeat_layer=True).Instantiate()
+      rep_unroll_out = _GetOutputs(enc, dec)
+      rep_unroll_summary = tpu_summary.merge_all()
+
+    expected_rep_unroll_summary = [
+        'index_1/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating',
+        'index_1/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating',
+        'over_capacity_1_ratio/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_1_ratio/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_2_ratio/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity_1',
+        'over_capacity_2_ratio/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity_1',
+        'top1_expert/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating',
+        'top1_expert/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating'
+    ]
+    self.assertCountEqual(expected_rep_unroll_summary, rep_unroll_summary)
+
+    tf.Session.reset(target='')
+    with tf.Session(graph=g) as sess:
+      sess.run(tf.global_variables_initializer())
+      rep_unroll_out, rep_unroll_summary = sess.run(
+          [rep_unroll_out, rep_unroll_summary])
+      var_values = sess.run(tf.trainable_variables())
+    # Build a graph without RepeatLayer.
+    g = tf.Graph()
+    with g.as_default(), tpu_summary.context():
+      tf.random.set_seed(None)
+      enc = builder.EncoderLayerStack(
+          'encoder', sub_layers=[builder.DenseReluDense('ffw')],
+          num=2).Instantiate()
+      dec = builder.DecoderLayerStack(
+          'decoder', sub_layers=[builder.MoE('moe', decoder=True)],
+          num=2).Instantiate()
+      dec_out = _GetOutputs(enc, dec)
+      dec_summary = tpu_summary.merge_all()
+
+    expected_dec_summary = [
+        'index_1/decoder_1/layer_000/moe/ffw/compute_gating',
+        'index_1/decoder_1/layer_001/moe/ffw/compute_gating',
+        'over_capacity_1_ratio/decoder_1/layer_000/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_1_ratio/decoder_1/layer_001/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_2_ratio/decoder_1/layer_000/moe/ffw/compute_gating/over_capacity_1',
+        'over_capacity_2_ratio/decoder_1/layer_001/moe/ffw/compute_gating/over_capacity_1',
+        'top1_expert/decoder_1/layer_000/moe/ffw/compute_gating',
+        'top1_expert/decoder_1/layer_001/moe/ffw/compute_gating'
+    ]
+    self.assertCountEqual(expected_dec_summary, dec_summary)
+
+    tf.Session.reset(target='')
+    with tf.Session(graph=g) as sess:
+      tf_vars = [
+          enc.vars.layer_000.ln.w.scale, enc.vars.layer_000.ffw.w.wi,
+          enc.vars.layer_000.ffw.w.wo, enc.vars.layer_001.ln.w.scale,
+          enc.vars.layer_001.ffw.w.wi, enc.vars.layer_001.ffw.w.wo,
+          enc.vars.final_layer_norm.w.scale, dec.vars.layer_000.ln.w.scale,
+          dec.vars.layer_000.moe.moe.wi, dec.vars.layer_000.moe.moe.wo,
+          dec.vars.layer_000.moe.ffw.top_2_gating.w,
+          dec.vars.layer_001.ln.w.scale, dec.vars.layer_001.moe.moe.wi,
+          dec.vars.layer_001.moe.moe.wo,
+          dec.vars.layer_001.moe.ffw.top_2_gating.w,
+          dec.vars.final_layer_norm.w.scale
+      ]
+      for val, var in zip(var_values, tf_vars):
+        sess.run(tf.assign(var, val))
+      dec_out, dec_summary = sess.run([dec_out, dec_summary])
+      self.assertAllClose(dec_out, rep_unroll_out)
+
+      for name, alt_name in zip(expected_dec_summary,
+                                expected_rep_unroll_summary):
+        self.assertAllClose(dec_summary[name], rep_unroll_summary[alt_name])
 
   def testParallelDecSelfAttentionRelativeBiasFFN(self):
     model_dim = 4
