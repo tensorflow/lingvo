@@ -445,7 +445,6 @@ class TrainerTpu(base_runner.BaseRunner):
 
         self._input_stats_summary_interval_steps = (
             self._task.input.params.input_stats_summary_interval_steps)
-        self._write_train_input_stats = FLAGS.add_summary
 
         def TpuTrainStep(*args):
           """Train a shard of a batch on a single TPU core.
@@ -523,8 +522,7 @@ class TrainerTpu(base_runner.BaseRunner):
       tf.logging.info('Trainer number of enqueue ops: %d',
                       len(self.enqueue_ops))
 
-    if (self._task.input.input_data_summary_layout is not None and
-        self._write_train_input_stats):
+    if self._task.input.input_data_summary_layout is not None:
       self._summary_writer.add_summary(
           self._task.input.input_data_summary_layout)
 
@@ -857,7 +855,6 @@ class Evaler(base_runner.BaseRunner):
 
       self._input_stats_summary_interval_steps = (
           self._task.input.params.input_stats_summary_interval_steps)
-      self._write_train_input_stats = FLAGS.add_summary
 
     # Saves the graph def.
     self._WriteToLog(self.params.ToText(), self._eval_dir, 'params.txt')

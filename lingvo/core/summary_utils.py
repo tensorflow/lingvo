@@ -35,11 +35,10 @@ def scalar(*args, **kwargs):  # pylint: disable=invalid-name
 
 
 def scalar_input_stats(*args, **kwargs):  # pylint: disable=invalid-name
-  if _ShouldAddSummary():
-    collections = kwargs.pop('collections', []) + [
-        base_input_generator.INPUT_DATA_STATS_SUMMARIES_COLLECTION
-    ]
-    tf.summary.scalar(*args, **kwargs, collections=collections)
+  collections = kwargs.pop('collections', []) + [
+      base_input_generator.INPUT_DATA_STATS_SUMMARIES_COLLECTION
+  ]
+  tf.summary.scalar(*args, **kwargs, collections=collections)
 
 
 def histogram(*args, **kwargs):  # pylint: disable=invalid-name

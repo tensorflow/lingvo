@@ -489,7 +489,7 @@ class BaseRunner:
       global_enqueue_steps: Measures how many global steps for which data has
         been enqueued.
     """
-    if summary_str is None or not self._write_train_input_stats:
+    if summary_str is None:
       return
 
     if global_enqueue_steps % self._input_stats_summary_interval_steps == 0:
