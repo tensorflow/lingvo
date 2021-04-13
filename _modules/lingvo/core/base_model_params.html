@@ -187,6 +187,10 @@
   <span class="k">pass</span></div>
 
 
+<div class="viewcode-block" id="GetAllDatasetParamsNotImplementedError"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.GetAllDatasetParamsNotImplementedError">[docs]</a><span class="k">class</span> <span class="nc">GetAllDatasetParamsNotImplementedError</span><span class="p">(</span><span class="ne">NotImplementedError</span><span class="p">):</span>
+  <span class="k">pass</span></div>
+
+
 <div class="viewcode-block" id="_BaseModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params._BaseModelParams">[docs]</a><span class="k">class</span> <span class="nc">_BaseModelParams</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Base class for storing model Params for a single experiment.&quot;&quot;&quot;</span>
 
@@ -198,8 +202,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A dict of {dataset_name: dataset_params}.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      GetAllDatasetParamsNotImplementedError: by default.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
+    <span class="k">raise</span> <span class="n">GetAllDatasetParamsNotImplementedError</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="_BaseModelParams.GetDatasetParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params._BaseModelParams.GetDatasetParams">[docs]</a>  <span class="k">def</span> <span class="nf">GetDatasetParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Convenience function that returns the param for the given dataset name.</span>
@@ -220,7 +227,7 @@
         <span class="k">raise</span> <span class="n">DatasetError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Dataset </span><span class="si">{</span><span class="n">dataset</span><span class="si">}</span><span class="s1"> not found; &#39;</span>
                            <span class="sa">f</span><span class="s1">&#39;available datasets are: </span><span class="si">{</span><span class="n">all_datasets</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">all_datasets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">NotImplementedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">except</span> <span class="n">GetAllDatasetParamsNotImplementedError</span><span class="p">:</span>
       <span class="c1"># Fall through the legacy path.</span>
       <span class="k">pass</span>
 
