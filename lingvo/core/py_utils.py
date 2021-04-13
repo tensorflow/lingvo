@@ -3568,6 +3568,9 @@ def ReduceRms(x: tf.Tensor) -> tf.Tensor:
   if not x.shape.is_fully_defined():
     raise ValueError('Shape of x must be fully defined.')
 
+  if not x.shape.as_list():
+    return x
+
   denom = functools.reduce((lambda x, y: x * y), x.shape.as_list())
   if denom <= 1e8:
     return tf.math.sqrt(tf.math.reduce_mean(tf.math.square(x)))

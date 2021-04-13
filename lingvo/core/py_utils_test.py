@@ -1029,6 +1029,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertAllEqual(np.argmax(x, axis=-1), y)
 
   @parameterized.named_parameters(
+      ('scalar_tensor', []),
       ('small_tensor', (2, 5, 10)),
       ('big_tensor', (1000, 1000, 25)),
   )
