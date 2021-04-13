@@ -274,13 +274,19 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
             init=py_utils.WeightInit.Constant(p.initial_accumulator),
             dtype=p.dtype,
             collections=slot_var_collections)
-        var_name = tpu_embedding_table.GetVariableName(host_id)
-        tpu_embedding_table.CreateVariable(
-            '%s/Adagrad' % var_name, w_ada, trainable=False)
-        accumulator_var = tpu_embedding_table.vars['%s/Adagrad' % var_name]
+        var_name = tpu_embedding_table.GetVariableName(host_id) + '/Adagrad'
+        tpu_embedding_table.CreateVariable(var_name, w_ada, trainable=False)
+        accumulator_var = tpu_embedding_table.vars[var_name]
 
         # Only the Trainer needs these ops.
         if py_utils.use_tpu():
+          # Remove the slot vars from the variable list to void copying them
+          # to TPU (by the tf.cast in of tpu_embedding_table.theta).
+          # pylint: disable=protected-access
+          del tpu_embedding_table._private_vars[var_name]
+          del tpu_embedding_table._private_theta[var_name]
+          # pylint: enable=protected-access
+
           # TPU Embedding load/retrieve ops need to be in the outer graph scope.
           with tf.init_scope():
             tf.logging.info('creating load and retrieve ops.')
