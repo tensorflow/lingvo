@@ -579,6 +579,11 @@ class TransformerEncoder(base_layer.BaseLayer):
         'packed_input', False, 'If True, encoder and all layers support '
         'multiple examples in a single sequence.')
 
+    p.Define(
+        'emb_projection_tpl', layers.ProjectionLayer.Params(),
+        'Template for embedding projection layer. The token embeddings '
+        'are projected to match the `model_dim`, if they are different.')
+
     # MASS pretraining related (https://github.com/microsoft/MASS).
     p.Define(
         'apply_source_mask', False, 'If True, apply source mask '
@@ -590,6 +595,8 @@ class TransformerEncoder(base_layer.BaseLayer):
     p.transformer_stack.num_transformer_layers = 6
     p.transformer_stack.transformer_tpl.tr_atten_tpl.num_attention_heads = 8
     p.transformer_stack.transformer_tpl.tr_fflayer_tpl.hidden_dim = 8192
+
+    p.emb_projection_tpl.batch_norm = True
     return p
 
   def __init__(self, params):
@@ -606,11 +613,10 @@ class TransformerEncoder(base_layer.BaseLayer):
     if p.model_dim != p.token_emb.embedding_dim:
       tf.logging.warning('token_emb.embedding_dim != model_dim (%s vs. %s), '
                          'creating a projection!')
-      proj_p = layers.ProjectionLayer.Params().Copy()
+      proj_p = p.emb_projection_tpl.Copy()
       proj_p.name = 'emb_proj'
       proj_p.input_dim = p.token_emb.embedding_dim
       proj_p.output_dim = p.model_dim
-      proj_p.batch_norm = True
       self.CreateChild('emb_proj', proj_p)
 
     # Token embeddings
