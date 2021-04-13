@@ -731,6 +731,11 @@
         <span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, encoder and all layers support &#39;</span>
         <span class="s1">&#39;multiple examples in a single sequence.&#39;</span><span class="p">)</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;emb_projection_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Template for embedding projection layer. The token embeddings &#39;</span>
+        <span class="s1">&#39;are projected to match the `model_dim`, if they are different.&#39;</span><span class="p">)</span>
+
     <span class="c1"># MASS pretraining related (https://github.com/microsoft/MASS).</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;apply_source_mask&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, apply source mask &#39;</span>
@@ -742,6 +747,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">=</span> <span class="mi">6</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">8192</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">emb_projection_tpl</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -758,11 +765,10 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;token_emb.embedding_dim != model_dim (</span><span class="si">%s</span><span class="s1"> vs. </span><span class="si">%s</span><span class="s1">), &#39;</span>
                          <span class="s1">&#39;creating a projection!&#39;</span><span class="p">)</span>
-      <span class="n">proj_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">proj_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_projection_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;emb_proj&#39;</span>
       <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
       <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
-      <span class="n">proj_p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb_proj&#39;</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
 
     <span class="c1"># Token embeddings</span>
