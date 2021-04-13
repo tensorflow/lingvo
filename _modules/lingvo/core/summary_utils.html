@@ -187,11 +187,10 @@
 
 
 <div class="viewcode-block" id="scalar_input_stats"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar_input_stats">[docs]</a><span class="k">def</span> <span class="nf">scalar_input_stats</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
-    <span class="n">collections</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;collections&#39;</span><span class="p">,</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">[</span>
-        <span class="n">base_input_generator</span><span class="o">.</span><span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span>
-    <span class="p">]</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span></div>
+  <span class="n">collections</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;collections&#39;</span><span class="p">,</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">[</span>
+      <span class="n">base_input_generator</span><span class="o">.</span><span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span>
+  <span class="p">]</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="histogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.histogram">[docs]</a><span class="k">def</span> <span class="nf">histogram</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>

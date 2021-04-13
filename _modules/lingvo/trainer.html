@@ -597,7 +597,6 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_input_stats_summary_interval_steps</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_stats_summary_interval_steps</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">add_summary</span>
 
         <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
           <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
@@ -675,8 +674,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Trainer number of enqueue ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                       <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">input_data_summary_layout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">input_data_summary_layout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">input_data_summary_layout</span><span class="p">)</span>
 
@@ -1009,7 +1007,6 @@
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_input_stats_summary_interval_steps</span> <span class="o">=</span> <span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_stats_summary_interval_steps</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">add_summary</span>
 
     <span class="c1"># Saves the graph def.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">)</span>
