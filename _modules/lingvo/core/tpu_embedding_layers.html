@@ -426,13 +426,19 @@
             <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">slot_var_collections</span><span class="p">)</span>
-        <span class="n">var_name</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span>
-        <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">var_name</span><span class="p">]</span>
+        <span class="n">var_name</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/Adagrad&#39;</span>
+        <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
 
         <span class="c1"># Only the Trainer needs these ops.</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+          <span class="c1"># Remove the slot vars from the variable list to void copying them</span>
+          <span class="c1"># to TPU (by the tf.cast in of tpu_embedding_table.theta).</span>
+          <span class="c1"># pylint: disable=protected-access</span>
+          <span class="k">del</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+          <span class="k">del</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+          <span class="c1"># pylint: enable=protected-access</span>
+
           <span class="c1"># TPU Embedding load/retrieve ops need to be in the outer graph scope.</span>
           <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;creating load and retrieve ops.&#39;</span><span class="p">)</span>
