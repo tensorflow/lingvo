@@ -20,6 +20,12 @@ from lingvo.core import base_model_params
 from lingvo.core import test_utils
 
 
+class TestModelParams(base_model_params.SingleTaskModelParams):
+
+  def GetAllDatasetParams(self):
+    raise NotImplementedError('test error')
+
+
 class BaseModelParamsTest(test_utils.TestCase):
 
   def testGetDatasetParams_SingleTaskModelParams(self):
@@ -37,6 +43,11 @@ class BaseModelParamsTest(test_utils.TestCase):
     self.assertEqual(dummy_model.Test(), dummy_model.GetDatasetParams('Test'))
     with self.assertRaises(base_model_params.DatasetError):
       dummy_model.GetDatasetParams('Invalid')
+
+  def testGetDatasetParams_NotImplementedError(self):
+    dummy_model = TestModelParams()
+    with self.assertRaisesRegexp(NotImplementedError, 'test error'):
+      dummy_model.GetDatasetParams('Train')
 
 
 if __name__ == '__main__':
