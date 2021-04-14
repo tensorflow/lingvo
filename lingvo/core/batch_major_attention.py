@@ -41,6 +41,7 @@ from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import quant_utils
 from lingvo.core import repeat_layer
 from lingvo.core import scatter_update
 from lingvo.core import symbolic
@@ -171,7 +172,7 @@ class PerDimScaleLayer(base_layer.BaseLayer):
         flops=inputs.num_elements() * 5, out_shapes=(inputs,))
 
 
-class MultiHeadedProjectionLayer(base_layer.BaseLayer):
+class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
   """Layer that computes multi heads projection.
 
     This layer is expected to be used within MultiHeadedAttention below.
@@ -197,6 +198,16 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         'mixing is done after getting all the different attention outputs.')
     p.Define('use_bias', True, 'If to add bias in projection.')
     return p
+
+  def __init__(self, params):
+    """Constructs a MultiHeadedProjectionLayer object."""
+    super().__init__(params)
+    p = self.params
+    feature_axis = 0 if p.is_output_projection else (-2, -1)
+    self.CreateAqtWeight(
+        'aqt_w',
+        shape=[p.input_dim, p.num_heads, p.dim_per_head],
+        feature_axis=feature_axis)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -281,13 +292,17 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         inputs = py_utils.HasShape(inputs, expected_shape)
         batch_eqn = eqn_sym[:(rank - 2)] if rank else '...'
         eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
+        out_feature_axis = 0
       else:
         expected_shape = tf.concat(
             [py_utils.GetShape(inputs)[:-1], [p.input_dim]], axis=0)
         inputs = py_utils.HasShape(inputs, expected_shape)
         batch_eqn = eqn_sym[:(rank - 1)] if rank else '...'
         eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
-      ret = tf.einsum(eqn, inputs, theta.w)
+        out_feature_axis = (-2, -1)
+      w = self.ToAqtWeight('aqt_w', theta.w, feature_axis=out_feature_axis)
+      ret = tf.einsum(eqn, inputs, w)
+      ret = self.FromAqtWeight('aqt_w', ret)
       if p.use_bias:
         ret += theta.b
       return ret

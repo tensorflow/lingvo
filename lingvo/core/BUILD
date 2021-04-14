@@ -99,6 +99,7 @@ py_library(
         ":layers",
         ":layers_with_attention",
         ":py_utils",
+        ":quant_utils",
         ":repeat_layer",
         ":scatter_update",
         ":symbolic",
