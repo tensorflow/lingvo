@@ -169,6 +169,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">step</span>
 
 
@@ -231,30 +232,86 @@
              <span class="s1">&#39;The number of previous tokens to keep in state.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;include_current_token&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Include current token in embedding lookup&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Do not use. Define it in child emb.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Do not use. Define it in child emb.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;stateful_emb_step&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span>
+
+    <span class="c1"># Output dimensionality</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span>
+        <span class="s1">&#39;output_dim&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span> <span class="s1">&#39;Inconsistent embedding_dim!&#39;</span>
+
+    <span class="c1"># Total number of tokens</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">num_tokens</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_prev_tokens</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">include_current_token</span><span class="p">)</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_tokens</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of tokens is zero!&#39;</span>
 
     <span class="c1"># If embedding supports multiple tokens, then it must have a num_tokens</span>
     <span class="c1"># param, otherwise the num_tokens must be 1</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="s1">&#39;num_tokens&#39;</span><span class="p">):</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">num_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_tokens</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">num_tokens</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_tokens</span><span class="p">,</span> <span class="s1">&#39;Inconsistent num_tokens!&#39;</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_tokens</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;Since p.emb doesn&#39;t have the num_tokens &quot;</span>
+      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_tokens</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Since p.emb does not have the num_tokens &#39;</span>
                                     <span class="s1">&#39;param, p.num_prev_tokens and &#39;</span>
                                     <span class="s1">&#39;p.include_current_token must sum to 1&#39;</span><span class="p">)</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="StatefulEmbeddingStep.ZeroState"><a class="viewcode-back" href="../../../../lingvo.core.steps.embedding_steps.html#lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">state0</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="n">state0</span><span class="o">.</span><span class="n">prev_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_prev_tokens</span><span class="p">],</span>
-                              <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span>
+                              <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span>
+    <span class="n">state0</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">state0</span></div>
+
+<div class="viewcode-block" id="StatefulEmbeddingStep.zero_state"><a class="viewcode-back" href="../../../../lingvo.core.steps.embedding_steps.html#lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StatefulEmbeddingStep.EmbLookup"><a class="viewcode-back" href="../../../../lingvo.core.steps.embedding_steps.html#lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Use this layer like a regular EmbeddingLayer (ids -&gt; embeddings).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      ids: A tensor of token ids with dimensions [t, b].</span>
+<span class="sd">      state0: A NestedMap containing the state of previous tokens.</span>
+<span class="sd">      - prev_ids: A Tensor containing the n previous token ids. [batch,</span>
+<span class="sd">        num_prev_tokens]. Each row is the token ids at t-1, ..., t-n.</span>
+<span class="sd">      - embeddings: The output embeddings of the previous step.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Embeddings time major [t, b, d] and next state</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_FPropWrapper</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+      <span class="n">embedding</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span>
+          <span class="kc">None</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="kc">None</span><span class="p">,</span>
+          <span class="n">state0</span><span class="p">,</span>
+      <span class="p">)</span>
+      <span class="n">state1</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">embedding</span><span class="o">.</span><span class="n">output</span>
+      <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="n">steps_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)])</span>
+    <span class="n">state1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+        <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">steps_input</span><span class="p">,</span>
+        <span class="n">cell_fn</span><span class="o">=</span><span class="n">_FPropWrapper</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># for training, we want the output across all timesteps</span>
+    <span class="n">sequence_of_embeddings</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">embedding</span>
+    <span class="c1"># for inference, we want just the last timestep&#39;s state, not all states</span>
+    <span class="n">state1</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">embedding</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">state1</span><span class="o">.</span><span class="n">prev_ids</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">prev_ids</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">sequence_of_embeddings</span><span class="p">,</span> <span class="n">state1</span></div>
 
 <div class="viewcode-block" id="StatefulEmbeddingStep.FProp"><a class="viewcode-back" href="../../../../lingvo.core.steps.embedding_steps.html#lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calls an embedding lookup and updates the state of token history.</span>
@@ -264,44 +321,49 @@
 <span class="sd">        its children layers.</span>
 <span class="sd">      prepared_inputs: unused.</span>
 <span class="sd">      step_inputs: A NestedMap containing a list called inputs. This list should</span>
-<span class="sd">        contain a single integer tensor of shape [batch], where each integer</span>
-<span class="sd">        represents an index into the embedding table. (By convention, all Steps</span>
-<span class="sd">        that can be used with StackStep must store inputs in</span>
-<span class="sd">        step_inputs.inputs[], but in this step it does not make sense for that</span>
-<span class="sd">        list to have more than one tensor in it).</span>
+<span class="sd">        contain a single float32 (will be converted to int32 later) tensor of</span>
+<span class="sd">        shape [batch], where each value represents an index into the embedding</span>
+<span class="sd">        table. (By convention, all Steps that can be used with StackStep must</span>
+<span class="sd">        store inputs in step_inputs.inputs[], but in this step it does not make</span>
+<span class="sd">        sense for that list to have more than one tensor in it).</span>
 <span class="sd">      padding: unused.</span>
 <span class="sd">      state0: A NestedMap containing the state of previous tokens.</span>
 <span class="sd">      - prev_ids: A Tensor containing the n previous token ids. [batch,</span>
 <span class="sd">        num_prev_tokens]. Each row is the token ids at t-1, ..., t-n.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Embedding vectors. [batch, p.emb.embedding_dim]</span>
+<span class="sd">      Embedding vectors [batch, p.embedding_dim] and new state</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># prepare token ids</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">include_current_token</span><span class="p">:</span>
-      <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">step_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">state0</span><span class="o">.</span><span class="n">prev_ids</span><span class="p">],</span>
+      <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">step_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">prev_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="p">],</span>
                       <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">ids</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">prev_ids</span>
 
     <span class="c1"># lookup embedding. ids.shape is [batch, num_tokens]</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
-    <span class="n">embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+    <span class="n">embedding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
 
     <span class="c1"># update state</span>
     <span class="n">state1</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_prev_tokens</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">state1</span><span class="o">.</span><span class="n">prev_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">step_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">prev_ids</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">step_inputs</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">prev_ids</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
       <span class="p">],</span>
                                   <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">state1</span><span class="o">.</span><span class="n">prev_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">prev_ids</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_prev_tokens</span><span class="p">],</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;prev_ids_shape_validation&#39;</span><span class="p">)</span>
+    <span class="n">state1</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">embedding</span>
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">output</span><span class="o">=</span><span class="n">embedding</span><span class="p">),</span> <span class="n">state1</span></div></div>
 </pre></div>

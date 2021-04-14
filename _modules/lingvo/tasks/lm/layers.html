@@ -211,8 +211,8 @@
     <span class="sd">&quot;&quot;&quot;Computes xent loss given the language model inputs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: a tensor of shape [time, batch] or [time, batch, dims].</span>
 <span class="sd">      paddings: a 0/1 tensor of shape [time, batch].</span>
 <span class="sd">      state0: A `.NestedMap` containing the initial recurrent state.</span>
@@ -257,8 +257,8 @@
     <span class="sd">&quot;&quot;&quot;FProp one step.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: a tensor of shape [batch] or [batch, dims].</span>
 <span class="sd">      paddings: a 0/1 tensor of shape [batch].</span>
 <span class="sd">      state0: A `.NestedMap` containing the initial recurrent state.</span>
@@ -455,7 +455,10 @@
     <span class="n">cell_output_size</span> <span class="o">=</span> <span class="n">_RnnOutputSize</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="p">)</span>
     <span class="n">output_layer_size</span> <span class="o">=</span> <span class="n">cell_output_size</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">direct_features_dim</span>
 
-    <span class="k">if</span> <span class="n">output_layer_size</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">output_layer_size</span> <span class="o">+</span> <span class="p">(</span>
+        <span class="mi">0</span> <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;emb_softmax&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_softmax</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">inject_emb_method</span> <span class="o">!=</span> <span class="s1">&#39;concat&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_softmax</span><span class="o">.</span><span class="n">embedding_dim</span>
+    <span class="p">)</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;Output layer size </span><span class="si">%d</span><span class="s1"> does not match softmax input size </span><span class="si">%d</span><span class="s1">! &#39;</span>
           <span class="s1">&#39;cell_output_size: </span><span class="si">%d</span><span class="s1"> direct_features_dim: </span><span class="si">%d</span><span class="s1"> &#39;</span> <span class="o">%</span>
@@ -488,8 +491,8 @@
     <span class="sd">&quot;&quot;&quot;FProp one step.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: a tensor of shape [batch] or [batch, dims].</span>
 <span class="sd">      paddings: a 0/1 tensor of shape [batch].</span>
 <span class="sd">      state0: A `.NestedMap` containing the initial recurrent state.</span>
@@ -543,22 +546,20 @@
     <span class="sd">&quot;&quot;&quot;Computes xent loss given the language model input activations.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: input activation. A tensor of shape [time, batch, dims].</span>
 <span class="sd">      paddings: a 0/1 tensor of shape [time, batch].</span>
 <span class="sd">      state0: A `.NestedMap` containing the initial recurrent state.</span>
-<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields.</span>
-
-<span class="sd">        - class_weights, a tensor with shape [time, batch] containing the</span>
-<span class="sd">          weights for each target word.</span>
-<span class="sd">        - class_ids, a tensor with shape [time, batch] of int32 dtype containing</span>
-<span class="sd">          the target class labels.</span>
-<span class="sd">        - class_probabilities, a tensor with shape [time, batch, vocab_size] of</span>
-<span class="sd">          float values indicating class-membership probabilities.</span>
-<span class="sd">      direct_features:</span>
-<span class="sd">        If not None, a tensor of [time, batch, direct_feature_dims] that is</span>
-<span class="sd">        concatenated to the output of the last RNN layer.</span>
+<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields.  -</span>
+<span class="sd">        class_weights, a tensor with shape [time, batch] containing the weights</span>
+<span class="sd">        for each target word. - class_ids, a tensor with shape [time, batch] of</span>
+<span class="sd">        int32 dtype containing the target class labels. - class_probabilities, a</span>
+<span class="sd">        tensor with shape [time, batch, vocab_size] of float values indicating</span>
+<span class="sd">        class-membership probabilities.</span>
+<span class="sd">      direct_features: If not None, a tensor of [time, batch,</span>
+<span class="sd">        direct_feature_dims] that is concatenated to the output of the last RNN</span>
+<span class="sd">        layer.</span>
 <span class="sd">      **kwargs: Optional extra keyword arguments to be passed on to rnns.</span>
 
 <span class="sd">    Returns:</span>
@@ -577,6 +578,19 @@
     <span class="n">activation</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">rnns</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
                                          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">state0</span><span class="p">,</span>
                                          <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Inject ngram embedding to activations before softmax layer</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;emb_softmax&#39;</span><span class="p">):</span>
+      <span class="n">embedding</span><span class="p">,</span> <span class="n">state1</span><span class="o">.</span><span class="n">emb_softmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_softmax</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">emb_softmax</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;input_ids&#39;</span><span class="p">],</span> <span class="n">state0</span><span class="o">.</span><span class="n">emb_softmax</span><span class="p">)</span>
+      <span class="n">embedding</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">embedding</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">inject_emb_method</span> <span class="o">==</span> <span class="s1">&#39;concat&#39;</span><span class="p">:</span>
+        <span class="n">activation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">activation</span><span class="p">,</span> <span class="n">embedding</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">inject_emb_method</span> <span class="o">==</span> <span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;params.inject_emb_method: &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">inject_emb_method</span><span class="si">}</span><span class="s1"> is unknown&#39;</span><span class="p">)</span>
+        <span class="n">activation</span> <span class="o">=</span> <span class="n">activation</span> <span class="o">+</span> <span class="n">embedding</span>
 
     <span class="k">if</span> <span class="n">direct_features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">direct_features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">direct_features</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
@@ -641,6 +655,9 @@
              <span class="s1">&#39;The embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dropout_keep_prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Embedding dropout keep prob.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dropout_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Embedding dropout seed.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb_softmax&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Embedding to concatenate to softmax input&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inject_emb_method&#39;</span><span class="p">,</span> <span class="s1">&#39;concat&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Unused if emb_softmax=False. Can be one of (`concat`, `add`)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -667,10 +684,9 @@
 <span class="sd">        higher index layers also have residuals.</span>
 <span class="sd">      layer_norm: If true, use LayerNormalizedLSTMCellSimple otherwise use</span>
 <span class="sd">        LSTMCellSimple.</span>
-<span class="sd">      softmax_max_alloc: If set to a positive integer the soft-max</span>
-<span class="sd">        computation is chunked into allocations of at most</span>
-<span class="sd">        `softmax_max_alloc`; when left to its default value of None no</span>
-<span class="sd">        chunking is done.</span>
+<span class="sd">      softmax_max_alloc: If set to a positive integer the soft-max computation</span>
+<span class="sd">        is chunked into allocations of at most `softmax_max_alloc`; when left to</span>
+<span class="sd">        its default value of None no chunking is done.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A `RnnLm` parameter object.</span>
@@ -719,11 +735,24 @@
     <span class="k">if</span> <span class="n">verify_sizes</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
           <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">))</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>
-                             <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span>
+          <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">EmbeddingAugmentedLayerNormalizedLSTMCellSimple</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>
+                               <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">))</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_softmax</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb_softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_softmax</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RnnLm.zero_state"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.RnnLm.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="n">state0</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;emb&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="s1">&#39;zero_state&#39;</span><span class="p">):</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">emb_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;emb_softmax&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">emb_softmax</span><span class="p">,</span> <span class="s1">&#39;zero_state&#39;</span><span class="p">):</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">emb_softmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_softmax</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_softmax</span><span class="p">,</span>
+                                                       <span class="n">batch_size</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state0</span></div>
 
 <div class="viewcode-block" id="RnnLm.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.RnnLm.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">theta</span><span class="p">,</span>
@@ -736,22 +765,20 @@
     <span class="sd">&quot;&quot;&quot;Computes xent loss given the language model input activations.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: input ids. An int32 tensor of shape [time, batch].</span>
 <span class="sd">      paddings: a 0/1 tensor of shape [time, batch].</span>
 <span class="sd">      state0: A `.NestedMap` containing the initial recurrent state.</span>
-<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields:</span>
-
-<span class="sd">        - class_weights, a tensor with shape [time, batch] containing the</span>
-<span class="sd">          weights for each target word.</span>
-<span class="sd">        - class_ids, a tensor with shape [time, batch] of int32 dtype containing</span>
-<span class="sd">          the target class labels.</span>
-<span class="sd">        - class_probabilities, a tensor with shape [time, batch, vocab_size] of</span>
-<span class="sd">          float values indicating class-membership probabilities.</span>
-<span class="sd">      direct_features:</span>
-<span class="sd">        If not None, a tensor of [time, batch, direct_feature_dims] that is</span>
-<span class="sd">        concatenated to the output of the last RNN layer.</span>
+<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields:  -</span>
+<span class="sd">        class_weights, a tensor with shape [time, batch] containing the weights</span>
+<span class="sd">        for each target word. - class_ids, a tensor with shape [time, batch] of</span>
+<span class="sd">        int32 dtype containing the target class labels. - class_probabilities, a</span>
+<span class="sd">        tensor with shape [time, batch, vocab_size] of float values indicating</span>
+<span class="sd">        class-membership probabilities.</span>
+<span class="sd">      direct_features: If not None, a tensor of [time, batch,</span>
+<span class="sd">        direct_feature_dims] that is concatenated to the output of the last RNN</span>
+<span class="sd">        layer.</span>
 <span class="sd">      **kwargs: Optional extra keyword arguments to be passed on to rnns.</span>
 
 <span class="sd">    Returns:</span>
@@ -763,7 +790,14 @@
     <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
     <span class="k">assert</span> <span class="n">state0</span>
-    <span class="n">activation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
+
+    <span class="c1"># Embedding</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="s1">&#39;num_prev_tokens&#39;</span><span class="p">):</span>
+      <span class="n">activation</span><span class="p">,</span> <span class="n">state1_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span>
+                                                  <span class="n">state0</span><span class="o">.</span><span class="n">emb_input</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">activation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
+
     <span class="c1"># Dropout on embeddings is only applied in training.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dropout_keep_prob</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
@@ -771,7 +805,8 @@
           <span class="n">activation</span><span class="p">,</span>
           <span class="n">rate</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dropout_keep_prob</span><span class="p">,</span>
           <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dropout_seed</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+
+    <span class="n">xent_output</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span>
         <span class="n">activation</span><span class="p">,</span>
         <span class="n">paddings</span><span class="p">,</span>
@@ -779,7 +814,13 @@
         <span class="n">labels</span><span class="p">,</span>
         <span class="n">direct_features</span><span class="p">,</span>
         <span class="n">input_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Update embedding layer if it is stateful</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="s1">&#39;num_prev_tokens&#39;</span><span class="p">):</span>
+      <span class="n">state1</span><span class="o">.</span><span class="n">emb</span> <span class="o">=</span> <span class="n">state1_emb</span>
+
+    <span class="k">return</span> <span class="n">xent_output</span><span class="p">,</span> <span class="n">state1</span></div></div>
 
 
 <div class="viewcode-block" id="ConditionalRnnLm"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.ConditionalRnnLm">[docs]</a><span class="k">class</span> <span class="nc">ConditionalRnnLm</span><span class="p">(</span><span class="n">RnnLmNoEmbedding</span><span class="p">):</span>
@@ -804,9 +845,10 @@
 
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">))</span>
-    <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">condition_dim</span> <span class="o">==</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">+</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">condition_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>
+                                   <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">))</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
 
@@ -871,10 +913,9 @@
 <div class="viewcode-block" id="MoeLm.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.MoeLm.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;emb&#39;</span><span class="p">,</span>
-        <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">max_num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-        <span class="s1">&#39;The embedding layer params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span>
+             <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">max_num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+             <span class="s1">&#39;The embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If true, uses a single embedding&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;add_postgating_rnn&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If true, add an RNNLM post gating. &#39;</span>
@@ -1096,8 +1137,8 @@
     <span class="sd">&quot;&quot;&quot;FProp one step.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: a tensor of shape [batch, model_dim].</span>
 <span class="sd">      paddings: a 0/1 tensor of shape [batch]. Unused here.</span>
 <span class="sd">      state0: A `.NestedMap` containing the prefix states up to step t-1.</span>
@@ -1145,19 +1186,17 @@
     <span class="sd">&quot;&quot;&quot;Computes xent loss given the language model input activations.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: Input activation. A tensor of shape [time, batch, model_dim].</span>
 <span class="sd">      paddings: A 0/1 tensor of shape [time, batch].</span>
 <span class="sd">      state0: Not used for Transformer.</span>
-<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields:</span>
-
-<span class="sd">        - class_weights, a tensor with shape [time, batch] containing the</span>
-<span class="sd">          weights for each target word.</span>
-<span class="sd">        - class_ids, a tensor with shape [time, batch] of int32 dtype containing</span>
-<span class="sd">          the target class labels.</span>
-<span class="sd">        - class_probabilities, a tensor with shape [time, batch, vocab_size] of</span>
-<span class="sd">          float values indicating class-membership probabilities.</span>
+<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields:  -</span>
+<span class="sd">        class_weights, a tensor with shape [time, batch] containing the weights</span>
+<span class="sd">        for each target word. - class_ids, a tensor with shape [time, batch] of</span>
+<span class="sd">        int32 dtype containing the target class labels. - class_probabilities, a</span>
+<span class="sd">        tensor with shape [time, batch, vocab_size] of float values indicating</span>
+<span class="sd">        class-membership probabilities.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      If `labels` is not None, returns (xent_output, None), where</span>
@@ -1250,10 +1289,9 @@
 <span class="sd">        Transformer attention sub-layer.</span>
 <span class="sd">      relu_dropout_prob: dropout prob to the inner layer output (ReLU</span>
 <span class="sd">        activation) in each Transformer feed-forward sub-layer.</span>
-<span class="sd">      softmax_max_alloc: If set to a positive integer the soft-max</span>
-<span class="sd">        computation is chunked into allocations of at most</span>
-<span class="sd">        softmax_max_alloc; when left to its default value of None no</span>
-<span class="sd">        chunking is done.</span>
+<span class="sd">      softmax_max_alloc: If set to a positive integer the soft-max computation</span>
+<span class="sd">        is chunked into allocations of at most softmax_max_alloc; when left to</span>
+<span class="sd">        its default value of None no chunking is done.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A Params object containing the parameters that set up a Transformer LM.</span>
@@ -1317,19 +1355,17 @@
     <span class="sd">&quot;&quot;&quot;Computes xent loss given the language model input activations.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      inputs: Input ids. An int32 tensor of shape [time, batch].</span>
 <span class="sd">      paddings: A 0/1 tensor of shape [time, batch].</span>
 <span class="sd">      state0: Not used for Transformer.</span>
-<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields:</span>
-
-<span class="sd">        - class_weights, a tensor with shape [time, batch] containing the</span>
-<span class="sd">          weights for each target word.</span>
-<span class="sd">        - class_ids, a tensor with shape [time, batch] of int32 dtype containing</span>
-<span class="sd">          the target class labels.</span>
-<span class="sd">        - class_probabilities, a tensor with shape [time, batch, vocab_size] of</span>
-<span class="sd">          float values indicating class-membership probabilities.</span>
+<span class="sd">      labels: If not None, a `.NestedMap` containing the following fields:  -</span>
+<span class="sd">        class_weights, a tensor with shape [time, batch] containing the weights</span>
+<span class="sd">        for each target word. - class_ids, a tensor with shape [time, batch] of</span>
+<span class="sd">        int32 dtype containing the target class labels. - class_probabilities, a</span>
+<span class="sd">        tensor with shape [time, batch, vocab_size] of float values indicating</span>
+<span class="sd">        class-membership probabilities.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      If `labels` is not None, returns (xent_output, state1), where</span>

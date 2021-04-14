@@ -248,6 +248,33 @@ FProp() for processing the first time step.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.zero_state">
+<code class="sig-name descname"><span class="pre">zero_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/embedding_steps.html#StatefulEmbeddingStep.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.EmbLookup">
+<code class="sig-name descname"><span class="pre">EmbLookup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/embedding_steps.html#StatefulEmbeddingStep.EmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use this layer like a regular EmbeddingLayer (ids -&gt; embeddings).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>ids</strong> – A tensor of token ids with dimensions [t, b].</p></li>
+<li><p><strong>state0</strong> – A NestedMap containing the state of previous tokens.</p></li>
+<li><p><strong>prev_ids</strong> (<em>-</em>) – A Tensor containing the n previous token ids. [batch,
+num_prev_tokens]. Each row is the token ids at t-1, …, t-n.</p></li>
+<li><p><strong>embeddings</strong> (<em>-</em>) – The output embeddings of the previous step.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Embeddings time major [t, b, d] and next state</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.FProp">
 <code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/embedding_steps.html#StatefulEmbeddingStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.steps.embedding_steps.StatefulEmbeddingStep.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calls an embedding lookup and updates the state of token history.</p>
@@ -258,11 +285,11 @@ FProp() for processing the first time step.</p>
 its children layers.</p></li>
 <li><p><strong>prepared_inputs</strong> – unused.</p></li>
 <li><p><strong>step_inputs</strong> – A NestedMap containing a list called inputs. This list should
-contain a single integer tensor of shape [batch], where each integer
-represents an index into the embedding table. (By convention, all Steps
-that can be used with StackStep must store inputs in
-step_inputs.inputs[], but in this step it does not make sense for that
-list to have more than one tensor in it).</p></li>
+contain a single float32 (will be converted to int32 later) tensor of
+shape [batch], where each value represents an index into the embedding
+table. (By convention, all Steps that can be used with StackStep must
+store inputs in step_inputs.inputs[], but in this step it does not make
+sense for that list to have more than one tensor in it).</p></li>
 <li><p><strong>padding</strong> – unused.</p></li>
 <li><p><strong>state0</strong> – A NestedMap containing the state of previous tokens.</p></li>
 <li><p><strong>prev_ids</strong> (<em>-</em>) – A Tensor containing the n previous token ids. [batch,
@@ -270,7 +297,7 @@ num_prev_tokens]. Each row is the token ids at t-1, …, t-n.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Embedding vectors. [batch, p.emb.embedding_dim]</p>
+<dd class="field-even"><p>Embedding vectors [batch, p.embedding_dim] and new state</p>
 </dd>
 </dl>
 </dd></dl>
