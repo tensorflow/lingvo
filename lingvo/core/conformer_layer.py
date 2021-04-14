@@ -466,6 +466,8 @@ class ConformerLayer(base_layer.BaseLayer):
         'is True. It is important to always set is_causal for streaming case, '
         'and not expect to infer from atten_{left,right}_context.')
     # atten layer
+    # TODO(rpang): consider removing the attention hparams since they overlap
+    # with p.trans_atten_tpl.
     p.Define('atten_num_heads', None,
              'Num of heads in multi-head self-attention.')
     p.Define(
@@ -736,8 +738,7 @@ class ConformerLayer(base_layer.BaseLayer):
       # No op for 'global' atten
       assert atten_type in ('global', 'global_causal'), (
           f'Unknown atten_type {atten_type}')
-      atten_tpl = attention_lib.MultiHeadedAttention.Params()
-      hparams_lib.CopyFieldsTo(trans_atten_p.atten_tpl, atten_tpl)
+      atten_tpl = trans_atten_p.atten_tpl.Copy()
     trans_atten_p.atten_tpl = atten_tpl
 
   def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix):

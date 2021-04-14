@@ -21,6 +21,7 @@ from absl.testing import flagsaver
 from absl.testing import parameterized
 
 from lingvo import compat as tf
+from lingvo.core import batch_major_attention
 from lingvo.core import bn_layers
 from lingvo.core import cluster_factory
 from lingvo.core import conformer_layer
@@ -400,6 +401,19 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       for (k, v1), (_, v2) in zip(base_grads_val.FlattenItems(),
                                   new_grads_val.FlattenItems()):
         self.assertAllClose(v1, v2, msg=k)
+
+  def testCustomAttentionLayer(self):
+    p = self._GetParams()
+    p.atten_left_context = -1
+    p.atten_right_context = -1
+    p.use_relative_atten = False
+    # Use a custom atten_tpl.
+    p.trans_atten_tpl.atten_tpl = (
+        batch_major_attention.MultiHeadedFavorAttention.Params().Set(
+            num_random_features=4))
+    layer = p.Instantiate()
+    self.assertIsInstance(layer.trans_atten.atten,
+                          batch_major_attention.MultiHeadedFavorAttention)
 
   @parameterized.named_parameters(
       ('Basic', 8, 'SWISH', 0.5),
