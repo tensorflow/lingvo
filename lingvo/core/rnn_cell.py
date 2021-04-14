@@ -1663,18 +1663,17 @@ class EmbeddingAugmentedLayerNormalizedLSTMCellSimple(
 
   def __init__(self, params):
     super().__init__(params)
-    assert params.emb.cls is embedding_steps.StatefulEmbeddingStep, \
-      (f'Only embedding_steps.StatefulEmbeddingStep supported for p.emb at the '
-       f'moment (mainly because of FProp argument structure. Can easily be '
-       f'updatd to support layers.EmbeddingLayer and others). Your p.emb is of '
-       f'type {params.emb.cls}')
-    self.CreateChild('emb', params.emb)
+    p = params
+    assert p.emb.cls is embedding_steps.StatefulEmbeddingStep, (
+        'Only embedding_steps.StatefulEmbeddingStep supported for p.emb at the '
+        'moment mainly because of FProp argument structure. Can easily be '
+        'updated to support layers.EmbeddingLayer and others.')
+    self.CreateChild('emb', p.emb)
 
   def zero_state(self, theta, batch_size):
     """Zero state for cell, which includes setting prev_ids to sos token."""
     state0 = super().zero_state(theta, batch_size)
-    s = self.emb.ZeroState(theta.emb, None, batch_size)
-    state0.update(s)
+    state0.emb = self.emb.ZeroState(theta.emb, None, batch_size)
     return state0
 
   def FProp(self, theta, state0, inputs):
@@ -1702,8 +1701,8 @@ class EmbeddingAugmentedLayerNormalizedLSTMCellSimple(
     p = self.params
 
     step_inputs = py_utils.NestedMap(inputs=[inputs.ids])
-    embedding, state1 = self.emb.FProp(theta.emb, None, step_inputs, None,
-                                       state0)
+    embedding, state1_emb = self.emb.FProp(theta.emb, None, step_inputs, None,
+                                           state0.emb)
     embedding = embedding.output
 
     if p.inject_emb_method == 'concat':
@@ -1715,23 +1714,24 @@ class EmbeddingAugmentedLayerNormalizedLSTMCellSimple(
       # differ. Instead we pad the input with zeros before recurrent.Recurrent()
       # and add the embeddings to the padded part of the input here.
       def _AssertIsPadded(activations):
-        padded_slice = tf.cast(activations[:, -p.emb.emb.embedding_dim:],
-                               tf.bool)
+        padded_slice = tf.cast(activations[:, -p.emb.emb.output_dim:], tf.bool)
         input_is_padded = tf.math.reduce_any(padded_slice)
         input_is_padded = py_utils.assert_equal(input_is_padded, False)
         return py_utils.with_dependencies([input_is_padded], activations)
 
+      # Make sure that pre-padded part of activations contains only zeros
       inputs.act[0] = _AssertIsPadded(inputs.act[0])
 
-      # pad embedding preparation for adding to input activations
+      # Pad embedding in preparation for adding to input activations
       embedding = tf.pad(
-          embedding, [[0, 0], [p.num_input_nodes - p.emb.emb.embedding_dim, 0]])
+          embedding, [[0, 0], [p.num_input_nodes - p.emb.emb.output_dim, 0]])
+    else:
+      assert p.inject_emb_method == 'add', (f'p.inject_emb_method: '
+                                            f'{p.inject_emb_method} is unknown')
 
-    # inputs.act[0] = tf.ensure_shape(inputs.act[0], [None, p.num_input_nodes],
-    #                                 'ensure_activations_shape')
     inputs.act[0] = inputs.act[0] + embedding  # "concatenation" via addition
-    s, extras = super().FProp(theta, state0, inputs)
-    state1.update(s)
+    state1, extras = super().FProp(theta, state0, inputs)
+    state1.emb = state1_emb
     return state1, extras
 
 

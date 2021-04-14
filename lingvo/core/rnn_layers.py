@@ -479,8 +479,7 @@ class FRNN(base_layer.BaseLayer):
       # with zeros before recurrent.Recurrent() to match the RNN cell input dim
       # and add the embeddings to the padded part of the input later.
       inputs.act[0] = tf.pad(
-          inputs.act[0],
-          [[0, 0], [0, 0], [0, rcell.params.emb.emb.embedding_dim]])
+          inputs.act[0], [[0, 0], [0, 0], [0, rcell.params.emb.emb.output_dim]])
 
     acc_state, final_state = recurrent.Recurrent(
         theta=theta.cell,

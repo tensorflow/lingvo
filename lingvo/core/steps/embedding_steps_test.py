@@ -16,6 +16,7 @@
 
 from lingvo import compat as tf
 from lingvo.core import py_utils
+from lingvo.core import recurrent
 from lingvo.core import test_utils
 from lingvo.core.steps import embedding_steps
 import numpy as np
@@ -61,6 +62,7 @@ class EmbeddingStepsTest(test_utils.TestCase):
           num_prev_tokens=1,
           include_current_token=False,
           target_sos_id=1,
+          embedding_dim=3,
       )
       p.emb.Set(
           vocab_size=10,
@@ -76,11 +78,11 @@ class EmbeddingStepsTest(test_utils.TestCase):
       packed = emb.PrepareExternalInputs(None, None)
       state0 = emb.ZeroState(emb.theta, packed, 2)
 
+      # Test FProp of the unit
       out1, state1 = emb.FProp(
           emb.theta, packed,
           py_utils.NestedMap(inputs=[tf.constant([4, 3], tf.int32)]),
           tf.constant([0.0], dtype=tf.float32), state0)
-
       self.evaluate(tf.global_variables_initializer())
       out1, state1 = self.evaluate([out1, state1])
 
@@ -89,6 +91,47 @@ class EmbeddingStepsTest(test_utils.TestCase):
           out1.output,
           np.array([[-0.00740041, -0.00746862, 0.00093992],
                     [-0.00740041, -0.00746862, 0.00093992]]))
+
+      # Test FProp and BProp when integrated with Recurrent()
+      def _FProp(theta, state0, inputs):
+        embedding, state1 = emb.FProp(
+            theta,
+            None,
+            inputs,
+            None,
+            state0,
+        )
+        state1.embedding = embedding.output
+        return state1, py_utils.NestedMap()
+
+      inputs = py_utils.NestedMap(inputs=[
+          tf.constant([[1., 2.], [3., 2.], [0., 1.], [2., 3.], [3., 0.]])
+      ])
+      acc, _ = recurrent.Recurrent(
+          emb.theta,
+          state0,
+          inputs,
+          _FProp,
+      )
+      loss = tf.math.l2_normalize(acc.embedding)
+      grad = tf.gradients(loss, emb.emb.theta.wm[0])
+      self.evaluate(tf.global_variables_initializer())
+      acc_, _, grad_ = self.evaluate([acc, emb.emb.theta.wm[0], grad])
+      prev_ids_expected = np.array([
+          [[1.], [2.]],
+          [[3.], [2.]],
+          [[0.], [1.]],
+          [[2.], [3.]],
+          [[3.], [0.]],
+      ])
+      grad_expected = np.array([[21.952698, 20.50312, 19.037958],
+                                [79.622116, 72.15271, 106.34329],
+                                [41.631985, 70.19292, 75.52608],
+                                [53.644493, 36.28507, 36.64856], [0., 0., 0.],
+                                [0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
+                                [0., 0., 0.], [0., 0., 0.]])
+      self.assertAllClose(acc_.prev_ids, prev_ids_expected)
+      self.assertAllClose(grad_[0], grad_expected)
 
 
 if __name__ == '__main__':
