@@ -193,6 +193,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">repeat_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">scatter_update</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
@@ -323,7 +324,7 @@
         <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
 
 
-<div class="viewcode-block" id="MultiHeadedProjectionLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedProjectionLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiHeadedProjectionLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedProjectionLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Layer that computes multi heads projection.</span>
 
 <span class="sd">    This layer is expected to be used within MultiHeadedAttention below.</span>
@@ -349,6 +350,16 @@
         <span class="s1">&#39;mixing is done after getting all the different attention outputs.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If to add bias in projection.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs a MultiHeadedProjectionLayer object.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">feature_axis</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span> <span class="k">else</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+        <span class="s1">&#39;aqt_w&#39;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">],</span>
+        <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiHeadedProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
@@ -433,13 +444,17 @@
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
         <span class="n">batch_eqn</span> <span class="o">=</span> <span class="n">eqn_sym</span><span class="p">[:(</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)]</span> <span class="k">if</span> <span class="n">rank</span> <span class="k">else</span> <span class="s1">&#39;...&#39;</span>
         <span class="n">eqn</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">NH,DNH-&gt;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">D&#39;</span>
+        <span class="n">out_feature_axis</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">expected_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
             <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
         <span class="n">batch_eqn</span> <span class="o">=</span> <span class="n">eqn_sym</span><span class="p">[:(</span><span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">if</span> <span class="n">rank</span> <span class="k">else</span> <span class="s1">&#39;...&#39;</span>
         <span class="n">eqn</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">D,DNH-&gt;</span><span class="si">{</span><span class="n">batch_eqn</span><span class="si">}</span><span class="s1">NH&#39;</span>
-      <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">eqn</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+        <span class="n">out_feature_axis</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span><span class="s1">&#39;aqt_w&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=</span><span class="n">out_feature_axis</span><span class="p">)</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">eqn</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="s1">&#39;aqt_w&#39;</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
         <span class="n">ret</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
       <span class="k">return</span> <span class="n">ret</span></div></div>
