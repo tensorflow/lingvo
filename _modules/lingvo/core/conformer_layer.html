@@ -618,6 +618,8 @@
         <span class="s1">&#39;is True. It is important to always set is_causal for streaming case, &#39;</span>
         <span class="s1">&#39;and not expect to infer from atten_{left,right}_context.&#39;</span><span class="p">)</span>
     <span class="c1"># atten layer</span>
+    <span class="c1"># TODO(rpang): consider removing the attention hparams since they overlap</span>
+    <span class="c1"># with p.trans_atten_tpl.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_num_heads&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Num of heads in multi-head self-attention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -888,8 +890,7 @@
       <span class="c1"># No op for &#39;global&#39; atten</span>
       <span class="k">assert</span> <span class="n">atten_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="s1">&#39;global_causal&#39;</span><span class="p">),</span> <span class="p">(</span>
           <span class="sa">f</span><span class="s1">&#39;Unknown atten_type </span><span class="si">{</span><span class="n">atten_type</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span><span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">)</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">atten_tpl</span></div>
 
 <div class="viewcode-block" id="ConformerLayer._ConfigFFLayerOrMoEParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams">[docs]</a>  <span class="k">def</span> <span class="nf">_ConfigFFLayerOrMoEParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fflayer_tpl</span><span class="p">,</span> <span class="n">name_prefix</span><span class="p">):</span>
