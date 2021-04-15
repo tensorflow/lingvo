@@ -281,7 +281,7 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
         # Only the Trainer needs these ops.
         if py_utils.use_tpu():
           # Remove the slot vars from the variable list to void copying them
-          # to TPU (by the tf.cast in of tpu_embedding_table.theta).
+          # to TPU (by the tf.cast in tpu_embedding_table.theta).
           # pylint: disable=protected-access
           del tpu_embedding_table._private_vars[var_name]
           del tpu_embedding_table._private_theta[var_name]
@@ -661,6 +661,43 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       table.InstantiateVariables()
     super()._CreateChildrenVariables()
 
+  def _CheckTPUEmbeddingConfig(self, tpu_embedding, table_to_config_dict,
+                               feature_to_config_dict, global_batch_size):
+    """Check that the existing tpu_embedding config matches the given ones."""
+
+    def _Match(d1, d2, namedtuple_attrs_to_check):
+      if len(d1) != len(d2):
+        return False
+      for k, v1 in d1.items():
+        if k not in d2:
+          return False
+        v2 = d2[k]
+        for attr in namedtuple_attrs_to_check:
+          if getattr(v1, attr) != getattr(v2, attr):
+            return False
+      return True
+
+    # We just check numeric/string settings for simplicity, this excludes things
+    # like learning_rate_fn, optimization_parameters, etc since it's hard to
+    # compare them.
+    if not _Match(tpu_embedding.table_to_config_dict, table_to_config_dict,
+                  ['vocabulary_size', 'dimension', 'combiner']):
+      raise ValueError('table_to_config_dict mismatch. '
+                       f'Expecting {tpu_embedding.table_to_config_dict}, '
+                       f'got {table_to_config_dict}')
+    if not _Match(tpu_embedding.feature_to_config_dict, feature_to_config_dict,
+                  ['table_id', 'max_sequence_length']):
+      raise ValueError('feature_to_config_dict mismatch. '
+                       f'Expecting {tpu_embedding.feature_to_config_dict}, '
+                       f'got {feature_to_config_dict}')
+    if (tpu_embedding.batch_size_per_core * tpu_embedding.num_cores !=
+        global_batch_size):
+      raise ValueError(
+          'global_batch_size mismatch. '
+          f'batch_size_per_core: {tpu_embedding.batch_size_per_core}, '
+          f'num_cores: {tpu_embedding.num_cores}, '
+          f'global_batch_size: {global_batch_size}')
+
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
@@ -687,15 +724,18 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             self._sequence_features[feature] = True
           feature_to_config_dict[feature] = tpu_embedding_lib.FeatureConfig(
               table.table_name, max_sequence_length=table.max_sequence_length)
-      tf.logging.info('adding load and retrieve ops to collection.')
-      self._tpu_embedding_collection.AddLoadOps(load_op_list)
-      self._tpu_embedding_collection.AddRetrieveOps(retrieve_op_list)
 
       tpu_embedding = self._tpu_embedding_collection.tpu_embedding
       if tpu_embedding:
+        self._CheckTPUEmbeddingConfig(tpu_embedding, table_to_config_dict,
+                                      feature_to_config_dict, global_batch_size)
         tf.logging.info('TPUEmbedding API singleton already exists, reusing')
         self._tpu_embedding = tpu_embedding
       else:
+        tf.logging.info('adding load and retrieve ops to collection.')
+        self._tpu_embedding_collection.AddLoadOps(load_op_list)
+        self._tpu_embedding_collection.AddRetrieveOps(retrieve_op_list)
+
         mode = tpu_embedding_lib.TRAINING
         device_config = tpu_embedding_lib.DeviceConfig(
             num_cores=num_cores,
