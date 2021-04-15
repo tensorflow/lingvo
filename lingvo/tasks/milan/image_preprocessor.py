@@ -137,11 +137,11 @@ class ImagePreprocessor(base_layer.BaseLayer):
     """Decodes and preprocesses the given images.
 
     Args:
-      encoded_images: Encoded jpeg images as a [batch_size] string Tensor.
+      encoded_images: Encoded jpeg images as a [batch_size, ...] string Tensor.
 
     Returns:
       The decoded images as a float32 Tensor with shape
-      [batch_size, height, width, num_channels=3].
+      [batch_size, ..., height, width, num_channels=3].
     """
     p = self.params
 
@@ -153,10 +153,13 @@ class ImagePreprocessor(base_layer.BaseLayer):
       else:
         return self._PreprocessForTraining(image)
 
+    input_shape = encoded_images.shape
+    encoded_images = tf.reshape(encoded_images, [-1])
     images = tf.map_fn(
         _DecodeAndPreprocessOne,
         encoded_images,
         back_prop=False,
         dtype=tf.float32,
         parallel_iterations=p.parallelism)
-    return images
+    height, width = p.output_image_size
+    return tf.reshape(images, input_shape + [height, width, 3])

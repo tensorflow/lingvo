@@ -43,8 +43,31 @@ class ImagePreprocessorTest(test_utils.TestCase, parameterized.TestCase):
     with cluster_factory.SetEval(use_eval_mode):
       images = preprocessor(encoded_images)
       self.assertEqual(use_eval_mode, preprocessor.do_eval)
-      self.assertAllEqual(encoded_images.shape + params.output_image_size + [3],
-                          images.shape)
+      self.assertAllEqual(
+          list(encoded_images.shape) + params.output_image_size + [3],
+          images.shape)
+
+  def testEncodedSingleImageShape(self):
+    params = image_preprocessor.ImagePreprocessor.Params()
+
+    encoded_images = _EncodeRandomJpegs(sizes=[(24, 42)])
+    preprocessor = params.Instantiate()
+    encoded_images = tf.reshape(encoded_images, [])
+    images = preprocessor(encoded_images)
+    self.assertAllEqual(encoded_images.shape + params.output_image_size + [3],
+                        images.shape)
+
+  def testEncodedMultipleImagesShape(self):
+    params = image_preprocessor.ImagePreprocessor.Params()
+
+    encoded_images = _EncodeRandomJpegs(sizes=[(24, 42), (17, 19), (24,
+                                                                    42), (17,
+                                                                          19)])
+    encoded_images = tf.reshape(encoded_images, [2, 2])
+    preprocessor = params.Instantiate()
+    images = preprocessor(encoded_images)
+    self.assertAllEqual(encoded_images.shape + params.output_image_size + [3],
+                        images.shape)
 
   @parameterized.parameters(([0, 1],), ([-1, 1],), ([4.25, 7.75],))
   def testPreprocessorOutputRange(self, output_range):
