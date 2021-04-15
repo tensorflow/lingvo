@@ -502,9 +502,10 @@ class TFDSInput(TFDatasetSource):
         'split', None,
         'The split to load. See https://www.tensorflow.org/datasets/splits.')
     p.Define(
-        'load_fn', 'LoadTFDSDataset',
+        'load_fn', '',
         'An input_generator method name to call to load data. It must accept '
-        '(info, features_dict) and return a NestedMap.')
+        '(info, features_dict) and return a NestedMap. If not specified, a '
+        'dataset containing features_dict is returned.')
     p.Define('shuffle_buffer_size', 10000,
              'Number of records buffered for random shuffling.')
     return p
@@ -521,9 +522,10 @@ class TFDSInput(TFDatasetSource):
         shuffle_files=not self.cluster.require_sequential_input_order,
         with_info=True)
 
-    dataset = dataset.map(
-        functools.partial(getattr(self._input_generator, p.load_fn), info),
-        **self._map_args)
+    if p.load_fn:
+      dataset = dataset.map(
+          functools.partial(getattr(self._input_generator, p.load_fn), info),
+          **self._map_args)
 
     if not self.cluster.require_sequential_input_order:
       dataset = dataset.shuffle(p.shuffle_buffer_size)

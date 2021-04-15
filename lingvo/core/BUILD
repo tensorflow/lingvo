@@ -629,6 +629,7 @@ py_test(
         ":py_utils",
         ":test_utils",
         "//lingvo:compat",
+        # Implicit tensorflow_datasets dependency.
     ],
 )
 

@@ -27,6 +27,8 @@ from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
+import tensorflow_datasets as tfds
+
 
 class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
 
@@ -731,11 +733,26 @@ class TFDSInputTest(test_utils.TestCase):
 
   def testTFDSInput(self):
     ds_params = datasource.TFDSInput.Params().Set(
+        dataset='mnist', split='train[:10]')
+    ds = ds_params.Instantiate()
+    with self.session():
+      with tfds.testing.mock_data(num_examples=10):
+        batch = ds.GetNext()
+      for _ in range(10):
+        res = self.evaluate(batch)
+        self.assertAllEqual((28, 28, 1), res['image'].shape)
+        self.assertLess(res['label'], 10)
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        self.evaluate(batch)
+
+  def testTFDSInputLoadFn(self):
+    ds_params = datasource.TFDSInput.Params().Set(
         dataset='mnist', split='train[:10]', load_fn='LoadTFDSDataset')
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TFDSMnistInputGenerator.Params().Instantiate())
     with self.session():
-      batch = ds.GetNext()
+      with tfds.testing.mock_data(num_examples=10):
+        batch = ds.GetNext()
       for _ in range(10):
         res = self.evaluate(batch)
         self.assertAllEqual((28, 28, 1), res.image.shape)
