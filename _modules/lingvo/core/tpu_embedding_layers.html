@@ -433,7 +433,7 @@
         <span class="c1"># Only the Trainer needs these ops.</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
           <span class="c1"># Remove the slot vars from the variable list to void copying them</span>
-          <span class="c1"># to TPU (by the tf.cast in of tpu_embedding_table.theta).</span>
+          <span class="c1"># to TPU (by the tf.cast in tpu_embedding_table.theta).</span>
           <span class="c1"># pylint: disable=protected-access</span>
           <span class="k">del</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
           <span class="k">del</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
@@ -813,6 +813,43 @@
       <span class="n">table</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="TPUEmbeddingLayer._CheckTPUEmbeddingConfig"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CheckTPUEmbeddingConfig">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckTPUEmbeddingConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span> <span class="n">table_to_config_dict</span><span class="p">,</span>
+                               <span class="n">feature_to_config_dict</span><span class="p">,</span> <span class="n">global_batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check that the existing tpu_embedding config matches the given ones.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_Match</span><span class="p">(</span><span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">namedtuple_attrs_to_check</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">d2</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v1</span> <span class="ow">in</span> <span class="n">d1</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d2</span><span class="p">:</span>
+          <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">v2</span> <span class="o">=</span> <span class="n">d2</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">namedtuple_attrs_to_check</span><span class="p">:</span>
+          <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">v2</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="c1"># We just check numeric/string settings for simplicity, this excludes things</span>
+    <span class="c1"># like learning_rate_fn, optimization_parameters, etc since it&#39;s hard to</span>
+    <span class="c1"># compare them.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_Match</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">table_to_config_dict</span><span class="p">,</span> <span class="n">table_to_config_dict</span><span class="p">,</span>
+                  <span class="p">[</span><span class="s1">&#39;vocabulary_size&#39;</span><span class="p">,</span> <span class="s1">&#39;dimension&#39;</span><span class="p">,</span> <span class="s1">&#39;combiner&#39;</span><span class="p">]):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;table_to_config_dict mismatch. &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;Expecting </span><span class="si">{</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">table_to_config_dict</span><span class="si">}</span><span class="s1">, &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;got </span><span class="si">{</span><span class="n">table_to_config_dict</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_Match</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">feature_to_config_dict</span><span class="p">,</span> <span class="n">feature_to_config_dict</span><span class="p">,</span>
+                  <span class="p">[</span><span class="s1">&#39;table_id&#39;</span><span class="p">,</span> <span class="s1">&#39;max_sequence_length&#39;</span><span class="p">]):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;feature_to_config_dict mismatch. &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;Expecting </span><span class="si">{</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">feature_to_config_dict</span><span class="si">}</span><span class="s1">, &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;got </span><span class="si">{</span><span class="n">feature_to_config_dict</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">batch_size_per_core</span> <span class="o">*</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">num_cores</span> <span class="o">!=</span>
+        <span class="n">global_batch_size</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;global_batch_size mismatch. &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;batch_size_per_core: </span><span class="si">{</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">batch_size_per_core</span><span class="si">}</span><span class="s1">, &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;num_cores: </span><span class="si">{</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">num_cores</span><span class="si">}</span><span class="s1">, &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;global_batch_size: </span><span class="si">{</span><span class="n">global_batch_size</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TPUEmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -839,15 +876,18 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
           <span class="n">feature_to_config_dict</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">FeatureConfig</span><span class="p">(</span>
               <span class="n">table</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">max_sequence_length</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;adding load and retrieve ops to collection.&#39;</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddLoadOps</span><span class="p">(</span><span class="n">load_op_list</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddRetrieveOps</span><span class="p">(</span><span class="n">retrieve_op_list</span><span class="p">)</span>
 
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span>
       <span class="k">if</span> <span class="n">tpu_embedding</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CheckTPUEmbeddingConfig</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="p">,</span> <span class="n">table_to_config_dict</span><span class="p">,</span>
+                                      <span class="n">feature_to_config_dict</span><span class="p">,</span> <span class="n">global_batch_size</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPUEmbedding API singleton already exists, reusing&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding</span>
       <span class="k">else</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;adding load and retrieve ops to collection.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddLoadOps</span><span class="p">(</span><span class="n">load_op_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddRetrieveOps</span><span class="p">(</span><span class="n">retrieve_op_list</span><span class="p">)</span>
+
         <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
         <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
             <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
