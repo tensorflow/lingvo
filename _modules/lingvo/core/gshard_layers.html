@@ -172,6 +172,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.tf2xla.python</span> <span class="kn">import</span> <span class="n">xla</span>
@@ -314,6 +315,168 @@
 
     <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="n">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">retval</span></div></div>
+
+
+<div class="viewcode-block" id="_ToTuple"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers._ToTuple">[docs]</a><span class="k">def</span> <span class="nf">_ToTuple</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">x</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">x</span><span class="p">,)</span></div>
+
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer">[docs]</a><span class="k">class</span> <span class="nc">LayerwiseShardablePipelinedLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that implements pipelining across stages.</span>
+
+<span class="sd">  It creates a loop over microbatches around a loop-body layer. The wrapped body</span>
+<span class="sd">  layer should have an explicit leading num_stages dimension in the input/output</span>
+<span class="sd">  data (required) and weights (to achieve real pipeline parallelism).</span>
+
+<span class="sd">  It can run on a single core, or sharded using GShard annotations. If the stage</span>
+<span class="sd">  dimension is sharded, GShard will produce a cross-core pipelining pattern.</span>
+
+<span class="sd">  Inputs to LayerwiseShardablePipelinedLayer should have a leading</span>
+<span class="sd">  num_microbatch dimension. Each microbatch will be send to each pipeline loop</span>
+<span class="sd">  iteration.</span>
+
+<span class="sd">  The high-level idea is to use a shifting buffer to communicate between stages,</span>
+<span class="sd">  as shown below (although the real implementation uses recurrent.Recurrent() to</span>
+<span class="sd">  manage accumulation buffers)::</span>
+
+<span class="sd">      input = ...  # shape: [num_microbatches, ...]</span>
+<span class="sd">      # Insert a num_stages dimension after num_microbatches, then pad to shape:</span>
+<span class="sd">      #   [num_microbatches + num_stages - 1, num_stages, ...]</span>
+<span class="sd">      padded_input = pad(expand_dim(input, 1), ...)</span>
+
+<span class="sd">      # Shifting buffer</span>
+<span class="sd">      state = tf.zeros([num_stages, ...])</span>
+
+<span class="sd">      # Recurrent loop</span>
+<span class="sd">      for i in range(num_microbatches + num_stages - 1):</span>
+<span class="sd">        # shift state to the right by one stage</span>
+<span class="sd">        shifted_state = tf.pad(state, [[1, 0], ...])[1:]</span>
+<span class="sd">        in_mask = tf.equal(tf.range(num_stages), 0)</span>
+<span class="sd">        stages_in = in_mask * padded_input[i] + (1 - in_mask) * shifted_state</span>
+<span class="sd">        state = body.FProp(theta.body, stages_in)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_stages&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of pipeline stages.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;stage_parallel_body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The param for the main network layer. Its input data should have &#39;</span>
+        <span class="s1">&#39;a leading dimension that corresponds to num_stages, and its &#39;</span>
+        <span class="s1">&#39;computation should be parallel along this dimension to achieve &#39;</span>
+        <span class="s1">&#39;real pipeline parallelism.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Adds a `stages` dimension after the leading num_microbatches to the inputs</span>
+    <span class="c1"># which will be sharded. Also pad the leading num_microbatches dimension by</span>
+    <span class="c1"># num_stages - 1 to match loop iteration count, which corresponds to the</span>
+    <span class="c1"># bubbles between forward and backward passes.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Inputs are not the loop state: they are not changed during the loop. The</span>
+    <span class="c1"># state (shifting buffer) does not have a num_microbatches dimension.</span>
+    <span class="k">def</span> <span class="nf">_PadInput</span><span class="p">(</span><span class="n">inp</span><span class="p">):</span>
+      <span class="c1"># Takes input tensor of shape [num_microbatches, ...] and returns padded</span>
+      <span class="c1"># tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],</span>
+      <span class="c1"># where num_stages is a new dimension.</span>
+      <span class="n">with_new_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+      <span class="n">padding</span> <span class="o">+=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">with_new_dim</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">padded</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="k">assert</span> <span class="n">padded</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
+      <span class="k">return</span> <span class="n">padded</span>
+
+    <span class="n">padded_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_PadInput</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">padded_shapes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">padded_inputs</span><span class="p">)</span>
+    <span class="n">remove_first_dim</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">state_shapes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">remove_first_dim</span><span class="p">,</span> <span class="n">padded_shapes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ArgsToState</span><span class="p">(</span><span class="n">arg_list</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns a NestedMap from a list of FProp args.&quot;&quot;&quot;</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="c1"># Maintains a mapping from arg_idx to tensor. states cannot contain None</span>
+      <span class="c1"># tensors.</span>
+      <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">padded_inputs</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg_list</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+          <span class="c1"># Make sure each value in the NestedMap is a tensor.</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">arg_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Each value in the input NestedMap must be a tensor.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arg_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">state</span><span class="p">[</span><span class="s1">&#39;_s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="o">=</span> <span class="n">arg_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">state</span>
+
+    <span class="k">def</span> <span class="nf">_StateToArgs</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns a list of FProp args from a NestedMap.&quot;&quot;&quot;</span>
+      <span class="n">arg_list</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">padded_inputs</span><span class="p">)):</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;_s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="n">arg_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">state</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">arg_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                              <span class="n">shapes</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">arg_list</span>
+
+    <span class="k">def</span> <span class="nf">_CellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Recurrent cell function wrapper of body.FProp.&quot;&quot;&quot;</span>
+
+      <span class="k">def</span> <span class="nf">_SelectInput</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">inp</span><span class="p">):</span>
+        <span class="c1"># The state is aligned to previous stage. We shift it to the right by 1</span>
+        <span class="c1"># stage. If the stage dimension is partitioned in GShard, this will</span>
+        <span class="c1"># cause a collective-permute being added.</span>
+        <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">shifted_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+        <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">in_mask</span><span class="p">,</span> <span class="n">shifted_state</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">inp</span><span class="p">,</span> <span class="n">shifted_state</span><span class="p">)</span>
+
+      <span class="n">selected_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+          <span class="n">_SelectInput</span><span class="p">,</span> <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">state_shapes</span><span class="p">),</span>
+          <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">state_shapes</span><span class="p">))</span>
+      <span class="c1"># Runs the actual body.FProp</span>
+      <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">selected_inputs</span><span class="p">)</span>
+      <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">)</span>
+
+      <span class="c1"># Passes fprop outputs to the next layer through state.</span>
+      <span class="n">state1</span> <span class="o">=</span> <span class="n">_ArgsToState</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">inputs_nmap</span> <span class="o">=</span> <span class="n">_ArgsToState</span><span class="p">(</span><span class="n">padded_inputs</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">_CreateInitState</span><span class="p">(</span><span class="n">inp</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+      <span class="c1"># Add FProp arg list to state0.</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_CreateInitState</span><span class="p">,</span> <span class="n">inputs_nmap</span><span class="p">)</span>
+      <span class="c1"># Runs body.FProp k times using Recurrent where k = dim 0 of inputs_nmap.</span>
+      <span class="n">accum</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span>
+          <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">inputs_nmap</span><span class="p">,</span>
+          <span class="n">cell_fn</span><span class="o">=</span><span class="n">_CellFn</span><span class="p">,</span>
+          <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">)</span>
+
+      <span class="c1"># Retrieves fprop outputs.</span>
+      <span class="k">def</span> <span class="nf">_ExtractLastStage</span><span class="p">(</span><span class="n">outp</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">outp</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+      <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ExtractLastStage</span><span class="p">,</span>
+                                             <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">accum</span><span class="p">,</span> <span class="n">padded_shapes</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">output_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="StateLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer">[docs]</a><span class="k">class</span> <span class="nc">StateLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>

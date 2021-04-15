@@ -283,6 +283,85 @@ layer and its children layers.</p></li>
 
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.gshard_layers._ToTuple">
+<code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></code><code class="sig-name descname"><span class="pre">_ToTuple</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#_ToTuple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers._ToTuple" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></code><code class="sig-name descname"><span class="pre">LayerwiseShardablePipelinedLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer that implements pipelining across stages.</p>
+<p>It creates a loop over microbatches around a loop-body layer. The wrapped body
+layer should have an explicit leading num_stages dimension in the input/output
+data (required) and weights (to achieve real pipeline parallelism).</p>
+<p>It can run on a single core, or sharded using GShard annotations. If the stage
+dimension is sharded, GShard will produce a cross-core pipelining pattern.</p>
+<p>Inputs to LayerwiseShardablePipelinedLayer should have a leading
+num_microbatch dimension. Each microbatch will be send to each pipeline loop
+iteration.</p>
+<p>The high-level idea is to use a shifting buffer to communicate between stages,
+as shown below (although the real implementation uses recurrent.Recurrent() to
+manage accumulation buffers):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">input</span> <span class="o">=</span> <span class="o">...</span>  <span class="c1"># shape: [num_microbatches, ...]</span>
+<span class="c1"># Insert a num_stages dimension after num_microbatches, then pad to shape:</span>
+<span class="c1">#   [num_microbatches + num_stages - 1, num_stages, ...]</span>
+<span class="n">padded_input</span> <span class="o">=</span> <span class="n">pad</span><span class="p">(</span><span class="n">expand_dim</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="o">...</span><span class="p">)</span>
+
+<span class="c1"># Shifting buffer</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_stages</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+
+<span class="c1"># Recurrent loop</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_microbatches</span> <span class="o">+</span> <span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+  <span class="c1"># shift state to the right by one stage</span>
+  <span class="n">shifted_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="o">...</span><span class="p">])[</span><span class="mi">1</span><span class="p">:]</span>
+  <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">num_stages</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">stages_in</span> <span class="o">=</span> <span class="n">in_mask</span> <span class="o">*</span> <span class="n">padded_input</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">in_mask</span><span class="p">)</span> <span class="o">*</span> <span class="n">shifted_state</span>
+  <span class="n">state</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">stages_in</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp" title="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp" title="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt id="lingvo.core.gshard_layers.StateLayer">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></code><code class="sig-name descname"><span class="pre">StateLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer" title="Permalink to this definition">¶</a></dt>
