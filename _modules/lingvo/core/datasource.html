@@ -654,9 +654,10 @@
         <span class="s1">&#39;split&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;The split to load. See https://www.tensorflow.org/datasets/splits.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;load_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;LoadTFDSDataset&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;load_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;An input_generator method name to call to load data. It must accept &#39;</span>
-        <span class="s1">&#39;(info, features_dict) and return a NestedMap.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;(info, features_dict) and return a NestedMap. If not specified, a &#39;</span>
+        <span class="s1">&#39;dataset containing features_dict is returned.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shuffle_buffer_size&#39;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span>
              <span class="s1">&#39;Number of records buffered for random shuffling.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -673,9 +674,10 @@
         <span class="n">shuffle_files</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">require_sequential_input_order</span><span class="p">,</span>
         <span class="n">with_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-        <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">load_fn</span><span class="p">),</span> <span class="n">info</span><span class="p">),</span>
-        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_map_args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">load_fn</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+          <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">load_fn</span><span class="p">),</span> <span class="n">info</span><span class="p">),</span>
+          <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_map_args</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">require_sequential_input_order</span><span class="p">:</span>
       <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shuffle_buffer_size</span><span class="p">)</span>
