@@ -289,11 +289,11 @@
     <span class="sd">&quot;&quot;&quot;Decodes and preprocesses the given images.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      encoded_images: Encoded jpeg images as a [batch_size] string Tensor.</span>
+<span class="sd">      encoded_images: Encoded jpeg images as a [batch_size, ...] string Tensor.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The decoded images as a float32 Tensor with shape</span>
-<span class="sd">      [batch_size, height, width, num_channels=3].</span>
+<span class="sd">      [batch_size, ..., height, width, num_channels=3].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -305,13 +305,16 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessForTraining</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 
+    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">encoded_images</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">encoded_images</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">encoded_images</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">images</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
         <span class="n">_DecodeAndPreprocessOne</span><span class="p">,</span>
         <span class="n">encoded_images</span><span class="p">,</span>
         <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
         <span class="n">parallel_iterations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">parallelism</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">images</span></div></div>
+    <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_image_size</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">images</span><span class="p">,</span> <span class="n">input_shape</span> <span class="o">+</span> <span class="p">[</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span></div></div>
 </pre></div>
 
            </div>
