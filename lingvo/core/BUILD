@@ -2092,6 +2092,7 @@ py_library(
         ":base_layer",
         ":gshard_utils",
         ":py_utils",
+        ":recurrent",
         ":tpu_summary",
         "//lingvo:compat",
         # Implicit numpy dependency.

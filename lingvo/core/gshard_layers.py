@@ -20,6 +20,7 @@ from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import gshard_utils
 from lingvo.core import py_utils
+from lingvo.core import recurrent
 from lingvo.core import tpu_summary
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.tf2xla.python import xla
@@ -162,6 +163,168 @@ class ShardedVarLayer(VarLayer):
 
     retval = [MaybeWeightSplitAndCastToFPropDtype(k, v) for k, v in p.weights]
     return retval[0] if len(retval) == 1 else retval
+
+
+def _ToTuple(x):
+  return x if isinstance(x, tuple) else (x,)
+
+
+class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
+  """A layer that implements pipelining across stages.
+
+  It creates a loop over microbatches around a loop-body layer. The wrapped body
+  layer should have an explicit leading num_stages dimension in the input/output
+  data (required) and weights (to achieve real pipeline parallelism).
+
+  It can run on a single core, or sharded using GShard annotations. If the stage
+  dimension is sharded, GShard will produce a cross-core pipelining pattern.
+
+  Inputs to LayerwiseShardablePipelinedLayer should have a leading
+  num_microbatch dimension. Each microbatch will be send to each pipeline loop
+  iteration.
+
+  The high-level idea is to use a shifting buffer to communicate between stages,
+  as shown below (although the real implementation uses recurrent.Recurrent() to
+  manage accumulation buffers)::
+
+      input = ...  # shape: [num_microbatches, ...]
+      # Insert a num_stages dimension after num_microbatches, then pad to shape:
+      #   [num_microbatches + num_stages - 1, num_stages, ...]
+      padded_input = pad(expand_dim(input, 1), ...)
+
+      # Shifting buffer
+      state = tf.zeros([num_stages, ...])
+
+      # Recurrent loop
+      for i in range(num_microbatches + num_stages - 1):
+        # shift state to the right by one stage
+        shifted_state = tf.pad(state, [[1, 0], ...])[1:]
+        in_mask = tf.equal(tf.range(num_stages), 0)
+        stages_in = in_mask * padded_input[i] + (1 - in_mask) * shifted_state
+        state = body.FProp(theta.body, stages_in)
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('num_stages', 1, 'Number of pipeline stages.')
+    p.Define(
+        'stage_parallel_body', None,
+        'The param for the main network layer. Its input data should have '
+        'a leading dimension that corresponds to num_stages, and its '
+        'computation should be parallel along this dimension to achieve '
+        'real pipeline parallelism.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+    self.CreateChild('body', p.stage_parallel_body)
+
+  def FProp(self, theta, *args):
+    p = self.params
+
+    # Adds a `stages` dimension after the leading num_microbatches to the inputs
+    # which will be sharded. Also pad the leading num_microbatches dimension by
+    # num_stages - 1 to match loop iteration count, which corresponds to the
+    # bubbles between forward and backward passes.
+    #
+    # Inputs are not the loop state: they are not changed during the loop. The
+    # state (shifting buffer) does not have a num_microbatches dimension.
+    def _PadInput(inp):
+      # Takes input tensor of shape [num_microbatches, ...] and returns padded
+      # tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],
+      # where num_stages is a new dimension.
+      with_new_dim = tf.expand_dims(inp, 1)
+      padding = [[0, p.num_stages - 1], [0, p.num_stages - 1]]
+      padding += [[0, 0]] * (len(inp.shape) - 1)
+      padded = tf.pad(with_new_dim, padding)
+      assert len(padded.shape) == len(inp.shape) + 1
+      assert padded.shape[1] == p.num_stages
+      return padded
+
+    padded_inputs = tf.nest.map_structure(_PadInput, args)
+    padded_shapes = tf.nest.map_structure(
+        lambda x: None if x is None else x.shape, padded_inputs)
+    remove_first_dim = lambda x: None if x is None else x[1:]
+    state_shapes = tf.nest.map_structure(remove_first_dim, padded_shapes)
+
+    def _ArgsToState(arg_list):
+      """Returns a NestedMap from a list of FProp args."""
+      state = py_utils.NestedMap()
+      # Maintains a mapping from arg_idx to tensor. states cannot contain None
+      # tensors.
+      for idx in range(len(padded_inputs)):
+        if isinstance(arg_list[idx], py_utils.NestedMap):
+          # Make sure each value in the NestedMap is a tensor.
+          if not all(isinstance(t, tf.Tensor) for t in arg_list[idx].Flatten()):
+            raise ValueError(
+                'Each value in the input NestedMap must be a tensor.')
+        if arg_list[idx] is not None:
+          state['_s{}'.format(idx)] = arg_list[idx]
+      return state
+
+    def _StateToArgs(state, shapes):
+      """Returns a list of FProp args from a NestedMap."""
+      arg_list = []
+      for idx in range(len(padded_inputs)):
+        attr = '_s{}'.format(idx)
+        arg_list.append(state[attr] if attr in state else None)
+        tf.nest.map_structure(lambda x, s: x.set_shape(s), arg_list[-1],
+                              shapes[idx])
+      return arg_list
+
+    def _CellFn(theta, state0, inputs):
+      """Recurrent cell function wrapper of body.FProp."""
+
+      def _SelectInput(state, inp):
+        # The state is aligned to previous stage. We shift it to the right by 1
+        # stage. If the stage dimension is partitioned in GShard, this will
+        # cause a collective-permute being added.
+        padding = [[1, 0]] + [[0, 0]] * (len(state.shape) - 1)
+        shifted_state = tf.pad(state, padding)[0:p.num_stages, ...]
+        in_mask = tf.reshape(
+            tf.equal(tf.range(p.num_stages), 0),
+            [p.num_stages] + [1] * (len(inp.shape) - 1))
+        return tf.where(
+            tf.broadcast_to(in_mask, shifted_state.shape), inp, shifted_state)
+
+      selected_inputs = tf.nest.map_structure(
+          _SelectInput, _StateToArgs(state0, state_shapes),
+          _StateToArgs(inputs, state_shapes))
+      # Runs the actual body.FProp
+      fprop_outputs = self.body.FProp(theta, *selected_inputs)
+      fprop_outputs = _ToTuple(fprop_outputs)
+      assert len(fprop_outputs) == len(selected_inputs)
+
+      # Passes fprop outputs to the next layer through state.
+      state1 = _ArgsToState(fprop_outputs)
+      return state1, py_utils.NestedMap()
+
+    with tf.name_scope(p.name):
+      inputs_nmap = _ArgsToState(padded_inputs)
+
+      def _CreateInitState(inp):
+        return tf.zeros(inp.shape[1:], dtype=inp.dtype)
+
+      # Add FProp arg list to state0.
+      state0 = tf.nest.map_structure(_CreateInitState, inputs_nmap)
+      # Runs body.FProp k times using Recurrent where k = dim 0 of inputs_nmap.
+      accum, _ = recurrent.Recurrent(
+          theta=theta.body,
+          state0=state0,
+          inputs=inputs_nmap,
+          cell_fn=_CellFn,
+          allow_implicit_capture=p.allow_implicit_capture)
+
+      # Retrieves fprop outputs.
+      def _ExtractLastStage(outp):
+        return outp[p.num_stages - 1:, -1, ...]
+
+      output_tensors = tf.nest.map_structure(_ExtractLastStage,
+                                             _StateToArgs(accum, padded_shapes))
+      return output_tensors[0] if len(args) == 1 else tuple(output_tensors)
 
 
 class StateLayer(base_layer.BaseLayer):
