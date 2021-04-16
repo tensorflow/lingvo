@@ -352,7 +352,7 @@
 <span class="sd">        # shift state to the right by one stage</span>
 <span class="sd">        shifted_state = tf.pad(state, [[1, 0], ...])[1:]</span>
 <span class="sd">        in_mask = tf.equal(tf.range(num_stages), 0)</span>
-<span class="sd">        stages_in = in_mask * padded_input[i] + (1 - in_mask) * shifted_state</span>
+<span class="sd">        stages_in = tf.where(in_mask, padded_input[i],  shifted_state)</span>
 <span class="sd">        state = body.FProp(theta.body, stages_in)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
@@ -385,6 +385,8 @@
     <span class="c1"># Inputs are not the loop state: they are not changed during the loop. The</span>
     <span class="c1"># state (shifting buffer) does not have a num_microbatches dimension.</span>
     <span class="k">def</span> <span class="nf">_PadInput</span><span class="p">(</span><span class="n">inp</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">inp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
       <span class="c1"># Takes input tensor of shape [num_microbatches, ...] and returns padded</span>
       <span class="c1"># tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],</span>
       <span class="c1"># where num_stages is a new dimension.</span>
