@@ -1854,10 +1854,14 @@
       <span class="sd">&quot;&quot;&quot;Prepare inputs and paddings for the gating layer.&quot;&quot;&quot;</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+      <span class="c1"># input size in tokens</span>
+      <span class="n">input_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">group_size</span> <span class="o">=</span> <span class="n">input_size</span> <span class="o">//</span> <span class="n">num_groups</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="n">group_size</span> <span class="o">*</span> <span class="n">num_groups</span> <span class="o">==</span> <span class="n">input_size</span><span class="p">),</span> <span class="p">(</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">input_size</span><span class="p">)</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span>
               <span class="n">num_groups</span><span class="p">,</span>
-              <span class="p">(</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">//</span> <span class="n">num_groups</span><span class="p">,</span>
+              <span class="n">group_size</span><span class="p">,</span>
               <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
           <span class="p">],</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;grouped_inputs&#39;</span><span class="p">)</span>
