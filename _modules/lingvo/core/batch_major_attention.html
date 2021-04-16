@@ -3435,8 +3435,11 @@
         <span class="s1">&#39;residual_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="s1">&#39;Probability at which we apply dropout to the residual layers, &#39;</span>
         <span class="s1">&#39;such that, residual(x, y) = (x + dropout(y)).&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_unnormalized_input&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-             <span class="s1">&#39;If set, uses unnormalized input in the residual add.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Pre or post layer norm.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;add_unnormalized_input&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;If set, uses unnormalized input in the residual add. It is&#39;</span>
+        <span class="s1">&#39;applicable only if pre_layer_norm is True.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_skip_connection&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;If True, add input (or normalized input) to the output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -3642,7 +3645,7 @@
     <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
 
     <span class="c1"># Layer normalization.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
 
@@ -3702,6 +3705,9 @@
         <span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">ctx_vec</span> <span class="o">+=</span> <span class="n">input_to_add</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="TransformerAttentionLayer.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
