@@ -1702,10 +1702,14 @@ class DenseBuilder(MoEBuilder):
       """Prepare inputs and paddings for the gating layer."""
       paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
       orig_inputs = inputs
+      # input size in tokens
+      input_size = int(orig_inputs.shape[0] * orig_inputs.shape[1])
+      group_size = input_size // num_groups
+      assert (group_size * num_groups == input_size), (num_groups, input_size)
       inputs = tf.reshape(
           orig_inputs, [
               num_groups,
-              (orig_inputs.shape[0] * orig_inputs.shape[1]) // num_groups,
+              group_size,
               orig_inputs.shape[-1],
           ],
           name='grouped_inputs')
