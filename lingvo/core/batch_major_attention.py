@@ -3283,8 +3283,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         'residual_dropout_prob', 0.0,
         'Probability at which we apply dropout to the residual layers, '
         'such that, residual(x, y) = (x + dropout(y)).')
-    p.Define('add_unnormalized_input', True,
-             'If set, uses unnormalized input in the residual add.')
+    p.Define('pre_layer_norm', True, 'Pre or post layer norm.')
+    p.Define(
+        'add_unnormalized_input', True,
+        'If set, uses unnormalized input in the residual add. It is'
+        'applicable only if pre_layer_norm is True.')
     p.Define('add_skip_connection', True,
              'If True, add input (or normalized input) to the output.')
     p.Define('ln_tpl', layers.LayerNorm.Params(),
@@ -3490,7 +3493,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     unnormalized_query_vec = query_vec
 
     # Layer normalization.
-    if p.ln_tpl:
+    if p.pre_layer_norm and p.ln_tpl:
       query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
       query_vec = self._CastToFPropDtype(query_vec)
 
@@ -3550,6 +3553,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         )
       else:
         ctx_vec += input_to_add
+    if not p.pre_layer_norm and p.ln_tpl:
+      ctx_vec = self.layer_norm.FProp(theta.layer_norm, ctx_vec)
+      ctx_vec = self._CastToFPropDtype(ctx_vec)
     return ctx_vec, atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
