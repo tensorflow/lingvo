@@ -200,7 +200,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         # shift state to the right by one stage
         shifted_state = tf.pad(state, [[1, 0], ...])[1:]
         in_mask = tf.equal(tf.range(num_stages), 0)
-        stages_in = in_mask * padded_input[i] + (1 - in_mask) * shifted_state
+        stages_in = tf.where(in_mask, padded_input[i],  shifted_state)
         state = body.FProp(theta.body, stages_in)
   """
 
@@ -233,6 +233,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     # Inputs are not the loop state: they are not changed during the loop. The
     # state (shifting buffer) does not have a num_microbatches dimension.
     def _PadInput(inp):
+      if inp is None:
+        return None
       # Takes input tensor of shape [num_microbatches, ...] and returns padded
       # tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],
       # where num_stages is a new dimension.
