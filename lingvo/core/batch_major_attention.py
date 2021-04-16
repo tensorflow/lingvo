@@ -3680,8 +3680,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       padding: the same as input paddings.
       state: updated state.
     """
-    assert isinstance(self.atten, LocalSelfAttention)
-
     p = self.params
     assert p.is_masked
     with tf.name_scope(f'{p.name}/StreamStep'):
