@@ -664,11 +664,7 @@ class AdditiveAttention(BaseAttentionLayer):
       """Prepares source vec and ctx."""
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
-      # source_dim can be a symbolic expression.
-      transformed_vecs = tf.reshape(
-          py_utils.Matmul(
-              tf.reshape(vecs, [-1, symbolic.ToStatic(p.source_dim)]), src_w),
-          [time, batch, -1])
+      transformed_vecs = tf.matmul(vecs, src_w)
       transformed_vecs = tf.identity(
           transformed_vecs, name='source_vecs_projected')
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
