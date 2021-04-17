@@ -172,9 +172,17 @@ def _ToTuple(x):
 class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   """A layer that implements pipelining across stages.
 
-  It creates a loop over microbatches around a loop-body layer. The wrapped body
-  layer should have an explicit leading num_stages dimension in the input/output
-  data (required) and weights (to achieve real pipeline parallelism).
+  It creates a loop over microbatches around a loop-body layer. The loop body
+  has a leading num_stages dimension in the input/output data (required) and
+  weights (to achieve real pipeline parallelism). This leading dimension can
+  be added in 2 ways:
+
+  1) Defined manually in the wrapped layer Params().stage_parallel_body.
+
+  2) Automatically vectorized via tf.vectorized_map(). In this case, use
+  Params().single_stage_body instead to define a single stage. This may fail if
+  some ops or control flow patterns are not supported by tf.vectorized_map(),
+  and use the first option in that case.
 
   It can run on a single core, or sharded using GShard annotations. If the stage
   dimension is sharded, GShard will produce a cross-core pipelining pattern.
@@ -201,7 +209,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         shifted_state = tf.pad(state, [[1, 0], ...])[1:]
         in_mask = tf.equal(tf.range(num_stages), 0)
         stages_in = tf.where(in_mask, padded_input[i],  shifted_state)
-        state = body.FProp(theta.body, stages_in)
+        state = stage_parallel_body.FProp(theta.body, stages_in)
   """
 
   @classmethod
@@ -214,13 +222,43 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         'a leading dimension that corresponds to num_stages, and its '
         'computation should be parallel along this dimension to achieve '
         'real pipeline parallelism.')
+    p.Define(
+        'single_stage_body', None,
+        'The param for a single stage, which will be automatically vectorized '
+        'into a stage-parallel computation.')
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
     assert p.name
-    self.CreateChild('body', p.stage_parallel_body)
+    if p.stage_parallel_body is not None:
+      assert p.single_stage_body is None
+      self.CreateChild('body', p.stage_parallel_body)
+    else:
+      assert p.single_stage_body is not None
+      self.CreateChild('body', p.single_stage_body)
+
+  def _CreateChildrenVariables(self):
+    p = self.params
+    if p.stage_parallel_body is None:
+      with py_utils.VariableShapePrefixContext(p.num_stages):
+        self.children.body.InstantiateVariables()
+    else:
+      super()._CreateChildrenVariables()
+
+  def BodyFProp(self, theta, *args):
+    p = self.params
+    if p.stage_parallel_body is not None:
+      return self.body.FProp(theta, *args)
+
+    def _SingleStageFProp(x):
+      return self.body.FProp(x.theta, *x.args)
+
+    return tf.vectorized_map(
+        _SingleStageFProp,
+        py_utils.NestedMap(theta=theta, args=args),
+        fallback_to_while_loop=False)
 
   def FProp(self, theta, *args):
     p = self.params
@@ -295,8 +333,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       selected_inputs = tf.nest.map_structure(
           _SelectInput, _StateToArgs(state0, state_shapes),
           _StateToArgs(inputs, state_shapes))
-      # Runs the actual body.FProp
-      fprop_outputs = self.body.FProp(theta, *selected_inputs)
+      # Runs the actual body's FProp
+      fprop_outputs = self.BodyFProp(theta, *selected_inputs)
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(selected_inputs)
 
