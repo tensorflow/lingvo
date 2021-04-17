@@ -654,7 +654,7 @@ class TFDatasetMixer(TFDatasetSource):
 
   def __init__(self, params):
     super().__init__(params)
-    self.CreateChildren('sub', self.params.sub)
+    self.CreateChildren('sub', list(self.params.sub))
 
   def GetDataset(self):
     p = self.params
