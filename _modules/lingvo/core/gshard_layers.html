@@ -324,9 +324,17 @@
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer">[docs]</a><span class="k">class</span> <span class="nc">LayerwiseShardablePipelinedLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A layer that implements pipelining across stages.</span>
 
-<span class="sd">  It creates a loop over microbatches around a loop-body layer. The wrapped body</span>
-<span class="sd">  layer should have an explicit leading num_stages dimension in the input/output</span>
-<span class="sd">  data (required) and weights (to achieve real pipeline parallelism).</span>
+<span class="sd">  It creates a loop over microbatches around a loop-body layer. The loop body</span>
+<span class="sd">  has a leading num_stages dimension in the input/output data (required) and</span>
+<span class="sd">  weights (to achieve real pipeline parallelism). This leading dimension can</span>
+<span class="sd">  be added in 2 ways:</span>
+
+<span class="sd">  1) Defined manually in the wrapped layer Params().stage_parallel_body.</span>
+
+<span class="sd">  2) Automatically vectorized via tf.vectorized_map(). In this case, use</span>
+<span class="sd">  Params().single_stage_body instead to define a single stage. This may fail if</span>
+<span class="sd">  some ops or control flow patterns are not supported by tf.vectorized_map(),</span>
+<span class="sd">  and use the first option in that case.</span>
 
 <span class="sd">  It can run on a single core, or sharded using GShard annotations. If the stage</span>
 <span class="sd">  dimension is sharded, GShard will produce a cross-core pipelining pattern.</span>
@@ -353,7 +361,7 @@
 <span class="sd">        shifted_state = tf.pad(state, [[1, 0], ...])[1:]</span>
 <span class="sd">        in_mask = tf.equal(tf.range(num_stages), 0)</span>
 <span class="sd">        stages_in = tf.where(in_mask, padded_input[i],  shifted_state)</span>
-<span class="sd">        state = body.FProp(theta.body, stages_in)</span>
+<span class="sd">        state = stage_parallel_body.FProp(theta.body, stages_in)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -366,13 +374,43 @@
         <span class="s1">&#39;a leading dimension that corresponds to num_stages, and its &#39;</span>
         <span class="s1">&#39;computation should be parallel along this dimension to achieve &#39;</span>
         <span class="s1">&#39;real pipeline parallelism.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;single_stage_body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The param for a single stage, which will be automatically vectorized &#39;</span>
+        <span class="s1">&#39;into a stage-parallel computation.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_SingleStageFProp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">vectorized_map</span><span class="p">(</span>
+        <span class="n">_SingleStageFProp</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">),</span>
+        <span class="n">fallback_to_while_loop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -447,8 +485,8 @@
       <span class="n">selected_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
           <span class="n">_SelectInput</span><span class="p">,</span> <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">state_shapes</span><span class="p">),</span>
           <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">state_shapes</span><span class="p">))</span>
-      <span class="c1"># Runs the actual body.FProp</span>
-      <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">selected_inputs</span><span class="p">)</span>
+      <span class="c1"># Runs the actual body&#39;s FProp</span>
+      <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">selected_inputs</span><span class="p">)</span>
       <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">)</span>
 

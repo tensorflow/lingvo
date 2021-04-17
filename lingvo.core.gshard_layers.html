@@ -293,9 +293,17 @@ layer and its children layers.</p></li>
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></code><code class="sig-name descname"><span class="pre">LayerwiseShardablePipelinedLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A layer that implements pipelining across stages.</p>
-<p>It creates a loop over microbatches around a loop-body layer. The wrapped body
-layer should have an explicit leading num_stages dimension in the input/output
-data (required) and weights (to achieve real pipeline parallelism).</p>
+<p>It creates a loop over microbatches around a loop-body layer. The loop body
+has a leading num_stages dimension in the input/output data (required) and
+weights (to achieve real pipeline parallelism). This leading dimension can
+be added in 2 ways:</p>
+<ol class="arabic simple">
+<li><p>Defined manually in the wrapped layer Params().stage_parallel_body.</p></li>
+</ol>
+<p>2) Automatically vectorized via tf.vectorized_map(). In this case, use
+Params().single_stage_body instead to define a single stage. This may fail if
+some ops or control flow patterns are not supported by tf.vectorized_map(),
+and use the first option in that case.</p>
 <p>It can run on a single core, or sharded using GShard annotations. If the stage
 dimension is sharded, GShard will produce a cross-core pipelining pattern.</p>
 <p>Inputs to LayerwiseShardablePipelinedLayer should have a leading
@@ -318,7 +326,7 @@ manage accumulation buffers):</p>
   <span class="n">shifted_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="o">...</span><span class="p">])[</span><span class="mi">1</span><span class="p">:]</span>
   <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">num_stages</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
   <span class="n">stages_in</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">in_mask</span><span class="p">,</span> <span class="n">padded_input</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>  <span class="n">shifted_state</span><span class="p">)</span>
-  <span class="n">state</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">stages_in</span><span class="p">)</span>
+  <span class="n">state</span> <span class="o">=</span> <span class="n">stage_parallel_body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">stages_in</span><span class="p">)</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -326,6 +334,26 @@ manage accumulation buffers):</p>
 <em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables">
+<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">
+<code class="sig-name descname"><span class="pre">BodyFProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.BodyFProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp">
