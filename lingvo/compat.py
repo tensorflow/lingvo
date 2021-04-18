@@ -384,6 +384,7 @@ if tf1.summary is not None:
   summary.merge = tf1.summary.merge
   summary.merge_all = tf1.summary.merge_all
   summary.scalar = tf1.summary.scalar
+  summary.text = tf1.summary.text
   summary.Summary = tf1.summary.Summary
   summary.Summary.FromString = tf1.summary.Summary.FromString
 tables_initializer = tf1.tables_initializer
