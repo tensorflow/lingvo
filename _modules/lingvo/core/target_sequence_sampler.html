@@ -245,7 +245,6 @@
     <span class="c1"># &#39;recurrent_theta&#39; represents all cross-timestep information used by the</span>
     <span class="c1"># recurrent loop below, including layer theta and encoder outputs.</span>
     <span class="n">recurrent_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">=</span><span class="n">decoder_theta</span><span class="p">,</span>
         <span class="n">random_seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">,</span>
         <span class="n">encoder_outputs</span><span class="o">=</span><span class="n">encoder_outputs</span><span class="p">)</span>
     <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -263,7 +262,7 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;single_sampler_step&#39;</span><span class="p">):</span>
         <span class="c1"># Compute logits and states.</span>
         <span class="n">bs_result</span><span class="p">,</span> <span class="n">bs_state1</span> <span class="o">=</span> <span class="n">pre_step_callback</span><span class="p">(</span>
-            <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">decoder_theta</span><span class="p">,</span>
             <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">encoder_outputs</span><span class="p">,</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># [batch, 1].</span>
             <span class="n">state0</span><span class="o">.</span><span class="n">bs_state</span><span class="p">,</span>
@@ -284,7 +283,7 @@
               <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">is_last_chunk</span><span class="p">,</span>
                                   <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span><span class="p">)),</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span><span class="p">),</span> <span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
-        <span class="n">state1</span><span class="o">.</span><span class="n">bs_state</span> <span class="o">=</span> <span class="n">post_step_callback</span><span class="p">(</span><span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+        <span class="n">state1</span><span class="o">.</span><span class="n">bs_state</span> <span class="o">=</span> <span class="n">post_step_callback</span><span class="p">(</span><span class="n">decoder_theta</span><span class="p">,</span>
                                              <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">encoder_outputs</span><span class="p">,</span>
                                              <span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">bs_state1</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
