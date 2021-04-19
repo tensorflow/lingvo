@@ -530,7 +530,13 @@
 
   <span class="c1"># We avoid Builder._Seq and Builder._Rep to improve theta / checkpoint</span>
   <span class="c1"># readability and reduce layer nesting.</span>
-<div class="viewcode-block" id="MoEBuilder.EncoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">EncoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.EncoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">EncoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">sub_layers</span><span class="p">,</span>
+                        <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">use_repeat_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">spmd_pipeline_stages</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clean EncoderLayerStack with minimal layer nesting.</span>
 
 <span class="sd">    E.g::</span>
@@ -558,11 +564,16 @@
 <span class="sd">      sub_layers: Sublayers of the encoder layer.</span>
 <span class="sd">      num: Number of encoder layers.</span>
 <span class="sd">      use_repeat_layer: bool, whether to wrap num layers into a RepeatLayer.</span>
+<span class="sd">      spmd_pipeline_stages: If &gt; 1, use SPMD-shardable pipelining with this many</span>
+<span class="sd">      pipeline stages.</span>
+<span class="sd">      spmd_pipeline_microbatches: The number of microbatches when SPMD-shardable</span>
+<span class="sd">      pipelining is used.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The layer params.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerStack</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span>
+                            <span class="n">spmd_pipeline_stages</span><span class="p">,</span> <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span><span class="p">,</span>
                             <span class="k">lambda</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">EncoderLayer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">p</span><span class="p">))</span></div>
 
@@ -597,10 +608,13 @@
                         <span class="n">sub_layers</span><span class="p">,</span>
                         <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                         <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                        <span class="n">use_repeat_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                        <span class="n">use_repeat_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">spmd_pipeline_stages</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack, similar to EncoderLayerStack.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerStack</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span> <span class="n">spmd_pipeline_stages</span><span class="p">,</span>
+        <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span>
         <span class="k">lambda</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">conv_kernel_size</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.Repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">per_layer_vars</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -612,8 +626,15 @@
         <span class="n">per_layer_vars</span><span class="o">=</span><span class="n">per_layer_vars</span><span class="p">,</span>
         <span class="n">unrolled_in_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._LayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">_LayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span> <span class="n">imap_keys</span><span class="p">,</span>
+<div class="viewcode-block" id="MoEBuilder.ShardablePipeline"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.ShardablePipeline">[docs]</a>  <span class="k">def</span> <span class="nf">ShardablePipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">stages</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper to call gshard_layers.LayerwiseShardablePipelinedLayer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">LayerwiseShardablePipelinedLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">num_stages</span><span class="o">=</span><span class="n">stages</span><span class="p">,</span> <span class="n">single_stage_body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._LayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">_LayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span>
+                  <span class="n">spmd_pipeline_stages</span><span class="p">,</span> <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span> <span class="n">imap_keys</span><span class="p">,</span>
                   <span class="n">layer_fn</span><span class="p">):</span>
+    <span class="c1"># TODO(yuanzx): Consider refactor this into a layer.</span>
     <span class="k">assert</span> <span class="s1">&#39;segment_id&#39;</span> <span class="ow">in</span> <span class="n">imap_keys</span>
     <span class="k">if</span> <span class="n">use_repeat_layer</span><span class="p">:</span>
       <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">deterministic_dropout</span>
@@ -641,6 +662,9 @@
                <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
 
     <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">num</span> <span class="o">%</span> <span class="n">spmd_pipeline_stages</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">layers_per_stage</span> <span class="o">=</span> <span class="n">num</span> <span class="o">//</span> <span class="n">spmd_pipeline_stages</span>
+    <span class="n">main_stack</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">use_repeat_layer</span><span class="p">:</span>
       <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
@@ -652,18 +676,84 @@
           <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
       <span class="n">body_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="s1">&#39;blocks_body&#39;</span><span class="p">,</span> <span class="n">body_inputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span>
                            <span class="n">body_outputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="o">*</span><span class="n">blocks</span><span class="p">)</span>
-      <span class="n">repeat_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Repeat</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_p</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">num</span><span class="p">)</span>
-      <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+      <span class="n">repeat_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Repeat</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_p</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">layers_per_stage</span><span class="p">)</span>
+      <span class="n">main_stack</span> <span class="o">=</span> <span class="p">[</span>
           <span class="p">(</span><span class="n">body_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">body_outputs</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_split&#39;</span><span class="p">,</span> <span class="s1">&#39;_split_out&#39;</span><span class="p">),</span>
            <span class="n">repeat_p</span><span class="p">)</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layers_per_stage</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
           <span class="c1"># x_i, loss_i =&gt; x_{i+1}, loss_{i+1}</span>
-          <span class="n">stack</span> <span class="o">+=</span> <span class="n">_SubLayersBlock</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+          <span class="n">main_stack</span> <span class="o">+=</span> <span class="n">_SubLayersBlock</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
           <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 
+    <span class="k">if</span> <span class="n">spmd_pipeline_stages</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="c1"># TODO(yuanzx): Consider refactor this into a layer.</span>
+
+      <span class="c1"># Reshape each input into microbatches.</span>
+      <span class="k">def</span> <span class="nf">_ToMicroBatches</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">_ReshapeToMicroBatches</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+          <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="n">spmd_pipeline_microbatches</span> <span class="o">==</span> <span class="mi">0</span>
+          <span class="n">new_shape</span> <span class="o">=</span> <span class="p">[</span>
+              <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span>
+              <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">spmd_pipeline_microbatches</span>
+          <span class="p">]</span>
+          <span class="n">new_shape</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_m&#39;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_microbatched&#39;</span><span class="p">,</span> <span class="n">_ReshapeToMicroBatches</span><span class="p">))</span>
+
+      <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="n">_ToMicroBatches</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;x_000&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+      <span class="p">]</span>
+
+      <span class="c1"># Pipelining requires each input/output to have a num_microbatches</span>
+      <span class="c1"># dimension, but loss is a scalar. We pad it to the shape</span>
+      <span class="c1"># [spmd_pipeline_microbatches] to compute per-microbatch loss, then sum</span>
+      <span class="c1"># them together after the pipeline.</span>
+      <span class="k">def</span> <span class="nf">_PadLoss</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">spmd_pipeline_microbatches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]])</span>
+
+      <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;loss_000-&gt;loss_000_m&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;loss_padded_microbatched&#39;</span><span class="p">,</span>
+                                            <span class="n">_PadLoss</span><span class="p">)))</span>
+      <span class="n">body_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_000,loss_000,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+      <span class="n">body_outputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,loss_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+      <span class="n">body_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="s1">&#39;pipeline_body&#39;</span><span class="p">,</span> <span class="n">body_inputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span>
+                           <span class="n">body_outputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="o">*</span><span class="n">main_stack</span><span class="p">)</span>
+      <span class="n">pipeline_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ShardablePipeline</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;pipeline&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_p</span><span class="p">,</span> <span class="n">stages</span><span class="o">=</span><span class="n">spmd_pipeline_stages</span><span class="p">)</span>
+      <span class="n">pipeline_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_000_m,loss_000_m,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split_m&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+      <span class="n">pipeline_outputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">_m,loss_</span><span class="si">%03d</span><span class="s1">_m,&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split_out_m&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+      <span class="n">main_stack</span> <span class="o">=</span> <span class="p">[(</span><span class="n">pipeline_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">pipeline_outputs</span><span class="p">,</span> <span class="n">pipeline_p</span><span class="p">)]</span>
+
+      <span class="c1"># Reshape outputs to the original shape without microbatches.</span>
+      <span class="k">def</span> <span class="nf">_ToBatches</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">_ReshapeToBatches</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_m-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_unmicrobatched&#39;</span><span class="p">,</span> <span class="n">_ReshapeToBatches</span><span class="p">))</span>
+
+      <span class="n">main_stack</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="n">_ToBatches</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">([</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">+</span>
+                                  <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split_out&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+      <span class="p">]</span>
+      <span class="c1"># Sum the per-microbatch losses.</span>
+      <span class="n">main_stack</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">_m-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;loss_combined&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">)))</span>
+
+    <span class="n">stack</span> <span class="o">+=</span> <span class="n">main_stack</span>
     <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
         <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;o.aux_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
         <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
@@ -1382,13 +1472,13 @@
       <span class="k">if</span> <span class="n">w_qkv_mhd_mesh_split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># hd can not be both sharded</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span>
-                <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;hd can not be both sharded </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                                               <span class="n">w_qkv_mhd_mesh_split</span><span class="p">)</span>
-        <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="nb">max</span><span class="p">(</span><span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># hd can not be both sharded. Use negative indices in case there is an</span>
+        <span class="c1"># additional leading pipeline stage dimension.</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s1">&#39;hd can not be both sharded </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">)</span>
+        <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">],</span>
+            <span class="nb">max</span><span class="p">(</span><span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span>
         <span class="p">]</span>
 
       <span class="k">if</span> <span class="n">wo_hdm_mesh_split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1396,16 +1486,16 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># wo_hdm_mesh_split is almost always set via</span>
         <span class="c1"># DenseBuilder._attention_output_hdm_w_split, e.g.</span>
-        <span class="c1">#   [p.mhd_w_split[1], p.mhd_w_split[2], p.mhd_w_split[0]]</span>
+        <span class="c1">#   [p.mhd_w_split[-2], p.mhd_w_split[-1], p.mhd_w_split[-3]]</span>
         <span class="c1">#</span>
         <span class="c1"># TODO(lepikhin): this logic needs to be explicit, e.g. via</span>
         <span class="c1"># SetSplitsForCombinedAttentionDims utility function.</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span>
-                <span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;hd can not be both sharded </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                                            <span class="n">wo_hdm_mesh_split</span><span class="p">)</span>
-        <span class="n">wo_mesh_split</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="nb">max</span><span class="p">(</span><span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-            <span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span>
+                <span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;hd can not be both sharded </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                                             <span class="n">wo_hdm_mesh_split</span><span class="p">)</span>
+        <span class="n">wo_mesh_split</span> <span class="o">=</span> <span class="n">wo_hdm_mesh_split</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="nb">max</span><span class="p">(</span><span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">],</span> <span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="n">wo_hdm_mesh_split</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
         <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="n">w_qkv_mhd_mesh_split</span>
@@ -1902,8 +1992,12 @@
   <span class="k">def</span> <span class="nf">_attention_output_hdm_w_split</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># wo: hdm</span>
-    <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+    <span class="c1"># Use negative indices in case there is an additional pipeline stage</span>
+    <span class="c1"># dimension.</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>
     <span class="p">]</span>
 
 <div class="viewcode-block" id="DenseBuilder.SelfAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.SelfAttention">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -2672,14 +2766,20 @@
         <span class="s1">&#39;instead of  combined variables [num_layers, ...].&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_repeat_layer&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to use RepeatLayer to wrap the layer stack.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_spmd_pipeline_stages&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 1, SPMD-shardable pipelining is used with this many stages.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_spmd_pipeline_microbatches&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Number of microbatches when num_spmd_pipeline_stages &gt; 1.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_repeat_layer</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_repeat_layer</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_stages</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">deterministic_dropout</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_stages</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
 
     <span class="n">tgt_vocab_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span>
@@ -2732,12 +2832,14 @@
           <span class="n">decoder_sub_layers</span><span class="p">,</span>
           <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
           <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
-          <span class="n">use_repeat_layer</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_repeat_layer</span><span class="p">)</span>
+          <span class="n">use_repeat_layer</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_repeat_layer</span><span class="p">,</span>
+          <span class="n">spmd_pipeline_stages</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_stages</span><span class="p">,</span>
+          <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_microbatches</span><span class="p">)</span>
     <span class="n">dec</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="n">emb_w_split</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;w_split&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)</span>
     <span class="n">dec_out_split</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;dec_out_split&#39;</span><span class="p">,</span>
-                                <span class="n">b</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">blm_split</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+                                <span class="n">b</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:],</span> <span class="mi">2</span><span class="p">))</span>
     <span class="n">logits_split</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;logits_split&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">logits_split</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec&#39;</span><span class="p">,</span> <span class="n">dec</span><span class="p">)</span>
