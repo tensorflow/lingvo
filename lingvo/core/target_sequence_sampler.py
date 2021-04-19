@@ -93,7 +93,6 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     # 'recurrent_theta' represents all cross-timestep information used by the
     # recurrent loop below, including layer theta and encoder outputs.
     recurrent_theta = py_utils.NestedMap(
-        theta=decoder_theta,
         random_seed=random_seed,
         encoder_outputs=encoder_outputs)
     batch = tf.shape(bs_result.log_probs)[0]
@@ -111,7 +110,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
       with tf.name_scope('single_sampler_step'):
         # Compute logits and states.
         bs_result, bs_state1 = pre_step_callback(
-            recurrent_theta.theta,
+            decoder_theta,
             recurrent_theta.encoder_outputs,
             tf.expand_dims(state0.ids, 1),  # [batch, 1].
             state0.bs_state,
@@ -132,7 +131,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
               tf.math.logical_and(bs_result.is_last_chunk,
                                   tf.equal(state1.ids, p.target_eoc_id)),
               tf.fill(tf.shape(state1.ids), p.target_eos_id), state1.ids)
-        state1.bs_state = post_step_callback(recurrent_theta.theta,
+        state1.bs_state = post_step_callback(decoder_theta,
                                              recurrent_theta.encoder_outputs,
                                              state1.ids, bs_state1)
       return state1, py_utils.NestedMap()
