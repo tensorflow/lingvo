@@ -378,7 +378,13 @@ class MoEBuilder(builder.Base):
 
   # We avoid Builder._Seq and Builder._Rep to improve theta / checkpoint
   # readability and reduce layer nesting.
-  def EncoderLayerStack(self, name, sub_layers, num=1, use_repeat_layer=False):
+  def EncoderLayerStack(self,
+                        name,
+                        sub_layers,
+                        num=1,
+                        use_repeat_layer=False,
+                        spmd_pipeline_stages=1,
+                        spmd_pipeline_microbatches=None):
     """Clean EncoderLayerStack with minimal layer nesting.
 
     E.g::
@@ -406,11 +412,16 @@ class MoEBuilder(builder.Base):
       sub_layers: Sublayers of the encoder layer.
       num: Number of encoder layers.
       use_repeat_layer: bool, whether to wrap num layers into a RepeatLayer.
+      spmd_pipeline_stages: If > 1, use SPMD-shardable pipelining with this many
+      pipeline stages.
+      spmd_pipeline_microbatches: The number of microbatches when SPMD-shardable
+      pipelining is used.
 
     Returns:
       The layer params.
     """
     return self._LayerStack(name, sub_layers, num, use_repeat_layer,
+                            spmd_pipeline_stages, spmd_pipeline_microbatches,
                             self._EncoderLayerInMapKeys,
                             lambda n, p: self.EncoderLayer(name=n, layer=p))
 
@@ -445,10 +456,13 @@ class MoEBuilder(builder.Base):
                         sub_layers,
                         num=1,
                         conv_kernel_size=None,
-                        use_repeat_layer=False):
+                        use_repeat_layer=False,
+                        spmd_pipeline_stages=1,
+                        spmd_pipeline_microbatches=None):
     """Clean DecoderLayerStack, similar to EncoderLayerStack."""
     return self._LayerStack(
-        name, sub_layers, num, use_repeat_layer, self._DecoderLayerInMapKeys,
+        name, sub_layers, num, use_repeat_layer, spmd_pipeline_stages,
+        spmd_pipeline_microbatches, self._DecoderLayerInMapKeys,
         lambda n, p: self.DecoderLayer(n, p, conv_kernel_size=conv_kernel_size))
 
   def Repeat(self, name, body, repeat=1, per_layer_vars=True):
@@ -460,8 +474,15 @@ class MoEBuilder(builder.Base):
         per_layer_vars=per_layer_vars,
         unrolled_in_eval=True)
 
-  def _LayerStack(self, name, sub_layers, num, use_repeat_layer, imap_keys,
+  def ShardablePipeline(self, name, body, stages):
+    """Wrapper to call gshard_layers.LayerwiseShardablePipelinedLayer."""
+    return gshard_layers.LayerwiseShardablePipelinedLayer.Params().Set(
+        name=name, num_stages=stages, single_stage_body=body)
+
+  def _LayerStack(self, name, sub_layers, num, use_repeat_layer,
+                  spmd_pipeline_stages, spmd_pipeline_microbatches, imap_keys,
                   layer_fn):
+    # TODO(yuanzx): Consider refactor this into a layer.
     assert 'segment_id' in imap_keys
     if use_repeat_layer:
       assert self.params.deterministic_dropout
@@ -489,6 +510,9 @@ class MoEBuilder(builder.Base):
                self._Add('loss_%03d' % (idx + 1)))]
 
     i = 0
+    assert num % spmd_pipeline_stages == 0
+    layers_per_stage = num // spmd_pipeline_stages
+    main_stack = []
     if use_repeat_layer:
       blocks = []
       for l in sub_layers:
@@ -500,18 +524,84 @@ class MoEBuilder(builder.Base):
           [key + '_split' for key in imap_keys[1:]])
       body_p = self._Graph('blocks_body', body_inputs.split(','),
                            body_outputs.split(','), *blocks)
-      repeat_p = self.Repeat(name='blocks', body=body_p, repeat=num)
-      stack += [
+      repeat_p = self.Repeat(
+          name='blocks', body=body_p, repeat=layers_per_stage)
+      main_stack = [
           (body_inputs + '->' + body_outputs.replace('_split', '_split_out'),
            repeat_p)
       ]
     else:
-      for _ in range(num):
+      for _ in range(layers_per_stage):
         for l in sub_layers:
           # x_i, loss_i => x_{i+1}, loss_{i+1}
-          stack += _SubLayersBlock(l, i)
+          main_stack += _SubLayersBlock(l, i)
           i += 1
 
+    if spmd_pipeline_stages > 1:
+      # TODO(yuanzx): Consider refactor this into a layer.
+
+      # Reshape each input into microbatches.
+      def _ToMicroBatches(key):
+
+        def _ReshapeToMicroBatches(x):
+          assert x.shape[0] % spmd_pipeline_microbatches == 0
+          new_shape = [
+              spmd_pipeline_microbatches,
+              x.shape[0] // spmd_pipeline_microbatches
+          ]
+          new_shape += x.shape[1:]
+          return tf.reshape(x, new_shape)
+
+        return (key + '->' + key + '_m',
+                self._Fn(key + '_microbatched', _ReshapeToMicroBatches))
+
+      stack += [
+          _ToMicroBatches(k)
+          for k in ['x_000'] + [key + '_split' for key in imap_keys[1:]]
+      ]
+
+      # Pipelining requires each input/output to have a num_microbatches
+      # dimension, but loss is a scalar. We pad it to the shape
+      # [spmd_pipeline_microbatches] to compute per-microbatch loss, then sum
+      # them together after the pipeline.
+      def _PadLoss(x):
+        return tf.pad(tf.reshape(x, [1]), [[0, spmd_pipeline_microbatches - 1]])
+
+      stack.append(
+          ('loss_000->loss_000_m', self._Fn('loss_padded_microbatched',
+                                            _PadLoss)))
+      body_inputs = 'x_000,loss_000,' + ','.join(
+          [key + '_split' for key in imap_keys[1:]])
+      body_outputs = 'x_%03d,loss_%03d,' % (i, i) + ','.join(
+          [key + '_split' for key in imap_keys[1:]])
+      body_p = self._Graph('pipeline_body', body_inputs.split(','),
+                           body_outputs.split(','), *main_stack)
+      pipeline_p = self.ShardablePipeline(
+          name='pipeline', body=body_p, stages=spmd_pipeline_stages)
+      pipeline_inputs = 'x_000_m,loss_000_m,' + ','.join(
+          [key + '_split_m' for key in imap_keys[1:]])
+      pipeline_outputs = 'x_%03d_m,loss_%03d_m,' % (i, i) + ','.join(
+          [key + '_split_out_m' for key in imap_keys[1:]])
+      main_stack = [(pipeline_inputs + '->' + pipeline_outputs, pipeline_p)]
+
+      # Reshape outputs to the original shape without microbatches.
+      def _ToBatches(key):
+
+        def _ReshapeToBatches(x):
+          return tf.reshape(x, [x.shape[0] * x.shape[1]] + x.shape[2:])
+
+        return (key + '_m->' + key,
+                self._Fn(key + '_unmicrobatched', _ReshapeToBatches))
+
+      main_stack += [
+          _ToBatches(k) for k in (['x_%03d' % i] +
+                                  [key + '_split_out' for key in imap_keys[1:]])
+      ]
+      # Sum the per-microbatch losses.
+      main_stack.append(('loss_%03d_m->loss_%03d' % (i, i),
+                         self._Fn('loss_combined', tf.reduce_sum)))
+
+    stack += main_stack
     stack += [
         (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
         (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
@@ -1230,13 +1320,13 @@ class MoEBuilder(builder.Base):
       if w_qkv_mhd_mesh_split is None:
         w_qkv_mesh_split = None
       else:
-        # hd can not be both sharded
-        assert (w_qkv_mhd_mesh_split[2] < 0 or
-                w_qkv_mhd_mesh_split[1] < 0), ('hd can not be both sharded %s' %
-                                               w_qkv_mhd_mesh_split)
-        w_qkv_mesh_split = [
-            w_qkv_mhd_mesh_split[0],
-            max(w_qkv_mhd_mesh_split[2], w_qkv_mhd_mesh_split[1])
+        # hd can not be both sharded. Use negative indices in case there is an
+        # additional leading pipeline stage dimension.
+        assert (w_qkv_mhd_mesh_split[-1] < 0 or w_qkv_mhd_mesh_split[-2] < 0), (
+            'hd can not be both sharded %s' % w_qkv_mhd_mesh_split)
+        w_qkv_mesh_split = w_qkv_mhd_mesh_split[:-3] + [
+            w_qkv_mhd_mesh_split[-3],
+            max(w_qkv_mhd_mesh_split[-1], w_qkv_mhd_mesh_split[-2])
         ]
 
       if wo_hdm_mesh_split is None:
@@ -1244,16 +1334,16 @@ class MoEBuilder(builder.Base):
       else:
         # wo_hdm_mesh_split is almost always set via
         # DenseBuilder._attention_output_hdm_w_split, e.g.
-        #   [p.mhd_w_split[1], p.mhd_w_split[2], p.mhd_w_split[0]]
+        #   [p.mhd_w_split[-2], p.mhd_w_split[-1], p.mhd_w_split[-3]]
         #
         # TODO(lepikhin): this logic needs to be explicit, e.g. via
         # SetSplitsForCombinedAttentionDims utility function.
-        assert (wo_hdm_mesh_split[0] < 0 or
-                wo_hdm_mesh_split[1] < 0), ('hd can not be both sharded %s' %
-                                            wo_hdm_mesh_split)
-        wo_mesh_split = [
-            max(wo_hdm_mesh_split[0], wo_hdm_mesh_split[1]),
-            wo_hdm_mesh_split[2],
+        assert (wo_hdm_mesh_split[-3] < 0 or
+                wo_hdm_mesh_split[-2] < 0), ('hd can not be both sharded %s' %
+                                             wo_hdm_mesh_split)
+        wo_mesh_split = wo_hdm_mesh_split[:-3] + [
+            max(wo_hdm_mesh_split[-3], wo_hdm_mesh_split[-2]),
+            wo_hdm_mesh_split[-1],
         ]
     else:
       w_qkv_mesh_split = w_qkv_mhd_mesh_split
@@ -1750,8 +1840,12 @@ class DenseBuilder(MoEBuilder):
   def _attention_output_hdm_w_split(self):
     p = self.params
     # wo: hdm
-    return None if p.mhd_w_split is None else [
-        p.mhd_w_split[1], p.mhd_w_split[2], p.mhd_w_split[0]
+    if p.mhd_w_split is None:
+      return None
+    # Use negative indices in case there is an additional pipeline stage
+    # dimension.
+    return p.mhd_w_split[:-3] + [
+        p.mhd_w_split[-2], p.mhd_w_split[-1], p.mhd_w_split[-3]
     ]
 
   def SelfAttention(self, name):
@@ -2520,14 +2614,20 @@ class UniTransformer(base_model.BaseTask):
         'instead of  combined variables [num_layers, ...].')
     p.Define('use_repeat_layer', False,
              'Whether to use RepeatLayer to wrap the layer stack.')
+    p.Define(
+        'num_spmd_pipeline_stages', 1,
+        'If > 1, SPMD-shardable pipelining is used with this many stages.')
+    p.Define('num_spmd_pipeline_microbatches', None,
+             'Number of microbatches when num_spmd_pipeline_stages > 1.')
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
 
-    if p.use_repeat_layer:
+    if p.use_repeat_layer or p.num_spmd_pipeline_stages > 1:
       p.builder.deterministic_dropout = True
+    assert p.num_transformer_layers % p.num_spmd_pipeline_stages == 0
     b = p.builder.Instantiate()
 
     tgt_vocab_size = p.vocab_size
@@ -2580,12 +2680,14 @@ class UniTransformer(base_model.BaseTask):
           decoder_sub_layers,
           p.num_transformer_layers,
           conv_kernel_size=p.conv_kernel_size,
-          use_repeat_layer=p.use_repeat_layer)
+          use_repeat_layer=p.use_repeat_layer,
+          spmd_pipeline_stages=p.num_spmd_pipeline_stages,
+          spmd_pipeline_microbatches=p.num_spmd_pipeline_microbatches)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
     emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
     dec_out_split = b.MeshSplit('dec_out_split',
-                                b._AdjustMSplit(b.params.blm_split, 2))
+                                b._AdjustMSplit(b.params.blm_split[-3:], 2))
     logits_split = b.MeshSplit('logits_split', b.params.logits_split)
 
     self.CreateChild('dec', dec)

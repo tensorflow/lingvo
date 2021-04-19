@@ -328,7 +328,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
             tf.equal(tf.range(p.num_stages), 0),
             [p.num_stages] + [1] * (len(inp.shape) - 1))
         return tf.where(
-            tf.broadcast_to(in_mask, shifted_state.shape), inp, shifted_state)
+            tf.broadcast_to(in_mask, shifted_state.shape),
+            tf.cast(inp, shifted_state.dtype), shifted_state)
 
       selected_inputs = tf.nest.map_structure(
           _SelectInput, _StateToArgs(state0, state_shapes),
