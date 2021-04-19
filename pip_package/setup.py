@@ -43,7 +43,7 @@ REQUIRED_PACKAGES = [
     'protobuf>=3.8,<4',
     'sklearn',
     'sympy',
-    'tensorflow-datasets'
+    'tensorflow-datasets',
     'tensorflow-gpu==' + tf.__version__,
     'tensorflow-hub',
     'tensorflow-text',
