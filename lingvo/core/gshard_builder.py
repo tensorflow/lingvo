@@ -566,12 +566,19 @@ class MoEBuilder(builder.Base):
 
         def _ReshapeToMicroBatches(x):
           assert x.shape[0] % spmd_pipeline_microbatches == 0
+          # First reshape to [microbatch_size, spmd_pipeline_microbatches, ..]
+          # then transpose to [spmd_pipeline_microbatches, microbatch_size, ...]
+          # because we want each microbatch to be sharded the same way as the
+          # original batch dimension.
           new_shape = [
-              spmd_pipeline_microbatches,
-              x.shape[0] // spmd_pipeline_microbatches
+              x.shape[0] // spmd_pipeline_microbatches,
+              spmd_pipeline_microbatches
           ]
           new_shape += x.shape[1:]
-          return tf.reshape(x, new_shape)
+          perm = list(range(len(new_shape)))
+          perm[0] = 1
+          perm[1] = 0
+          return tf.transpose(tf.reshape(x, new_shape), perm)
 
         return (key + '->' + key + '_m',
                 self._Fn(key + '_microbatched', _ReshapeToMicroBatches))
@@ -609,6 +616,10 @@ class MoEBuilder(builder.Base):
       def _ToBatches(key):
 
         def _ReshapeToBatches(x):
+          perm = list(range(len(x.shape)))
+          perm[0] = 1
+          perm[1] = 0
+          x = tf.transpose(x, perm)
           return tf.reshape(x, [x.shape[0] * x.shape[1]] + x.shape[2:])
 
         return (key + '_m->' + key,
