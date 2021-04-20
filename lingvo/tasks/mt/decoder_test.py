@@ -221,6 +221,38 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
         7.624605,
         per_example_tensors=True)
 
+  def testDecoderFPropFactorizedEmbedding(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(decoder_cls=decoder.MTDecoderV1)
+      p.per_example_tensors = True
+      p.emb.embedding_dim = 2
+      p.rnn_cell_dim = 4
+      proj_tpl = layers.ProjectionLayer.Params().Copy()
+      proj_tpl.batch_norm = False
+      proj_tpl.activation = 'NONE'
+      proj_tpl.has_bias = True
+      proj_tpl.params_init = py_utils.WeightInit.Uniform(0.04, 1234)
+      p.emb_projection_tpl = proj_tpl
+      p.softmax = layers.SharedSoftmaxLayer.Params().Set(
+          num_classes=p.softmax.num_classes,
+          num_shards=p.softmax.num_shards,
+          params_init=p.softmax.params_init.Copy(),
+          embedding_dim=p.emb.embedding_dim,
+          vocab_size=p.softmax.num_classes)
+      dec = p.Instantiate()
+      encoder_outputs, targets = self._Inputs()
+      fprop_out = dec.FPropDefaultTheta(encoder_outputs, targets)
+      loss = fprop_out.metrics['loss'][0]
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_loss = loss.eval()
+      expected_loss = 7.6245975
+      CompareToGoldenSingleFloat(self, expected_loss, actual_loss)
+      per_example = fprop_out.per_sequence
+      self.assertIn('loss', per_example)
+      self.assertAllEqual(per_example['loss'].shape.as_list(), [4])
+
   def testDecoderBPropFunctional(self):
     self._DecoderGradientCheckerHelper(decoder.MTDecoderV1)
 
@@ -539,6 +571,45 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
                           [2, 0, 0, 0, 0], [5, 2, 0, 0, 0], [3, 2, 0, 0, 0]]
     self.assertAllEqual(expected_topk_ids3, actual_decoded_disallow2.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decoded_disallow2.topk_lens)
+
+  def testBeamSearchDecodeFactorizedEmbeddingEnabled(self, dtype=tf.float32):
+    with self.session(use_gpu=True), self.SetEval(True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype)
+      proj_tpl = layers.ProjectionLayer.Params().Copy()
+      proj_tpl.batch_norm = False
+      proj_tpl.activation = 'NONE'
+      proj_tpl.has_bias = True
+      proj_tpl.params_init = py_utils.WeightInit.Uniform(0.04, 1234)
+      p.emb_projection_tpl = proj_tpl
+      p.beam_search.num_hyps_per_beam = 2
+      p.emb.embedding_dim = 4
+      p.rnn_cell_dim = 32
+      p.softmax = layers.SharedSoftmaxLayer.Params().Set(
+          num_classes=p.softmax.num_classes,
+          num_shards=p.softmax.num_shards,
+          params_init=p.softmax.params_init.Copy(),
+          embedding_dim=p.emb.embedding_dim,
+          vocab_size=p.softmax.num_classes)
+      dec = decoder.MTDecoderV1(p)
+      encoder_outputs, _ = self._Inputs(dtype=dtype)
+      decode = dec.BeamSearchDecode(encoder_outputs)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # self.evaluate(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_decode = self.evaluate(decode)
+
+    expected_topk_ids = [[2, 0, 0, 0, 0], [8, 2, 0, 0, 0], [0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0]]
+
+    expected_topk_lens = [1, 2, 0, 0]
+    expected_topk_scores = [[-3.785752, -5.774518], [0., 0.]]
+
+    self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
+    self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
+    self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
 
   def testSingleTokenFastDecode(self):
     """Test p.single_token_fast_decode."""

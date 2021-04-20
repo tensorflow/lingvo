@@ -411,6 +411,14 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
              'Additive attention params.')
     p.Define('atten_rnn_cell_tpl', rnn_cell.LSTMCellSimple.Params(),
              'Attention RNNCell params template.')
+    p.Define(
+        'emb_projection_tpl', None,
+        'Template for embedding projection layer. If set, the embeddings '
+        'are projected to match the `rnn_cell_dim`, if they are different. '
+        'It will also add a projection if `rnn_cell_dim` is not equal to '
+        'softmax input_dim (shared embedding case). The clipping schedule, '
+        'if enabled, is also applied after projection.'
+        'See Factorized Embedding in ALBERT: https://arxiv.org/abs/1909.11942')
     p.Define('rnn_cell_tpl', rnn_cell.LSTMCellSimple.Params(),
              'RNNCell params template.')
     p.Define('rnn_cell_dim', 1024, 'size of the rnn cells.')
@@ -522,6 +530,12 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       assert p.emb.vocab_size == p.softmax.num_classes
       self.CreateChild('emb', p.emb)
 
+    self._project_emb = False
+    self._project_out = False
+    if p.emb_projection_tpl:
+      self._project_emb = (p.emb.embedding_dim != p.rnn_cell_dim)
+      self._project_out = (self._project_emb and self._share_sm_emb)
+
     p.attention.dtype = p.dtype
     p.attention.source_dim = p.source_dim
     p.attention.query_dim = p.rnn_cell_dim
@@ -536,7 +550,10 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     params.name = 'atten_rnn'
     params.dtype = p.dtype
     params.reset_cell_state = p.packed_input
-    params.num_input_nodes = p.emb.embedding_dim + p.attention.source_dim
+    if self._project_emb:
+      params.num_input_nodes = p.rnn_cell_dim + p.attention.source_dim
+    else:
+      params.num_input_nodes = p.emb.embedding_dim + p.attention.source_dim
     params.num_output_nodes = p.rnn_cell_dim
     atten_rnn_cell = params.Copy()
 
@@ -575,10 +592,40 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p.softmax.dtype = p.dtype
     if p.feed_attention_context_vec_to_softmax:
       assert not self._share_sm_emb
+      assert not self._project_emb
+      assert not self._project_out
       p.softmax.input_dim = p.rnn_cell_dim + p.attention.source_dim
     else:
       p.softmax.input_dim = p.rnn_cell_dim
+
+    # Factorized embedding:
+    # An embedding matrix of O(vocab_size * emb_dim) is factorized into
+    # two matrices O(vocab_size * hidden_dim) + O(hidden_dim * embedding_dim).
+    # See ALBERT: https://arxiv.org/abs/1909.11942.
+    if self._project_emb:
+      tf.logging.info('Creating an embedding projection from '
+                      f'{p.emb.embedding_dim} -> {p.rnn_cell_dim} '
+                      'before feeding to rnn.')
+      self._CreateProjection(p.emb_projection_tpl, 'emb_proj',
+                             p.emb.embedding_dim, p.rnn_cell_dim)
+    if self._project_out:
+      tf.logging.info('Creating an out projection from '
+                      f'{p.rnn_cell_dim} -> {p.emb.embedding_dim} '
+                      'before feeding to softmax layer.')
+      p.softmax.input_dim = p.emb.embedding_dim
+      self._CreateProjection(p.emb_projection_tpl, 'out_proj', p.rnn_cell_dim,
+                             p.emb.embedding_dim)
     self.CreateChild('softmax', p.softmax)
+
+  def _CreateProjection(self, proj_tpl, name, input_dim, output_dim):
+    """Creates a projection layer(projects from `input_dim` to `output_dim`)."""
+    assert proj_tpl.cls == layers.ProjectionLayer
+    proj_p = proj_tpl.Copy()
+    proj_p.name = name
+    proj_p.input_dim = input_dim
+    proj_p.output_dim = output_dim
+    self.CreateChild(name, proj_p)
+    return proj_p
 
   def _CreateChildrenVariables(self):
     if self._share_sm_emb:
@@ -653,7 +700,10 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         inputs = self.ApplyClipping(theta, inputs)
         summary_utils.histogram('input_emb', inputs)
         inputs = self.ApplyDropout(inputs)
-        self._emb_out = inputs
+
+        if self._project_emb:
+          inputs = self.emb_proj.FProp(theta.emb_proj, inputs)
+          inputs = self.ApplyClipping(theta, inputs)
 
         # Layer 0 intertwines with attention.
         (accumulated_states, _,
@@ -691,6 +741,10 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
         if p.feed_attention_context_vec_to_softmax:
           xs = tf.concat([xs, atten_ctxs], 2)
+
+        if self._project_out:
+          xs = self.out_proj.FProp(theta.out_proj, xs)
+          xs = self.ApplyClipping(theta, xs)
 
         # Get intermediate attention information
         atten_states = accumulated_states.atten_state
@@ -792,6 +846,9 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
                   prev_atten_context, rnn_states, prev_atten_states):
     """Decode one step."""
     p = self.params
+    if self._project_emb:
+      embs = self.emb_proj.FProp(theta.emb_proj, embs)
+      embs = self.ApplyClipping(theta, embs)
     new_rnn_states = []
     new_rnn_states_0, _ = self.frnn_with_atten.cell.FProp(
         theta.frnn_with_atten.cell, rnn_states[0],
@@ -833,6 +890,9 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       step_out = tf.concat([rnn_out, atten_context], 1)
     else:
       step_out = rnn_out
+    if self._project_out:
+      step_out = self.out_proj.FProp(theta.out_proj, step_out)
+      step_out = self.ApplyClipping(theta, step_out)
     return (cur_atten_context, atten_probs, new_rnn_states, step_out,
             atten_states)
 
