@@ -219,6 +219,23 @@ class GeometryTest(test_utils.TestCase):
     # Points are transformed, and different.
     self.assertNotAllClose(actual_points, actual_rotated_points)
 
+  def testBatchMakeRotationMatrixClockwise(self):
+    points = tf.constant([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]], dtype=tf.float32)
+
+    # Rotate the points
+    rot_matrix_cw = geometry.BatchMakeRotationMatrix(np.pi / 2, clockwise=True)
+    rot_matrix_ccw = geometry.BatchMakeRotationMatrix(
+        np.pi / 2, clockwise=False)
+    rotated_points_cw = tf.einsum('np,mpc->nc', points, rot_matrix_cw)
+    rotated_points_ccw = tf.einsum('np,mpc->nc', points, rot_matrix_ccw)
+    with self.session():
+      actual_rotated_points_cw, actual_rotated_points_ccw = self.evaluate(
+          (rotated_points_cw, rotated_points_ccw))
+    self.assertAllClose(actual_rotated_points_cw,
+                        np.asarray([[0., 1., 0.], [0., -1., 0.]]))
+    self.assertAllClose(actual_rotated_points_ccw,
+                        np.asarray([[0., -1., 0.], [0., 1., 0.]]))
+
   def testTransformPointsRotation(self):
     batch_size, num_points = 10, 8
     points = tf.random.uniform((batch_size, num_points, 3))

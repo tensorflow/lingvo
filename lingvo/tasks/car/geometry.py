@@ -85,15 +85,21 @@ def _MakeRotationMatrix(yaw, roll, pitch):
   return tf.matmul(tf.matmul(_UnitZ(yaw), _UnitX(roll)), _UnitY(pitch))
 
 
-def BatchMakeRotationMatrix(yaw):
+def BatchMakeRotationMatrix(yaw, clockwise=False):
   """Create a Nx3x3 rotation matrix from yaw.
 
   Args:
     yaw: float tensor representing a yaw angle in radians.
+    clockwise: Whether to have the rotation be applied clockwise (True) or
+      counter-clockwise (False). Defaults to counter-clockwise to maintain
+      same semantics to MakeRotationMatrix.
 
   Returns:
     A [N, 3, 3] tensor corresponding to a rotation matrix.
   """
+
+  if clockwise:
+    yaw = -yaw
 
   cos = tf.cos(yaw)
   sin = tf.sin(yaw)
@@ -101,8 +107,8 @@ def BatchMakeRotationMatrix(yaw):
   one = tf.ones_like(cos)
 
   rotation_matrix = tf.stack([
-      cos, sin, zero,
-      -sin, cos, zero,
+      cos, -sin, zero,
+      sin, cos, zero,
       zero, zero, one
   ], axis=-1)  # pyformat: disable
   rotation_matrix = tf.reshape(rotation_matrix, [-1, 3, 3])
