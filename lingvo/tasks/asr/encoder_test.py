@@ -59,7 +59,8 @@ class EncoderTest(test_utils.TestCase):
     tf.random.set_seed(8372749040)
     stt_enc = encoder.AsrEncoder(p)
     batch = py_utils.NestedMap()
-    batch.src_inputs = tf.random.normal([2, 20, 16, 3], seed=92837472)
+    batch.src_inputs = tf.random.normal(
+        [2, 20] + p.input_shape[2:], seed=92837472)
     batch.paddings = tf.zeros([2, 20])
     return stt_enc.FPropDefaultTheta(batch)
 
@@ -106,6 +107,26 @@ class EncoderTest(test_utils.TestCase):
       enc_out_sum_val = enc_out_sum.eval()
       print('enc_out_sum_val', np.array_repr(enc_out_sum_val))
       self.assertAllClose(expected_enc_out, enc_out_sum_val)
+
+  def testForwardPassLstmOnly(self):
+    with self.session(use_gpu=False):
+      vn_config = py_utils.VariationalNoiseParams(None, False, False)
+      p = self._EncoderParams(vn_config)
+      p.num_cnn_layers = 0
+      p.num_conv_lstm_layers = 0
+      p.lstm_cell_size = 1024
+      p.num_lstm_layers = 4
+      p.conv_filter_strides = []
+      p.conv_filter_shapes = []
+      p.input_shape = [None, None, 96, 1]
+      enc_out = self._ForwardPass(p).encoded
+      enc_out_sum = tf.reduce_sum(enc_out)
+      self.evaluate(tf.global_variables_initializer())
+
+      enc_out_sum_val = enc_out_sum.eval()
+      print('expected enc_out_sum_val', enc_out_sum_val)
+      test_utils.CompareToGoldenSingleFloat(self, -280.61724853515625,
+                                            enc_out_sum_val)
 
   def testForwardPassWithConvLSTM(self):
     with self.session(use_gpu=False):
