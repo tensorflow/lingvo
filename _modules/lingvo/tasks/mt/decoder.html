@@ -563,6 +563,14 @@
              <span class="s1">&#39;Additive attention params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_rnn_cell_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Attention RNNCell params template.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;emb_projection_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Template for embedding projection layer. If set, the embeddings &#39;</span>
+        <span class="s1">&#39;are projected to match the `rnn_cell_dim`, if they are different. &#39;</span>
+        <span class="s1">&#39;It will also add a projection if `rnn_cell_dim` is not equal to &#39;</span>
+        <span class="s1">&#39;softmax input_dim (shared embedding case). The clipping schedule, &#39;</span>
+        <span class="s1">&#39;if enabled, is also applied after projection.&#39;</span>
+        <span class="s1">&#39;See Factorized Embedding in ALBERT: https://arxiv.org/abs/1909.11942&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_cell_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;RNNCell params template.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_cell_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;size of the rnn cells.&#39;</span><span class="p">)</span>
@@ -674,6 +682,12 @@
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_project_out</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_projection_tpl</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_project_out</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">)</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
     <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
     <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
@@ -688,7 +702,10 @@
     <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_rnn&#39;</span>
     <span class="n">params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
     <span class="n">params</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span><span class="p">:</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span>
     <span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
     <span class="n">atten_rnn_cell</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
@@ -727,10 +744,40 @@
     <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">feed_attention_context_vec_to_softmax</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_out</span>
       <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
+
+    <span class="c1"># Factorized embedding:</span>
+    <span class="c1"># An embedding matrix of O(vocab_size * emb_dim) is factorized into</span>
+    <span class="c1"># two matrices O(vocab_size * hidden_dim) + O(hidden_dim * embedding_dim).</span>
+    <span class="c1"># See ALBERT: https://arxiv.org/abs/1909.11942.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating an embedding projection from &#39;</span>
+                      <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="si">}</span><span class="s1"> -&gt; </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="si">}</span><span class="s1"> &#39;</span>
+                      <span class="s1">&#39;before feeding to rnn.&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateProjection</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb_projection_tpl</span><span class="p">,</span> <span class="s1">&#39;emb_proj&#39;</span><span class="p">,</span>
+                             <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_out</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating an out projection from &#39;</span>
+                      <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="si">}</span><span class="s1"> -&gt; </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="si">}</span><span class="s1"> &#39;</span>
+                      <span class="s1">&#39;before feeding to softmax layer.&#39;</span><span class="p">)</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateProjection</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb_projection_tpl</span><span class="p">,</span> <span class="s1">&#39;out_proj&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">,</span>
+                             <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MTDecoderV1._CreateProjection"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._CreateProjection">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateProjection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proj_tpl</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a projection layer(projects from `input_dim` to `output_dim`).&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">proj_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span>
+    <span class="n">proj_p</span> <span class="o">=</span> <span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">input_dim</span>
+    <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">proj_p</span></div>
 
 <div class="viewcode-block" id="MTDecoderV1._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
@@ -805,7 +852,10 @@
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
         <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;input_emb&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyDropout</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_emb_out</span> <span class="o">=</span> <span class="n">inputs</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span><span class="p">:</span>
+          <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+          <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
         <span class="c1"># Layer 0 intertwines with attention.</span>
         <span class="p">(</span><span class="n">accumulated_states</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span>
@@ -843,6 +893,10 @@
 
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">feed_attention_context_vec_to_softmax</span><span class="p">:</span>
           <span class="n">xs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_out</span><span class="p">:</span>
+          <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">out_proj</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+          <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
 
         <span class="c1"># Get intermediate attention information</span>
         <span class="n">atten_states</span> <span class="o">=</span> <span class="n">accumulated_states</span><span class="o">.</span><span class="n">atten_state</span>
@@ -944,6 +998,9 @@
                   <span class="n">prev_atten_context</span><span class="p">,</span> <span class="n">rnn_states</span><span class="p">,</span> <span class="n">prev_atten_states</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decode one step.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span><span class="p">:</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
     <span class="n">new_rnn_states</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">new_rnn_states_0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span> <span class="n">rnn_states</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -985,6 +1042,9 @@
       <span class="n">step_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">rnn_out</span><span class="p">,</span> <span class="n">atten_context</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">step_out</span> <span class="o">=</span> <span class="n">rnn_out</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_out</span><span class="p">:</span>
+      <span class="n">step_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">out_proj</span><span class="p">,</span> <span class="n">step_out</span><span class="p">)</span>
+      <span class="n">step_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">step_out</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">cur_atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">new_rnn_states</span><span class="p">,</span> <span class="n">step_out</span><span class="p">,</span>
             <span class="n">atten_states</span><span class="p">)</span>
 
