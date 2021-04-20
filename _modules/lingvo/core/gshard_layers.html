@@ -761,20 +761,26 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_groups&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of groups.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_devices&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of devices.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;model_dims&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A list, the dimensions that M is reshaped into. If None, default&#39;</span>
+        <span class="s1">&#39; to the last dimension of fprop inputs&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="ReshapeInputLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ReshapeInputLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="c1"># Do not reshape for eval.</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
-      <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span>
-          <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">orig_inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-      <span class="p">])</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+    <span class="c1"># input size in tokens</span>
+    <span class="n">input_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">group_size</span> <span class="o">=</span> <span class="n">input_size</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">group_size</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="o">==</span> <span class="n">input_size</span><span class="p">),</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">input_size</span><span class="p">)</span>
+    <span class="n">model_dims</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dims</span> <span class="ow">or</span> <span class="p">[</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">group_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">model_dims</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;grouped_inputs&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span></div></div>
 
@@ -1314,6 +1320,7 @@
                <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">mask_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">gating_logits_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes Top-2 gating for Mixture-of-Experts.</span>
@@ -1324,7 +1331,8 @@
 <span class="sd">  group `g = 0...G-1` is being dispatched independently.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    w: gating weights for each experts.</span>
+<span class="sd">    w: gating weights for each experts with shape ME. w was reshaped accordingly</span>
+<span class="sd">        if model_dim_reshape_segments is not None,</span>
 <span class="sd">    inputs: G`SM Tensor.</span>
 <span class="sd">    paddings: G`S Tensor.</span>
 <span class="sd">    num_devices: number of MoE devices for local dispatch</span>
@@ -1347,6 +1355,8 @@
 <span class="sd">      `(group_size * capacity_factor) / experts_dim`</span>
 <span class="sd">      where `group_size` is the size of G dimension of `inputs`. If the</span>
 <span class="sd">      value of expert_capacity_dim is already big enough no change is made.</span>
+<span class="sd">    model_dim_reshape_segments: none or a list, reshaping model dimension M to</span>
+<span class="sd">      that + [-1]</span>
 <span class="sd">    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask</span>
 <span class="sd">      tensors, mask_dtype is a special dtype for such tensors.</span>
 <span class="sd">    gating_logits_dtype: using bfloat16 for fprop_dtype could be problematic for</span>
@@ -1368,12 +1378,14 @@
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
   <span class="k">if</span> <span class="n">gating_logits_dtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">gating_logits_dtype</span> <span class="o">==</span> <span class="n">fprop_dtype</span><span class="p">:</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span>
+                                <span class="n">model_dim_reshape_segments</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">EinsumWithModelDim</span><span class="p">(</span>
         <span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">gating_logits_dtype</span><span class="p">),</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">gating_logits_dtype</span><span class="p">),</span>
+        <span class="n">model_dim_reshape_segments</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;gating_logits_with_custom_dtype&#39;</span><span class="p">)</span>
 
   <span class="n">top1_expert_per_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -1415,6 +1427,7 @@
                                    <span class="n">gsec_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">eah_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">eam_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">activation_name</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Apply top_2 gating to feedforward networks.</span>
 
@@ -1441,6 +1454,7 @@
 <span class="sd">    gsec_split: Mesh split for GSEC tensors.</span>
 <span class="sd">    eah_split: Mesh split for EAH tensors.</span>
 <span class="sd">    eam_split: Mesh split for EAM tensors.</span>
+<span class="sd">    model_dim_reshape_segments: Reshaping model dimension M to that + [-1]</span>
 <span class="sd">    activation_name: Default: `RELU`. Activation function for feed-forward.</span>
 
 <span class="sd">  Returns:</span>
@@ -1455,6 +1469,9 @@
     <span class="k">assert</span> <span class="n">eah_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="n">eam_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
+  <span class="k">def</span> <span class="nf">_Einsum</span><span class="p">(</span><span class="n">eq</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="n">eq</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model_dim_reshape_segments</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
   <span class="k">def</span> <span class="nf">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t_split</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;MeshSplit </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">t_split</span><span class="p">)</span>
@@ -1462,22 +1479,25 @@
     <span class="k">return</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
 
   <span class="c1"># dispatch_tensor: G`SEC</span>
-  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_Einsum</span><span class="p">(</span>
       <span class="s1">&#39;GSEC,GSM-&gt;EGCM&#39;</span><span class="p">,</span>
       <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
       <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">gsm_split</span><span class="p">),</span>
       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_inputs_egcm&#39;</span><span class="p">)</span>
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="n">egcm_split</span><span class="p">)</span>
 
-  <span class="n">M</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="n">E</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">if</span> <span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
+  <span class="n">E</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
   <span class="c1"># combine_tensor: G`SEC</span>
-  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">G</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
   <span class="c1"># allow evaler/decoder to run.</span>
   <span class="k">del</span> <span class="n">num_groups</span>
-  <span class="n">C</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">C</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
   <span class="n">A</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="n">C</span>
   <span class="c1"># pylint: enable=invalid-name</span>
 
@@ -1487,11 +1507,11 @@
   <span class="c1">#</span>
   <span class="c1"># (512, 1024, 4, 1024) =&gt; (512, 4096, 1024)</span>
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-      <span class="n">expert_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">],</span>
+      <span class="n">expert_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">]</span> <span class="o">+</span> <span class="n">M</span><span class="p">,</span>
       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_inputs_eam&#39;</span><span class="p">)</span>
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="n">eam_split</span><span class="p">)</span>
 
-  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAM,EMH-&gt;EAH&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">wi_split</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;h_eah&#39;</span><span class="p">)</span>
+  <span class="n">h</span> <span class="o">=</span> <span class="n">_Einsum</span><span class="p">(</span><span class="s1">&#39;EAM,EMH-&gt;EAH&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">wi_split</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;h_eah&#39;</span><span class="p">)</span>
   <span class="n">h</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">eah_split</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">bi_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">h</span> <span class="o">+=</span> <span class="n">Split</span><span class="p">(</span><span class="n">bi_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
@@ -1503,7 +1523,7 @@
     <span class="c1"># large uint32 tensor broadcast (per dehao@ study)</span>
     <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">)</span>
 
-  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">_Einsum</span><span class="p">(</span>
       <span class="s1">&#39;EAH,EHM-&gt;EAM&#39;</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">wo_split</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_outputs_eam&#39;</span><span class="p">)</span>
   <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">eam_split</span><span class="p">)</span>
 
@@ -1511,13 +1531,15 @@
     <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
     <span class="n">expert_outputs</span> <span class="o">+=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">bo_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
     <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
-  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="p">[</span><span class="n">E</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">M</span><span class="p">])</span>
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="p">[</span><span class="n">E</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">C</span><span class="p">]</span> <span class="o">+</span> <span class="n">M</span><span class="p">)</span>
 
   <span class="c1"># same as tf.transpose</span>
   <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-      <span class="s1">&#39;EGCM-&gt;GECM&#39;</span><span class="p">,</span> <span class="n">expert_outputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_outputs_gecm&#39;</span><span class="p">)</span>
+      <span class="n">_EinsumEqWithModelDim</span><span class="p">(</span><span class="s1">&#39;EGCM-&gt;GECM&#39;</span><span class="p">,</span> <span class="n">model_dim_reshape_segments</span><span class="p">),</span>
+      <span class="n">expert_outputs</span><span class="p">,</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_outputs_gecm&#39;</span><span class="p">)</span>
 
-  <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+  <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">_Einsum</span><span class="p">(</span>
       <span class="s1">&#39;GSEC,GECM-&gt;GSM&#39;</span><span class="p">,</span>
       <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
       <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">gecm_split</span><span class="p">),</span>
@@ -1887,6 +1909,49 @@
       <span class="n">combine_tensor</span><span class="o">=</span><span class="n">combine_tensor</span><span class="p">,</span>
       <span class="n">dispatch_tensor</span><span class="o">=</span><span class="n">dispatch_tensor</span><span class="p">,</span>
       <span class="n">aux_loss</span><span class="o">=</span><span class="n">aux_loss</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_EinsumEqWithModelDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers._EinsumEqWithModelDim">[docs]</a><span class="k">def</span> <span class="nf">_EinsumEqWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">model_dim_reshape_segments</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adjust Einsum equation according to model_dim_reshape_segments.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">equation</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_dim_reshape_segments</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">2</span>
+  <span class="n">insert_chars</span> <span class="o">=</span> <span class="s1">&#39;N&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_dim_reshape_segments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;NO&#39;</span>
+  <span class="n">new_equation</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+  <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">equation</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">insert_chars</span>
+    <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span>
+      <span class="n">new_equation</span> <span class="o">+=</span> <span class="n">insert_chars</span>
+    <span class="n">new_equation</span> <span class="o">+=</span> <span class="n">c</span>
+  <span class="k">return</span> <span class="n">new_equation</span></div>
+
+
+<div class="viewcode-block" id="EinsumWithModelDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.EinsumWithModelDim">[docs]</a><span class="k">def</span> <span class="nf">EinsumWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model_dim_reshape_segments</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Einsum with adjusted equation according to model_dim_reshape_segments.</span>
+
+<span class="sd">  It changes each dimension named &#39;M&#39; in the equation into two dimensions &#39;NM&#39;</span>
+<span class="sd">  if model_dim_reshape_segments is set in the params. Therefore the original</span>
+<span class="sd">  equation should not have &#39;N&#39;, and only use &#39;M&#39; when it is expected to be</span>
+<span class="sd">  reshaped.</span>
+
+<span class="sd">  For example, an input equation &#39;GSM,ME-&gt;GSE&#39; and model_dim_reshape_segments</span>
+<span class="sd">  # [16, 4] will be rewritten into the new equation &#39;GSNOM,NOME-&gt;GSE&#39;.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    equation: a string describing the contraction, in the same format as</span>
+<span class="sd">      numpy.einsum.</span>
+<span class="sd">    x: First input to einsum.</span>
+<span class="sd">    y: second input to einsum.</span>
+<span class="sd">    model_dim_reshape_segments: Reshaping model dimension M to that + [-1]</span>
+<span class="sd">    name: optional name.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    tf.einsum(maybe_modified_equation, x, y)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+  <span class="n">new_equation</span> <span class="o">=</span> <span class="n">_EinsumEqWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">model_dim_reshape_segments</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">new_equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

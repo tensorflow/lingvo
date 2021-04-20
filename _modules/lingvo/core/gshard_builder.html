@@ -368,11 +368,32 @@
         <span class="s1">&#39;of _LNConv will be based on model_dim_reshape_segment&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_no_scale&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Override Builder._LN with Builder._LNNoScale.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_dim_reshape_segments&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Size of N when reshaping model dimension M to Nm&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_device_mesh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="kc">None</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_model_dim_reshape_segments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MoEBuilder._AdjustMSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._AdjustMSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_AdjustMSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">m_dim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adjusts split annotation according to model_dim_reshape_segments.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">split</span>
+    <span class="n">new_split</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">:</span>
+      <span class="n">new_split</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">m_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_split</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._Dropout"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Dropout">[docs]</a>  <span class="k">def</span> <span class="nf">_Dropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span>
@@ -1590,6 +1611,7 @@
           <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
           <span class="n">experts_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">,</span>
           <span class="n">expert_capacity_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">c_dim</span><span class="p">,</span>
+          <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">,</span>
           <span class="n">local_dispatch</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
           <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
           <span class="n">mask_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_dtype</span><span class="p">,</span>
@@ -1643,10 +1665,14 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Split API is deprecated. &#39;</span>
                          <span class="s1">&#39;Use device_mesh and MeshSplit.&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_Split</span><span class="p">(</span><span class="n">split</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_Split</span><span class="p">(</span><span class="n">p_split_name</span><span class="p">):</span>
       <span class="c1"># TODO(lepikhin): eliminate usages of MoEBuilder and merge DenseBuilder</span>
       <span class="c1"># with MoEBuilder, so this getattr is not necessary.</span>
-      <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">split</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p_split_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">m_axis</span> <span class="o">=</span> <span class="n">p_split_name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">m_axis</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">m_axis</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">split</span>
 
     <span class="k">def</span> <span class="nf">_Compute</span><span class="p">(</span><span class="n">gating</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">wi</span><span class="p">,</span> <span class="n">wo</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">FeedForwardNetworksApplyGating</span><span class="p">(</span>
@@ -1659,6 +1685,7 @@
           <span class="n">num_groups</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
           <span class="n">dropout_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">moe_dropout_rate</span><span class="p">,</span>
           <span class="n">device_mesh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+          <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">,</span>
           <span class="n">gsm_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;blm_split&#39;</span><span class="p">),</span>
           <span class="n">egcm_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;egcm_split&#39;</span><span class="p">),</span>
           <span class="n">gecm_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;gecm_split&#39;</span><span class="p">),</span>
@@ -1765,29 +1792,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;logits_split&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;Mesh split for logits.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;experimental_fix_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Mesh split dims mapping could require a fix for special cases.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_dim_reshape_segments&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;Size of N when reshaping model dimension M to Nm&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">_model_dim_reshape_segments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span>
-    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span><span class="p">]</span>
-
-<div class="viewcode-block" id="DenseBuilder._AdjustMSplit"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._AdjustMSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_AdjustMSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">m_dim</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Adjusts split annotation according to model_dim_reshape_segments.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">split</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">split</span>
-    <span class="n">new_split</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">:</span>
-      <span class="n">new_split</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">m_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">new_split</span></div>
 
 <div class="viewcode-block" id="DenseBuilder._ReshapedModelDims"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._ReshapedModelDims">[docs]</a>  <span class="k">def</span> <span class="nf">_ReshapedModelDims</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the dimensions that M is reshaped into.&quot;&quot;&quot;</span>
@@ -1825,24 +1831,20 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      tf.einsum(maybe_modified_equation, x, y)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">2</span>
-    <span class="n">insert_chars</span> <span class="o">=</span> <span class="s1">&#39;N&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;NO&#39;</span>
-    <span class="n">new_equation</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">equation</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">insert_chars</span>
-      <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span>
-        <span class="n">new_equation</span> <span class="o">+=</span> <span class="n">insert_chars</span>
-      <span class="n">new_equation</span> <span class="o">+=</span> <span class="n">c</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">new_equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.DepthwiseConvAutoregressive"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">model_dims</span> <span class="o">=</span> <span class="n">model_dims</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">()</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.EinsumWithModelDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.EinsumWithModelDim">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumWithModelDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">equation</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EinsumWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
+                                              <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_Fn</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder._LN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Overriding _LN to consider model_dim_reshape_segments.&quot;&quot;&quot;</span>
@@ -1940,36 +1942,26 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span>
 
-    <span class="k">def</span> <span class="nf">_ReshapeInputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Prepare inputs and paddings for the gating layer.&quot;&quot;&quot;</span>
-      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
-      <span class="c1"># input size in tokens</span>
-      <span class="n">input_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-      <span class="n">group_size</span> <span class="o">=</span> <span class="n">input_size</span> <span class="o">//</span> <span class="n">num_groups</span>
-      <span class="k">assert</span> <span class="p">(</span><span class="n">group_size</span> <span class="o">*</span> <span class="n">num_groups</span> <span class="o">==</span> <span class="n">input_size</span><span class="p">),</span> <span class="p">(</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">input_size</span><span class="p">)</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span>
-              <span class="n">num_groups</span><span class="p">,</span>
-              <span class="n">group_size</span><span class="p">,</span>
-              <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-          <span class="p">],</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;grouped_inputs&#39;</span><span class="p">)</span>
-      <span class="c1"># inputs = self._MeshSplit(inputs, self._AdjustMSplit(p.blm_split, 2))</span>
-      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;grouped_paddings&#39;</span><span class="p">)</span>
-      <span class="c1"># paddings = self._MeshSplit(paddings,</span>
-      <span class="c1">#                            p.blm_split[:2])  # Snapshot version: 432</span>
-      <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span>
+    <span class="n">reshape_input</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ReshapeInputLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">num_groups</span><span class="o">=</span><span class="n">num_groups</span><span class="p">,</span>
+        <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+        <span class="n">model_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">())</span>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;wo&#39;</span><span class="p">],</span>
-                       <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
-                       <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;reshaped_inputs, paddings&#39;</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_inputs&#39;</span><span class="p">,</span> <span class="n">_ReshapeInputs</span><span class="p">)),</span>
-                       <span class="p">(</span><span class="s1">&#39;-&gt;gw&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Top2GatingWeights</span><span class="p">(</span><span class="s1">&#39;top_2_gating&#39;</span><span class="p">)),</span>
-                       <span class="p">(</span><span class="s1">&#39;gw,reshaped_inputs,paddings-&gt;gating&#39;</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeTopKGating</span><span class="p">(</span><span class="s1">&#39;compute_gating&#39;</span><span class="p">)),</span>
-                       <span class="p">(</span><span class="s1">&#39;gating,inputs,reshaped_inputs,wi,wo-&gt;outputs,aux_loss&#39;</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">_FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="s1">&#39;process_gating&#39;</span><span class="p">)))</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;wo&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;reshaped_inputs, paddings&#39;</span><span class="p">,</span> <span class="n">reshape_input</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;gw&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Top2GatingWeights</span><span class="p">(</span><span class="s1">&#39;top_2_gating&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;gw-&gt;gw_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_gw&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;wi-&gt;wi_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_wo&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;gw_reshaped,reshaped_inputs,paddings-&gt;gating&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeTopKGating</span><span class="p">(</span><span class="s1">&#39;compute_gating&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;gating,inputs,reshaped_inputs,wi_reshaped,wo_reshaped&#39;</span>
+         <span class="s1">&#39;-&gt;outputs,aux_loss&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="s1">&#39;process_gating&#39;</span><span class="p">)))</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.Embedding"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.Embedding">[docs]</a>  <span class="k">def</span> <span class="nf">Embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
