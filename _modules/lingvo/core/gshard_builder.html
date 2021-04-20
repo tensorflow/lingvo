@@ -718,12 +718,19 @@
 
         <span class="k">def</span> <span class="nf">_ReshapeToMicroBatches</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
           <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="n">spmd_pipeline_microbatches</span> <span class="o">==</span> <span class="mi">0</span>
+          <span class="c1"># First reshape to [microbatch_size, spmd_pipeline_microbatches, ..]</span>
+          <span class="c1"># then transpose to [spmd_pipeline_microbatches, microbatch_size, ...]</span>
+          <span class="c1"># because we want each microbatch to be sharded the same way as the</span>
+          <span class="c1"># original batch dimension.</span>
           <span class="n">new_shape</span> <span class="o">=</span> <span class="p">[</span>
-              <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span>
-              <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">spmd_pipeline_microbatches</span>
+              <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span>
+              <span class="n">spmd_pipeline_microbatches</span>
           <span class="p">]</span>
           <span class="n">new_shape</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+          <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)))</span>
+          <span class="n">perm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+          <span class="n">perm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">),</span> <span class="n">perm</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_m&#39;</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_microbatched&#39;</span><span class="p">,</span> <span class="n">_ReshapeToMicroBatches</span><span class="p">))</span>
@@ -761,6 +768,10 @@
       <span class="k">def</span> <span class="nf">_ToBatches</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
 
         <span class="k">def</span> <span class="nf">_ReshapeToBatches</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+          <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+          <span class="n">perm</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+          <span class="n">perm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">perm</span><span class="p">)</span>
           <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
 
         <span class="k">return</span> <span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_m-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span><span class="p">,</span>
