@@ -609,20 +609,26 @@ class ReshapeInputLayer(base_layer.BaseLayer):
     p = super().Params()
     p.Define('num_groups', None, 'Number of groups.')
     p.Define('num_devices', 1, 'Number of devices.')
+    p.Define(
+        'model_dims', None,
+        'A list, the dimensions that M is reshaped into. If None, default'
+        ' to the last dimension of fprop inputs')
     return p
 
   def FProp(self, unused_theta, inputs, segment_id):
     p = self.params
     paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
-    # Do not reshape for eval.
-    if not self.do_eval:
-      orig_inputs = inputs
-      inputs = tf.reshape(orig_inputs, [
-          p.num_groups,
-          -1,
-          py_utils.GetShape(orig_inputs)[-1],
-      ])
-    inputs = gshard_utils.Split(inputs, 0, p.num_devices)
+    orig_inputs = inputs
+    # input size in tokens
+    input_size = int(orig_inputs.shape[0] * orig_inputs.shape[1])
+    group_size = input_size // p.num_groups
+    assert (group_size * p.num_groups == input_size), (p.num_groups, input_size)
+    model_dims = p.model_dims or [orig_inputs.shape[-1]]
+    inputs = tf.reshape(
+        orig_inputs, [p.num_groups, group_size] + model_dims,
+        name='grouped_inputs')
+    if p.num_devices > 1:
+      inputs = gshard_utils.Split(inputs, 0, p.num_devices)
     paddings = tf.reshape(paddings, py_utils.GetShape(inputs)[:2])
     return inputs, paddings
 
@@ -1162,6 +1168,7 @@ def Top2Gating(w,
                second_expert_threshold=0.0,
                legacy_mtf_behavior=True,
                capacity_factor=None,
+               model_dim_reshape_segments=None,
                mask_dtype=None,
                gating_logits_dtype=None):
   """Computes Top-2 gating for Mixture-of-Experts.
@@ -1172,7 +1179,8 @@ def Top2Gating(w,
   group `g = 0...G-1` is being dispatched independently.
 
   Args:
-    w: gating weights for each experts.
+    w: gating weights for each experts with shape ME. w was reshaped accordingly
+        if model_dim_reshape_segments is not None,
     inputs: G`SM Tensor.
     paddings: G`S Tensor.
     num_devices: number of MoE devices for local dispatch
@@ -1195,6 +1203,8 @@ def Top2Gating(w,
       `(group_size * capacity_factor) / experts_dim`
       where `group_size` is the size of G dimension of `inputs`. If the
       value of expert_capacity_dim is already big enough no change is made.
+    model_dim_reshape_segments: none or a list, reshaping model dimension M to
+      that + [-1]
     mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
       tensors, mask_dtype is a special dtype for such tensors.
     gating_logits_dtype: using bfloat16 for fprop_dtype could be problematic for
@@ -1216,12 +1226,14 @@ def Top2Gating(w,
       paddings = tf.reshape(paddings, [1, -1])
 
   if gating_logits_dtype is None or gating_logits_dtype == fprop_dtype:
-    logits = tf.einsum('GSM,ME->GSE', inputs, w)
+    logits = EinsumWithModelDim('GSM,ME->GSE', inputs, w,
+                                model_dim_reshape_segments)
   else:
-    logits = tf.einsum(
+    logits = EinsumWithModelDim(
         'GSM,ME->GSE',
         tf.cast(inputs, gating_logits_dtype),
         tf.cast(w, gating_logits_dtype),
+        model_dim_reshape_segments,
         name='gating_logits_with_custom_dtype')
 
   top1_expert_per_example = tf.math.argmax(logits, -1)
@@ -1263,6 +1275,7 @@ def FeedForwardNetworksApplyGating(gating,
                                    gsec_split=None,
                                    eah_split=None,
                                    eam_split=None,
+                                   model_dim_reshape_segments=None,
                                    activation_name='RELU'):
   """Apply top_2 gating to feedforward networks.
 
@@ -1289,6 +1302,7 @@ def FeedForwardNetworksApplyGating(gating,
     gsec_split: Mesh split for GSEC tensors.
     eah_split: Mesh split for EAH tensors.
     eam_split: Mesh split for EAM tensors.
+    model_dim_reshape_segments: Reshaping model dimension M to that + [-1]
     activation_name: Default: `RELU`. Activation function for feed-forward.
 
   Returns:
@@ -1303,6 +1317,9 @@ def FeedForwardNetworksApplyGating(gating,
     assert eah_split is not None
     assert eam_split is not None
 
+  def _Einsum(eq, x, y, name=None):
+    return EinsumWithModelDim(eq, x, y, model_dim_reshape_segments, name)
+
   def _NewOrHistoricSplit(t, t_split):
     if device_mesh is not None:
       tf.logging.info('MeshSplit %s %s %s', t, device_mesh.shape, t_split)
@@ -1310,22 +1327,25 @@ def FeedForwardNetworksApplyGating(gating,
     return gshard_utils.Split(t, 0, num_devices)
 
   # dispatch_tensor: G`SEC
-  expert_inputs = tf.einsum(
+  expert_inputs = _Einsum(
       'GSEC,GSM->EGCM',
       _NewOrHistoricSplit(gating.dispatch_tensor, gsec_split),
       _NewOrHistoricSplit(reshaped_inputs, gsm_split),
       name='expert_inputs_egcm')
   expert_inputs = _NewOrHistoricSplit(expert_inputs, egcm_split)
 
-  M = py_utils.GetShape(reshaped_inputs)[-1]  # pylint: disable=invalid-name
-  E = py_utils.GetShape(expert_inputs)[0]  # pylint: disable=invalid-name
+  # pylint: disable=invalid-name
+  if model_dim_reshape_segments is None:
+    M = py_utils.GetShape(reshaped_inputs)[-1:]
+  else:
+    M = py_utils.GetShape(reshaped_inputs)[2:]
+  E = py_utils.GetShape(expert_inputs)[0]
 
   # combine_tensor: G`SEC
-  # pylint: disable=invalid-name
   G = py_utils.GetShape(gating.combine_tensor)[0]
   # allow evaler/decoder to run.
   del num_groups
-  C = py_utils.GetShape(gating.combine_tensor)[-1]  # pylint: disable=invalid-name
+  C = py_utils.GetShape(gating.combine_tensor)[-1]
   A = G * C
   # pylint: enable=invalid-name
 
@@ -1335,11 +1355,11 @@ def FeedForwardNetworksApplyGating(gating,
   #
   # (512, 1024, 4, 1024) => (512, 4096, 1024)
   expert_inputs = tf.reshape(
-      expert_inputs, [py_utils.GetShape(expert_inputs)[0], A, M],
+      expert_inputs, [py_utils.GetShape(expert_inputs)[0], A] + M,
       name='expert_inputs_eam')
   expert_inputs = _NewOrHistoricSplit(expert_inputs, eam_split)
 
-  h = tf.einsum('EAM,EMH->EAH', expert_inputs, wi_split, name='h_eah')
+  h = _Einsum('EAM,EMH->EAH', expert_inputs, wi_split, name='h_eah')
   h = _NewOrHistoricSplit(h, eah_split)
   if bi_split is not None:
     h += Split(bi_split, 0, num_devices)
@@ -1351,7 +1371,7 @@ def FeedForwardNetworksApplyGating(gating,
     # large uint32 tensor broadcast (per dehao@ study)
     h = tf.nn.dropout(h, dropout_rate)
 
-  expert_outputs = tf.einsum(
+  expert_outputs = _Einsum(
       'EAH,EHM->EAM', h, wo_split, name='expert_outputs_eam')
   expert_outputs = _NewOrHistoricSplit(expert_outputs, eam_split)
 
@@ -1359,13 +1379,15 @@ def FeedForwardNetworksApplyGating(gating,
     expert_outputs = gshard_utils.Split(expert_outputs, 0, num_devices)
     expert_outputs += gshard_utils.Split(bo_split, 0, num_devices)
     expert_outputs = gshard_utils.Split(expert_outputs, 0, num_devices)
-  expert_outputs = tf.reshape(expert_outputs, [E, G, C, M])
+  expert_outputs = tf.reshape(expert_outputs, [E, G, C] + M)
 
   # same as tf.transpose
   expert_outputs = tf.einsum(
-      'EGCM->GECM', expert_outputs, name='expert_outputs_gecm')
+      _EinsumEqWithModelDim('EGCM->GECM', model_dim_reshape_segments),
+      expert_outputs,
+      name='expert_outputs_gecm')
 
-  combined_outputs = tf.einsum(
+  combined_outputs = _Einsum(
       'GSEC,GECM->GSM',
       _NewOrHistoricSplit(gating.combine_tensor, gsec_split),
       _NewOrHistoricSplit(expert_outputs, gecm_split),
@@ -1735,3 +1757,46 @@ def TaskTop2Gating(w,
       combine_tensor=combine_tensor,
       dispatch_tensor=dispatch_tensor,
       aux_loss=aux_loss)
+
+
+def _EinsumEqWithModelDim(equation, model_dim_reshape_segments):
+  """Adjust Einsum equation according to model_dim_reshape_segments."""
+  if model_dim_reshape_segments is None:
+    return equation
+  assert len(model_dim_reshape_segments) <= 2
+  insert_chars = 'N' if len(model_dim_reshape_segments) == 1 else 'NO'
+  new_equation = ''
+  for c in equation:
+    assert c not in insert_chars
+    if c == 'M':
+      new_equation += insert_chars
+    new_equation += c
+  return new_equation
+
+
+def EinsumWithModelDim(equation, x, y, model_dim_reshape_segments, name=None):
+  """Einsum with adjusted equation according to model_dim_reshape_segments.
+
+  It changes each dimension named 'M' in the equation into two dimensions 'NM'
+  if model_dim_reshape_segments is set in the params. Therefore the original
+  equation should not have 'N', and only use 'M' when it is expected to be
+  reshaped.
+
+  For example, an input equation 'GSM,ME->GSE' and model_dim_reshape_segments
+  # [16, 4] will be rewritten into the new equation 'GSNOM,NOME->GSE'.
+
+  Args:
+    equation: a string describing the contraction, in the same format as
+      numpy.einsum.
+    x: First input to einsum.
+    y: second input to einsum.
+    model_dim_reshape_segments: Reshaping model dimension M to that + [-1]
+    name: optional name.
+
+  Returns:
+    tf.einsum(maybe_modified_equation, x, y)
+  """
+  if model_dim_reshape_segments is None:
+    return tf.einsum(equation, x, y, name=name)
+  new_equation = _EinsumEqWithModelDim(equation, model_dim_reshape_segments)
+  return tf.einsum(new_equation, x, y, name=name)

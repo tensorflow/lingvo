@@ -216,11 +216,32 @@ class MoEBuilder(builder.Base):
         'of _LNConv will be based on model_dim_reshape_segment')
     p.Define('ln_no_scale', False,
              'Override Builder._LN with Builder._LNNoScale.')
+    p.Define('model_dim_reshape_segments', None,
+             'Size of N when reshaping model dimension M to Nm')
     return p
 
   @property
   def _device_mesh(self):
     return None
+
+  @property
+  def _model_dim_reshape_segments(self):
+    if self.params.model_dim_reshape_segments is None:
+      return None
+    elif isinstance(self.params.model_dim_reshape_segments, list):
+      return self.params.model_dim_reshape_segments
+    return [self.params.model_dim_reshape_segments]
+
+  def _AdjustMSplit(self, split, m_dim):
+    """Adjusts split annotation according to model_dim_reshape_segments."""
+    if split is None:
+      return None
+    if self._model_dim_reshape_segments is None:
+      return split
+    new_split = list(split)
+    for _ in self._model_dim_reshape_segments:
+      new_split.insert(m_dim + 1, -1)
+    return new_split
 
   def _Dropout(self, name, keep_prob, noise_shape_broadcast_dims=None):
     return super()._Dropout(
@@ -1438,6 +1459,7 @@ class MoEBuilder(builder.Base):
           num_devices=p.num_devices,
           experts_dim=p.e_dim,
           expert_capacity_dim=p.c_dim,
+          model_dim_reshape_segments=self._model_dim_reshape_segments,
           local_dispatch=True,
           fprop_dtype=py_utils.FPropDtype(p),
           mask_dtype=p.mask_dtype,
@@ -1491,10 +1513,14 @@ class MoEBuilder(builder.Base):
       tf.logging.warning('Split API is deprecated. '
                          'Use device_mesh and MeshSplit.')
 
-    def _Split(split):
+    def _Split(p_split_name):
       # TODO(lepikhin): eliminate usages of MoEBuilder and merge DenseBuilder
       # with MoEBuilder, so this getattr is not necessary.
-      return getattr(p, split, None)
+      split = getattr(p, p_split_name, None)
+      m_axis = p_split_name.find('m')
+      if m_axis >= 0:
+        split = self._AdjustMSplit(split, m_axis)
+      return split
 
     def _Compute(gating, inputs, reshaped_inputs, wi, wo):
       return gshard_layers.FeedForwardNetworksApplyGating(
@@ -1507,6 +1533,7 @@ class MoEBuilder(builder.Base):
           num_groups=p.num_groups or p.num_devices,
           dropout_rate=p.moe_dropout_rate,
           device_mesh=self._device_mesh,
+          model_dim_reshape_segments=self._model_dim_reshape_segments,
           gsm_split=_Split('blm_split'),
           egcm_split=_Split('egcm_split'),
           gecm_split=_Split('gecm_split'),
@@ -1613,29 +1640,8 @@ class DenseBuilder(MoEBuilder):
     p.Define('logits_split', [0, -1, -1], 'Mesh split for logits.')
     p.Define('experimental_fix_split_dims_mapping', False,
              'Mesh split dims mapping could require a fix for special cases.')
-    p.Define('model_dim_reshape_segments', None,
-             'Size of N when reshaping model dimension M to Nm')
     p.attention_combine_dims = False
     return p
-
-  @property
-  def _model_dim_reshape_segments(self):
-    if self.params.model_dim_reshape_segments is None:
-      return None
-    elif isinstance(self.params.model_dim_reshape_segments, list):
-      return self.params.model_dim_reshape_segments
-    return [self.params.model_dim_reshape_segments]
-
-  def _AdjustMSplit(self, split, m_dim):
-    """Adjusts split annotation according to model_dim_reshape_segments."""
-    if split is None:
-      return None
-    if self.params.model_dim_reshape_segments is None:
-      return split
-    new_split = list(split)
-    for _ in self._model_dim_reshape_segments:
-      new_split.insert(m_dim + 1, -1)
-    return new_split
 
   def _ReshapedModelDims(self):
     """Returns the dimensions that M is reshaped into."""
@@ -1673,24 +1679,20 @@ class DenseBuilder(MoEBuilder):
     Returns:
       tf.einsum(maybe_modified_equation, x, y)
     """
-    if self._model_dim_reshape_segments is None:
-      return tf.einsum(equation, x, y)
-    assert len(self._model_dim_reshape_segments) <= 2
-    insert_chars = 'N' if len(self._model_dim_reshape_segments) == 1 else 'NO'
-    new_equation = ''
-    for c in equation:
-      assert c not in insert_chars
-      if c == 'M':
-        new_equation += insert_chars
-      new_equation += c
-    return tf.einsum(new_equation, x, y)
+    return gshard_layers.EinsumWithModelDim(equation, x, y,
+                                            self._model_dim_reshape_segments)
 
   def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
     model_dims = model_dims or self._ReshapedModelDims()
     return super().DepthwiseConvAutoregressive(name, kernel_size, model_dims)
 
   def EinsumWithModelDim(self, name, equation):
-    return self._Fn(name, lambda x, y: self._EinsumWithModelDim(equation, x, y))
+
+    def _Fn(x, y):
+      return gshard_layers.EinsumWithModelDim(equation, x, y,
+                                              self._model_dim_reshape_segments)
+
+    return self._Fn(name, _Fn)
 
   def _LN(self, name):
     """Overriding _LN to consider model_dim_reshape_segments."""
@@ -1788,36 +1790,26 @@ class DenseBuilder(MoEBuilder):
     p = self.params
     num_groups = p.num_groups or p.num_devices
 
-    def _ReshapeInputs(inputs, segment_id):
-      """Prepare inputs and paddings for the gating layer."""
-      paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
-      orig_inputs = inputs
-      # input size in tokens
-      input_size = int(orig_inputs.shape[0] * orig_inputs.shape[1])
-      group_size = input_size // num_groups
-      assert (group_size * num_groups == input_size), (num_groups, input_size)
-      inputs = tf.reshape(
-          orig_inputs, [
-              num_groups,
-              group_size,
-              orig_inputs.shape[-1],
-          ],
-          name='grouped_inputs')
-      # inputs = self._MeshSplit(inputs, self._AdjustMSplit(p.blm_split, 2))
-      paddings = tf.reshape(paddings, inputs.shape[:2], name='grouped_paddings')
-      # paddings = self._MeshSplit(paddings,
-      #                            p.blm_split[:2])  # Snapshot version: 432
-      return inputs, paddings
+    reshape_input = gshard_layers.ReshapeInputLayer.Params().Set(
+        num_groups=num_groups,
+        num_devices=p.num_devices,
+        model_dims=self._ReshapedModelDims())
 
-    return self._Graph(name, ['inputs', 'segment_id', 'wi', 'wo'],
-                       ['outputs', 'aux_loss'],
-                       ('inputs,segment_id->reshaped_inputs, paddings',
-                        self._Fn('reshape_inputs', _ReshapeInputs)),
-                       ('->gw', self._Top2GatingWeights('top_2_gating')),
-                       ('gw,reshaped_inputs,paddings->gating',
-                        self._ComputeTopKGating('compute_gating')),
-                       ('gating,inputs,reshaped_inputs,wi,wo->outputs,aux_loss',
-                        self._FeedForwardNetworksApplyGating('process_gating')))
+    return self._Graph(
+        name, ['inputs', 'segment_id', 'wi', 'wo'], ['outputs', 'aux_loss'],
+        ('inputs,segment_id->reshaped_inputs, paddings', reshape_input),
+        ('->gw', self._Top2GatingWeights('top_2_gating')),
+        ('gw->gw_reshaped',
+         self._Fn('reshape_gw', fn=lambda x: self._ReshapeM(x, 0))),
+        ('wi->wi_reshaped',
+         self._Fn('reshape_wi', fn=lambda x: self._ReshapeM(x, 1))),
+        ('wo->wo_reshaped',
+         self._Fn('reshape_wo', fn=lambda x: self._ReshapeM(x, 2))),
+        ('gw_reshaped,reshaped_inputs,paddings->gating',
+         self._ComputeTopKGating('compute_gating')),
+        ('gating,inputs,reshaped_inputs,wi_reshaped,wo_reshaped'
+         '->outputs,aux_loss',
+         self._FeedForwardNetworksApplyGating('process_gating')))
 
   def Embedding(self, name, vocab_dim):
     p = self.params

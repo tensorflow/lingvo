@@ -199,46 +199,62 @@ class MoEBuilderTest(test_utils.TestCase):
       # Clear the OverrideLayer.
       gshard_layers.OverrideLayer.Clear()
 
-  def _CreateDynamicShapeInputs(self, batch_dim, length_dim, input_dim):
-    inputs = tf.random.normal([batch_dim, length_dim, input_dim], seed=92837472)
-    # Create segment_ids with random number of 1s and stack 0s at end.
-    num_ones = tf.random.uniform(
-        shape=(), minval=1, maxval=length_dim, dtype=tf.int32)
-    segment_ids = tf.concat([
-        tf.ones([batch_dim, num_ones]),
-        tf.zeros([batch_dim, length_dim - num_ones])
-    ],
-                            axis=1)
-    # Remove unpadded positions from the end.
-    max_seq_len = tf.cast(
-        tf.reduce_max(tf.reduce_sum(segment_ids, -1)), tf.int32)
-    inputs = inputs[:, :max_seq_len, :]
-    segment_ids = segment_ids[:, :max_seq_len]
-    unused_segment_pos = tf.zeros_like(segment_ids)
-    return inputs, segment_ids, unused_segment_pos
+  def _GetInputs(self, reshape_m=False):
+    x = tf.constant([[[.1, .2, .3, .4], [.3, .4, .5, .6], [.5, .6, .1, .2]],
+                     [[.7, .8, .4, .5], [.9, .1, .2, .3], [.0, .9, .3, .7]]],
+                    dtype=tf.float32)
+    seg_id = tf.constant([[1, 1, 1], [1, 1, 1]], dtype=tf.int32)
+    pos_id = tf.constant([[0, 1, 2], [0, 1, 2]], dtype=tf.int32)
+    if reshape_m:
+      # Reshape with model_dim_reshape_segments = 2
+      x = tf.reshape(x, [2, 3, 2, 2])
+    return x, seg_id, pos_id
 
-  def testMoEFPropDynamicShapes(self):
+  def testMoEModelDimReshapeFProp(self):
     """Test to verify MoEBuilder.MoE() supports dynamic shapes.
 
     Test without this change fails.
     """
-    batch_dim = 2
-    length_dim = 4
-    input_dim = 4
-    builder = gshard_builder.MoEBuilder.Params().Set(
-        model_dim=input_dim, num_devices=2, moe_hidden_dim=16, e_dim=2, c_dim=2)
-    p = builder.Instantiate().MoE('moe')
+    builder = gshard_builder.DenseBuilder.Params().Set(
+        e_dim=2,
+        c_dim=2,
+        deterministic_dropout=True,
+        dtype=tf.float32,
+        relative_attention_type='bias',
+        model_dim=4,
+        attention_num_heads=2,
+        attention_combine_dims=True,
+        attention_num_memory_heads=1,
+        model_dim_reshape_segments=2,
+        ff_dim=8,
+        attention_key_value_dim=2,
+        moe_hidden_dim=8).Instantiate()
+    p = builder.DecoderLayerStack(
+        'decoder',
+        sub_layers=[
+            builder.DecSelfAttentionRelativeBias('dec_self_attention'),
+            builder.MoE('moe', decoder=True)
+        ],
+        num=2,
+        use_repeat_layer=True)
+
     with self.session(graph=tf.Graph()) as sess:
       tf.random.set_seed(2019)
       # we will reduce the length_dim by 2 dynamically.
       layer = p.Instantiate()
-      inputs, segment_ids, segment_pos = self._CreateDynamicShapeInputs(
-          batch_dim, length_dim, input_dim)
+      inputs, segment_ids, segment_pos = self._GetInputs(reshape_m=True)
+      dec_inputs = py_utils.NestedMap(
+          vec=inputs,
+          segment_id=segment_ids,
+          segment_pos=segment_pos,
+          encoder_output=inputs,
+          encoder_segment_id=tf.zeros_like(segment_ids),
+          encoder_segment_pos=tf.zeros_like(segment_pos),
+          aux_loss=tf.constant(0.0))
       # Verify length dimension shape is dynamic(a Tensor).
-      self.assertIsInstance(py_utils.GetShape(inputs)[1], tf.Tensor)
-      out, aux_loss = layer.FPropDefaultTheta(inputs, segment_ids, segment_pos)
+      out = layer.FPropDefaultTheta(dec_inputs).vec
       sess.run(tf.global_variables_initializer())
-      _ = sess.run([out, aux_loss])
+      sess.run([out])
 
   def testEncNotVisible(self):
 
@@ -309,18 +325,8 @@ class MoEBuilderTest(test_utils.TestCase):
         ff_dim=d_ff,
         attention_key_value_dim=d_kv).Instantiate()
 
-    def _GetInputs():
-      x = tf.constant([[[.1, .2, .3, .4], [.3, .4, .5, .6], [.5, .6, .1, .2]],
-                       [[.7, .8, .4, .5], [.9, .1, .2, .3], [.0, .9, .3, .7]]],
-                      dtype=tf.float32)
-      seg_id = tf.constant([[1, 1, 1], [1, 1, 1]], dtype=tf.int32)
-      pos_id = tf.constant([[0, 1, 2], [0, 1, 2]], dtype=tf.int32)
-      # Reshape with model_dim_reshape_segments = 2
-      reshaped_x = tf.reshape(x, [2, 3, 2, -1])
-      return reshaped_x, seg_id, pos_id
-
     def _GetOutputs(enc, dec):
-      x, seg_id, pos_id = _GetInputs()
+      x, seg_id, pos_id = self._GetInputs(reshape_m=True)
       enc_inputs = py_utils.NestedMap(
           vec=x,
           segment_id=seg_id,
@@ -413,16 +419,8 @@ class MoEBuilderTest(test_utils.TestCase):
         num_devices=num_experts,
         attention_key_value_dim=d_kv).Instantiate()
 
-    def _GetInputs():
-      x = tf.constant([[[.1, .2, .3, .4], [.3, .4, .5, .6], [.5, .6, .1, .2]],
-                       [[.7, .8, .4, .5], [.9, .1, .2, .3], [.0, .9, .3, .7]]],
-                      dtype=tf.float32)
-      seg_id = tf.constant([[1, 1, 1], [1, 1, 1]], dtype=tf.int32)
-      pos_id = tf.constant([[0, 1, 2], [0, 1, 2]], dtype=tf.int32)
-      return x, seg_id, pos_id
-
     def _GetOutputs(enc, dec):
-      x, seg_id, pos_id = _GetInputs()
+      x, seg_id, pos_id = self._GetInputs()
       enc_inputs = py_utils.NestedMap(
           vec=x,
           segment_id=seg_id,
@@ -539,22 +537,12 @@ class MoEBuilderTest(test_utils.TestCase):
         ff_dim=d_ff,
         attention_key_value_dim=d_kv).Instantiate()
 
-    def _GetInputs():
-      x = tf.constant([[[.1, .2, .3, .4], [.3, .4, .5, .6], [.5, .6, .1, .2]],
-                       [[.7, .8, .4, .5], [.9, .1, .2, .3], [.0, .9, .3, .7]]],
-                      dtype=tf.float32)
-      seg_id = tf.constant([[1, 1, 1], [1, 1, 1]], dtype=tf.int32)
-      pos_id = tf.constant([[0, 1, 2], [0, 1, 2]], dtype=tf.int32)
-      # Reshape with model_dim_reshape_segments = 2
-      reshaped_x = tf.reshape(x, [2, 3, 2, -1])
-      return reshaped_x, seg_id, pos_id
-
     # Build a graph with separate attention and ffn layers.
     # Naively compute the output by adding the outputs of the two directly.
     g = tf.Graph()
     with g.as_default():
       tf.random.set_seed(None)
-      x, seg_id, pos_id = _GetInputs()
+      x, seg_id, pos_id = self._GetInputs(reshape_m=True)
       atten = builder.DecSelfAttentionRelativeBias('atten').Instantiate()
       ffn = builder.DenseReluDenseGated('ffn', tf.nn.relu, True).Instantiate()
       y_atten, _ = atten.FPropDefaultTheta(x, seg_id, pos_id, tf.constant(0),
@@ -572,7 +560,7 @@ class MoEBuilderTest(test_utils.TestCase):
     # Expect output the same as the previous naive implementation.
     g = tf.Graph()
     with g.as_default():
-      x, seg_id, pos_id = _GetInputs()
+      x, seg_id, pos_id = self._GetInputs(reshape_m=True)
       parallel = builder.ParallelDecSelfAttentionRelativeBiasFFN(
           'parallel', tf.nn.relu, hidden_dim_reshape_segments=2).Instantiate()
       y_parallel, _ = parallel.FPropDefaultTheta(x, seg_id, pos_id,
