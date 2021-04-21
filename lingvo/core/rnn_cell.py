@@ -1031,6 +1031,11 @@ class LayerNormalizedLSTMCell(RNNCell):
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define(
+        'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
+        'with hyperparameter: value pairs. See google-research.model_pruning.')
+    p.Define('apply_pruning', False, 'Whether to prune the weights while'
+             'training')
     return p
 
   @tf_deprecation.deprecated(
@@ -1054,6 +1059,7 @@ class LayerNormalizedLSTMCell(RNNCell):
             4 * params.num_output_nodes
         ],
         feature_axis=-1)
+    self.compression_op = None
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -1066,6 +1072,20 @@ class LayerNormalizedLSTMCell(RNNCell):
         dtype=p.dtype,
         collections=self._VariableCollections())
     self.CreateVariable('wm', wm_pc, self.AddVN)
+    if not p.apply_pruning and p.pruning_hparams_dict:
+      pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
+                                           wm_pc, p.dtype, p.name)
+      self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
+    if p.apply_pruning:
+      mask_pc = py_utils.WeightParams(wm_pc.shape,
+                                      py_utils.WeightInit.Constant(1.0),
+                                      p.dtype)
+      threshold_pc = py_utils.WeightParams([],
+                                           py_utils.WeightInit.Constant(0.0),
+                                           tf.float32)
+      self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+      self.CreateVariable(
+          'threshold', threshold_pc, theta_fn=None, trainable=False)
     # This bias variable actually packs the initial lstm bias variables as
     # well as various layer norm scale and bias variables. We pack multiple
     # variables into one so that we can still unroll this lstm using the FRNN
@@ -1124,8 +1144,14 @@ class LayerNormalizedLSTMCell(RNNCell):
     # TODO(b/172580007): Support weight quantization for RNN. Right now we do
     # not support checkpointing vars for Recurrent cell, and setting AqtQdomain
     # for LayerNormalizedLSTM cell might run into errors.
+    concat = tf.concat(inputs.act + [state0.m], 1)
     wm = self.ToAqtWeight('rnn_aqt', theta.wm, feature_axis=-1)
-    out = py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), wm)
+    if self.params.apply_pruning:
+      wm = self.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weights'))
+    if self.params.pruning_hparams_dict and not self.params.apply_pruning:
+      out = pruning_utils.PruningOp.GetMixResult(theta, concat, self)
+    else:
+      out = py_utils.Matmul(concat, wm)
     return self.FromAqtWeight('rnn_aqt', out)
 
   def _Gates(self, xmw, theta, state0, inputs):
