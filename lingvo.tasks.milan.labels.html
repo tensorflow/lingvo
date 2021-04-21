@@ -394,6 +394,8 @@ namely 1 positive class and C-1 negative classes.</p></li>
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">sum_i{</span> <span class="pre">-log(p_i(positive_class_i))</span> <span class="pre">}</span> <span class="pre">/</span> <span class="pre">N</span></code>
 where p_i() is a distribution over the i’th positive class and the C-N
 negative classes.</p></li>
+<li><p>As a special case, this function returns a loss of zero for any slice of
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> that contains <em>no</em> positive label.</p></li>
 </ul>
 <p>Note unlike <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.nn.softmax_cross_entropy_with_logits()</span></code>, this function does
 not support “soft” labels. Positive and negative labels must be represented as
