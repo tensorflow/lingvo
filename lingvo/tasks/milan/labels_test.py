@@ -197,6 +197,15 @@ class MultiLabelLossTest(test_utils.TestCase):
     expected_loss = tf.add_n(expected_loss_terms) / num_positive
     self.assertAllClose(expected_loss, losses)
 
+  def testNoPositiveLabels(self):
+    """Tests that the loss is zero for slices with no positive label."""
+    batch_size = 7
+    num_classes = 400
+    losses = label_lib.MultiLabelContrastiveLoss(
+        labels=tf.zeros((batch_size, num_classes)),
+        logits=tf.zeros((batch_size, num_classes)))
+    self.assertAllClose(losses, tf.zeros(batch_size))
+
 
 if __name__ == '__main__':
   tf.test.main()

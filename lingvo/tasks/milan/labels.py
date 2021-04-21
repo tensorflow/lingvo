@@ -341,6 +341,9 @@ def MultiLabelContrastiveLoss(labels, logits, axis: int = -1):
     where p_i() is a distribution over the i'th positive class and the C-N
     negative classes.
 
+  - As a special case, this function returns a loss of zero for any slice of
+    `labels` that contains *no* positive label.
+
   Note unlike `tf.nn.softmax_cross_entropy_with_logits()`, this function does
   not support "soft" labels. Positive and negative labels must be represented as
   1 and 0, respectively. Setting a label to any other value causes the example-
@@ -384,4 +387,4 @@ def MultiLabelContrastiveLoss(labels, logits, axis: int = -1):
   is_positive_pair = tf.cast(tf.equal(labels, 1), binary_logits.dtype)
   losses = is_positive_pair * -tf.math.log_sigmoid(binary_logits)
   num_positives = tf.reduce_sum(is_positive_pair, axis=axis)
-  return tf.reduce_sum(losses, axis=axis) / num_positives
+  return tf.reduce_sum(losses, axis=axis) / tf.math.maximum(num_positives, 1)
