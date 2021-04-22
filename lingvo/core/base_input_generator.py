@@ -255,6 +255,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # TODO(b/139345706): Use self.datasource.GetNext() for all datasource.
     if ('datasource' in self.children and
         isinstance(self.datasource, datasource.TFDatasetSource)):
+      if self.cluster.input_targets:
+        raise ValueError(
+            'TFDatasetSource subclassed DataSources do not support using '
+            'train_input_replica. Try tf_data_service_replicas instead.')
       # pylint: disable=protected-access
       if ((self._InputBatch.__func__ is not BaseInputGenerator._InputBatch and
            self._InputBatch.__func__

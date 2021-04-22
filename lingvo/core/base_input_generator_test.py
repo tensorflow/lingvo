@@ -16,6 +16,7 @@
 """Tests for base_input_generator."""
 
 import contextlib
+import copy
 import os
 import shutil
 import tempfile
@@ -197,6 +198,20 @@ class BaseInputGeneratorTest(test_utils.TestCase):
       p = OverridePreprocessInputBatch.Params()
       p.file_datasource = TestDataset.Params()
       with self.assertRaisesRegex(ValueError, msg):
+        p.Instantiate().GetPreprocessedInputBatch()
+
+    with self.subTest('DisallowedWithTrainerInputReplicas'):
+
+      def WithInputTargets():
+        ret = copy.deepcopy(cluster_factory.Current())
+        ret.params.input.targets = 'a,b'
+        ret.params.input.replicas = 2
+        return ret
+
+      p = base_input_generator.BaseInputGenerator.Params()
+      p.file_datasource = TestDataset.Params()
+      msg = 'TFDatasetSource subclassed DataSources do not support'
+      with WithInputTargets(), self.assertRaisesRegex(ValueError, msg):
         p.Instantiate().GetPreprocessedInputBatch()
 
 
