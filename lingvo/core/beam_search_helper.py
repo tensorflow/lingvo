@@ -373,19 +373,17 @@ class BeamSearchHelper(base_layer.BaseLayer):
 
     def ReOrderHyps(key, x_in):
       """Reorders x_in based on prev hyp ids."""
-      if (isinstance(x_in, tf.Tensor) and x_in.shape.ndims and
-          x_in.shape.ndims > 0):
+      correct_old_hyp_ids = (
+          old_hyp_ids_in_cache_order if p.batch_major_compute else old_hyp_ids)
+      if (isinstance(x_in, tf.Tensor) and x_in.shape.ndims):
         if x_in.shape.ndims > 2 and not p.batch_major_state:
           # Use corrected indices only here for batch major compute as key/value
           # caches are the states being affected.
-          correct_old_hyp_ids = (
-              old_hyp_ids_in_cache_order
-              if p.batch_major_compute else old_hyp_ids)
           x_out = tf.gather(x_in, correct_old_hyp_ids, axis=1)
         elif key in POSSIBLY_TIME_MAJOR_STATE_KEYS:
           x_out = tf.gather(x_in, old_hyp_ids, axis=-1)
         else:
-          x_out = tf.gather(x_in, old_hyp_ids)
+          x_out = tf.gather(x_in, correct_old_hyp_ids)
         x_out.set_shape(x_in.get_shape())
         return x_out
       else:
