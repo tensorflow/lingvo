@@ -525,19 +525,17 @@
 
     <span class="k">def</span> <span class="nf">ReOrderHyps</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">x_in</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Reorders x_in based on prev hyp ids.&quot;&quot;&quot;</span>
-      <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">and</span>
-          <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+      <span class="n">correct_old_hyp_ids</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">old_hyp_ids_in_cache_order</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_major_compute</span> <span class="k">else</span> <span class="n">old_hyp_ids</span><span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_major_state</span><span class="p">:</span>
           <span class="c1"># Use corrected indices only here for batch major compute as key/value</span>
           <span class="c1"># caches are the states being affected.</span>
-          <span class="n">correct_old_hyp_ids</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">old_hyp_ids_in_cache_order</span>
-              <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_major_compute</span> <span class="k">else</span> <span class="n">old_hyp_ids</span><span class="p">)</span>
           <span class="n">x_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">correct_old_hyp_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">POSSIBLY_TIME_MAJOR_STATE_KEYS</span><span class="p">:</span>
           <span class="n">x_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">old_hyp_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">x_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">old_hyp_ids</span><span class="p">)</span>
+          <span class="n">x_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">correct_old_hyp_ids</span><span class="p">)</span>
         <span class="n">x_out</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">x_in</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">x_out</span>
       <span class="k">else</span><span class="p">:</span>
