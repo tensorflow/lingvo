@@ -98,25 +98,25 @@ metric: The name of the metric being tracked.
 )doc");
 
 REGISTER_OP("BeamSearchStep")
-    .Input("scores: float32")
-    .Input("atten_probs: float32")
-    .Input("best_scores: float32")
-    .Input("cumulative_scores: float32")
-    .Input("in_scores: float32")
-    .Input("in_hyps: int32")
-    .Input("in_prev_hyps: int32")
-    .Input("in_done_hyps: string")
-    .Input("in_atten_probs: float32")
-    .Input("is_last_chunk: bool")
-    .Input("cur_step: int32")
-    .Output("out_best_scores: float32")
-    .Output("out_cumulative_scores: float32")
-    .Output("out_scores: float32")
-    .Output("out_hyps: int32")
-    .Output("out_prev_hyps: int32")
-    .Output("out_done_hyps: string")
-    .Output("out_atten_probs: float32")
-    .Output("all_done: bool")
+    .Input("scores: float32")                  // 0
+    .Input("atten_probs: float32")             // 1
+    .Input("best_scores: float32")             // 2
+    .Input("cumulative_scores: float32")       // 3
+    .Input("in_scores: float32")               // 4
+    .Input("in_hyps: int32")                   // 5
+    .Input("in_prev_hyps: int32")              // 6
+    .Input("in_done_hyps: string")             // 7
+    .Input("in_atten_probs: float32")          // 8
+    .Input("is_last_chunk: bool")              // 9
+    .Input("cur_step: int32")                  // 10
+    .Output("out_best_scores: float32")        // 0
+    .Output("out_cumulative_scores: float32")  // 1
+    .Output("out_scores: float32")             // 2
+    .Output("out_hyps: int32")                 // 3
+    .Output("out_prev_hyps: int32")            // 4
+    .Output("out_done_hyps: string")           // 5
+    .Output("out_atten_probs: float32")        // 6
+    .Output("all_done: bool")                  // 7
     .Attr("eoc_id: int = -1")
     .Attr("eos_id: int")
     .Attr("beam_size: float")
@@ -237,6 +237,63 @@ force_eos_in_last_step: If true, then if decode does not terminate even after
     hypotheses (with a valid eos symbol in the end) are returned. all_done
     is set to true for these partials. If false, which is the default behavior,
     empty hypothesis are returned and all_done is set to false at termination.
+)doc");
+
+REGISTER_OP("BeamSearchStepV2")
+    .Input("scores: float32")                  // 0
+    .Input("atten_probs: float32")             // 1
+    .Input("best_scores: float32")             // 2
+    .Input("cumulative_scores: float32")       // 3
+    .Input("in_scores: float32")               // 4
+    .Input("in_hyps: int32")                   // 5
+    .Input("in_prev_hyps: int32")              // 6
+    .Input("in_done_hyps: string")             // 7
+    .Input("in_atten_probs: float32")          // 8
+    .Input("in_all_done_per_beam: bool")       // 9
+    .Input("is_last_chunk: bool")              // 10
+    .Input("cur_step: int32")                  // 11
+    .Output("out_best_scores: float32")        // 0
+    .Output("out_cumulative_scores: float32")  // 1
+    .Output("out_scores: float32")             // 2
+    .Output("out_hyps: int32")                 // 3
+    .Output("out_prev_hyps: int32")            // 4
+    .Output("out_done_hyps: string")           // 5
+    .Output("out_atten_probs: float32")        // 6
+    .Output("out_all_done_per_beam: bool")     // 7
+    .Output("all_done: bool")                  // 8
+    .Attr("eoc_id: int = -1")
+    .Attr("eos_id: int")
+    .Attr("beam_size: float")
+    .Attr("num_hyps_per_beam: int")
+    .Attr("valid_eos_max_logit_delta: float = 5.0")
+    .Attr("local_eos_threshold: float = -100.0")
+    .Attr("merge_paths: bool = false")
+    .Attr("allow_empty_terminated_hyp: bool = true")
+    .Attr("ensure_full_beam: bool = false")
+    .Attr("force_eos_in_last_step: bool = false")
+    .Attr("beam_independence: bool = false")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      c->set_output(0, c->input(2));
+      c->set_output(1, c->input(3));
+      c->set_output(2, c->input(4));
+      c->set_output(3, c->input(5));
+      c->set_output(4, c->input(6));
+      c->set_output(5, c->input(7));
+      c->set_output(6, c->input(8));
+      c->set_output(7, c->input(9));
+      c->set_output(8, c->Scalar());
+      return Status::OK();
+    })
+    .Doc(R"doc(
+The same as BeamSearchStep above, except the following.
+
+New input/output: {in,out}_all_done_per_beam, bool tensor of shape [k * b],
+where all_done_per_beam[i] means beam i is done.
+
+New attr beam_independence. When enabled, all_done_per_beam[i] set means
+the forward step is a no-op for beam i.
+
+TODO(b/181636326): do not use yet, implementation WIP.
 )doc");
 
 REGISTER_OP("TopKTerminatedHyps")

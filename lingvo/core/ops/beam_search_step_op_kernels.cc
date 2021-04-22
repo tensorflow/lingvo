@@ -255,6 +255,9 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
   VLOG(1) << "Topk done";
 }
 
+constexpr char kBeamSearchStepV1[] = "BeamSearchStep";
+constexpr char kBeamSearchStepV2[] = "BeamSearchStepV2";
+
 // Symbols:
 // B: num_beams.
 // K: num_hyps_per_beam.
@@ -265,6 +268,15 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
 class BeamSearchStepOp : public OpKernel {
  public:
   explicit BeamSearchStepOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
+    const auto& op_name = ctx->def().op();
+    if (op_name == kBeamSearchStepV2) {
+      op_version_ = 2;
+    } else if (op_name == kBeamSearchStepV1) {
+      op_version_ = 1;
+    }
+    OP_REQUIRES(ctx, op_version_ > 0,
+                errors::Unimplemented("invalid op name: ", op_name));
+
     OP_REQUIRES_OK(ctx, ctx->GetAttr("eos_id", &eos_id_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("eoc_id", &eoc_id_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("beam_size", &beam_size_));
@@ -279,6 +291,10 @@ class BeamSearchStepOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("ensure_full_beam", &ensure_full_beam_));
     OP_REQUIRES_OK(
         ctx, ctx->GetAttr("force_eos_in_last_step", &force_eos_in_last_step_));
+    if (op_version_ == 2) {
+      OP_REQUIRES_OK(ctx,
+                     ctx->GetAttr("beam_independence", &beam_independence_));
+    }
 
     DCHECK_GE(eos_id_, 0);
     DCHECK_GT(beam_size_, 0.0);
@@ -364,6 +380,7 @@ class BeamSearchStepOp : public OpKernel {
     }
     return hypothesis.SerializeAsString();
   }
+
   void SanityCheckInputs(OpKernelContext* ctx) {
     const Tensor& scores = ctx->input(0);
     const Tensor& atten_probs = ctx->input(1);
@@ -374,7 +391,7 @@ class BeamSearchStepOp : public OpKernel {
     const Tensor& in_prev_hyps = ctx->input(6);
     const Tensor& in_done_hyps = ctx->input(7);
     const Tensor& in_atten_probs = ctx->input(8);
-    const Tensor& cur_step = ctx->input(10);
+    const Tensor& cur_step = ctx->input(op_version_ == 2 ? 11 : 10);
 
     OP_REQUIRES(
         ctx, scores.dims() == 2,
@@ -509,6 +526,27 @@ class BeamSearchStepOp : public OpKernel {
             "Failed tensor shape sanity check. "
             "atten_probs.dim_size(1) == in_atten_probs.dim_size(2). Got ",
             atten_probs.dim_size(1), " and ", in_atten_probs.dim_size(2)));
+
+    if (op_version_ == 2) {
+      const Tensor& in_all_done_per_beam = ctx->input(9);
+      OP_REQUIRES(
+          ctx, in_all_done_per_beam.dtype() == DT_BOOL,
+          errors::InvalidArgument("Failed tensor type sanity check. "
+                                  "in_all_done_per_beam is tf.bool. Got ",
+                                  in_all_done_per_beam.dtype()));
+      OP_REQUIRES(
+          ctx, in_all_done_per_beam.dims() == 1,
+          errors::InvalidArgument("Failed tensor shape sanity check. "
+                                  "in_all_done_per_beam.dims() == 1. Got ",
+                                  in_all_done_per_beam.dims()));
+      OP_REQUIRES(ctx,
+                  in_all_done_per_beam.dim_size(0) == in_scores.dim_size(1),
+                  errors::InvalidArgument("Failed tensor shape sanity check. "
+                                          "in_all_done_per_beam.dim_size(0) == "
+                                          "in_scores.dim_size(1). Got ",
+                                          in_all_done_per_beam.dim_size(0),
+                                          " and ", in_scores.dim_size(1)));
+    }
   }
 
   // Assembles hyps from input tensors.
@@ -558,11 +596,14 @@ class BeamSearchStepOp : public OpKernel {
     // [T, N]
     const Tensor& in_prev_hyps = ctx->input(6);
     // [N]
-    const Tensor& is_last_chunk = ctx->input(9);
+    const Tensor& is_last_chunk = ctx->input(op_version_ == 2 ? 10 : 9);
     // []
-    const Tensor& cur_step = ctx->input(10);
+    const Tensor& cur_step = ctx->input(op_version_ == 2 ? 11 : 10);
 
     SanityCheckInputs(ctx);
+    if (!ctx->status().ok()) {
+      return;
+    }
 
     const int num_beams = best_scores.dim_size(0);
     const int num_hyps = cumulative_scores.dim_size(0);
@@ -593,6 +634,14 @@ class BeamSearchStepOp : public OpKernel {
     Tensor* out_done_hyps = nullptr;
     OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 7, 5, &out_done_hyps));
 
+    if (op_version_ == 2) {
+      Tensor* out_all_done_per_beam_t = nullptr;
+      // TODO(b/181636326): actually update the output. For now, we just
+      // forward.
+      OP_REQUIRES_OK(
+          ctx, ForwardOrCopyInputToOutput(ctx, 9, 7, &out_all_done_per_beam_t));
+    }
+
     Tensor* out_best_scores = NULL;
     Tensor* out_cumulative_scores = NULL;
     Tensor* all_done = NULL;
@@ -600,7 +649,8 @@ class BeamSearchStepOp : public OpKernel {
         ctx, ctx->allocate_output(0, best_scores.shape(), &out_best_scores));
     OP_REQUIRES_OK(ctx, ctx->allocate_output(1, cumulative_scores.shape(),
                                              &out_cumulative_scores));
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(7, TensorShape({}), &all_done));
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(op_version_ == 2 ? 8 : 7,
+                                             TensorShape({}), &all_done));
 
     // [B]
     auto t_out_best_scores = out_best_scores->vec<float>();
@@ -714,6 +764,10 @@ class BeamSearchStepOp : public OpKernel {
   }
 
  private:
+  // 1 refers to op name BeamSearchStep; 2 refers to BeamSearchStepV2.
+  // This OpKernel class implements both ops.
+  int op_version_ = 0;
+
   int eos_id_ = 0;
   int eoc_id_ = -1;
   float beam_size_ = 0.0;
@@ -724,9 +778,15 @@ class BeamSearchStepOp : public OpKernel {
   bool allow_empty_terminated_hyp_ = true;
   bool ensure_full_beam_ = false;
   bool force_eos_in_last_step_ = false;
+
+  // Whether each beam terminates independently. Only supported when op_version_
+  // is 2.
+  bool beam_independence_ = false;
 };
 
 REGISTER_KERNEL_BUILDER(Name("BeamSearchStep").Device(DEVICE_CPU),
+                        BeamSearchStepOp);
+REGISTER_KERNEL_BUILDER(Name("BeamSearchStepV2").Device(DEVICE_CPU),
                         BeamSearchStepOp);
 
 class TopKTerminatedHypsOp : public OpKernel {

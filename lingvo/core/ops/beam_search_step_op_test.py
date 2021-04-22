@@ -79,13 +79,13 @@ class BeamSearchOpTest(test_utils.TestCase):
 
     with self.session(use_gpu=False):
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-       atten_probs, done, scores, atten_probs) = self.evaluate([
+       atten_probs, done) = self.evaluate([
            best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-           atten_probs, done, scores, atten_probs
+           atten_probs, done
        ])
 
     return (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-            atten_probs, done, scores, atten_probs)
+            atten_probs, done)
 
   def _testBeamSearchOpHelper(self,
                               b_size,
@@ -105,7 +105,7 @@ class BeamSearchOpTest(test_utils.TestCase):
                               local_eos_threshold=-100.0):
 
     (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-     atten_probs, done, scores, atten_probs) = self._runBeamSearchOpHelper(
+     atten_probs, done) = self._runBeamSearchOpHelper(
          b_size,
          num_beams,
          seq_len,
@@ -466,6 +466,81 @@ class BeamSearchOpTest(test_utils.TestCase):
 
     self._SameHyp(expected_for_beam_0, done_hyps[2, 0])
     self._SameHyp(expected_for_beam_1, done_hyps[2, 1])
+
+  def _runBeamSearchV2OpHelper(self,
+                               b_size,
+                               num_beams,
+                               seq_len,
+                               init_best_score,
+                               probs,
+                               init_atten_probs,
+                               atten_probs,
+                               beam_size=3.0,
+                               ensure_full_beam=False,
+                               force_eos_in_last_step=False,
+                               local_eos_threshold=-100.0):
+    eos_id = 2
+    num_hyps_per_beam = b_size / num_beams
+
+    best_scores = tf.zeros([num_beams])
+    cumulative_scores = tf.zeros([b_size])
+    scores = tf.zeros([seq_len, b_size])
+    hyps = tf.zeros([seq_len, b_size], dtype=tf.int32)
+    prev_hyps = tf.zeros([seq_len, b_size], dtype=tf.int32)
+    done_hyps = tf.as_string(tf.zeros([seq_len, b_size], dtype=tf.int32))
+    best_scores += init_best_score
+    all_done_per_beam = tf.zeros([b_size], dtype=tf.bool)
+
+    for i, prob in enumerate(probs):
+      (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
+       atten_probs, all_done_per_beam, done) = ops.beam_search_step_v2(
+           prob,
+           init_atten_probs,
+           best_scores,
+           cumulative_scores,
+           scores,
+           hyps,
+           prev_hyps,
+           done_hyps,
+           atten_probs,
+           all_done_per_beam, [],
+           i,
+           eos_id=eos_id,
+           beam_size=beam_size,
+           ensure_full_beam=ensure_full_beam,
+           num_hyps_per_beam=num_hyps_per_beam,
+           valid_eos_max_logit_delta=0.1,
+           force_eos_in_last_step=force_eos_in_last_step,
+           local_eos_threshold=local_eos_threshold,
+           beam_independence=True)
+
+    with self.session(use_gpu=False):
+      (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
+       atten_probs, done, all_done_per_beam) = self.evaluate([
+           best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
+           atten_probs, done, all_done_per_beam
+       ])
+
+    return (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
+            atten_probs, done, all_done_per_beam)
+
+  def testBeamSearchOpV2SmokeTest(self):
+    b_size = 2
+    num_beams = 1
+    seq_len = 3
+    probs = [
+        np.log([[0.6, 0.4, 0.0000001], [0.6, 0.4, 0.0000001]]),
+    ]
+    results = self._runBeamSearchV2OpHelper(
+        b_size,
+        num_beams,
+        seq_len,
+        _MIN_SCORE,
+        probs,
+        init_atten_probs=tf.zeros([b_size, 0]),
+        atten_probs=np.zeros([seq_len, b_size, 0]))
+    expected_all_done_per_beam = np.array([False, False])
+    self.assertAllEqual(results[-1], expected_all_done_per_beam)
 
   def _testBeamSearchStoppingHelper(self,
                                     beam_size,
