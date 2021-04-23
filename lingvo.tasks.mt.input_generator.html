@@ -457,8 +457,8 @@ treated as an empty list.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._Pack">
-<code class="sig-name descname"><span class="pre">_Pack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._Pack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._Pack" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ApplyPacking">
+<code class="sig-name descname"><span class="pre">_ApplyPacking</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ApplyPacking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ApplyPacking" title="Permalink to this definition">¶</a></dt>
 <dd><p>Packs a given batch.</p>
 <p>Note that this may change the batch size.</p>
 <p>This function packs the input batch and adds .segment_ids and .segment_pos
@@ -494,26 +494,9 @@ The noises are added to the input with probability p.noise_sent_prob.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceToInputBatch">
-<code class="sig-name descname"><span class="pre">_DataSourceToInputBatch</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._DataSourceToInputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceToInputBatch" title="Permalink to this definition">¶</a></dt>
-<dd><p>The current input batch as a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._InputBatch">
-<code class="sig-name descname"><span class="pre">_InputBatch</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._InputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._InputBatch" title="Permalink to this definition">¶</a></dt>
-<dd><p>The current input batch.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.tasks.mt.input_generator.TextPackedInput.GlobalBatchSize">
-<code class="sig-name descname"><span class="pre">GlobalBatchSize</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput.GlobalBatchSize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput.GlobalBatchSize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the total number of examples in the current batch.</p>
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._Pack">
+<code class="sig-name descname"><span class="pre">_Pack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ret</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._Pack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._Pack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pack the current input batch <code class="xref py py-obj docutils literal notranslate"><span class="pre">ret</span></code> as a NestedMap of packed tensors.</p>
 </dd></dl>
 
 </dd></dl>

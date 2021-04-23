@@ -761,11 +761,6 @@
       <span class="c1"># Creat the MASS layer (wrapper for the MASS op).</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;mass_layer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">mass_layer</span><span class="p">)</span>
 
-    <span class="c1"># A `.NestedMap` of input tensors for the current input batch.</span>
-    <span class="c1"># We memoize it here to avoid accidentally calling self._BuildDataSource()</span>
-    <span class="c1"># more than once.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceToInputBatch</span><span class="p">()</span>
-
 <div class="viewcode-block" id="TextPackedInput._GetBucketKey"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._GetBucketKey">[docs]</a>  <span class="k">def</span> <span class="nf">_GetBucketKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">filtered</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a the bucket key for a given input.&quot;&quot;&quot;</span>
     <span class="c1"># The token ids are not truncated if and only if it ends with padding</span>
@@ -983,13 +978,14 @@
 
       <span class="k">return</span> <span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBucketKey</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">filtered</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
+    <span class="n">batch</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">processor</span><span class="o">=</span><span class="n">Processor</span><span class="p">,</span>
         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
         <span class="n">input_source_weights</span><span class="o">=</span><span class="n">input_source_weights</span><span class="p">,</span>
-        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span></div>
+        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pack</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="TextPackedInput._Pack"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._Pack">[docs]</a>  <span class="k">def</span> <span class="nf">_Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+<div class="viewcode-block" id="TextPackedInput._ApplyPacking"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._ApplyPacking">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyPacking</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Packs a given batch.</span>
 
 <span class="sd">    Note that this may change the batch size.</span>
@@ -1072,7 +1068,14 @@
     <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ApplyPackingToTarget</span><span class="p">)</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tgt_paddings</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_segment_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tgt_segment_pos</span></div>
+    <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tgt_segment_pos</span>
+
+    <span class="c1"># The number of examples is indicated by the segment_ids of the target.</span>
+    <span class="n">num_segments</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">num_examples</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">num_segments</span><span class="p">)</span>
+    <span class="c1"># Note that this is per infeed value when p.use_per_host_infeed = True.</span>
+    <span class="n">metric_name</span> <span class="o">=</span> <span class="s1">&#39;examples/num_packed_examples&#39;</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">metric_name</span><span class="p">,</span> <span class="n">num_examples</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TextPackedInput._ScaledBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._ScaledBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">_ScaledBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Adjust (post-packing) batch size according to the cluster spec.</span>
@@ -1178,15 +1181,13 @@
     <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids_indicator</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids_indicator</span></div>
 
-<div class="viewcode-block" id="TextPackedInput._DataSourceToInputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceToInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceToInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The current input batch as a `.NestedMap` of input tensors.&quot;&quot;&quot;</span>
-    <span class="n">ret</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
-
+<div class="viewcode-block" id="TextPackedInput._Pack"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._Pack">[docs]</a>  <span class="k">def</span> <span class="nf">_Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ret</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Pack the current input batch `ret` as a NestedMap of packed tensors.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">denoise</span><span class="o">.</span><span class="n">task_ids</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">denoise</span><span class="o">.</span><span class="n">noise_sent_prob</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_AddNoise</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_Pack</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyPacking</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">&#39;weights&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ret</span><span class="o">.</span><span class="n">src</span> <span class="ow">or</span> <span class="s1">&#39;weights&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="p">:</span>
       <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids_indicator</span>
       <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids_indicator</span>
@@ -1218,21 +1219,7 @@
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;target_token_ids&#39;</span><span class="p">,</span> <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
 
     <span class="c1"># Casts floating point tensors to fprop_dtype before returning.</span>
-    <span class="k">return</span> <span class="n">ret</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Cast</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="TextPackedInput._InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The current input batch.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      A `.NestedMap` of input tensors.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span></div>
-
-<div class="viewcode-block" id="TextPackedInput.GlobalBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput.GlobalBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GlobalBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the total number of examples in the current batch.&quot;&quot;&quot;</span>
-    <span class="c1"># The number of examples is indicated by the segment_ids of the target.</span>
-    <span class="n">num_segments</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">num_segments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span></div></div>
+    <span class="k">return</span> <span class="n">ret</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Cast</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
