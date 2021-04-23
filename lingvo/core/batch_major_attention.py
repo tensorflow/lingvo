@@ -3464,6 +3464,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
           name='residual_droppath',
           survival_prob=1.0 - p.residual_droppath_prob)
       self.CreateChild('residual_droppath', droppath_p)
+    self._prefix_state_target_max_length = None
 
   def FProp(self,
             theta,
@@ -3565,6 +3566,15 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     return ctx_vec, atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
+    # Because we memoize `target_max_length`, we do not support
+    # interleaving different InitStates() and ExtendStep() sequences.
+    if (self._prefix_state_target_max_length and
+        self._prefix_state_target_max_length != target_max_length):
+      raise ValueError(
+          'InitStates() cannot be called twice with different values '
+          f'for target_max_length values: now {target_max_length} vs '
+          f'before {self._prefix_state_target_max_length}')
+    self._prefix_state_target_max_length = target_max_length
     if isinstance(self.atten, list):
       return py_utils.NestedMap(atten=[
           a.InitStates(a_theta, target_batch_size, target_max_length)
@@ -3611,9 +3621,17 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       raise ValueError(
           'ExtendStep should be used only by masked/causal self-attention.')
     if isinstance(self.atten, list):
-      t, b, _, _ = py_utils.GetShape(cached_states.atten[0].key, 4)
+      t = py_utils.GetShape(cached_states.atten[0].key, 1)[0]
+    elif 'key' in cached_states:
+      t = py_utils.GetShape(cached_states.key, 1)[0]
     else:
-      t, b, _, _ = py_utils.GetShape(cached_states.key, 4)
+      # Ideally we only need this branch, but many unit tests do not call
+      # InitState().
+      if not self._prefix_state_target_max_length:
+        raise ValueError('Must call InitState() before ExtendStep()')
+      t = self._prefix_state_target_max_length
+    b = py_utils.GetShape(query_vec, 1)[0]
+
     unnormalized_query_vec = query_vec
     time_step = tf.convert_to_tensor(time_step)
 

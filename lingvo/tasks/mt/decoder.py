@@ -2417,7 +2417,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
       return targets
     transposed = py_utils.NestedMap()
     for k, v in targets.items():
-      if v is not None and k != 'transcripts':
+      if v is not None and k != 'transcripts' and k != 'strs':
         with tf.name_scope('transpose_%s' % k):
           v = tf.transpose(py_utils.HasShape(v, [-1, -1]))
       transposed[k] = v
