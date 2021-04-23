@@ -2402,25 +2402,18 @@ def ComputeGradientsSimple(loss_or_activations,
       gate_gradients=gate_gradients)
 
 
-def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding,
-                                 gradient_multiplier_schedule):
+def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding):
   """Returns a TpuEmbedding SendGradient op.
 
   Args:
    loss: The loss to backprop from.
    activation_dict: String feature -> embedding activations dict.
    tpu_embedding: TPUEmbedding instance.
-   gradient_multiplier_schedule: Values from this schedule will be multiplied to
-     the TPUEmbedding gradients.
   """
   # Scale the loss to account for the full batch size.
   shards = tpu_function.get_tpu_context().number_of_shards
   loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
   grads = tf.gradients(loss, list(activation_dict.values()))
-
-  # Apply gradient multiplier schedule.
-  grad_multiplier = gradient_multiplier_schedule.Value()
-  grads = [g * grad_multiplier for g in grads]
 
   feature_to_gradient_dict = py_collections.OrderedDict(
       zip(list(activation_dict.keys()), grads))
