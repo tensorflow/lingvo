@@ -506,7 +506,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         'A multiplicative factor for packing. This is the ratio between '
         'pre-packing batch size and after-packing batch size. If None, '
         'packing is disabled; otherwise the packing factor should be a '
-        'float with a value greater than 1.')
+        'float >= 1.')
 
     p.Define(
         'quality_score_filter_fn', None,
@@ -558,8 +558,8 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     if p.packing_factor:
       # Packing is enabled. We override p.bucket_batch_limit with the
       # pre-packing batch size.
-      if p.packing_factor <= 1.0:
-        raise ValueError('p.packing_factor must be > 1.0: ', p.packing_factor)
+      if p.packing_factor < 1.0:
+        raise ValueError('p.packing_factor must be >= 1.0: ', p.packing_factor)
       if len(p.bucket_upper_bound) != 1 or len(p.bucket_batch_limit) != 1:
         raise ValueError(
             'when packing is enabled, p.bucket_upper_bound '

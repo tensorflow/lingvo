@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for input generator."""
 
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
@@ -26,7 +27,7 @@ import mock
 import numpy as np
 
 
-class InputTest(test_utils.TestCase):
+class InputTest(test_utils.TestCase, parameterized.TestCase):
 
   def _CreateMlPerfInputParams(self):
     p = input_generator.MlPerfInput.Params()
@@ -270,7 +271,7 @@ class InputTest(test_utils.TestCase):
       for k, x in batch_tensor.FlattenItems():
         self.assertTrue(x.shape.is_fully_defined(), k)
       batch = sess.run(batch_tensor)
-    self.assertEqual(len(batch.src), 8)
+    self.assertLen(batch.src, 8)
     self.assertAllEqual(batch.src.strs,
                         [b'I love paragliding!', b'vol biv paragliding'])
     self.assertAllEqual(batch.tgt.strs,
@@ -467,6 +468,41 @@ class InputTest(test_utils.TestCase):
             b'Daf\xc3\xbcr hat sich zu viel ver\xc3\xa4ndert.\tHallo!',
             b'Hallo!\tDaf\xc3\xbcr hat sich zu viel ver\xc3\xa4ndert.'
         ]))
+
+  @parameterized.named_parameters(('1', 1., 1., 8), ('2', 2., 1., 16),
+                                  ('3', 3., .6667, 16))
+  def testMetrics(self, packing_factor, expected_ratio, expected_count):
+    p = input_generator.TextPackedInput.Params()
+    p.flush_every_n = 0
+    p.repeat_count = -1
+    p.file_pattern = 'text:' + test_helper.test_src_dir_path(
+        'tasks/mt/testdata/en_de.text')
+    p.tokenizer = tokenizers.WpmTokenizer.Params().Set(
+        vocab_filepath=test_helper.test_src_dir_path(
+            'tasks/mt/wpm-ende-2k.voc'),
+        vocab_size=2000)
+    p.source_max_length = 20
+    p.target_max_length = 20
+    p.bucket_batch_limit = [8]
+    p.packing_factor = packing_factor
+    with cluster_factory.ForTestingWorker(add_summary=True):
+      with self.session() as sess:
+        inp = p.Instantiate()
+        inp.GetPreprocessedInputBatch()
+        summary_str = sess.run(tf.summary.merge_all(scope='examples'))
+        summary = tf.summary.Summary.FromString(summary_str)
+
+        self.assertLen(summary.value, 3)
+        self.assertEqual(summary.value[0].tag,
+                         'examples/src_packed_token_ratio')
+        self.assertEqual(summary.value[1].tag,
+                         'examples/tgt_packed_token_ratio')
+        self.assertEqual(summary.value[2].tag, 'examples/num_packed_examples')
+        self.assertAllClose(
+            summary.value[0].simple_value, expected_ratio, atol=0.0001)
+        self.assertAllClose(
+            summary.value[1].simple_value, expected_ratio, atol=0.0001)
+        self.assertEqual(summary.value[2].simple_value, expected_count)
 
 
 if __name__ == '__main__':
