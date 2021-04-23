@@ -16,11 +16,13 @@
 """Tests for input generator."""
 
 import lingvo.compat as tf
+from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.core import tokenizers
 from lingvo.tasks.mt import input_generator
+import mock
 import numpy as np
 
 
@@ -267,8 +269,7 @@ class InputTest(test_utils.TestCase):
       batch_tensor = inp.GetPreprocessedInputBatch()
       for k, x in batch_tensor.FlattenItems():
         self.assertTrue(x.shape.is_fully_defined(), k)
-      batch, num_examples = sess.run([batch_tensor, inp.GlobalBatchSize()])
-    self.assertEqual(num_examples, 2)
+      batch = sess.run(batch_tensor)
     self.assertEqual(len(batch.src), 8)
     self.assertAllEqual(batch.src.strs,
                         [b'I love paragliding!', b'vol biv paragliding'])
@@ -311,20 +312,41 @@ class InputTest(test_utils.TestCase):
             ],
         ]))
 
-  def testTextPackedInputNoPerHostInfeed(self):
-    # We need to move the call to _DataSourceToInputBatch() to in _InputBatch()
-    # to place it per host. This in turn requires us to stop override
-    # GlobalBatchSize() but add a metric instead.
-    # For now, use_per_host_infeed is not supported.
-    p = input_generator.TextPackedInput.Params()
-    p.file_pattern = 'text:' + test_helper.test_src_dir_path(
-        'tasks/mt/testdata/en_de.text')
-    p.use_per_host_infeed = True
-    p.file_random_seed = 0
-    self.assertRaisesRegex(
-        ValueError,
-        'This input generator does not support p.use_per_host_infeed',
-        p.Instantiate)
+  def testTextPackedInputBatchSize(self):
+    p = cluster_factory.Current().params.Copy()
+    p.job = 'trainer'
+    p.worker.tpus_per_replica = 8
+    p.worker.num_tpu_hosts = 16
+    p.worker.devices_per_split = 2
+    cluster = p.Instantiate()
+
+    with cluster, mock.patch('lingvo.core.py_utils.use_tpu', return_value=True):
+      p = input_generator.TextPackedInput.Params()
+      p.use_per_host_infeed = True
+      p.file_random_seed = 0
+      p.file_pattern = 'tfrecord:' + test_helper.test_src_dir_path(
+          'tasks/mt/testdata/en_fr.tfrecord')
+      p.pad_to_max_seq_length = True
+      p.tokenizer = tokenizers.AsciiTokenizer.Params()
+      p.input_file_type = 'sentence_proto'
+      p.source_max_length = 32
+      p.target_max_length = 32
+      p.bucket_batch_limit = [128]
+      with self.session() as sess:
+        inp = p.Instantiate()
+        # GlobalBatchSize is batch_size (128) * num_splits_per_client (4).
+        # num_splits_per_client is 4, because num_splits_per_replica is 4.
+        # num_splits_per_replica is 4 because that's tpus_per_replica
+        # divided by devices_per_split.
+        self.assertEqual(512, inp.GlobalBatchSize())
+        # GlobalBatchSize (512) / num_tpu_hosts (16)
+        self.assertEqual(32, inp.InfeedBatchSize())
+
+        batch_tensor = inp.GetPreprocessedInputBatch()
+        for k, x in batch_tensor.FlattenItems():
+          self.assertTrue(x.shape.is_fully_defined(), k)
+        batch = sess.run(batch_tensor)
+        self.assertEqual(batch.src.ids.shape, (32, 32))
 
   def testTextPackedInputTextWpm(self):
     p = input_generator.TextPackedInput.Params()
@@ -342,8 +364,7 @@ class InputTest(test_utils.TestCase):
     with self.session() as sess:
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
-      batch, num_examples = sess.run([batch_tensor, inp.GlobalBatchSize()])
-      self.assertEqual(num_examples, 2)
+      batch = sess.run(batch_tensor)
       print(batch)
     self.assertAllEqual(
         batch.src.ids,
@@ -378,8 +399,7 @@ class InputTest(test_utils.TestCase):
     with self.session() as sess:
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
-      batch, num_examples = sess.run([batch_tensor, inp.GlobalBatchSize()])
-      self.assertEqual(num_examples, 4)
+      batch = sess.run(batch_tensor)
     self.assertAllEqual(
         batch.src.ids,
         np.array([

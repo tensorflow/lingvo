@@ -609,11 +609,6 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
       # Creat the MASS layer (wrapper for the MASS op).
       self.CreateChild('mass_layer', p.mass_layer)
 
-    # A `.NestedMap` of input tensors for the current input batch.
-    # We memoize it here to avoid accidentally calling self._BuildDataSource()
-    # more than once.
-    self._batch = self._DataSourceToInputBatch()
-
   def _GetBucketKey(self, features, filtered):
     """Returns a the bucket key for a given input."""
     # The token ids are not truncated if and only if it ends with padding
@@ -831,13 +826,14 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
       return features, self._GetBucketKey(features, filtered)
 
-    return generic_input.GenericInput(
+    batch, _ = generic_input.GenericInput(
         processor=Processor,
         file_pattern=file_pattern,
         input_source_weights=input_source_weights,
         **self.CommonInputOpArgs())
+    return self._Pack(batch)
 
-  def _Pack(self, batch):
+  def _ApplyPacking(self, batch):
     """Packs a given batch.
 
     Note that this may change the batch size.
@@ -921,6 +917,13 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     batch.tgt.paddings = tgt_paddings
     batch.tgt.segment_ids = tf.cast(tgt_segment_ids, tf.float32)
     batch.tgt.segment_pos = tgt_segment_pos
+
+    # The number of examples is indicated by the segment_ids of the target.
+    num_segments = tf.math.reduce_max(batch.tgt.segment_ids, axis=1)
+    num_examples = tf.reduce_sum(num_segments)
+    # Note that this is per infeed value when p.use_per_host_infeed = True.
+    metric_name = 'examples/num_packed_examples'
+    summary_utils.scalar(metric_name, num_examples)
 
   def _ScaledBatchSize(self):
     # Adjust (post-packing) batch size according to the cluster spec.
@@ -1026,15 +1029,13 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     batch.src.ids_indicator = 1 - batch.src.paddings
     batch.src.weights = batch.src.ids_indicator
 
-  def _DataSourceToInputBatch(self):
-    """The current input batch as a `.NestedMap` of input tensors."""
-    ret, _ = self._BuildDataSource()
-
+  def _Pack(self, ret):
+    """Pack the current input batch `ret` as a NestedMap of packed tensors."""
     p = self.params
     if p.denoise.task_ids and p.denoise.noise_sent_prob > 0:
       self._AddNoise(ret)
 
-    self._Pack(ret)
+    self._ApplyPacking(ret)
     if 'weights' not in ret.src or 'weights' not in ret.tgt:
       ret.src.weights = ret.src.ids_indicator
       ret.tgt.weights = ret.tgt.ids_indicator
@@ -1067,17 +1068,3 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
     # Casts floating point tensors to fprop_dtype before returning.
     return ret.Transform(self.Cast)
-
-  def _InputBatch(self):
-    """The current input batch.
-
-    Returns:
-      A `.NestedMap` of input tensors.
-    """
-    return self._batch
-
-  def GlobalBatchSize(self):
-    """Returns the total number of examples in the current batch."""
-    # The number of examples is indicated by the segment_ids of the target.
-    num_segments = tf.math.reduce_max(self._batch.tgt.segment_ids, axis=1)
-    return tf.reduce_sum(tf.cast(num_segments, dtype=tf.int32))

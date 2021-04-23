@@ -187,6 +187,7 @@ py_test(
     deps = [
         ":input_generator",
         "//lingvo:compat",
+        "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
