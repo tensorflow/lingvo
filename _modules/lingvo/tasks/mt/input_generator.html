@@ -658,7 +658,7 @@
         <span class="s1">&#39;A multiplicative factor for packing. This is the ratio between &#39;</span>
         <span class="s1">&#39;pre-packing batch size and after-packing batch size. If None, &#39;</span>
         <span class="s1">&#39;packing is disabled; otherwise the packing factor should be a &#39;</span>
-        <span class="s1">&#39;float with a value greater than 1.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;float &gt;= 1.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;quality_score_filter_fn&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -710,8 +710,8 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packing_factor</span><span class="p">:</span>
       <span class="c1"># Packing is enabled. We override p.bucket_batch_limit with the</span>
       <span class="c1"># pre-packing batch size.</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packing_factor</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.packing_factor must be &gt; 1.0: &#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">packing_factor</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packing_factor</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.packing_factor must be &gt;= 1.0: &#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">packing_factor</span><span class="p">)</span>
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s1">&#39;when packing is enabled, p.bucket_upper_bound &#39;</span>
