@@ -564,6 +564,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Extra logit for attention softmax.&#39;</span>
         <span class="s1">&#39;Notice None and 0 are different.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_logit_cap&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;logit cap.&#39;</span><span class="p">)</span>
     <span class="c1"># SPMD partition related params.</span>
     <span class="c1">#</span>
     <span class="c1"># d - model_dim</span>
@@ -708,6 +709,11 @@
       <span class="c1"># Keep softmax computation in float32 otherwise the low precision can</span>
       <span class="c1"># can lead to worse quality.</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_AttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_logit_cap</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="c1"># cap logits.</span>
+      <span class="n">cap</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_logit_cap</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">cap</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">logits</span> <span class="o">/</span> <span class="n">cap</span><span class="p">)</span>
 
     <span class="c1"># Apply segment mask.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">and</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
