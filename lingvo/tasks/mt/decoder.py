@@ -1581,7 +1581,7 @@ class TransformerDecoder(MTBaseDecoder):
       source_encs = [source_encs] * p.num_trans_layers
     with tf.name_scope(p.name):
       # Embedding layer
-      # [batch, time, model_dim]
+      # [batch, model_dim]
       if not self._share_sm_emb:
         token_embs = self.token_emb.EmbLookup(theta.token_emb, new_ids)
       else:
@@ -1593,7 +1593,7 @@ class TransformerDecoder(MTBaseDecoder):
         zeros = tf.zeros_like(token_embs)
         token_embs = tf.cond(tf.equal(t, 0), lambda: zeros, lambda: token_embs)
 
-      # [time, model_dim]
+      # [1, model_dim]
       posit_embs = tf.slice(
           self.position_emb.FProp(theta.position_emb, p.target_seq_len), [t, 0],
           [1, p.model_dim])
