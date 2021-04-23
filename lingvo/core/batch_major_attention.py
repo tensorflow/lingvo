@@ -412,6 +412,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define(
         'atten_extra_logit', None, 'Extra logit for attention softmax.'
         'Notice None and 0 are different.')
+    p.Define('atten_logit_cap', 0.0, 'logit cap.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -556,6 +557,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       # Keep softmax computation in float32 otherwise the low precision can
       # can lead to worse quality.
       logits = tf.cast(self._AttenLogits(theta, query, key), tf.float32)
+
+    if p.atten_logit_cap > 0:
+      # cap logits.
+      cap = p.atten_logit_cap
+      logits = cap * tf.math.tanh(logits / cap)
 
     # Apply segment mask.
     if self.params.packed_input and segment_mask is not None:

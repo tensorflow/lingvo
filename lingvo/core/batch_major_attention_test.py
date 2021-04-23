@@ -119,6 +119,46 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     expected_prob_out = np.reshape(expected_prob_out, (6, 6, 6))
     self.assertAllClose(expected_prob_out, prob_out)
 
+  def testAttenLogitCapping(self):
+    (input_vecs, input_padding, input_vecs_p,
+     input_padding_p) = self._AttentionInputs()
+    atten_logit_cap = 5.0
+    p = attention.MultiHeadedAttention.Params().Set(
+        name='self_atten',
+        input_dim=4,
+        hidden_dim=4,
+        enable_scaling_code_motion=True,
+        # For testing purposes, suggest larger value (e.g. 50.0) for real
+        # models.
+        atten_logit_cap=atten_logit_cap)
+    l = p.Instantiate()
+
+    probs, probs_sum = l.AttenProbs(
+        l.theta,
+        tf.expand_dims(input_vecs, 2),
+        tf.expand_dims(input_vecs, 2),
+        input_padding,
+        segment_mask=None)
+
+    with self.session(use_gpu=False) as sess:
+      tf.global_variables_initializer().run()
+      prob_out = sess.run(tf.squeeze(probs / probs_sum))
+
+    # Use numpy to perform the same computation to generate expected results.
+    input_vecs_p = np.array(input_vecs_p)
+    target_vecs_p = np.transpose(input_vecs_p, (0, 2, 1))
+    expected_logit = np.matmul(input_vecs_p, target_vecs_p)
+    expected_logit = np.transpose(expected_logit, (0, 2, 1))
+    expected_logit = atten_logit_cap * np.tanh(expected_logit / atten_logit_cap)
+    elexp = np.exp(expected_logit)
+    input_padding_p = np.array(input_padding_p)
+    input_padding_p = np.expand_dims(input_padding_p, axis=1)
+    input_padding_p = np.tile(input_padding_p, (1, 6, 1))
+    elexp *= (1 - input_padding_p)
+    expected_prob_out = elexp / np.expand_dims(np.sum(elexp, axis=-1), axis=-1)
+    expected_prob_out = np.reshape(expected_prob_out, (6, 6, 6))
+    self.assertAllClose(expected_prob_out, prob_out)
+
   @parameterized.named_parameters(('Two', 2), ('Three', 3))
   def testMultiHeadedProjectionLayerInputMode(self, batch_dims):
     with self.session(use_gpu=True) as sess:
