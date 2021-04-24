@@ -223,10 +223,17 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
             filtered_features = {
                 k: v for k, v in features.items() if k in filtered_keys
             }
-          if self.params.batched_input:
-            extracted = e.ExtractBatch(filtered_features)
-          else:
-            extracted = e.Extract(filtered_features)
+          try:
+            if self.params.batched_input:
+              extracted = e.ExtractBatch(filtered_features)
+            else:
+              extracted = e.Extract(filtered_features)
+          except Exception as exc:  # pylint:disable=bare-except
+            # Re-raise the same exception with context about which extractor
+            # failed.
+            raise type(exc)('Failed running extractor '
+                            f'{e.params.name}. '
+                            'See above exception for details.') from exc
         with tf.name_scope('filter'):
           if self.params.batched_input:
             bucket = e.FilterBatch(extracted)

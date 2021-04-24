@@ -92,6 +92,11 @@ class InputExtractorTest(test_utils.TestCase):
     self.assertEqual(self.evaluate(result.e1.foo), 1.)
     self.assertEqual(self.evaluate(result.e2.bar), 2.)
 
+    # Test that a missing key in input for ProcessFeatures() raises
+    # the right extra exception info.
+    with self.assertRaisesRegexp(KeyError, 'Failed running extractor E'):
+      _, result = extractor.ProcessFeatures({})
+
   def testBatchedInterface(self):
 
     class AddTen(input_extractor.FieldsExtractor):
