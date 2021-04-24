@@ -15,6 +15,7 @@
 # ==============================================================================
 """Helper for models_test."""
 
+import re
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
@@ -170,17 +171,17 @@ class BaseModelsTest(test_utils.TestCase):
   @classmethod
   def CreateTestMethodsForAllRegisteredModels(cls,
                                               registry,
-                                              task_prefix_filter='',
-                                              exclude_prefixes=None):
+                                              task_regexes=None,
+                                              exclude_regexes=None):
     """Programmatically defines test methods for each registered model."""
+    task_regexes = task_regexes or []
+    exclude_regexes = exclude_regexes or []
     model_names = list(registry.GetAllRegisteredClasses().keys())
     for model_name in sorted(model_names):
-      if task_prefix_filter and not model_name.startswith(task_prefix_filter):
-        tf.logging.info('Skipping tests for registered model: %s',
-                             model_name)
+      if not any([re.search(regex, model_name) for regex in task_regexes]):
+        tf.logging.info('Skipping tests for registered model: %s', model_name)
         continue
-      if exclude_prefixes and any(
-          [model_name.startswith(prefix) for prefix in exclude_prefixes]):
+      if any([re.search(regex, model_name) for regex in exclude_regexes]):
         tf.logging.info(
             'Explicitly excluding tests for registered model: %s', model_name)
         continue
