@@ -174,7 +174,8 @@
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span>
+                    <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span><span class="p">)</span>
 
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -349,6 +350,9 @@
   <span class="k">return</span> <span class="n">to_p</span></div>
 
 
+<span class="n">ParamsT</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;ParamsT&#39;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s1">&#39;Params&#39;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Stores data for a set of parameters.</span>
 
@@ -356,11 +360,11 @@
 <span class="sd">  Uses internal {&#39;name&#39;: _Param} dict for storing parameter data.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;_immutable&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># name =&gt; _Param</span>
 
-  <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_params&#39;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_immutable&#39;</span><span class="p">:</span>
@@ -371,7 +375,7 @@
       <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
-  <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_params&#39;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_immutable&#39;</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
@@ -380,26 +384,26 @@
       <span class="c1"># cPickle expects __getattr__ to raise AttributeError, not KeyError.</span>
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 
-  <span class="k">def</span> <span class="fm">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-  <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
 
-  <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
 
   <span class="c1"># Note: This gets called by _Param.__eq__() on nested Params objects.</span>
-  <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s1">&#39;Params&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Params</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_params</span>  <span class="c1"># pylint: disable=protected-access</span>
 
-  <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s1">&#39;Params&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
 
-  <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ToString</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Params._ToString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._ToString">[docs]</a>  <span class="k">def</span> <span class="nf">_ToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_depth</span><span class="p">):</span>
+<div class="viewcode-block" id="Params._ToString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._ToString">[docs]</a>  <span class="k">def</span> <span class="nf">_ToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="c1"># Note: We use iteritems() below so as to sort by name.</span>
     <span class="n">sorted_param_strs</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">v</span><span class="o">.</span><span class="n">ToString</span><span class="p">(</span><span class="n">nested_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
@@ -410,13 +414,13 @@
   <span class="c1"># Override __deepcopy__ so that copy.deepcopy(self._params) properly</span>
   <span class="c1"># deep-copies nested Params objects.</span>
   <span class="c1"># TODO(sadovsky): Is it okay not to touch memo?</span>
-  <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_memo</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">,</span> <span class="n">unused_memo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
-<div class="viewcode-block" id="Params._SimilarKeys"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._SimilarKeys">[docs]</a>  <span class="k">def</span> <span class="nf">_SimilarKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Params._SimilarKeys"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._SimilarKeys">[docs]</a>  <span class="k">def</span> <span class="nf">_SimilarKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Return a list of params keys that are similar to name.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_Overlaps</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_Overlaps</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;The fraction of 3-char substrings in &lt;name&gt; that appear in key.&quot;&quot;&quot;</span>
       <span class="n">matches</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="n">trials</span> <span class="o">=</span> <span class="mi">0</span>
@@ -432,7 +436,7 @@
       <span class="k">return</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="k">if</span> <span class="n">_Overlaps</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">]</span>
     <span class="k">return</span> <span class="p">[]</span></div>
 
-<div class="viewcode-block" id="Params._KeyErrorString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._KeyErrorString">[docs]</a>  <span class="k">def</span> <span class="nf">_KeyErrorString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Params._KeyErrorString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._KeyErrorString">[docs]</a>  <span class="k">def</span> <span class="nf">_KeyErrorString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="n">similar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SimilarKeys</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">similar</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; (did you mean: [</span><span class="si">%s</span><span class="s1">])&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">similar</span><span class="p">)))</span>
@@ -440,11 +444,11 @@
       <span class="k">return</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39; (keys are </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
     <span class="k">return</span> <span class="n">name</span></div>
 
-<div class="viewcode-block" id="Params.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Creates a deep copy of self.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CopyTo</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)())</span></div>
 
-<div class="viewcode-block" id="Params._CopyTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._CopyTo">[docs]</a>  <span class="k">def</span> <span class="nf">_CopyTo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="p">):</span>
+<div class="viewcode-block" id="Params._CopyTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._CopyTo">[docs]</a>  <span class="k">def</span> <span class="nf">_CopyTo</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">,</span> <span class="n">res</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="c1"># pylint: disable=protected-access</span>
     <span class="n">res</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
     <span class="n">res</span><span class="o">.</span><span class="n">_immutable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span>
@@ -456,7 +460,7 @@
   <span class="c1">#   value=None, and if not, assert on Get(), like required proto field.</span>
   <span class="c1"># - Maybe enforce that value is one of</span>
   <span class="c1">#     {number, string, bool, list, dict, Params}.</span>
-<div class="viewcode-block" id="Params.Define"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Define">[docs]</a>  <span class="k">def</span> <span class="nf">Define</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.Define"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Define">[docs]</a>  <span class="k">def</span> <span class="nf">Define</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Defines a parameter.</span>
 
 <span class="sd">    Args:</span>
@@ -476,15 +480,15 @@
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Parameter </span><span class="si">%s</span><span class="s1"> is already defined&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Param</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Params.Freeze"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Freeze">[docs]</a>  <span class="k">def</span> <span class="nf">Freeze</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.Freeze"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Freeze">[docs]</a>  <span class="k">def</span> <span class="nf">Freeze</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Marks this Params as immutable.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span> <span class="o">=</span> <span class="kc">True</span></div>
 
-<div class="viewcode-block" id="Params.IsImmutable"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.IsImmutable">[docs]</a>  <span class="k">def</span> <span class="nf">IsImmutable</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.IsImmutable"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.IsImmutable">[docs]</a>  <span class="k">def</span> <span class="nf">IsImmutable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Return whether this Params is immutable.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span></div>
 
-<div class="viewcode-block" id="Params._GetNested"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._GetNested">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNested</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Params._GetNested"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._GetNested">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNested</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ParamsT</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Returns nested param by its name.&quot;&quot;&quot;</span>
     <span class="n">parts</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
     <span class="n">curr</span> <span class="o">=</span> <span class="bp">self</span>
@@ -505,7 +509,7 @@
                                         <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">curr</span><span class="p">),</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])))</span>
     <span class="k">return</span> <span class="n">curr</span><span class="p">,</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="Params.Set"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.Set"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Sets multiple parameters.</span>
 
 <span class="sd">    Dots in names indicate navigation into nested Params objects. We do not</span>
@@ -531,7 +535,7 @@
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
     <span class="k">return</span> <span class="bp">self</span></div>
 
-<div class="viewcode-block" id="Params.Get"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Get">[docs]</a>  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.Get"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Get">[docs]</a>  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Get parameter.</span>
 
 <span class="sd">    Dots in names indicate navigation into nested Params objects. We do not</span>
@@ -555,7 +559,7 @@
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Params.Delete"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Delete">[docs]</a>  <span class="k">def</span> <span class="nf">Delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.Delete"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Delete">[docs]</a>  <span class="k">def</span> <span class="nf">Delete</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Deletes multiple parameters.</span>
 
 <span class="sd">    Dots in names indicate navigation into nested Params objects. We do not</span>
@@ -581,15 +585,15 @@
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_KeyErrorString</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
     <span class="k">return</span> <span class="bp">self</span></div>
 
-<div class="viewcode-block" id="Params.IterParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.IterParams">[docs]</a>  <span class="k">def</span> <span class="nf">IterParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.IterParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.IterParams">[docs]</a>  <span class="k">def</span> <span class="nf">IterParams</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Pythonic dict-like iteration.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="k">yield</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">Get</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="Params.GetKeys"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.GetKeys">[docs]</a>  <span class="k">def</span> <span class="nf">GetKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="Params.GetKeys"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.GetKeys">[docs]</a>  <span class="k">def</span> <span class="nf">GetKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="Params.ToProto"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToProto">[docs]</a>  <span class="k">def</span> <span class="nf">ToProto</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.ToProto"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToProto">[docs]</a>  <span class="k">def</span> <span class="nf">ToProto</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">Hyperparam</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Writes to a Hyperparams proto.</span>
 
 <span class="sd">    Serializes the Hyperparams into a proto that can be then written to disk or</span>
@@ -602,7 +606,7 @@
 <span class="sd">      The serialized params as a Hyperparams proto.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_ToParamValue</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_ToParamValue</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">HyperparamValue</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Serializes to HyperparamValue proto.&quot;&quot;&quot;</span>
       <span class="n">param_pb</span> <span class="o">=</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">HyperparamValue</span><span class="p">()</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
@@ -656,7 +660,7 @@
         <span class="n">param_pb</span><span class="o">.</span><span class="n">string_repr_val</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">param_pb</span>
 
-    <span class="k">def</span> <span class="nf">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_ToParam</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="s1">&#39;Params&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">Hyperparam</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Serializes to Hyperparam proto.&quot;&quot;&quot;</span>
       <span class="n">param_pb</span> <span class="o">=</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">Hyperparam</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
@@ -669,15 +673,15 @@
 
   <span class="c1"># TODO(tonybruguier): Move to module-level function (cls is never used).</span>
 <div class="viewcode-block" id="Params.FromProto"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromProto">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">FromProto</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_pb</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">FromProto</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_pb</span><span class="p">:</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">Hyperparam</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Reads from a Hyperparams proto.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_LoadClass</span><span class="p">(</span><span class="n">module_and_class_name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_LoadClass</span><span class="p">(</span><span class="n">module_and_class_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
       <span class="n">tokens</span> <span class="o">=</span> <span class="n">module_and_class_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="n">module_and_class_name</span>
       <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="k">def</span> <span class="nf">_FromParamValue</span><span class="p">(</span><span class="n">param_pb</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_FromParamValue</span><span class="p">(</span><span class="n">param_pb</span><span class="p">:</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">HyperparamValue</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Deserializes HyperparamValue proto.&quot;&quot;&quot;</span>
 
       <span class="n">which_oneof</span> <span class="o">=</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">WhichOneof</span><span class="p">(</span><span class="s1">&#39;kind&#39;</span><span class="p">)</span>
@@ -725,21 +729,23 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">param_pb</span><span class="p">,</span> <span class="n">which_oneof</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_FromParam</span><span class="p">(</span><span class="n">param_pb</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_FromParam</span><span class="p">(</span><span class="n">param_pb</span><span class="p">:</span> <span class="n">hyperparams_pb2</span><span class="o">.</span><span class="n">Hyperparam</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Deserializes Hyperparam proto.&quot;&quot;&quot;</span>
 
-      <span class="n">params</span> <span class="o">=</span> <span class="n">InstantiableParams</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;cls&#39;</span> <span class="ow">in</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">items</span> <span class="k">else</span> <span class="n">Params</span><span class="p">()</span>
+      <span class="k">if</span> <span class="s1">&#39;cls&#39;</span> <span class="ow">in</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">InstantiableParams</span><span class="p">(</span><span class="n">_FromParamValue</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="s1">&#39;cls&#39;</span><span class="p">]))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">Params</span><span class="p">()</span>
       <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
-        <span class="n">val</span> <span class="o">=</span> <span class="n">_FromParamValue</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;cls&#39;</span><span class="p">:</span>
-          <span class="n">params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">val</span><span class="p">})</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;cls&#39;</span><span class="p">:</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">_FromParamValue</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="n">k</span><span class="p">]),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">params</span>
 
     <span class="k">return</span> <span class="n">_FromParam</span><span class="p">(</span><span class="n">param_pb</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Params.ToText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToText">[docs]</a>  <span class="k">def</span> <span class="nf">ToText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_types</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.ToText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToText">[docs]</a>  <span class="k">def</span> <span class="nf">ToText</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span>
+      <span class="n">include_types</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
     <span class="sd">&quot;&quot;&quot;Encodes params into a simple text format.</span>
 
 <span class="sd">    Each param is represented as a single line in the output.  The param</span>
@@ -762,7 +768,7 @@
     <span class="n">kv</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">types</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">GetRepr</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">GetRepr</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Get the representation of `val`.&quot;&quot;&quot;</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()})</span>
@@ -786,7 +792,7 @@
         <span class="k">return</span> <span class="s1">&#39;type/&#39;</span> <span class="o">+</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">val</span><span class="o">.</span><span class="vm">__name__</span>
       <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
 
-    <span class="k">def</span> <span class="nf">Traverse</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">kv</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">Traverse</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">kv</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Traverses &#39;p&#39; and inserts key-value pairs to &#39;kv&#39;.&quot;&quot;&quot;</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
@@ -816,7 +822,9 @@
 
     <span class="k">return</span> <span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span> <span class="k">if</span> <span class="n">include_types</span> <span class="k">else</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="Params.FromText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromText">[docs]</a>  <span class="k">def</span> <span class="nf">FromText</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">type_overrides</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.FromText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromText">[docs]</a>  <span class="k">def</span> <span class="nf">FromText</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">,</span>
+               <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+               <span class="n">type_overrides</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Merges params specified in &#39;text&#39; into &#39;params&#39;.</span>
 
 <span class="sd">    &#39;text&#39; follows the simple text format as produced by ToText.</span>
@@ -827,6 +835,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">      text: A text representation of params.</span>
 <span class="sd">      type_overrides: Overrides for the types of the params.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      self</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      AttributeError: text contains invalid parameter key</span>
@@ -873,7 +884,7 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Line </span><span class="si">{}</span><span class="s1"> is not in &lt;key&gt;:&lt;value&gt; format&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">_ValueFromText</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">old_val</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_ValueFromText</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">old_val</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Returns the new param value from its text representation.&quot;&quot;&quot;</span>
       <span class="n">val_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">old_val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -951,9 +962,11 @@
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kv</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="n">old_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
       <span class="n">new_val</span> <span class="o">=</span> <span class="n">_ValueFromText</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">old_val</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">new_val</span><span class="p">})</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">new_val</span><span class="p">})</span>
 
-<div class="viewcode-block" id="Params.ToTextWithTypes"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToTextWithTypes">[docs]</a>  <span class="k">def</span> <span class="nf">ToTextWithTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="Params.ToTextWithTypes"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToTextWithTypes">[docs]</a>  <span class="k">def</span> <span class="nf">ToTextWithTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Same as ToText but encodes both params and their types.&quot;&quot;&quot;</span>
     <span class="n">text</span><span class="p">,</span> <span class="n">types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToText</span><span class="p">(</span><span class="n">include_types</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">text</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span>
@@ -961,7 +974,7 @@
       <span class="n">text</span> <span class="o">+=</span> <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39; : &#39;</span> <span class="o">+</span> <span class="n">v</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
     <span class="k">return</span> <span class="n">text</span></div>
 
-<div class="viewcode-block" id="Params.FromTextWithTypes"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromTextWithTypes">[docs]</a>  <span class="k">def</span> <span class="nf">FromTextWithTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.FromTextWithTypes"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromTextWithTypes">[docs]</a>  <span class="k">def</span> <span class="nf">FromTextWithTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Same as FromText but expects to have types encoded in the text.&quot;&quot;&quot;</span>
     <span class="n">text</span><span class="p">,</span> <span class="n">types_str</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="n">types</span> <span class="o">=</span> <span class="p">{}</span>
@@ -970,9 +983,9 @@
         <span class="k">continue</span>
       <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
       <span class="n">types</span><span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">type_overrides</span><span class="o">=</span><span class="n">types</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">type_overrides</span><span class="o">=</span><span class="n">types</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Params.TextDiff"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.TextDiff">[docs]</a>  <span class="k">def</span> <span class="nf">TextDiff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<div class="viewcode-block" id="Params.TextDiff"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.TextDiff">[docs]</a>  <span class="k">def</span> <span class="nf">TextDiff</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Return the differences between this object and another as a string.</span>
 
 <span class="sd">    Args:</span>
@@ -982,10 +995,10 @@
 <span class="sd">      A string of differences.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">IsStringy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">IsStringy</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
       <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">TextDiffHelper</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">spaces</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">TextDiffHelper</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">spaces</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Return the differences between a and b as a string.&quot;&quot;&quot;</span>
       <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">:</span>
         <span class="k">return</span> <span class="s1">&#39;&#39;</span>
@@ -1026,7 +1039,7 @@
           <span class="n">diff</span> <span class="o">+=</span> <span class="s1">&#39;&lt;&#39;</span> <span class="o">+</span> <span class="n">spaces</span> <span class="o">+</span> <span class="n">key_i</span> <span class="o">+</span> <span class="s1">&#39;: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
       <span class="k">return</span> <span class="n">diff</span>
 
-    <span class="k">def</span> <span class="nf">GetKeys</span><span class="p">(</span><span class="n">params_or_dict</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Params</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">GetKeys</span><span class="p">(</span><span class="n">params_or_dict</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Params</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_or_dict</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">params_or_dict</span><span class="o">.</span><span class="n">GetKeys</span><span class="p">()</span>
       <span class="k">else</span><span class="p">:</span>
@@ -1060,10 +1073,10 @@
     <span class="k">return</span> <span class="n">TextDiffParamsHelper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">spaces</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span></div></div>
 
 
-<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+<span class="n">InstantiableParamsClsT</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;InstantiableParamsClsT&#39;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="InstantiableParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams">[docs]</a><span class="k">class</span> <span class="nc">InstantiableParams</span><span class="p">(</span><span class="n">Params</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
+<div class="viewcode-block" id="InstantiableParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams">[docs]</a><span class="k">class</span> <span class="nc">InstantiableParams</span><span class="p">(</span><span class="n">Params</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">InstantiableParamsClsT</span><span class="p">]):</span>
   <span class="sd">&quot;&quot;&quot;Params which can be instantiated.</span>
 
 <span class="sd">  When using InstantiableParams, callers must provide a class which supports</span>
@@ -1073,11 +1086,11 @@
 <span class="sd">  class.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">:</span> <span class="n">T</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">InstantiableParamsClsT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;Cls that this param object is associated with.&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="InstantiableParams.Instantiate"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Instantiate">[docs]</a>  <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<div class="viewcode-block" id="InstantiableParams.Instantiate"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Instantiate">[docs]</a>  <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstantiableParamsClsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Instantiate an instance that this Params is configured for.</span>
 
 <span class="sd">    Example:</span>
@@ -1116,7 +1129,7 @@
     <span class="c1"># The class initializer is expected to support initialization using Params.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="InstantiableParams.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;InstantiableParams[T]&#39;</span><span class="p">:</span>
+<div class="viewcode-block" id="InstantiableParams.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;See base class.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CopyTo</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span></div></div>
 </pre></div>
