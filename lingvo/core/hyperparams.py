@@ -22,7 +22,8 @@ import importlib
 import inspect
 import re
 import sys
-from typing import Any, Dict, TypeVar, Generic, Iterable, Sequence, Tuple
+from typing import (Any, Dict, List, Generator, Generic, Mapping, Optional,
+                    Sequence, Tuple, Type, TypeVar, Union)
 
 import dataclasses
 import lingvo.compat as tf
@@ -197,6 +198,9 @@ def CopyFieldsTo(from_p, to_p, skip=None):
   return to_p
 
 
+ParamsT = TypeVar('ParamsT', bound='Params')
+
+
 class Params:
   """Stores data for a set of parameters.
 
@@ -204,11 +208,11 @@ class Params:
   Uses internal {'name': _Param} dict for storing parameter data.
   """
 
-  def __init__(self):
+  def __init__(self) -> None:
     self.__dict__['_immutable'] = False
     self._params = {}  # name => _Param
 
-  def __setattr__(self, name, value):
+  def __setattr__(self, name: str, value: Any) -> None:
     if self._immutable:
       raise TypeError('This Params instance is immutable.')
     if name == '_params' or name == '_immutable':
@@ -219,7 +223,7 @@ class Params:
       except KeyError:
         raise AttributeError(self._KeyErrorString(name))
 
-  def __getattr__(self, name):
+  def __getattr__(self, name: str) -> Any:
     if name == '_params' or name == '_immutable':
       return self.__dict__[name]
     try:
@@ -228,26 +232,26 @@ class Params:
       # cPickle expects __getattr__ to raise AttributeError, not KeyError.
       raise AttributeError(self._KeyErrorString(name))
 
-  def __dir__(self):
+  def __dir__(self) -> List[str]:
     return sorted(self._params.keys())
 
-  def __contains__(self, name):
+  def __contains__(self, name: str) -> bool:
     return name in self._params
 
-  def __len__(self):
+  def __len__(self) -> int:
     return len(self._params)
 
   # Note: This gets called by _Param.__eq__() on nested Params objects.
-  def __eq__(self, other):
+  def __eq__(self, other: 'Params') -> bool:
     return isinstance(other, Params) and self._params == other._params  # pylint: disable=protected-access
 
-  def __ne__(self, other):
+  def __ne__(self, other: 'Params') -> bool:
     return not self == other
 
-  def __str__(self):
+  def __str__(self) -> str:
     return self._ToString(0)
 
-  def _ToString(self, nested_depth):
+  def _ToString(self, nested_depth: int) -> str:
     # Note: We use iteritems() below so as to sort by name.
     sorted_param_strs = [
         v.ToString(nested_depth + 1) for (_, v) in sorted(self._params.items())
@@ -258,13 +262,13 @@ class Params:
   # Override __deepcopy__ so that copy.deepcopy(self._params) properly
   # deep-copies nested Params objects.
   # TODO(sadovsky): Is it okay not to touch memo?
-  def __deepcopy__(self, unused_memo):
+  def __deepcopy__(self: ParamsT, unused_memo) -> ParamsT:
     return self.Copy()
 
-  def _SimilarKeys(self, name):
+  def _SimilarKeys(self, name: str) -> List[str]:
     """Return a list of params keys that are similar to name."""
 
-    def _Overlaps(name, key):
+    def _Overlaps(name: str, key: str) -> int:
       """The fraction of 3-char substrings in <name> that appear in key."""
       matches = 0
       trials = 0
@@ -280,7 +284,7 @@ class Params:
       return [key for key in self._params if _Overlaps(name, key) > 0.5]
     return []
 
-  def _KeyErrorString(self, name):
+  def _KeyErrorString(self, name: str) -> str:
     similar = self._SimilarKeys(name)
     if similar:
       return name + ' (did you mean: [%s])' % (','.join(sorted(similar)))
@@ -288,11 +292,11 @@ class Params:
       return name + ' (keys are %s)' % sorted(list(self._params.keys()))
     return name
 
-  def Copy(self):
+  def Copy(self: ParamsT) -> ParamsT:
     """Creates a deep copy of self."""
     return self._CopyTo(type(self)())
 
-  def _CopyTo(self, res):
+  def _CopyTo(self: ParamsT, res: ParamsT) -> ParamsT:
     # pylint: disable=protected-access
     res._params = copy.deepcopy(self._params)
     res._immutable = self._immutable
@@ -304,7 +308,7 @@ class Params:
   #   value=None, and if not, assert on Get(), like required proto field.
   # - Maybe enforce that value is one of
   #     {number, string, bool, list, dict, Params}.
-  def Define(self, name, default_value, description):
+  def Define(self, name: str, default_value: Any, description: str) -> None:
     """Defines a parameter.
 
     Args:
@@ -324,15 +328,15 @@ class Params:
       raise AttributeError('Parameter %s is already defined' % name)
     self._params[name] = _Param(name, default_value, description)
 
-  def Freeze(self):
+  def Freeze(self) -> None:
     """Marks this Params as immutable."""
     self._immutable = True
 
-  def IsImmutable(self):
+  def IsImmutable(self) -> bool:
     """Return whether this Params is immutable."""
     return self._immutable
 
-  def _GetNested(self, name):
+  def _GetNested(self, name: str) -> Tuple[ParamsT, str]:
     """Returns nested param by its name."""
     parts = name.split('.')
     curr = self
@@ -353,7 +357,7 @@ class Params:
                                         (type(curr), '.'.join(parts[:i + 1])))
     return curr, parts[-1]
 
-  def Set(self, **kwargs):
+  def Set(self: ParamsT, **kwargs: Any) -> ParamsT:
     """Sets multiple parameters.
 
     Dots in names indicate navigation into nested Params objects. We do not
@@ -379,7 +383,7 @@ class Params:
         raise AttributeError(self._KeyErrorString(name))
     return self
 
-  def Get(self, name):
+  def Get(self, name: str) -> Any:
     """Get parameter.
 
     Dots in names indicate navigation into nested Params objects. We do not
@@ -403,7 +407,7 @@ class Params:
     except KeyError:
       raise AttributeError(self._KeyErrorString(name))
 
-  def Delete(self, *args):
+  def Delete(self: ParamsT, *args) -> ParamsT:
     """Deletes multiple parameters.
 
     Dots in names indicate navigation into nested Params objects. We do not
@@ -429,15 +433,15 @@ class Params:
         raise AttributeError(self._KeyErrorString(name))
     return self
 
-  def IterParams(self):
+  def IterParams(self) -> Generator[Tuple[str, Any], None, None]:
     """Pythonic dict-like iteration."""
     for name, param in self._params.items():
       yield (name, param.Get())
 
-  def GetKeys(self) -> Iterable[str]:
+  def GetKeys(self) -> List[str]:
     return list(self._params.keys())
 
-  def ToProto(self):
+  def ToProto(self) -> hyperparams_pb2.Hyperparam:
     """Writes to a Hyperparams proto.
 
     Serializes the Hyperparams into a proto that can be then written to disk or
@@ -450,7 +454,7 @@ class Params:
       The serialized params as a Hyperparams proto.
     """
 
-    def _ToParamValue(key, val):
+    def _ToParamValue(key: str, val: Any) -> hyperparams_pb2.HyperparamValue:
       """Serializes to HyperparamValue proto."""
       param_pb = hyperparams_pb2.HyperparamValue()
       if isinstance(val, Params):
@@ -504,7 +508,7 @@ class Params:
         param_pb.string_repr_val = repr(val)
       return param_pb
 
-    def _ToParam(val, prefix=''):
+    def _ToParam(val: 'Params', prefix: str = '') -> hyperparams_pb2.Hyperparam:
       """Serializes to Hyperparam proto."""
       param_pb = hyperparams_pb2.Hyperparam()
       if prefix:
@@ -517,15 +521,15 @@ class Params:
 
   # TODO(tonybruguier): Move to module-level function (cls is never used).
   @classmethod
-  def FromProto(cls, param_pb):
+  def FromProto(cls, param_pb: hyperparams_pb2.Hyperparam) -> ParamsT:
     """Reads from a Hyperparams proto."""
 
-    def _LoadClass(module_and_class_name):
+    def _LoadClass(module_and_class_name: str) -> Type[Any]:
       tokens = module_and_class_name.split('/')
       assert len(tokens) == 2, module_and_class_name
       return getattr(importlib.import_module(tokens[0]), tokens[1])
 
-    def _FromParamValue(param_pb):
+    def _FromParamValue(param_pb: hyperparams_pb2.HyperparamValue) -> Any:
       """Deserializes HyperparamValue proto."""
 
       which_oneof = param_pb.WhichOneof('kind')
@@ -573,21 +577,23 @@ class Params:
       else:
         return getattr(param_pb, which_oneof)
 
-    def _FromParam(param_pb):
+    def _FromParam(param_pb: hyperparams_pb2.Hyperparam) -> ParamsT:
       """Deserializes Hyperparam proto."""
 
-      params = InstantiableParams() if 'cls' in param_pb.items else Params()
+      if 'cls' in param_pb.items:
+        params = InstantiableParams(_FromParamValue(param_pb.items['cls']))
+      else:
+        params = Params()
       for k in param_pb.items:
-        val = _FromParamValue(param_pb.items[k])
-        if k == 'cls':
-          params.Set(**{k: val})
-        else:
-          params.Define(k, val, '')
+        if k != 'cls':
+          params.Define(k, _FromParamValue(param_pb.items[k]), '')
       return params
 
     return _FromParam(param_pb)
 
-  def ToText(self, include_types=False):
+  def ToText(
+      self,
+      include_types: bool = False) -> Union[str, Tuple[str, Dict[str, str]]]:
     """Encodes params into a simple text format.
 
     Each param is represented as a single line in the output.  The param
@@ -610,7 +616,7 @@ class Params:
     kv = {}
     types = {}
 
-    def GetRepr(val):
+    def GetRepr(val: Any) -> str:
       """Get the representation of `val`."""
       if isinstance(val, Params):
         return _SortedDict({k: GetRepr(v) for k, v in val.IterParams()})
@@ -634,7 +640,7 @@ class Params:
         return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__
       return type(val).__name__
 
-    def Traverse(p, prefix, kv):
+    def Traverse(p: Any, prefix: str, kv: Mapping[str, Any]) -> None:
       """Traverses 'p' and inserts key-value pairs to 'kv'."""
       if isinstance(p, Params):
         for key, val in p.IterParams():
@@ -664,7 +670,9 @@ class Params:
 
     return (ret, types) if include_types else ret
 
-  def FromText(self, text, type_overrides=None):
+  def FromText(self: ParamsT,
+               text: str,
+               type_overrides: Optional[Mapping[str, str]] = None) -> ParamsT:
     """Merges params specified in 'text' into 'params'.
 
     'text' follows the simple text format as produced by ToText.
@@ -675,6 +683,9 @@ class Params:
     Args:
       text: A text representation of params.
       type_overrides: Overrides for the types of the params.
+
+    Returns:
+      self
 
     Raises:
       AttributeError: text contains invalid parameter key
@@ -721,7 +732,7 @@ class Params:
       else:
         raise ValueError('Line {} is not in <key>:<value> format'.format(line))
 
-    def _ValueFromText(key, old_val, val):
+    def _ValueFromText(key: str, old_val: Any, val: str) -> Any:
       """Returns the new param value from its text representation."""
       val_type = type(old_val).__name__
       if isinstance(old_val, str):
@@ -801,7 +812,9 @@ class Params:
       new_val = _ValueFromText(key, old_val, val)
       self.Set(**{key: new_val})
 
-  def ToTextWithTypes(self):
+    return self
+
+  def ToTextWithTypes(self) -> str:
     """Same as ToText but encodes both params and their types."""
     text, types = self.ToText(include_types=True)
     text += '\n\n'
@@ -809,7 +822,7 @@ class Params:
       text += k + ' : ' + v + '\n'
     return text
 
-  def FromTextWithTypes(self, text):
+  def FromTextWithTypes(self: ParamsT, text: str) -> ParamsT:
     """Same as FromText but expects to have types encoded in the text."""
     text, types_str = text.split('\n\n')
     types = {}
@@ -818,9 +831,9 @@ class Params:
         continue
       k, v = row.split(':')
       types[k.strip()] = v.strip()
-    self.FromText(text, type_overrides=types)
+    return self.FromText(text, type_overrides=types)
 
-  def TextDiff(self, other):
+  def TextDiff(self: ParamsT, other: ParamsT) -> str:
     """Return the differences between this object and another as a string.
 
     Args:
@@ -830,10 +843,10 @@ class Params:
       A string of differences.
     """
 
-    def IsStringy(x) -> bool:
+    def IsStringy(x: Any) -> bool:
       return isinstance(x, (str, bytes))
 
-    def TextDiffHelper(a, b, key: str, spaces: str) -> str:
+    def TextDiffHelper(a: Any, b: Any, key: str, spaces: str) -> str:
       """Return the differences between a and b as a string."""
       if a == b:
         return ''
@@ -874,7 +887,7 @@ class Params:
           diff += '<' + spaces + key_i + ': ' + str(b[i]) + '\n'
       return diff
 
-    def GetKeys(params_or_dict: Tuple[Params, Dict[str, Any]]) -> Iterable[str]:
+    def GetKeys(params_or_dict: Tuple[Params, Dict[str, Any]]) -> List[str]:
       if isinstance(params_or_dict, Params):
         return params_or_dict.GetKeys()
       else:
@@ -908,10 +921,10 @@ class Params:
     return TextDiffParamsHelper(self, other, spaces=' ')
 
 
-T = TypeVar('T')
+InstantiableParamsClsT = TypeVar('InstantiableParamsClsT')
 
 
-class InstantiableParams(Params, Generic[T]):
+class InstantiableParams(Params, Generic[InstantiableParamsClsT]):
   """Params which can be instantiated.
 
   When using InstantiableParams, callers must provide a class which supports
@@ -921,11 +934,11 @@ class InstantiableParams(Params, Generic[T]):
   class.
   """
 
-  def __init__(self, cls: T = None):
+  def __init__(self, cls: Type[InstantiableParamsClsT]) -> None:
     super().__init__()
     self.Define('cls', cls, 'Cls that this param object is associated with.')
 
-  def Instantiate(self, **args) -> T:
+  def Instantiate(self, **args) -> InstantiableParamsClsT:
     """Instantiate an instance that this Params is configured for.
 
     Example:
@@ -964,6 +977,6 @@ class InstantiableParams(Params, Generic[T]):
     # The class initializer is expected to support initialization using Params.
     return self.cls(self, **args)
 
-  def Copy(self) -> 'InstantiableParams[T]':
+  def Copy(self: ParamsT) -> ParamsT:
     """See base class."""
     return self._CopyTo(type(self)(self.cls))
