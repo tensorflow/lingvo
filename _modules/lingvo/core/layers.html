@@ -2759,6 +2759,10 @@
         <span class="s1">&#39; multiplies the positional embedding in FProp.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;trainable_scaling_init&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
              <span class="s1">&#39;Initial value of the scaling parameter.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;frequency_scaling&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Introduces a trainable frequency scaling parameter (a scalar) that&#39;</span>
+        <span class="s1">&#39; multiplies the frequency of the sinusoids.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2778,7 +2782,14 @@
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">frequency_scaling</span><span class="p">:</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;freq_scale&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PositionalEmbeddingLayer._PosEmbeddingsFromPositions"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PositionalEmbeddingLayer._PosEmbeddingsFromPositions">[docs]</a>  <span class="k">def</span> <span class="nf">_PosEmbeddingsFromPositions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generates the positional embeddings given the position tensor.</span>
@@ -2809,6 +2820,9 @@
 
     <span class="n">scaled_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">inv_timescales</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">frequency_scaling</span><span class="p">:</span>
+      <span class="n">scaled_time</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">freq_scale</span><span class="p">)</span>
 
     <span class="n">signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">scaled_time</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">scaled_time</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
