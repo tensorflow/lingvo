@@ -532,6 +532,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         'mass_task_ids', None, 'List of task IDs for MASS. If None and '
         'single_column_input=True, apply MASS to all tasks, otherwise '
         'only apply to the specified tasks.')
+    p.Define('enable_mass_for_eval', False, 'Enables masking during eval.')
     # Back translation
     p.Define('bt_task_ids', [], 'List of task ids for back-translation.')
     # Denoising (https://arxiv.org/pdf/1711.00043)
@@ -700,7 +701,8 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
   def _ProcessMASSInput(self, source_id, src):
     """Perform MASS input processing."""
-    if self.do_eval or self.mass_layer is None:
+    skip_mass = self.do_eval and not self.params.enable_mass_for_eval
+    if skip_mass or self.mass_layer is None:
       # At eval time, we copy src to tgt
       return self._ProcessSingleInput(source_id, src, src)
 
