@@ -623,18 +623,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_num_heads&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Num of heads in multi-head self-attention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;atten_left_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Local self attention left context.&#39;</span>
-        <span class="s1">&#39;If None or &lt; 0, infinite left context. Notice unlike &#39;</span>
-        <span class="s1">&#39;atten_right_context, this includes `self` position.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;atten_right_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Local self attention right context.&#39;</span>
-        <span class="s1">&#39;If None or &lt; 0, infinite right context.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_relative_atten&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If using relative attention.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;relative_pos_emb_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;If use_relative_atten, sets the relative pos embedding dim.&#39;</span>
-        <span class="s1">&#39;Default is the same as input_dim.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;layer_order&#39;</span><span class="p">,</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">,</span>
         <span class="s1">&#39;Only mhsa, conv, mhsa_before_conv or conv_before_mhsa are &#39;</span>
         <span class="s1">&#39;supported.&#39;</span><span class="p">)</span>
@@ -677,6 +665,7 @@
 
 <div class="viewcode-block" id="ConformerLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                   <span class="o">*</span><span class="p">,</span>
                    <span class="n">input_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                    <span class="n">atten_num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -718,12 +707,15 @@
       <span class="n">atten_left_context</span> <span class="o">=</span> <span class="n">atten_local_context</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># including self position.</span>
       <span class="n">atten_right_context</span> <span class="o">=</span> <span class="n">atten_local_context</span>
 
+    <span class="k">if</span> <span class="n">is_causal</span> <span class="ow">and</span> <span class="n">trans_atten_tpl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># None is different from 0, the former is &#39;infinite&#39;.</span>
+      <span class="k">assert</span> <span class="n">atten_right_context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;is_causal is not compatible with infinite atten_right_context &#39;</span>
+          <span class="s1">&#39;(None).&#39;</span><span class="p">)</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
         <span class="n">atten_num_heads</span><span class="o">=</span><span class="n">atten_num_heads</span><span class="p">,</span>
-        <span class="n">atten_left_context</span><span class="o">=</span><span class="n">atten_left_context</span><span class="p">,</span>
-        <span class="n">atten_right_context</span><span class="o">=</span><span class="n">atten_right_context</span><span class="p">,</span>
-        <span class="n">use_relative_atten</span><span class="o">=</span><span class="n">use_relative_atten</span><span class="p">,</span>
         <span class="n">fflayer_hidden_dim</span><span class="o">=</span><span class="n">fflayer_hidden_dim</span><span class="p">,</span>
         <span class="n">fflayer_activation</span><span class="o">=</span><span class="n">fflayer_activation</span><span class="p">,</span>
         <span class="n">fflayer_residual_weight</span><span class="o">=</span><span class="n">fflayer_residual_weight</span><span class="p">,</span>
@@ -738,7 +730,18 @@
       <span class="n">p</span><span class="o">.</span><span class="n">fflayer_start_tpl</span> <span class="o">=</span> <span class="n">fflayer_start_tpl</span>
     <span class="c1"># Set the MHSA module.</span>
     <span class="k">if</span> <span class="n">trans_atten_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">atten_left_context</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">atten_right_context</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">use_relative_atten</span> <span class="ow">is</span> <span class="kc">None</span>
       <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span> <span class="o">=</span> <span class="n">trans_atten_tpl</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ConfigSelfAttenContext</span><span class="p">(</span>
+          <span class="n">atten_left_context</span><span class="p">,</span>
+          <span class="n">atten_right_context</span><span class="p">,</span>
+          <span class="n">use_relative_atten</span><span class="o">=</span><span class="n">use_relative_atten</span><span class="p">,</span>
+          <span class="n">relative_pos_emb_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">)</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">atten_tpl</span><span class="o">=</span><span class="n">atten_tpl</span><span class="p">)</span>
     <span class="c1"># Set the convolution module.</span>
     <span class="k">if</span> <span class="n">lconv_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">lconv_tpl</span> <span class="o">=</span> <span class="n">lconv_tpl</span>
@@ -753,6 +756,41 @@
       <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">SetMoEFFLayerEndParams</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">moe_num_partitions</span><span class="p">,</span> <span class="n">moe_num_experts</span><span class="p">,</span>
                                    <span class="n">moe_num_groups</span><span class="p">,</span> <span class="n">moe_per_capacity_dim</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="ConformerLayer._ConfigSelfAttenContext"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._ConfigSelfAttenContext">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_ConfigSelfAttenContext</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">atten_left_context</span><span class="p">,</span> <span class="n">atten_right_context</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                              <span class="n">use_relative_atten</span><span class="p">,</span> <span class="n">relative_pos_emb_dim</span><span class="p">):</span>
+    <span class="c1"># TODO(jamesqin): add an attention factory in batch_major_attention.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span>
+        <span class="n">atten_right_context</span><span class="p">):</span>
+      <span class="c1"># No atten context set, each position attends to all positions.</span>
+      <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;global&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">use_relative_atten</span> <span class="k">else</span> <span class="s1">&#39;global_relative&#39;</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="n">atten_right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="c1"># Left context is infinite, right context is 0.</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">use_relative_atten</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Relative attention isn</span><span class="se">\&#39;</span><span class="s1">t supported for causal attention.&#39;</span><span class="p">)</span>
+      <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;global_causal&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;local_relative&#39;</span> <span class="k">if</span> <span class="n">use_relative_atten</span> <span class="k">else</span> <span class="s1">&#39;local&#39;</span>
+
+    <span class="k">if</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;global_relative&#39;</span><span class="p">:</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">attention_lib</span><span class="o">.</span><span class="n">MultiHeadedAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">relative_pos_emb_dim</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;local_relative&#39;</span><span class="p">:</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">left_context</span><span class="o">=</span><span class="n">atten_left_context</span><span class="p">,</span>
+          <span class="n">right_context</span><span class="o">=</span><span class="n">atten_right_context</span><span class="p">,</span>
+          <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">relative_pos_emb_dim</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;local&#39;</span><span class="p">:</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">left_context</span><span class="o">=</span><span class="n">atten_left_context</span><span class="p">,</span> <span class="n">right_context</span><span class="o">=</span><span class="n">atten_right_context</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># No op for &#39;global&#39; atten</span>
+      <span class="k">assert</span> <span class="n">atten_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="s1">&#39;global_causal&#39;</span><span class="p">),</span> <span class="p">(</span>
+          <span class="sa">f</span><span class="s1">&#39;Unknown atten_type </span><span class="si">{</span><span class="n">atten_type</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">atten_tpl</span></div>
 
 <div class="viewcode-block" id="ConformerLayer.SetFPropDtype"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.SetFPropDtype">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">SetFPropDtype</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
@@ -785,11 +823,6 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="s1">&#39;mhsa&#39;</span><span class="p">,</span> <span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="s1">&#39;mhsa_before_conv&#39;</span><span class="p">,</span> <span class="s1">&#39;conv_before_mhsa&#39;</span>
     <span class="p">]</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_causal</span><span class="p">:</span>
-      <span class="c1"># None is different from 0, the former is &#39;infinite&#39;.</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;is_causal is not compatible with infinite atten_right_context &#39;</span>
-          <span class="s1">&#39;(None).&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_order</span> <span class="o">==</span> <span class="s1">&#39;mhsa&#39;</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lconv</span><span class="p">,</span> <span class="s1">&#39;mhsa must not have a lconv block.&#39;</span>
 
@@ -817,7 +850,9 @@
           <span class="n">is_masked</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">is_causal</span><span class="p">,</span>
           <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
           <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigSelfAttenParams</span><span class="p">(</span><span class="n">trans_atten_p</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog_is_on</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ConformerLayer.atten_tpl: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;trans_atten&#39;</span><span class="p">,</span> <span class="n">trans_atten_p</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_lconv</span><span class="p">:</span>
@@ -843,55 +878,6 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">has_fflayer_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fflayer_start_tpl</span><span class="p">)</span>
-
-<div class="viewcode-block" id="ConformerLayer._ConfigSelfAttenParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._ConfigSelfAttenParams">[docs]</a>  <span class="k">def</span> <span class="nf">_ConfigSelfAttenParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trans_atten_p</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_pos_emb_dim</span><span class="p">:</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">relative_pos_emb_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-
-    <span class="c1"># TODO(jamesqin): add an attention factory in batch_major_attention.</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span><span class="p">):</span>
-      <span class="c1"># No atten context set, each position attends to all positions.</span>
-      <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;global&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_relative_atten</span> <span class="k">else</span> <span class="s1">&#39;global_relative&#39;</span>
-    <span class="k">elif</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="c1"># Left context is infinite, right context is 0.</span>
-      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_relative_atten</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;Relative attention isn</span><span class="se">\&#39;</span><span class="s1">t supported for causal attention.&#39;</span><span class="p">)</span>
-      <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;global_causal&#39;</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">atten_type</span> <span class="o">=</span> <span class="s1">&#39;local_relative&#39;</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_relative_atten</span> <span class="k">else</span> <span class="s1">&#39;local&#39;</span>
-
-    <span class="k">if</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;global_relative&#39;</span><span class="p">:</span>
-      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">attention_lib</span><span class="o">.</span><span class="n">MultiHeadedAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-              <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">relative_pos_emb_dim</span><span class="p">))</span>
-      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="s1">&#39;rel_pos_emb_dim&#39;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;local_relative&#39;</span><span class="p">:</span>
-      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">,</span>
-          <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span><span class="p">,</span>
-          <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">relative_pos_emb_dim</span><span class="p">)</span>
-      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span>
-          <span class="n">atten_tpl</span><span class="p">,</span>
-          <span class="n">skip</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="s1">&#39;right_context&#39;</span><span class="p">,</span> <span class="s1">&#39;rel_pos_emb_dim&#39;</span><span class="p">])</span>
-    <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;local&#39;</span><span class="p">:</span>
-      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_left_context</span><span class="p">,</span>
-          <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_right_context</span><span class="p">)</span>
-      <span class="n">hparams_lib</span><span class="o">.</span><span class="n">CopyFieldsTo</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">,</span>
-          <span class="n">atten_tpl</span><span class="p">,</span>
-          <span class="n">skip</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="s1">&#39;right_context&#39;</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># No op for &#39;global&#39; atten</span>
-      <span class="k">assert</span> <span class="n">atten_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="s1">&#39;global_causal&#39;</span><span class="p">),</span> <span class="p">(</span>
-          <span class="sa">f</span><span class="s1">&#39;Unknown atten_type </span><span class="si">{</span><span class="n">atten_type</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-      <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="n">trans_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">atten_tpl</span></div>
 
 <div class="viewcode-block" id="ConformerLayer._ConfigFFLayerOrMoEParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams">[docs]</a>  <span class="k">def</span> <span class="nf">_ConfigFFLayerOrMoEParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fflayer_tpl</span><span class="p">,</span> <span class="n">name_prefix</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Configures fflayer_tpl params to create Feed-forward layer or MoE params.</span>
