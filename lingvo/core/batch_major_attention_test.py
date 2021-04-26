@@ -3215,6 +3215,95 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(actual_layer_output1, actual_layer_output2)
       self.assertAllClose(actual_layer_atten_probs1, actual_layer_atten_probs2)
 
+  def _testTransformerDecoderLayerInputs(self,
+                                         depth=3,
+                                         context_depth=3,
+                                         dtype=tf.float32):
+    source_vecs = tf.stack(
+        [tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(5)])
+    source_padding = tf.transpose(
+        tf.constant([[0, 0, 1, 1, 0], [1, 0, 0, 0, 1]], dtype=dtype))
+    aux_source_vecs = tf.stack(
+        [tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(7)])
+    aux_source_paddings = tf.transpose(
+        tf.constant([[0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1]],
+                    dtype=dtype))
+    context_vecs = tf.stack([
+        tf.constant(np.random.rand(2, context_depth), dtype=dtype)
+        for _ in range(7)
+    ])
+    return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings,
+            context_vecs)
+
+  def testPrefixTransformerLayerExtendStep(self):
+    with self.session(use_gpu=False):
+      np.random.seed(6348575)
+      depth = 4
+      p = attention.TransformerDecoderLayer.Params()
+      p.name = 'TransformerDecoderLayer'
+      p.input_dim = 4
+      p.tr_fflayer_tpl.input_dim = 4
+      p.tr_fflayer_tpl.hidden_dim = 8
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_atten_tpl = attention.TransformerAttentionLayer.Params().Set(
+          num_heads=2, input_dim=4)
+      transformer = p.Instantiate()
+
+      (source_vecs, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerDecoderLayerInputs(depth=depth)
+      source_padding = tf.zeros([5, 2])
+
+      source_vecs = tf.transpose(source_vecs, [1, 0, 2])
+      source_padding = tf.transpose(source_padding, [1, 0])
+      aux_vecs = tf.transpose(aux_vecs, [1, 0, 2])
+      aux_paddings = tf.transpose(aux_paddings, [1, 0])
+
+      h1, _ = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vec=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      h2 = []
+      cached_source_vecs = tf.concat([
+          tf.random.uniform((2, 2, 2, 2), 0.0, 1.0),
+          tf.zeros((5, 2, 2, 2), dtype=tf.float32)
+      ],
+                                     axis=0)
+      cached_source_contexts = tf.concat([
+          tf.random.uniform((2, 2, 2, 2), 0.0, 1.0),
+          tf.zeros((5, 2, 2, 2), dtype=tf.float32)
+      ],
+                                         axis=0)
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        # Ignore the first two timesteps in cached_source.
+        per_step_padding = tf.concat([
+            tf.ones([2, 2], dtype=tf.float32),
+            tf.zeros([2, i + 1], dtype=tf.float32),
+            tf.ones([2, 4 - i], dtype=tf.float32)
+        ],
+                                     axis=1)
+        per_step_padding = tf.expand_dims(per_step_padding, axis=1)
+
+        h, _, prefix_states = transformer.ExtendStep(
+            transformer.theta,
+            source_vecs[:, i:i + 1, :],
+            aux_vecs,
+            aux_paddings,
+            prefix_states,
+            time_step=i + 2,
+            per_step_padding=per_step_padding)
+        h2.append(h)
+
+      h2 = tf.concat(h2, axis=1)
+
+      self.evaluate(tf.global_variables_initializer())
+      h1_v, h2_v = self.evaluate([h1, h2])
+      self.assertAllClose(h1_v, h2_v, atol=1e-3)
+
 
 class GPipeBatchMajorTransformerLayerTest(test_utils.TestCase,
                                           parameterized.TestCase):

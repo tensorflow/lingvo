@@ -3588,7 +3588,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
                  query_vec,
                  cached_states,
                  time_step,
-                 use_short_seq_opt=False):
+                 use_short_seq_opt=False,
+                 per_step_padding=None):
     """Compute the result and update cached states for the current step.
 
     This function is used by autoregressive decoding. This function knows the
@@ -3605,6 +3606,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         it's a scalar, all the time step are the same decode step. if it's a
         tensor, it represents current decode step for each sample.
       use_short_seq_opt: A bool, whether using short sequence optimization.
+      per_step_padding: optional customized padding for this step - [B, 1, T].
 
     Returns:
       cur_output: [B, 1, D]
@@ -3640,16 +3642,18 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     else:
       batch_time_step = time_step
 
-    # Generates mask, with shape [b, 1, t].
-    zero_padding = tf.zeros([b, t], dtype=query_vec.dtype)
-    # [b, t]
-    per_step_padding = tf.where(
-        tf.less(
-            tf.tile(tf.expand_dims(tf.range(t), 0), [b, 1]),
-            tf.expand_dims(batch_time_step + 1, -1)), zero_padding,
-        tf.ones_like(zero_padding, dtype=query_vec.dtype))
-    # [b, 1, t]
-    per_step_padding = tf.expand_dims(per_step_padding, 1)
+    if per_step_padding is None:
+      # Generates mask, with shape [b, 1, t].
+      zero_padding = tf.zeros([b, t], dtype=query_vec.dtype)
+      # [b, t]
+      per_step_padding = tf.where(
+          tf.less(
+              tf.tile(tf.expand_dims(tf.range(t), 0), [b, 1]),
+              tf.expand_dims(batch_time_step + 1, -1)), zero_padding,
+          tf.ones_like(zero_padding, dtype=query_vec.dtype))
+      # [b, 1, t]
+      per_step_padding = tf.expand_dims(per_step_padding, 1)
+    per_step_padding = py_utils.HasShape(per_step_padding, [b, 1, t])
 
     # Layer normalization.
     if p.ln_tpl:
@@ -4107,6 +4111,7 @@ class TransformerLayer(base_layer.BaseLayer):
                  cached_states,
                  time_step,
                  use_short_seq_opt=False,
+                 per_step_padding=None,
                  *,
                  compute_atten_probs=False):
     """Transformer decoder layer, extend one step in autoregressive decoding.
@@ -4133,6 +4138,8 @@ class TransformerLayer(base_layer.BaseLayer):
         [target_time, target_batch, num_heads, dim_per_head].
       time_step: A scalar, the current decode step, 0-based.
       use_short_seq_opt: A bool, whether using short sequence optimization.
+      per_step_padding: optional customized padding for this step -
+        [target_batch, 1, target_time].
       compute_atten_probs: A bool, whether attention probabilities should be
         computed. If false, returns None for atten_probs.
 
@@ -4151,7 +4158,7 @@ class TransformerLayer(base_layer.BaseLayer):
     # First the self-attention layer.
     atten_vec, updated_states = self.self_atten.ExtendStep(
         theta.self_atten, query_vec, cached_states, time_step,
-        use_short_seq_opt)
+        use_short_seq_opt, per_step_padding)
     atten_vec = py_utils.HasShape(atten_vec, [target_batch, 1, dim])
     cross_atten_probs = None
     if self.params.has_aux_atten:
