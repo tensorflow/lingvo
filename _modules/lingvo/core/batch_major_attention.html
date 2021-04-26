@@ -564,7 +564,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;atten_extra_logit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Extra logit for attention softmax.&#39;</span>
         <span class="s1">&#39;Notice None and 0 are different.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_logit_cap&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;logit cap.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;atten_logit_cap&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Cap the absolute values of logits by &#39;</span>
+        <span class="s1">&#39;tanh. Enabled when a positive value is specified. May not be &#39;</span>
+        <span class="s1">&#39;supported by a subclass.&#39;</span><span class="p">)</span>
     <span class="c1"># SPMD partition related params.</span>
     <span class="c1">#</span>
     <span class="c1"># d - model_dim</span>
@@ -630,6 +633,18 @@
             <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
             <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">))</span>
 
+<div class="viewcode-block" id="MultiHeadedAttention._CapLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._CapLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_CapLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;When enabled, cap logits by p.atten_logit_cap with tanh.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_logit_cap</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_logit_cap</span> <span class="o">&lt;=</span> <span class="mf">0.</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">logits</span>
+    <span class="n">cap</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">atten_logit_cap</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="c1"># Note that since this caps the negative side as well, caller</span>
+    <span class="c1"># must defer the pad-with-very-negative-logits logic to after</span>
+    <span class="c1"># this function returns.</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">cap</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">logits</span> <span class="o">/</span> <span class="n">cap</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logits</span></div>
+
 <div class="viewcode-block" id="MultiHeadedAttention._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes attention logits.</span>
 
@@ -642,7 +657,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A Tensor of shape [B, N, T, S]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CapLogits</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention._AttenLogitsOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenLogitsOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogitsOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Attention logits for one single target (query) step.</span>
@@ -660,7 +676,8 @@
     <span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
     <span class="c1"># [s, b, n]</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNH,SBNH-&gt;SBN&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span></div>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNH,SBNH-&gt;SBN&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CapLogits</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.AttenProbs"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention.AttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">AttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
@@ -709,11 +726,6 @@
       <span class="c1"># Keep softmax computation in float32 otherwise the low precision can</span>
       <span class="c1"># can lead to worse quality.</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_AttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_logit_cap</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="c1"># cap logits.</span>
-      <span class="n">cap</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_logit_cap</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">cap</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">logits</span> <span class="o">/</span> <span class="n">cap</span><span class="p">)</span>
 
     <span class="c1"># Apply segment mask.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">and</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -906,6 +918,7 @@
           <span class="n">_AttenStep</span><span class="p">,</span>
           <span class="n">loop_vars</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span> <span class="o">*</span> <span class="n">n</span><span class="p">],</span> <span class="n">query</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                               <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">key</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)))</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CapLogits</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
 
       <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pad</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
       <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
