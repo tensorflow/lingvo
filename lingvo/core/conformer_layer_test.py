@@ -404,9 +404,6 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testCustomAttentionLayer(self):
     p = self._GetParams()
-    p.atten_left_context = -1
-    p.atten_right_context = -1
-    p.use_relative_atten = False
     # Use a custom atten_tpl.
     p.trans_atten_tpl.atten_tpl = (
         batch_major_attention.MultiHeadedFavorAttention.Params().Set(
@@ -502,7 +499,8 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ('Dropout', 'dropout_prob', 0.1),
       ('LayerOrder', 'layer_order', 'conv_before_mhsa'),
       ('FFLayerActivation', 'fflayer_activation', 'GELU'),
-      ('UseRelativeAttention', 'use_relative_atten', False),
+      ('UseRelativeAttentionTrue', 'use_relative_atten', True),
+      ('UseRelativeAttentionFalse', 'use_relative_atten', False),
       ('IsCausal', 'is_causal', True))
   def testCommonParamsSet(self, param_name, param_val):
     """Checks values set in CommonParams() correctly."""
@@ -514,9 +512,23 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
     kwargs = _GetMinimalCommonParamsKwargs()
     kwargs.update({param_name: param_val})
+    if param_name == 'is_causal' and param_val:
+      kwargs['atten_right_context'] = 0
+      kwargs['use_relative_atten'] = False
     p = conformer_layer.ConformerLayer.CommonParams(**kwargs)
     p.name = 'conformer_layer'
-    self.assertEqual(p.Get(param_name), param_val)
+    if param_name == 'use_relative_atten':
+      atten_cls = p.trans_atten_tpl.atten_tpl.cls
+      if param_val:
+        self.assertTrue(
+            issubclass(atten_cls, batch_major_attention.MultiHeadedAttentionXL),
+            msg=atten_cls)
+      else:
+        self.assertTrue(
+            issubclass(atten_cls, batch_major_attention.MultiHeadedAttention),
+            msg=atten_cls)
+    else:
+      self.assertEqual(p.Get(param_name), param_val)
 
   @parameterized.named_parameters(
       {
@@ -720,7 +732,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     assert max_seqlen % stride == 0
     states = [l.zero_state(batch_size) for l in layers]
 
-    right_context = p.atten_right_context
+    right_context = p.trans_atten_tpl.atten_tpl.right_context
     outputs = []
     assert max_seqlen % stride == 0
     for i in range(

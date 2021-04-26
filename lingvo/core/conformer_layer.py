@@ -471,18 +471,6 @@ class ConformerLayer(base_layer.BaseLayer):
     p.Define('atten_num_heads', None,
              'Num of heads in multi-head self-attention.')
     p.Define(
-        'atten_left_context', None, 'Local self attention left context.'
-        'If None or < 0, infinite left context. Notice unlike '
-        'atten_right_context, this includes `self` position.')
-    p.Define(
-        'atten_right_context', None, 'Local self attention right context.'
-        'If None or < 0, infinite right context.')
-    p.Define('use_relative_atten', True, 'If using relative attention.')
-    p.Define(
-        'relative_pos_emb_dim', None,
-        'If use_relative_atten, sets the relative pos embedding dim.'
-        'Default is the same as input_dim.')
-    p.Define(
         'layer_order', 'mhsa_before_conv',
         'Only mhsa, conv, mhsa_before_conv or conv_before_mhsa are '
         'supported.')
@@ -525,6 +513,7 @@ class ConformerLayer(base_layer.BaseLayer):
 
   @classmethod
   def CommonParams(cls,
+                   *,
                    input_dim=None,
                    is_causal=False,
                    atten_num_heads=None,
@@ -566,12 +555,15 @@ class ConformerLayer(base_layer.BaseLayer):
       atten_left_context = atten_local_context + 1  # including self position.
       atten_right_context = atten_local_context
 
+    if is_causal and trans_atten_tpl is None:
+      # None is different from 0, the former is 'infinite'.
+      assert atten_right_context is not None, (
+          'is_causal is not compatible with infinite atten_right_context '
+          '(None).')
+
     p = cls.Params().Set(
         input_dim=input_dim,
         atten_num_heads=atten_num_heads,
-        atten_left_context=atten_left_context,
-        atten_right_context=atten_right_context,
-        use_relative_atten=use_relative_atten,
         fflayer_hidden_dim=fflayer_hidden_dim,
         fflayer_activation=fflayer_activation,
         fflayer_residual_weight=fflayer_residual_weight,
@@ -586,7 +578,18 @@ class ConformerLayer(base_layer.BaseLayer):
       p.fflayer_start_tpl = fflayer_start_tpl
     # Set the MHSA module.
     if trans_atten_tpl is not None:
+      assert atten_left_context is None
+      assert atten_right_context is None
+      assert use_relative_atten is None
       p.trans_atten_tpl = trans_atten_tpl
+    else:
+      atten_tpl = cls._ConfigSelfAttenContext(
+          atten_left_context,
+          atten_right_context,
+          use_relative_atten=use_relative_atten,
+          relative_pos_emb_dim=input_dim)
+      p.trans_atten_tpl = attention_lib.TransformerAttentionLayer.Params().Set(
+          atten_tpl=atten_tpl)
     # Set the convolution module.
     if lconv_tpl is not None:
       p.lconv_tpl = lconv_tpl
@@ -601,6 +604,41 @@ class ConformerLayer(base_layer.BaseLayer):
       p.cls.SetMoEFFLayerEndParams(p, moe_num_partitions, moe_num_experts,
                                    moe_num_groups, moe_per_capacity_dim)
     return p
+
+  @classmethod
+  def _ConfigSelfAttenContext(cls, atten_left_context, atten_right_context, *,
+                              use_relative_atten, relative_pos_emb_dim):
+    # TODO(jamesqin): add an attention factory in batch_major_attention.
+    if not _AttenCtxIsSet(atten_left_context) and not _AttenCtxIsSet(
+        atten_right_context):
+      # No atten context set, each position attends to all positions.
+      atten_type = 'global' if not use_relative_atten else 'global_relative'
+    elif not _AttenCtxIsSet(atten_left_context) and atten_right_context == 0:
+      # Left context is infinite, right context is 0.
+      assert not use_relative_atten, (
+          'Relative attention isn\'t supported for causal attention.')
+      atten_type = 'global_causal'
+    else:
+      atten_type = 'local_relative' if use_relative_atten else 'local'
+
+    if atten_type == 'global_relative':
+      atten_tpl = (
+          attention_lib.MultiHeadedAttentionXL.Params().Set(
+              rel_pos_emb_dim=relative_pos_emb_dim))
+    elif atten_type == 'local_relative':
+      atten_tpl = attention_lib.LocalSelfAttentionXL.Params().Set(
+          left_context=atten_left_context,
+          right_context=atten_right_context,
+          rel_pos_emb_dim=relative_pos_emb_dim)
+    elif atten_type == 'local':
+      atten_tpl = attention_lib.LocalSelfAttention.Params().Set(
+          left_context=atten_left_context, right_context=atten_right_context)
+    else:
+      # No op for 'global' atten
+      assert atten_type in ('global', 'global_causal'), (
+          f'Unknown atten_type {atten_type}')
+      atten_tpl = attention_lib.MultiHeadedAttention.Params()
+    return atten_tpl
 
   @classmethod
   def SetFPropDtype(cls, p, fprop_dtype):
@@ -633,11 +671,6 @@ class ConformerLayer(base_layer.BaseLayer):
     assert p.layer_order in [
         'mhsa', 'conv', 'mhsa_before_conv', 'conv_before_mhsa'
     ]
-    if p.is_causal:
-      # None is different from 0, the former is 'infinite'.
-      assert p.atten_right_context is not None, (
-          'is_causal is not compatible with infinite atten_right_context '
-          '(None).')
     if p.layer_order == 'mhsa':
       assert not self.has_lconv, 'mhsa must not have a lconv block.'
 
@@ -665,7 +698,9 @@ class ConformerLayer(base_layer.BaseLayer):
           is_masked=p.is_causal,
           atten_dropout_prob=p.dropout_prob,
           residual_dropout_prob=p.dropout_prob)
-      self._ConfigSelfAttenParams(trans_atten_p)
+      if tf.logging.vlog_is_on(2):
+        for line in trans_atten_p.atten_tpl.ToText().split('\n'):
+          tf.logging.info('ConformerLayer.atten_tpl: %s', line)
       self.CreateChild('trans_atten', trans_atten_p)
 
     if self.has_lconv:
@@ -691,55 +726,6 @@ class ConformerLayer(base_layer.BaseLayer):
   @property
   def has_fflayer_start(self):
     return bool(self.params.fflayer_start_tpl)
-
-  def _ConfigSelfAttenParams(self, trans_atten_p):
-    p = self.params
-    if not p.relative_pos_emb_dim:
-      p.relative_pos_emb_dim = p.input_dim
-
-    # TODO(jamesqin): add an attention factory in batch_major_attention.
-    if not _AttenCtxIsSet(p.atten_left_context) and not _AttenCtxIsSet(
-        p.atten_right_context):
-      # No atten context set, each position attends to all positions.
-      atten_type = 'global' if not p.use_relative_atten else 'global_relative'
-    elif not _AttenCtxIsSet(
-        p.atten_left_context) and p.atten_right_context == 0:
-      # Left context is infinite, right context is 0.
-      assert not p.use_relative_atten, (
-          'Relative attention isn\'t supported for causal attention.')
-      atten_type = 'global_causal'
-    else:
-      atten_type = 'local_relative' if p.use_relative_atten else 'local'
-
-    if atten_type == 'global_relative':
-      atten_tpl = (
-          attention_lib.MultiHeadedAttentionXL.Params().Set(
-              rel_pos_emb_dim=p.relative_pos_emb_dim))
-      hparams_lib.CopyFieldsTo(
-          p.trans_atten_tpl.atten_tpl, atten_tpl, skip='rel_pos_emb_dim')
-    elif atten_type == 'local_relative':
-      atten_tpl = attention_lib.LocalSelfAttentionXL.Params().Set(
-          left_context=p.atten_left_context,
-          right_context=p.atten_right_context,
-          rel_pos_emb_dim=p.relative_pos_emb_dim)
-      hparams_lib.CopyFieldsTo(
-          p.trans_atten_tpl.atten_tpl,
-          atten_tpl,
-          skip=['left_context', 'right_context', 'rel_pos_emb_dim'])
-    elif atten_type == 'local':
-      atten_tpl = attention_lib.LocalSelfAttention.Params().Set(
-          left_context=p.atten_left_context,
-          right_context=p.atten_right_context)
-      hparams_lib.CopyFieldsTo(
-          p.trans_atten_tpl.atten_tpl,
-          atten_tpl,
-          skip=['left_context', 'right_context'])
-    else:
-      # No op for 'global' atten
-      assert atten_type in ('global', 'global_causal'), (
-          f'Unknown atten_type {atten_type}')
-      atten_tpl = trans_atten_p.atten_tpl.Copy()
-    trans_atten_p.atten_tpl = atten_tpl
 
   def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix):
     """Configures fflayer_tpl params to create Feed-forward layer or MoE params.
