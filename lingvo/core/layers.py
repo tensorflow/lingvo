@@ -2607,6 +2607,10 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
         ' multiplies the positional embedding in FProp.')
     p.Define('trainable_scaling_init', 1.0,
              'Initial value of the scaling parameter.')
+    p.Define(
+        'frequency_scaling', False,
+        'Introduces a trainable frequency scaling parameter (a scalar) that'
+        ' multiplies the frequency of the sinusoids.')
     return p
 
   def __init__(self, params):
@@ -2627,6 +2631,13 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('scale', pc)
+    if p.frequency_scaling:
+      pc = py_utils.WeightParams(
+          shape=[1],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('freq_scale', pc)
 
   def _PosEmbeddingsFromPositions(self, theta, position):
     """Generates the positional embeddings given the position tensor.
@@ -2657,6 +2668,9 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
 
     scaled_time = tf.expand_dims(position, 2) * tf.reshape(
         inv_timescales, [1, 1, -1])
+
+    if p.frequency_scaling:
+      scaled_time *= (1.0 + theta.freq_scale)
 
     signal = tf.concat([tf.sin(scaled_time), tf.cos(scaled_time)], axis=2)
     signal = tf.pad(
