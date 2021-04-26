@@ -412,7 +412,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define(
         'atten_extra_logit', None, 'Extra logit for attention softmax.'
         'Notice None and 0 are different.')
-    p.Define('atten_logit_cap', 0.0, 'logit cap.')
+    p.Define(
+        'atten_logit_cap', 0.0, 'Cap the absolute values of logits by '
+        'tanh. Enabled when a positive value is specified. May not be '
+        'supported by a subclass.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -478,6 +481,18 @@ class MultiHeadedAttention(base_layer.BaseLayer):
             device_mesh=p.device_mesh,
             weight_split_dims_mapping=p.weight_split_dims_mapping))
 
+  def _CapLogits(self, logits):
+    """When enabled, cap logits by p.atten_logit_cap with tanh."""
+    p = self.params
+    if not p.atten_logit_cap or p.atten_logit_cap <= 0.:
+      return logits
+    cap = tf.cast(p.atten_logit_cap, logits.dtype)
+    # Note that since this caps the negative side as well, caller
+    # must defer the pad-with-very-negative-logits logic to after
+    # this function returns.
+    logits = cap * tf.math.tanh(logits / cap)
+    return logits
+
   def _AttenLogits(self, theta, query, key):
     """Computes attention logits.
 
@@ -490,7 +505,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     Returns:
       A Tensor of shape [B, N, T, S]
     """
-    return attention_util.AttenLogits(query, key)
+    logits = attention_util.AttenLogits(query, key)
+    return self._CapLogits(logits)
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.
@@ -508,7 +524,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     s, b, _, _ = py_utils.GetShape(key, 4)
     _, n, h = py_utils.GetShape(query, 3)
     # [s, b, n]
-    return tf.einsum('BNH,SBNH->SBN', query, tf.reshape(key, [s, b, n, h]))
+    logits = tf.einsum('BNH,SBNH->SBN', query, tf.reshape(key, [s, b, n, h]))
+    return self._CapLogits(logits)
 
   def AttenProbs(self,
                  theta,
@@ -557,11 +574,6 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       # Keep softmax computation in float32 otherwise the low precision can
       # can lead to worse quality.
       logits = tf.cast(self._AttenLogits(theta, query, key), tf.float32)
-
-    if p.atten_logit_cap > 0:
-      # cap logits.
-      cap = p.atten_logit_cap
-      logits = cap * tf.math.tanh(logits / cap)
 
     # Apply segment mask.
     if self.params.packed_input and segment_mask is not None:
@@ -754,6 +766,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
           _AttenStep,
           loop_vars=(tf.Empty([s, b * n], query.dtype,
                               init=True), key, query, tf.zeros([], tf.int32)))
+      logits = self._CapLogits(logits)
 
       padded_logits = tf.where(pad > 0.0, very_negative_logits, logits)
       probs = py_utils.Softmax(

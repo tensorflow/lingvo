@@ -119,17 +119,15 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     expected_prob_out = np.reshape(expected_prob_out, (6, 6, 6))
     self.assertAllClose(expected_prob_out, prob_out)
 
-  def testAttenLogitCapping(self):
+  @parameterized.parameters(1.0, 5.0, 10.0)
+  def testAttenLogitCapping(self, atten_logit_cap):
     (input_vecs, input_padding, input_vecs_p,
      input_padding_p) = self._AttentionInputs()
-    atten_logit_cap = 5.0
     p = attention.MultiHeadedAttention.Params().Set(
         name='self_atten',
         input_dim=4,
         hidden_dim=4,
         enable_scaling_code_motion=True,
-        # For testing purposes, suggest larger value (e.g. 50.0) for real
-        # models.
         atten_logit_cap=atten_logit_cap)
     l = p.Instantiate()
 
@@ -500,43 +498,8 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [24.624561, 27.805634, 23.358835, 11.085404, 27.165989, 23.750813],
           np.sum(context_vec_out, axis=1))
 
-  @parameterized.named_parameters(
-      {
-          'testcase_name': '_short_seq',
-          'use_short_seq_opt': True,
-      }, {
-          'testcase_name': '_long_seq',
-          'use_short_seq_opt': False,
-      })
-  def testExtendStepSelfAttention(self, use_short_seq_opt):
-    # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
-      query_vec, cached_states, per_step_padding = self._AttentionExtendStepInputs(
-      )
-      p = attention.MultiHeadedAttention.Params().Set(
-          name='atten', num_heads=2, input_dim=4, hidden_dim=4)
-      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-      l = p.Instantiate()
-      tf.global_variables_initializer().run()
-      ctx_vec, updated_states = l.ExtendStep(l.theta, query_vec, cached_states,
-                                             None, None, per_step_padding, 0,
-                                             use_short_seq_opt)
-      context_vec_out = sess.run(ctx_vec)
-      new_source_vecs = sess.run(updated_states.key)
-      context_vec_out = np.reshape(context_vec_out, (6, 4))
-      self.assertAllClose(
-          [5.381485, 5.384035, 4.493689, 3.544395, 3.424472, 3.311054],
-          np.sum(context_vec_out, axis=1))
-      new_source_vecs = np.reshape(new_source_vecs, (6, 24))
-      self.assertAllClose(
-          [4.116683, 1.340482, 1.065773, 1.035415, 4.928454, 3.161165],
-          np.sum(new_source_vecs, axis=1))
-
-  @parameterized.named_parameters({
-      'testcase_name': '_long_seq',
-      'use_short_seq_opt': False,
-  })
-  def testExtendStepAsyncTimeStepSelfAttention(self, use_short_seq_opt):
+  def testExtendStepAsyncTimeStepSelfAttention(self):
+    use_short_seq_opt = False
     # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
     with self.session(use_gpu=True) as sess:
       query_vec, cached_states, per_step_padding = self._AttentionExtendStepInputs(
@@ -589,11 +552,7 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(new_source_vecs_async[1][1],
                           new_source_vecs_async_step1[1][1])
 
-  @parameterized.named_parameters({
-      'testcase_name': '_long_seq',
-      'use_short_seq_opt': False,
-  })
-  def testMultipleExtendStepAsyncTimeStepSelfAttention(self, use_short_seq_opt):
+  def testMultipleExtendStepAsyncTimeStepSelfAttention(self):
     # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
     num_heads, input_dim, hidden_dim, batch, seqlen = 2, 4, 4, 6, 6
     with self.session(use_gpu=True):
@@ -672,8 +631,58 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(actual_ctx_vec_async.eval()[-1][3:],
                           actual_ctx_vec.eval()[-1][:3])
 
+  @parameterized.named_parameters(
+      ('Short', 0.0, True), ('Long', 0.0, False), ('ShortSmallCap', 1.0, True),
+      ('LongSmallCap', 1.0, False), ('ShortCap', 5.0, True),
+      ('LongCap', 5.0, False))
+  def testExtendStep(self, cap, short_seq):
+    num_heads, input_dim, hidden_dim, batch, seqlen = 2, 4, 4, 6, 6
+    with self.session(use_gpu=True) as sess:
+      tf.random.set_seed(12345)
+      query_vec = tf.random.normal([batch, seqlen, input_dim])
+      paddings = tf.zeros_like(query_vec[:, :, 0])
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          atten_logit_cap=cap)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
 
-class MultiSourceMultiHeadedAttentionTest(MultiHeadedAttentionTest):
+      # Verify ExtendStep() via compare N ExtendStep() with one FProp() call on
+      # a seq with length N.
+      per_step_padding = 1 - tf.linalg.band_part(
+          tf.ones((seqlen, seqlen)), -1, 0)
+      per_step_padding = tf.stack([per_step_padding] * batch)
+      expected_ctx_tensor, _ = l.FPropDefaultTheta(
+          query_vec,
+          query_vec,
+          query_vec,
+          paddings,
+          segment_mask=None,
+          per_step_padding=per_step_padding)
+
+      states = l.InitStates(l.theta, batch, seqlen)
+      encoded_all = []
+      for i in range(seqlen):
+        per_step_paddings = 1. - tf.cast(
+            tf.sequence_mask([i + 1] * batch, seqlen), tf.float32)
+        per_step_paddings = tf.expand_dims(per_step_paddings, 1)
+        encoded, states = l.ExtendStep(l.theta, query_vec[:, i:i + 1, :],
+                                       states, paddings, None,
+                                       per_step_paddings, i, short_seq)
+        # [batch, 1, dims_per_head]
+        encoded_all.append(encoded)
+      # [batch, T, dims_per_head]
+      actual_ctx_tensor = tf.concat(encoded_all, axis=1)
+      expected_ctx, actual_ctx = sess.run(
+          [expected_ctx_tensor, actual_ctx_tensor])
+    self.assertAllClose(expected_ctx, actual_ctx)
+
+
+class MultiSourceMultiHeadedAttentionTest(test_utils.TestCase):
 
   def testAttenProbs(self):
     (query_vec, key_vec, paddings, per_step_padding, query_vec_p, key_vec_p,
