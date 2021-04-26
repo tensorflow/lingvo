@@ -684,6 +684,7 @@
         <span class="s1">&#39;mass_task_ids&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;List of task IDs for MASS. If None and &#39;</span>
         <span class="s1">&#39;single_column_input=True, apply MASS to all tasks, otherwise &#39;</span>
         <span class="s1">&#39;only apply to the specified tasks.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enable_mass_for_eval&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Enables masking during eval.&#39;</span><span class="p">)</span>
     <span class="c1"># Back translation</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bt_task_ids&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of task ids for back-translation.&#39;</span><span class="p">)</span>
     <span class="c1"># Denoising (https://arxiv.org/pdf/1711.00043)</span>
@@ -852,7 +853,8 @@
 
 <div class="viewcode-block" id="TextPackedInput._ProcessMASSInput"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._ProcessMASSInput">[docs]</a>  <span class="k">def</span> <span class="nf">_ProcessMASSInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Perform MASS input processing.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">skip_mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">enable_mass_for_eval</span>
+    <span class="k">if</span> <span class="n">skip_mass</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># At eval time, we copy src to tgt</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessSingleInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
 
