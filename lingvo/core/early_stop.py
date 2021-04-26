@@ -142,6 +142,10 @@ class EarlyStop:
     p.Define('window', 0, 'Maximum number of steps between best and current.')
     p.Define('verbose', True, 'Log early-stop checks.')
     p.Define('min_steps', 0, 'Minimum number of steps before stopping.')
+    p.Define(
+        'logging_interval', 100,
+        'The number of global steps after which the early stop metric '
+        'history is updated.')
     return p
 
   def __init__(self, params):

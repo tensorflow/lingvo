@@ -790,6 +790,9 @@ class TrainerTpu(base_runner.BaseRunner):
 
         self._SetStatusMessage(msg)
 
+        # Add model eval metrics to early stop metric history.
+        self._UpdateEarlyStopMetric(global_step, eval_metrics)
+
         checkpoint_write_secs = 0.0
         if FLAGS.checkpoint_in_trainer_tpu:
           checkpoint_write_start = time.perf_counter()
