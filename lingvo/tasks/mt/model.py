@@ -20,6 +20,7 @@ from lingvo.core import base_model
 from lingvo.core import insertion
 from lingvo.core import metrics
 from lingvo.core import py_utils
+from lingvo.core import tpu_embedding_layers
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
 
@@ -56,8 +57,25 @@ class MTBaseModel(base_model.BaseTask):
       self.CreateChild('enc', p.encoder)
     self.CreateChild('dec', p.decoder)
 
+  def _PropagateEmbeddingIds(self, input_batch):
+    """Propagate the TPU embedding ids to the encoder/decoder input batch."""
+    feature_names = (
+        tpu_embedding_layers.TpuEmbeddingCollection.Get().feature_names)
+    if feature_names:
+      batch = input_batch.DeepCopy()
+      for name in feature_names:
+        assert name in batch
+        assert name not in batch.src, f'Duplicate {name} in batch.src'
+        assert name not in batch.tgt, f'Duplicate {name} in batch.tgt'
+        batch.src[name] = batch[name]
+        batch.tgt[name] = batch[name]
+      return batch
+
+    return input_batch
+
   def ComputePredictions(self, theta, batch):
     p = self.params
+    batch = self._PropagateEmbeddingIds(batch)
 
     with self._EncoderDevice():
       encoder_outputs = (
@@ -168,6 +186,7 @@ class MTBaseModel(base_model.BaseTask):
 
   def Decode(self, input_batch):
     """Constructs the decoding graph."""
+    input_batch = self._PropagateEmbeddingIds(input_batch)
     return self._BeamSearchDecode(input_batch)
 
   def PostProcessDecodeOut(self, dec_out, dec_metrics):

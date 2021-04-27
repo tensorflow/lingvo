@@ -65,6 +65,9 @@ class TpuEmbeddingCollection:
     # List of (name, value, weight) tuples for summary.
     self._summary_tensors = []
 
+    # Set of embedding feature names.
+    self._feature_names = None
+
   def AddTableVariables(self, table_name, var_list):
     """Add TPU embedding table variable list to the collection."""
     if table_name in self._table_vars:
@@ -122,6 +125,18 @@ class TpuEmbeddingCollection:
   @property
   def summary_tensors(self):
     return self._summary_tensors
+
+  @property
+  def feature_names(self):
+    return self._feature_names
+
+  @feature_names.setter
+  def feature_names(self, feature_names):
+    if self._feature_names and self._feature_names != feature_names:
+      raise ValueError('feature_names already exists. '
+                       f'Existing feature names: {self._feature_names}, '
+                       f'feature names being added: {feature_names}')
+    self._feature_names = feature_names
 
 
 # TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.
@@ -635,6 +650,13 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
     self.CreateChildren('tables', p.tables)
     self._tpu_embedding_collection = TpuEmbeddingCollection.Get()
+
+    # Save embedding feature names in the collection.
+    feature_names = set()
+    for table in self.tables:
+      for feature in table.input_keys:
+        feature_names.add(feature)
+    self._tpu_embedding_collection.feature_names = feature_names
 
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.InstantiateVariables()
