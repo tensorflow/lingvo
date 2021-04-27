@@ -16,13 +16,18 @@
 """NestedMap dict structure."""
 
 import re
+from typing import (Any, Callable, Dict, List, Optional, Sequence, Tuple,
+                    TypeVar, Union)
 import lingvo.compat as tf
 
 _NAME_PATTERN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 _SQUARE_BRACKET_PATTERN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]')
 
 
-class NestedMap(dict):
+NestedMapT = TypeVar('NestedMapT', bound='NestedMap')
+
+
+class NestedMap(Dict[str, Any]):
   """A simple helper to maintain a dict.
 
   It is a sub-class of dict with the following extensions/restrictions:
@@ -44,7 +49,7 @@ class NestedMap(dict):
   # sentinel value for deleting keys used in Filter.
   _DELETE = object()
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args, **kwargs) -> None:
     super().__init__(*args, **kwargs)
     for key in self.keys():
       assert isinstance(key, str), (
@@ -53,46 +58,50 @@ class NestedMap(dict):
       NestedMap.CheckKey(key)
       assert key not in NestedMap._RESERVED_KEYS, ('%s is a reserved key' % key)
 
-  def __setitem__(self, key, value):
+  def __setitem__(self, key: str, value: Any) -> None:
     # Make sure key is a valid expression and is not one of the reserved
     # attributes.
-    assert isinstance(key, str), (
-        'Key in a NestedMap has to be a six.string_types. Currently type: %s, '
-        'value: %s' % (str(type(key)), str(key)))
+    assert isinstance(
+        key,
+        str), ('Key in a NestedMap has to be a string type. Current type: %s, '
+               'value: %s' % (str(type(key)), str(key)))
     NestedMap.CheckKey(key)
     assert key not in NestedMap._RESERVED_KEYS, ('%s is a reserved key' % key)
     super().__setitem__(key, value)
 
-  def __setattr__(self, name, value):
+  def __setattr__(self, name: str, value: Any) -> None:
     self.__setitem__(name, value)
 
-  def __getattr__(self, name):
+  def __getattr__(self, name: str) -> Any:
     try:
       return self[name]
     except KeyError as e:
       raise AttributeError('%s; available attributes: %s' %
                            (e, sorted(list(self.keys()))))
 
-  def __delattr__(self, name):
+  def __delattr__(self, name: str) -> None:
     try:
       del self[name]
     except KeyError as e:
       raise AttributeError('%s; available attributes: %s' %
                            (e, sorted(list(self.keys()))))
 
-  def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
-    return NestedMap(self)
+  def copy(self: NestedMapT) -> NestedMapT:  # pylint: disable=invalid-name
+    # Don't delegate w/ super: dict.copy() -> dict.
+    return type(self)(self)
 
-  def __deepcopy__(self, unused_memo):
+  def __deepcopy__(self: NestedMapT, unused_memo) -> NestedMapT:
     """Deep-copies the structure but not the leaf objects."""
     return self.DeepCopy()
 
-  def DeepCopy(self):
+  def DeepCopy(self: NestedMapT) -> NestedMapT:
     """Deep-copies the structure but not the leaf objects."""
     return self.Pack(self.Flatten())
 
   @staticmethod
-  def FromNestedDict(x):
+  def FromNestedDict(
+      x: Union[NestedMapT, Dict[str, Any], List[Any], Tuple[Any, ...]]
+  ) -> NestedMapT:
     """Converts every dict in nested structure 'x' to a NestedMap."""
     if isinstance(x, dict):
       res = NestedMap()
@@ -105,13 +114,13 @@ class NestedMap(dict):
       return x
 
   @staticmethod
-  def CheckKey(key):
+  def CheckKey(key: str) -> None:
     """Asserts that key is valid NestedMap key."""
     if not (isinstance(key, str) and _NAME_PATTERN.match(key)):
       raise ValueError('Invalid NestedMap key \'{}\''.format(key))
 
   @staticmethod
-  def SquareBracketIndex(key):
+  def SquareBracketIndex(key: str) -> Tuple[str, Optional[int]]:
     """Extracts the name and the index from the indexed key (e.g., k[0])."""
     m = _SQUARE_BRACKET_PATTERN.fullmatch(key)
     if not m:
@@ -119,7 +128,7 @@ class NestedMap(dict):
     else:
       return m.groups()[0], int(m.groups()[1])
 
-  def GetItem(self, key):
+  def GetItem(self, key: str) -> Any:
     """Gets the value for the nested `key`.
 
     Note that indexing lists is not supported, names with underscores will be
@@ -147,7 +156,7 @@ class NestedMap(dict):
         current = current[idx]
     return current
 
-  def Get(self, key, default=None):
+  def Get(self, key: str, default: Optional[Any] = None) -> Any:
     """Gets the value for nested `key`, returns `default` if key does not exist.
 
     Note that indexing lists is not supported, names with underscores will be
@@ -166,7 +175,7 @@ class NestedMap(dict):
     except (KeyError, IndexError, TypeError):
       return default
 
-  def Set(self, key, value):
+  def Set(self, key: str, value: Any) -> None:
     r"""Sets the value for a nested key.
 
     There is limited support for indexing lists when square bracket indexing is
@@ -222,7 +231,9 @@ class NestedMap(dict):
                            ' {} but must be a dict or NestedMap.'
                            ''.format(key, k, type(current)))
 
-  def _RecursiveMap(self, fn, flatten=False):
+  def _RecursiveMap(self: NestedMapT,
+                    fn: Callable[[str, Any], Any],
+                    flatten: bool = False) -> Union[List[Any], NestedMapT]:
     """Traverse recursively into lists, dicts, and NestedMaps applying `fn`.
 
     Args:
@@ -234,7 +245,7 @@ class NestedMap(dict):
       The result of applying fn.
     """
 
-    def Recurse(v, key=''):
+    def Recurse(v: Any, key: str = ''):
       """Helper function for _RecursiveMap."""
       if isinstance(v, dict):
         ret = [] if flatten else type(v)()
@@ -274,10 +285,10 @@ class NestedMap(dict):
 
     res = Recurse(self)
     if res is self._DELETE:
-      return [] if flatten else NestedMap()
+      return [] if flatten else type(self)()
     return res
 
-  def Flatten(self):
+  def Flatten(self) -> List[Any]:
     """Returns a list containing the flattened values in the `.NestedMap`.
 
     Unlike py_utils.Flatten(), this will only descend into lists, dicts, and
@@ -285,7 +296,7 @@ class NestedMap(dict):
     """
     return self._RecursiveMap(lambda _, v: v, flatten=True)
 
-  def FlattenItems(self):
+  def FlattenItems(self) -> List[Tuple[Any, Any]]:
     """Flatten the `.NestedMap` and returns <key, value> pairs in a list.
 
     Returns:
@@ -294,21 +305,22 @@ class NestedMap(dict):
     """
     return self._RecursiveMap(lambda k, v: (k, v), flatten=True)
 
-  def Pack(self, lst):
+  def Pack(self: NestedMapT, lst: Sequence[Any]) -> NestedMapT:
     """Returns a copy of this with each value replaced by a value in lst."""
     assert len(self.FlattenItems()) == len(lst)
     v_iter = iter(lst)
     return self._RecursiveMap(lambda unused_k, unused_v: next(v_iter))
 
-  def Transform(self, fn):
+  def Transform(self: NestedMapT, fn: Callable[[Any], Any]) -> NestedMapT:
     """Returns a copy of this `.NestedMap` with fn applied on each value."""
     return self._RecursiveMap(lambda _, v: fn(v))
 
-  def TransformWithKey(self, fn):
+  def TransformWithKey(self: NestedMapT, fn: Callable[[str, Any],
+                                                      Any]) -> NestedMapT:
     """Returns a copy of this `.NestedMap` with fn applied on each key/value."""
     return self._RecursiveMap(fn)
 
-  def IsCompatible(self, other):
+  def IsCompatible(self, other: NestedMapT) -> bool:
     """Returns true if self and other are compatible.
 
     If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())` produces y
@@ -321,11 +333,12 @@ class NestedMap(dict):
     other_items = other._RecursiveMap(lambda k, _: k, flatten=True)  # pylint: disable=protected-access
     return items == other_items
 
-  def Filter(self, fn):
+  def Filter(self: NestedMapT, fn: Callable[[Any], bool]) -> NestedMapT:
     """Returns a copy with entries where fn(entry) is True."""
     return self.FilterKeyVal(lambda _, v: fn(v))
 
-  def FilterKeyVal(self, fn):
+  def FilterKeyVal(self: NestedMapT, fn: Callable[[str, Any],
+                                                  bool]) -> NestedMapT:
     """Returns a copy of this `.NestedMap` filtered by fn.
 
     If fn(key, entry) is True, the entry is copied into the returned NestedMap.
@@ -339,17 +352,19 @@ class NestedMap(dict):
     """
     return self._RecursiveMap(lambda k, v: v if fn(k, v) else self._DELETE)
 
-  def _ToStrings(self):
+  def _ToStrings(self) -> List[str]:
     """Returns debug strings in a list for this `.NestedMap`."""
     kv = self.FlattenItems()
     maxlen = max([len(k) for k, _ in kv]) if kv else 0
     return sorted([k + ' ' * (4 + maxlen - len(k)) + str(v) for k, v in kv])
 
-  def DebugString(self):
+  def DebugString(self) -> str:
     """Returns a debug string for this `.NestedMap`."""
     return '\n'.join(self._ToStrings())
 
-  def VLog(self, level=None, prefix=None):
+  def VLog(self,
+           level: Optional[int] = None,
+           prefix: Optional[str] = None) -> None:
     """Logs the debug string at the level."""
     if level is None:
       level = 0
@@ -358,7 +373,7 @@ class NestedMap(dict):
     for l in self._ToStrings():
       tf.logging.vlog(level, '%s %s', prefix, l)
 
-  def __dir__(self):
+  def __dir__(self) -> List[str]:
     """dir() that includes flattened keys in returned output."""
     keys = self._RecursiveMap(lambda k, v: k, flatten=True)
     return keys + super().__dir__()
