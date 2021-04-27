@@ -172,6 +172,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">insertion</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_embedding_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="kn">import</span> <span class="n">decoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="kn">import</span> <span class="n">encoder</span>
 
@@ -208,8 +209,25 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;enc&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MTBaseModel._PropagateEmbeddingIds"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel._PropagateEmbeddingIds">[docs]</a>  <span class="k">def</span> <span class="nf">_PropagateEmbeddingIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Propagate the TPU embedding ids to the encoder/decoder input batch.&quot;&quot;&quot;</span>
+    <span class="n">feature_names</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">feature_names</span><span class="p">:</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">feature_names</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">batch</span>
+        <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Duplicate </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> in batch.src&#39;</span>
+        <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Duplicate </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> in batch.tgt&#39;</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">batch</span>
+
+    <span class="k">return</span> <span class="n">input_batch</span></div>
+
 <div class="viewcode-block" id="MTBaseModel.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PropagateEmbeddingIds</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderDevice</span><span class="p">():</span>
       <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="p">(</span>
@@ -320,6 +338,7 @@
 
 <div class="viewcode-block" id="MTBaseModel.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs the decoding graph.&quot;&quot;&quot;</span>
+    <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PropagateEmbeddingIds</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BeamSearchDecode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MTBaseModel.PostProcessDecodeOut"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">):</span>

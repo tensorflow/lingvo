@@ -217,6 +217,9 @@
     <span class="c1"># List of (name, value, weight) tuples for summary.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_tensors</span> <span class="o">=</span> <span class="p">[]</span>
 
+    <span class="c1"># Set of embedding feature names.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="TpuEmbeddingCollection.AddTableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddTableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add TPU embedding table variable list to the collection.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">:</span>
@@ -273,7 +276,19 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">summary_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_tensors</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_tensors</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">feature_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span>
+
+  <span class="nd">@feature_names</span><span class="o">.</span><span class="n">setter</span>
+  <span class="k">def</span> <span class="nf">feature_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_names</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">!=</span> <span class="n">feature_names</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;feature_names already exists. &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;Existing feature names: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span><span class="si">}</span><span class="s1">, &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;feature names being added: </span><span class="si">{</span><span class="n">feature_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">=</span> <span class="n">feature_names</span></div>
 
 
 <span class="c1"># TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.</span>
@@ -787,6 +802,13 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span> <span class="o">=</span> <span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
+
+    <span class="c1"># Save embedding feature names in the collection.</span>
+    <span class="n">feature_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">input_keys</span><span class="p">:</span>
+        <span class="n">feature_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">feature_names</span>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
