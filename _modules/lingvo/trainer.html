@@ -943,7 +943,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="c1"># Add model eval metrics to early stop metric history.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateEarlyStopMetric</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">metric_name</span><span class="p">,</span> <span class="p">(</span><span class="n">metric_value</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateEarlyStopMetric</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">,</span>
+                                      <span class="n">metric_value</span><span class="p">)</span>
 
         <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
