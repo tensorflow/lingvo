@@ -661,6 +661,13 @@ class DecodeProgram(BaseProgram):
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = tf.Summary(
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
+
+    if isinstance(decode_out, dict):
+      for key, value in decode_out.items():
+        if isinstance(value, tf.Summary):
+          tf.logging.info('Adding summary %s', key)
+          summaries[key] = value
+
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
     decode_out_path = os.path.join(self._program_dir,
