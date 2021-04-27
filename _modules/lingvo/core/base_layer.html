@@ -1068,13 +1068,17 @@
 
 <span class="sd">    The created sub layer can be accessed by `name`. E.g.::</span>
 
-<span class="sd">        self.CreateChild(&#39;foo&#39;, ...)</span>
+<span class="sd">        self.CreateChild(&#39;foo&#39;, foo_params)</span>
 <span class="sd">        self.foo.FProp...</span>
 
 <span class="sd">    or::</span>
 
 <span class="sd">        self.children[&#39;foo&#39;].Fprop...</span>
 <span class="sd">        self.children.foo.Fprop...</span>
+
+<span class="sd">    If the layer does not have a name set, i.e. foo_params.name is None, then</span>
+<span class="sd">    its name will be set to `name`. The layer&#39;s name is used as a variable_scope</span>
+<span class="sd">    for its variables.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: Sub layer name which is used as the key into vars/theta.</span>
