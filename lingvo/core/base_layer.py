@@ -916,13 +916,17 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     The created sub layer can be accessed by `name`. E.g.::
 
-        self.CreateChild('foo', ...)
+        self.CreateChild('foo', foo_params)
         self.foo.FProp...
 
     or::
 
         self.children['foo'].Fprop...
         self.children.foo.Fprop...
+
+    If the layer does not have a name set, i.e. foo_params.name is None, then
+    its name will be set to `name`. The layer's name is used as a variable_scope
+    for its variables.
 
     Args:
       name: Sub layer name which is used as the key into vars/theta.
