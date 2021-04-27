@@ -123,8 +123,8 @@ class BaseRunner:
     if not self._early_stop:
       return
 
-    if (self._early_stop.logging_interval and
-        global_step % self._early_stop.logging_interval == 0):
+    if (self._early_stop.params.logging_interval and
+        global_step % self._early_stop.params.logging_interval == 0):
       for metric_name, (metric_value, _) in metrics.items():
         early_stop.MetricHistory.ConditionalAppend(
             os.path.basename(self._train_dir), metric_name, global_step,
