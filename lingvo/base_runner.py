@@ -119,16 +119,15 @@ class BaseRunner:
     """Update the status message for this task."""
     tf.logging.info(self._FormatStatusMessage(message, retrying))
 
-  def _UpdateEarlyStopMetric(self, global_step, metrics):
+  def _UpdateEarlyStopMetric(self, jobname, global_step, metric_name,
+                             metric_value):
     if not self._early_stop:
       return
 
     if (self._early_stop.params.logging_interval and
         global_step % self._early_stop.params.logging_interval == 0):
-      for metric_name, (metric_value, _) in metrics.items():
-        early_stop.MetricHistory.ConditionalAppend(
-            os.path.basename(self._train_dir), metric_name, global_step,
-            metric_value)
+      early_stop.MetricHistory.ConditionalAppend(jobname, metric_name,
+                                                 global_step, metric_value)
 
   def _ShouldStop(self, sess, step):
     """Check if the runner should stop."""
