@@ -22,6 +22,7 @@ import copy
 import enum
 import itertools
 import re
+from typing import Callable, List, Mapping, Optional, Type, TypeVar, Union
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import gshard_utils
@@ -206,6 +207,11 @@ class _CreateLayerVariablesStatus(enum.Enum):
 LAYER_WT = 'layer_weight_variable'
 
 
+BaseLayerS = TypeVar('BaseLayerS', bound='BaseLayer')
+BaseLayerT = TypeVar('BaseLayerT', bound='BaseLayer')
+BaseLayerParamsT = hyperparams.InstantiableParams[BaseLayerT]
+
+
 class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   r"""Base class for all the layer object.
 
@@ -226,7 +232,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   _INFERENCE_DRIVER_NAME = None
 
   @classmethod
-  def Params(cls):
+  def Params(cls: Type[BaseLayerT]) -> BaseLayerParamsT:
     """Returns the layer params."""
     p = hyperparams.InstantiableParams(cls)
     p.Define('inference_driver_name', cls._INFERENCE_DRIVER_NAME,
@@ -284,7 +290,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     return p
 
   @staticmethod
-  def CopyBaseParams(from_params, to_params):
+  def CopyBaseParams(from_params: hyperparams.InstantiableParams[BaseLayerS],
+                     to_params: BaseLayerParamsT) -> BaseLayerParamsT:
     """Copies BaseLayer params from `from_params` to `to_params`."""
     assert issubclass(from_params.cls, BaseLayer)
     assert issubclass(to_params.cls, BaseLayer)
@@ -317,7 +324,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       to_params.params_init = from_params.params_init.Copy()
     return to_params
 
-  def __init__(self, params):
+  def __init__(self: BaseLayerT, params: BaseLayerParamsT) -> None:
     """Layer constructor.
 
     Args:
@@ -384,7 +391,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # reenter it without creating a new one.
     self._self_variable_scope = None
 
-  def SetVariableFree(self, value=True):
+  def SetVariableFree(self, value: bool = True) -> None:
     """Marks this layer as having no variables.
 
     Note that this status affects sublayers and child layers too.
@@ -473,7 +480,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     raise NotImplementedError('FPropMeta of %s' % cls)
 
   @property
-  def params(self):
+  def params(self) -> BaseLayerParamsT:
     """Returns the params upon which this layer is built."""
     return self._params
 
@@ -483,16 +490,16 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     return cluster_factory.Current()
 
   @property
-  def do_eval(self):
+  def do_eval(self) -> bool:
     return self.cluster.do_eval
 
   @property
-  def parent(self):
+  def parent(self) -> Optional[BaseLayerT]:
     """None if self is the root layer, otherwise the parent layer of self."""
     return self._parent
 
   @property
-  def path(self):
+  def path(self) -> str:
     """Returns a '.'-separated string with all layer names from the root."""
     if self.parent:
       return self.parent.path + '.' + self.params.name
@@ -500,16 +507,16 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       return self.params.name
 
   @property
-  def layer_type(self):
+  def layer_type(self) -> str:
     """Returns layer type prefixed with 'lingvo.'."""
     return 'lingvo.' + self.__class__.__name__
 
   @property
-  def children(self):
+  def children(self) -> py_utils.NestedMap:
     """Returns children layers of this layer in a `.NestedMap`."""
     return self._private_children
 
-  def __getattr__(self, name):
+  def __getattr__(self, name: str):
     """Returns the child layer of the given name."""
     if name == '_private_children':
       # Raising AttributeError without custom message triggers normal python
@@ -525,7 +532,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     else:
       raise AttributeError('%s is not a sub-layer of %s.' % (name, self))
 
-  def GetDescendant(self, path):
+  def GetDescendant(self, path: str) -> BaseLayerT:
     """Returns a descendant layer given the path.
 
     NOTE(yonghui): This GetDescendant is not complete. It is not able to descent
@@ -636,7 +643,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
             'Function "%s" is already defined on layer "%r"' % (name, self))
       self._private_fns[name] = f
 
-  def _CheckName(self, name):
+  def _CheckName(self, name: str) -> None:
     """Asserts name's validity."""
     py_utils.NestedMap.CheckKey(name)
     assert name not in self._private_vars, (
@@ -649,7 +656,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         '%s exists in global_accumulator: %s' %
         (name, list(self._private_accumulators.keys())))
 
-  def _VariableCollections(self):
+  def _VariableCollections(self) -> List[str]:
     return [LAYER_WT, '%s_vars' % self.__class__.__name__]
 
   def RegisterAccumulator(self, name, acc):
@@ -720,7 +727,12 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """Returns the variable's symbolic shape."""
     return self._var_symbolic_shape_map.get(var_name, None)
 
-  def CreateVariable(self, name, var_params, theta_fn=None, **kwargs):
+  def CreateVariable(self,
+                     name: str,
+                     var_params: py_utils.WeightParams,
+                     theta_fn: Optional[Callable[[tf.Tensor],
+                                                 tf.Tensor]] = None,
+                     **kwargs) -> None:
     """Create a variable of this layer according to the parameter `var_params`.
 
     E.g.::
@@ -786,7 +798,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       # Otherwise cache the variable to be created.
       self._variables_to_create[name] = meta
 
-  def _CreateVariableInternal(self, name, meta):
+  def _CreateVariableInternal(self, name: str,
+                              meta: CreateVariableMeta) -> None:
     """Immediately creates the variable described by `meta`.
 
     DO NOT OVERRIDE. For internal use only. Subclasses of BaseLayer should use
@@ -840,7 +853,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
           tf.name_scope(self._self_variable_scope.original_name_scope))
       yield stack
 
-  def InstantiateVariables(self):
+  def InstantiateVariables(self) -> None:
     """Create variables for this layer and child layers.
 
     DO NOT OVERRIDE. Override self._CreateLayerVariables instead.
@@ -870,7 +883,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       # Outermost layer just finished InstantiateVariables.
       self._VerifyVarsAndTheta()
 
-  def _CreateChildrenVariables(self):
+  def _CreateChildrenVariables(self) -> None:
     """Create variables for child layers.
 
     Should be rarely overridden, only in cases when control over the context of
@@ -893,7 +906,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
                child.params.cls))
         child.InstantiateVariables()
 
-  def _CreateLayerVariables(self):
+  def _CreateLayerVariables(self) -> None:
     """Actually create variables for this layer.
 
     Subclasses should override this function.
@@ -902,7 +915,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """
     pass
 
-  def AddExtraTheta(self, theta_name, theta_value):
+  def AddExtraTheta(self, theta_name: str, theta_value) -> None:
     """Add extra `theta` that doesn't directly correspond to `vars`."""
     self._CheckName(theta_name)
     self._private_theta[theta_name] = theta_value
@@ -911,7 +924,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def AddVN(self, value):
     return py_utils.AddVN(self.params, value)
 
-  def CreateChild(self, name, params):
+  def CreateChild(self, name: str, params: BaseLayerParamsT) -> None:
     """Create a sub layer.
 
     The created sub layer can be accessed by `name`. E.g.::
@@ -941,7 +954,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     child = p.Instantiate()
     self._private_children[name] = child
 
-  def CreateChildren(self, name, params):
+  def CreateChildren(
+      self, name: str, params: Union[List[BaseLayerParamsT],
+                                     Mapping[str, BaseLayerParamsT]]
+  ) -> None:
     """Create a list or dict of sub layers.
 
     The created sub layer list can be accessed by `name`. E.g.::
@@ -974,14 +990,14 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._private_children[name] = py_utils.NestedMap(
         sub=params).Transform(Instantiate).sub
 
-  def AddChild(self, name, children):
+  def AddChild(self, name: str, children: BaseLayerT) -> None:
     """Add existing layer or layers as sublayer."""
     for child in py_utils.Flatten(children):
       assert isinstance(child, BaseLayer)
     self._CheckName(name)
     self._private_children[name] = children
 
-  def _AutoAddChild(self, child):
+  def _AutoAddChild(self, child: BaseLayerT) -> None:
     """Record that a layer `child` is instantiated by this layer.
 
     This method should only be called internally by BaseLayerMeta.
@@ -991,7 +1007,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """
     self._children_list.append(child)
 
-  def _VerifyChildren(self):
+  def _VerifyChildren(self) -> None:
     """Verify all children created by this layer are via `CreateChild(ren)`."""
     created_children = self._private_children.Flatten()
     for v in self._children_list:
@@ -1003,7 +1019,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
             '%s is not created by BaseLayer.CreateChild(ren) in %r.' %
             (v.params.name, self))
 
-  def _VerifyVarsAndTheta(self):
+  def _VerifyVarsAndTheta(self) -> None:
     """Verify that vars and theta have the same nested structure."""
     for child in self._children_list:
       child._VerifyVarsAndTheta()  # pylint: disable=protected-access
