@@ -2120,10 +2120,11 @@
 
     <span class="n">seqlen</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">output</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">output</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input_to_add</span><span class="p">))</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
-    <span class="n">concat_input_to_add</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">skip_conn_input</span><span class="p">,</span> <span class="n">input_to_add</span><span class="p">],</span>
-                                    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
+    <span class="n">concat_input_to_add</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">skip_conn_input</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">),</span> <span class="n">input_to_add</span><span class="p">],</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">final_output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="n">concat_input_to_add</span><span class="p">[:,</span> <span class="p">:</span><span class="n">seqlen</span><span class="p">]</span>
     <span class="n">state1</span><span class="o">.</span><span class="n">skip_conn_input</span> <span class="o">=</span> <span class="n">concat_input_to_add</span><span class="p">[:,</span> <span class="n">seqlen</span><span class="p">:]</span>
     <span class="k">return</span> <span class="n">final_output</span><span class="p">,</span> <span class="n">state1</span></div>
@@ -2448,7 +2449,12 @@
         <span class="n">concat_query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># [B, Q, N, H]</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
-        <span class="n">concat_out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">out_paddings</span><span class="p">,</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">concat_out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">out_paddings</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">),</span>
+            <span class="n">paddings</span><span class="p">,</span>
+        <span class="p">],</span>
+                                        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">concat_out_paddings</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
 
       <span class="c1"># key, value, mask.</span>
