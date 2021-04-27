@@ -1968,10 +1968,11 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     seqlen = py_utils.GetShape(output)[1]
     output = py_utils.HasShape(output, py_utils.GetShape(input_to_add))
+    fprop_dtype = py_utils.FPropDtype(p)
 
-    concat_input_to_add = tf.concat([state0.skip_conn_input, input_to_add],
-                                    axis=1)
-
+    concat_input_to_add = tf.concat(
+        [tf.cast(state0.skip_conn_input, dtype=fprop_dtype), input_to_add],
+        axis=1)
     final_output = output + concat_input_to_add[:, :seqlen]
     state1.skip_conn_input = concat_input_to_add[:, seqlen:]
     return final_output, state1
@@ -2296,7 +2297,12 @@ class LocalSelfAttention(MultiHeadedAttention):
         concat_query = tf.concat([state0.query, query_proj], axis=1)
         # [B, Q, N, H]
         query = concat_query[:, :q]
-        concat_out_paddings = tf.concat([state0.out_paddings, paddings], axis=1)
+        fprop_dtype = py_utils.FPropDtype(p)
+        concat_out_paddings = tf.concat([
+            tf.cast(state0.out_paddings, dtype=fprop_dtype),
+            paddings,
+        ],
+                                        axis=1)
         out_paddings = concat_out_paddings[:, :q]
 
       # key, value, mask.
