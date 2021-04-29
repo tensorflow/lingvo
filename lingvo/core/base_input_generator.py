@@ -387,7 +387,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           # into the TPU InfeedQueue (and only to TPUEmbedding).
           # TODO(jeffreyzhao): Hack, come up with better solution.
           # Ideally we would like users to override
-          # _CreateTpuEmbeddingEnqueueOpsForHost() to modify the input batch
+          # CreateTpuEmbeddingEnqueueOpsForHost() to modify the input batch
           # and remove fields they don't want to enqueue onto TPU.
           # However, the TPUEmbedding singleton and TPU embedding enqueue ops
           # are currently constructed after CreateTpuEnqueueOps() is called.
@@ -558,14 +558,14 @@ class BaseInputGenerator(base_layer.BaseLayer):
       batch = batch[0]
       with tf.device(host_device):
         tf.logging.info('host_device: %s, batch: %r', host_device, batch)
-        enqueue_ops += self._CreateTpuEmbeddingEnqueueOpsForHost(
+        enqueue_ops += self.CreateTpuEmbeddingEnqueueOpsForHost(
             tpu_embedding, batch, mode_override=mode_override)
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
-  def _CreateTpuEmbeddingEnqueueOpsForHost(self,
-                                           tpu_embedding,
-                                           input_batch,
-                                           mode_override=None):
+  def CreateTpuEmbeddingEnqueueOpsForHost(self,
+                                          tpu_embedding,
+                                          input_batch,
+                                          mode_override=None):
     """Hook for creating TPU embedding enqueue ops for a single host.
 
     Used by CreateTpuEmbeddingEnqueueOps(). Override this method in input
