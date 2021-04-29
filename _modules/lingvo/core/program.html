@@ -172,6 +172,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_trial</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">checkpointer</span>
@@ -228,7 +229,11 @@
              <span class="s1">&#39;Whether to write input data stats during training.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">params</span><span class="p">,</span>
+               <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">(),</span>
+               <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span>
@@ -238,6 +243,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_model</span> <span class="o">=</span> <span class="n">shared_model</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;tf_master&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">write_train_input_stats</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="n">trial</span>
 
     <span class="c1"># Program dirs are where the summaries are written to.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
@@ -1182,7 +1188,11 @@
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;benchmark_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Benchmark name for compliance log.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">params</span><span class="p">,</span>
+               <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">(),</span>
+               <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_model</span> <span class="o">=</span> <span class="n">shared_model</span>
@@ -1199,7 +1209,7 @@
       <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits_per_client</span>
       <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
-          <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+          <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="n">trial</span><span class="o">=</span><span class="n">trial</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">eval_program_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
@@ -1211,7 +1221,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-          <span class="n">eval_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+          <span class="n">eval_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
+              <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="n">trial</span><span class="o">=</span><span class="n">trial</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span>
 
 <div class="viewcode-block" id="SimpleProgramSchedule.Programs"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Programs">[docs]</a>  <span class="k">def</span> <span class="nf">Programs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

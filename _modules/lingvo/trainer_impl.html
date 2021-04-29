@@ -407,7 +407,7 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">reporting_job</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">reporting_job</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span>

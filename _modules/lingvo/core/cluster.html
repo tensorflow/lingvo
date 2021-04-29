@@ -318,6 +318,8 @@
         <span class="s1">&#39;enable_check_numerics&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If set to non-None, &#39;</span>
         <span class="s1">&#39;this value is used instead of FLAGS.enable_check_numerics. &#39;</span>
         <span class="s1">&#39;If False, we bypass calls to CheckNumerics.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;reporting_job&#39;</span><span class="p">,</span> <span class="s1">&#39;evaler&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Name of job that reports trial results.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="_Cluster.InitDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.InitDevices">[docs]</a>  <span class="k">def</span> <span class="nf">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
@@ -693,7 +695,11 @@
     <span class="n">job</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/job:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">workers</span> <span class="o">=</span> <span class="p">[</span><span class="n">addr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;grpc://&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">addr</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
 
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ClusterSpec</span><span class="p">({</span><span class="n">job</span><span class="p">:</span> <span class="n">workers</span><span class="p">})</span><span class="o">.</span><span class="n">as_cluster_def</span><span class="p">()</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ClusterSpec</span><span class="p">({</span><span class="n">job</span><span class="p">:</span> <span class="n">workers</span><span class="p">})</span><span class="o">.</span><span class="n">as_cluster_def</span><span class="p">()</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">reporting_job</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">reporting_job</span></div>
 
 
 <span class="c1"># Ops that must be placed on the &#39;ps&#39; devices.</span>
