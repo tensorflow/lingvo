@@ -837,7 +837,7 @@ class Evaler(base_runner.BaseRunner):
           self.params.task.eval.load_checkpoint_from)
 
     self._should_report_metrics = self._job_name.startswith(
-        self.params.reporting_job)
+        self._cluster.reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
       self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
@@ -1143,7 +1143,6 @@ class RunnerManager:
       cfg.train.save_max_to_keep = FLAGS.saver_max_to_keep
     if FLAGS.saver_keep_checkpoint_every_n_hours is not None:
       cfg.train.save_keep_checkpoint_every_n_hours = FLAGS.saver_keep_checkpoint_every_n_hours
-    cfg.reporting_job = FLAGS.vizier_reporting_job
     return cfg
 
   def MaybeConfigRunDistributed(self):
@@ -1265,6 +1264,7 @@ class RunnerManager:
     cluster.tf_data_service_address = FLAGS.tf_data_service_address
 
     cluster.add_summary = FLAGS.add_summary
+    cluster.reporting_job = FLAGS.vizier_reporting_job
 
   def _CreateRunner(self, job, model_task_name, logdir, tf_master, trial):
     """Create a runner."""
@@ -1299,8 +1299,7 @@ class RunnerManager:
       self._tf_server.join()
     elif job == 'executor_tpu':
       ps_cfg_dict, train_cfg = self.GetExecutorParams()
-      return self.ExecutorTpu(train_cfg, ps_cfg_dict, model_task_name, logdir,
-                              tf_master)
+      return self.ExecutorTpu(train_cfg, ps_cfg_dict, *common_args)
     else:
       raise ValueError('job %s is not supported' % job)
 

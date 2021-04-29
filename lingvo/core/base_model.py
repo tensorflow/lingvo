@@ -945,8 +945,6 @@ class BaseModel(base_layer.BaseLayer):
     p.Define('build_data', build_data.BuildData(), 'Build data of this binary.')
     p.Define('train', hyperparams.Params(),
              'Params to control how this model should be trained.')
-    p.Define('reporting_job', 'evaler',
-             'Name of job that reports trial results.')
 
     tp = p.train
     tp.Define(

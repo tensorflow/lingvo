@@ -2223,6 +2223,7 @@ py_library(
         ":ml_perf_log",
         ":py_utils",
         ":summary_utils",
+        "//lingvo:base_trial",
         "//lingvo:compat",
         # Implicit tensorflow grpc dependency.
     ],

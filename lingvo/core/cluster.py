@@ -166,6 +166,8 @@ class _Cluster:
         'enable_check_numerics', None, 'If set to non-None, '
         'this value is used instead of FLAGS.enable_check_numerics. '
         'If False, we bypass calls to CheckNumerics.')
+    p.Define('reporting_job', 'evaler',
+             'Name of job that reports trial results.')
     return p
 
   def InitDevices(self, sess):
@@ -542,6 +544,10 @@ class _Cluster:
     workers = [addr.replace('grpc://', '', 1) for addr in p.targets.split(',')]
 
     return tf.train.ClusterSpec({job: workers}).as_cluster_def()
+
+  @property
+  def reporting_job(self):
+    return self.params.reporting_job
 
 
 # Ops that must be placed on the 'ps' devices.

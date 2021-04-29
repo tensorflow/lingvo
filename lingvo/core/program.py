@@ -20,6 +20,7 @@ import multiprocessing.dummy
 import os
 import time
 
+from lingvo import base_trial
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import checkpointer
@@ -76,7 +77,11 @@ class BaseProgram:
              'Whether to write input data stats during training.')
     return p
 
-  def __init__(self, params, shared_model=None, **kwargs):
+  def __init__(self,
+               params,
+               shared_model=None,
+               trial=base_trial.NoOpTrial(),
+               **kwargs):
     self.params = params.Copy()
     p = self.params
     self._task_params = p.task
@@ -86,6 +91,7 @@ class BaseProgram:
     self._shared_model = shared_model
     self._tf_master = kwargs.pop('tf_master', None)
     self._write_train_input_stats = p.write_train_input_stats
+    self._trial = trial
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
@@ -1030,7 +1036,11 @@ class SimpleProgramSchedule:
     mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
     return p
 
-  def __init__(self, params, shared_model=None, **kwargs):
+  def __init__(self,
+               params,
+               shared_model=None,
+               trial=base_trial.NoOpTrial(),
+               **kwargs):
     self.params = params.Copy()
     p = self.params
     self._shared_model = shared_model
@@ -1047,7 +1057,7 @@ class SimpleProgramSchedule:
       p.train_program.num_splits_per_client = p.num_splits_per_client
       p.train_program.task_name = p.task_name
       self.train_program = p.train_program.Instantiate(
-          shared_model=shared_model, **kwargs)
+          shared_model=shared_model, trial=trial, **kwargs)
       self._programs.append(self.train_program)
 
     for eval_program_params in p.eval_programs:
@@ -1059,7 +1069,8 @@ class SimpleProgramSchedule:
     self.eval_programs = []
     for eval_program in p.eval_programs:
       self.eval_programs.append(
-          eval_program.Instantiate(shared_model=shared_model, **kwargs))
+          eval_program.Instantiate(
+              shared_model=shared_model, trial=trial, **kwargs))
     self._programs += self.eval_programs
 
   def Programs(self):

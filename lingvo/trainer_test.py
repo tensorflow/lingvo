@@ -97,7 +97,7 @@ class BaseTrainerTest(test_utils.TestCase):
     cfg.cluster.ps.name = '/job:localhost'
     cfg.cluster.ps.replicas = 1
     cfg.cluster.ps.gpus_per_replica = 0
-    cfg.reporting_job = FLAGS.vizier_reporting_job
+    cfg.cluster.reporting_job = FLAGS.vizier_reporting_job
 
     # Generate 2 inputs.
     cfg.input.ckpt = FakeMnistData(

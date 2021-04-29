@@ -125,20 +125,17 @@ class ExecutorTpu(base_runner.BaseRunner):
     share the TPU.
   """
 
-  def __init__(self, train_cfg, ps_params_dict, model_task_name, logdir,
-               tf_master, **kwargs):
+  def __init__(self, train_cfg, ps_params_dict, *args, **kwargs):
     """Construct an ExecutorTpu BaseRunner.
 
     Args:
       train_cfg: SingleTaskModelParams or MultiTaskModelParams
       ps_params_dict: A dict of top-level task name -> ProgramSchedule params,
         if train_cfg is a SingleTaskModelParams, we expect only one entry.
-      model_task_name: An override for multi-task models, currently unused.
-      logdir:  String path to the log directory to output to.
-      tf_master: String path to the master job, e.g. 'local'.
+      *args: List args to pass through to BaseRunner.
       **kwargs: keyword args to pass through to BaseRunner.
     """
-    super().__init__(train_cfg, model_task_name, logdir, tf_master, **kwargs)
+    super().__init__(train_cfg, *args, **kwargs)
 
     data_parallelism = self._cluster.num_splits_per_client
 
@@ -148,7 +145,7 @@ class ExecutorTpu(base_runner.BaseRunner):
                     data_parallelism, num_devices_per_split)
 
     self.task_scheduler = None
-    self._checkpoint_dir = os.path.join(logdir, 'train')
+    self._checkpoint_dir = os.path.join(self._logdir, 'train')
 
     self._variable_renaming_rules = []
 
@@ -247,12 +244,14 @@ class ExecutorTpu(base_runner.BaseRunner):
     self._programs = []
 
     for task_string, program_schedule_params in ps_params_dict.items():
-      program_schedule_params.logdir = logdir
+      program_schedule_params.logdir = self._logdir
       program_schedule_params.num_splits_per_client = data_parallelism
       program_schedule_params.task_name = task_string
       # If the model was created above, we'll inject it here as a shared_model.
       ps = program_schedule_params.Instantiate(
-          shared_model=shared_model, tf_master=self._tf_master)
+          shared_model=shared_model,
+          trial=self._trial,
+          tf_master=self._tf_master)
       self._program_schedule_dict[task_string] = ps
       tf.logging.info('program_schedule_params: %s',
                       program_schedule_params.ToText())

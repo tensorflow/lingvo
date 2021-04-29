@@ -255,7 +255,7 @@ class Decoder(base_runner.BaseRunner):
           self.params.task.eval.load_checkpoint_from)
 
     self._should_report_metrics = self._job_name.startswith(
-        self.params.reporting_job)
+        self._cluster.reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
       self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
