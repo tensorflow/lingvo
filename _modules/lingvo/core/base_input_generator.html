@@ -539,7 +539,7 @@
           <span class="c1"># into the TPU InfeedQueue (and only to TPUEmbedding).</span>
           <span class="c1"># TODO(jeffreyzhao): Hack, come up with better solution.</span>
           <span class="c1"># Ideally we would like users to override</span>
-          <span class="c1"># _CreateTpuEmbeddingEnqueueOpsForHost() to modify the input batch</span>
+          <span class="c1"># CreateTpuEmbeddingEnqueueOpsForHost() to modify the input batch</span>
           <span class="c1"># and remove fields they don&#39;t want to enqueue onto TPU.</span>
           <span class="c1"># However, the TPUEmbedding singleton and TPU embedding enqueue ops</span>
           <span class="c1"># are currently constructed after CreateTpuEnqueueOps() is called.</span>
@@ -710,14 +710,14 @@
       <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
-        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTpuEmbeddingEnqueueOpsForHost</span><span class="p">(</span>
+        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOpsForHost</span><span class="p">(</span>
             <span class="n">tpu_embedding</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">mode_override</span><span class="o">=</span><span class="n">mode_override</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">enqueue_ops</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator._CreateTpuEmbeddingEnqueueOpsForHost"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator._CreateTpuEmbeddingEnqueueOpsForHost">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTpuEmbeddingEnqueueOpsForHost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                           <span class="n">tpu_embedding</span><span class="p">,</span>
-                                           <span class="n">input_batch</span><span class="p">,</span>
-                                           <span class="n">mode_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGenerator.CreateTpuEmbeddingEnqueueOpsForHost"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOpsForHost">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEmbeddingEnqueueOpsForHost</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                          <span class="n">tpu_embedding</span><span class="p">,</span>
+                                          <span class="n">input_batch</span><span class="p">,</span>
+                                          <span class="n">mode_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Hook for creating TPU embedding enqueue ops for a single host.</span>
 
 <span class="sd">    Used by CreateTpuEmbeddingEnqueueOps(). Override this method in input</span>
