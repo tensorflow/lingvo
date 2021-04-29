@@ -5097,7 +5097,7 @@ class GluLayer(base_layer.BaseLayer):
     p.Define('ln_tpl', LayerNorm.Params(), 'Layer norm default params.')
     p.Define('dense_tpl', FCLayer.Params().Set(), 'Fully connected layer.')
     p.Define(
-        'activation', 'RELU',
+        'activation', 'NONE',
         'Non-linearity applied after the dense layer in the value branch.')
     p.Define('dropout_tpl', DropoutLayer.Params(), 'Dropout applied to output.')
     p.Define('apply_residual', True, 'Whether or not to add inputs to outputs.')
