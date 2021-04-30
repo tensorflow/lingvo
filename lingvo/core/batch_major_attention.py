@@ -1917,15 +1917,14 @@ class LocalSelfAttention(MultiHeadedAttention):
     # At the beginning, all positions are masked out.
     masks = tf.zeros([batch_size, context_len], dtype)
     state0 = py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
-
     if p.right_context > 0:
       state0.query = tf.zeros(
           [batch_size, p.right_context, p.num_heads, per_head_dim], dtype)
-      state0.out_paddings = tf.ones([batch_size, p.right_context])
+      state0.out_paddings = tf.ones([batch_size, p.right_context], dtype)
       # This is used only if the caller of the layer uses skip_connection in
       # the layer's client code.
       state0.skip_conn_input = tf.zeros(
-          [batch_size, p.right_context, p.hidden_dim])
+          [batch_size, p.right_context, p.hidden_dim], dtype)
     return state0
 
   def IsInferenceStepStatic(self):
@@ -1968,11 +1967,8 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     seqlen = py_utils.GetShape(output)[1]
     output = py_utils.HasShape(output, py_utils.GetShape(input_to_add))
-    fprop_dtype = py_utils.FPropDtype(p)
-
-    concat_input_to_add = tf.concat(
-        [tf.cast(state0.skip_conn_input, dtype=fprop_dtype), input_to_add],
-        axis=1)
+    concat_input_to_add = tf.concat([state0.skip_conn_input, input_to_add],
+                                    axis=1)
     final_output = output + concat_input_to_add[:, :seqlen]
     state1.skip_conn_input = concat_input_to_add[:, seqlen:]
     return final_output, state1
@@ -2297,9 +2293,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         concat_query = tf.concat([state0.query, query_proj], axis=1)
         # [B, Q, N, H]
         query = concat_query[:, :q]
-        fprop_dtype = py_utils.FPropDtype(p)
         concat_out_paddings = tf.concat([
-            tf.cast(state0.out_paddings, dtype=fprop_dtype),
+            state0.out_paddings,
             paddings,
         ],
                                         axis=1)
