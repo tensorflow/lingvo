@@ -812,7 +812,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
                                              num_hyps)
     ]
     for layer, layer_theta in zip(self.frnn, theta.frnn):
-      rnn_states.append(layer.rnn_cell.zero_state(layer_theta, num_hyps))
+      rnn_states.append(layer.zero_state(layer_theta, num_hyps))
 
     if p.use_zero_atten_state:
       encoder_outputs.packed_src = self._atten.InitForSourcePacked(

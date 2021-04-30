@@ -22,6 +22,7 @@ from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import rnn_cell
 from lingvo.core import test_utils
 from lingvo.core.ops.hyps_pb2 import Hypothesis
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
@@ -109,14 +110,16 @@ class DecoderTestCaseBase(test_utils.TestCase):
                           fprop_dtype,
                           feed_att_context_to_softmax,
                           expected_loss,
-                          per_example_tensors=False):
+                          per_example_tensors=False,
+                          use_deterministic_cell=False):
     with self.session(use_gpu=True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(
           dtype=dtype, fprop_dtype=fprop_dtype, decoder_cls=decoder_cls)
       p.per_example_tensors = per_example_tensors
-
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
+      if use_deterministic_cell:
+        p.rnn_cell_tpl = rnn_cell.LSTMCellSimpleDeterministic.Params()
       dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs(dtype=fprop_dtype)
       fprop_out = dec.FPropDefaultTheta(encoder_outputs, targets)
@@ -207,6 +210,15 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
   def testDecoderFPropFunctionalFloat64FpropDtype(self):
     self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, tf.float32, False,
                              7.624604)
+
+  def testDecoderFPropFunctionalDeterministic(self):
+    self._DecoderFPropHelper(
+        decoder.MTDecoderV1,
+        tf.float64,
+        tf.float64,
+        False,
+        7.624416,
+        use_deterministic_cell=True)
 
   def testDecoderFPropFunctionalFeedingAttContext(self):
     self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, tf.float64, True,
