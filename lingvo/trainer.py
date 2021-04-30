@@ -179,8 +179,10 @@ def _ValidateVizierReportingJob(value):
     return True
   if value.startswith('evaler_') or value.startswith('decoder_'):
     return True
-  raise tf.flags.ValidationError('Invalid value %s for vizier_reporting_job' %
-                                 value)
+  tf.logging.info('vizier_reporting_job should usually start with evaler or '
+                  'decoder, unless in executor/program mode. '
+                  f'vizier_reporting_job={value}')
+  return True
 
 
 tf.flags.DEFINE_integer(
