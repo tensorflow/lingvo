@@ -1651,6 +1651,9 @@ class DenseBuilder(MoEBuilder):
     p.Define('logits_split', [0, -1, -1], 'Mesh split for logits.')
     p.Define('experimental_fix_split_dims_mapping', False,
              'Mesh split dims mapping could require a fix for special cases.')
+
+    p.Define('atten_logit_cap', 0.0, 'Atten logit cap.')
+
     p.attention_combine_dims = False
     return p
 
@@ -1939,6 +1942,18 @@ class DenseBuilder(MoEBuilder):
     ]
     return self._Graph(name, graph_inputs, graph_outputs, *sub_layers)
 
+  def _CapLogits(self, logits):
+    """When enabled, cap logits by p.atten_logit_cap with tanh."""
+    p = self.params
+    if not p.atten_logit_cap or p.atten_logit_cap <= 0.:
+      return logits
+    cap = tf.cast(p.atten_logit_cap, logits.dtype)
+    # Note that since this caps the negative side as well, caller
+    # must defer the pad-with-very-negative-logits logic to after
+    # this function returns.
+    logits = cap * tf.math.tanh(logits / cap)
+    return logits
+
   def Attention(self, name):
     """Attention with multiple attention heads."""
     p = self.params
@@ -2001,15 +2016,14 @@ class DenseBuilder(MoEBuilder):
       if p.attention_num_memory_heads == 1:
         return tf.einsum('BLHD,BMD->BLHM', q, tf.squeeze(k, -2))
       assert p.attention_num_memory_heads is None, p.attention_num_memory_heads
-      return tf.einsum(
-          'BLHD,BMHD->BLHM', q, k, name='dense_relu_dense_gated_logits')
+      logits = tf.einsum('BLHD,BMHD->BLHM', q, k, name='attention_logits')
+      return self._CapLogits(logits)
 
     def _OutputsFn(weights, v):
       if p.attention_num_memory_heads == 1:
         return tf.einsum('BLHM,BMD->BLHD', weights, tf.squeeze(v, -2))
       assert p.attention_num_memory_heads is None, p.attention_num_memory_heads
-      return tf.einsum(
-          'BLHM,BMHD->BLHD', weights, v, name='dense_relu_dense_gated_output')
+      return tf.einsum('BLHM,BMHD->BLHD', weights, v, name='attention_output')
 
     kv_split = p.qkv_split if p.attention_num_memory_heads is None else None
 
