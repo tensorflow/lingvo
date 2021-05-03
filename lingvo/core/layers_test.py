@@ -4105,22 +4105,23 @@ class SharedSoftmaxLayerTest(SoftmaxLayerTest):
     g = tf.Graph()
     with g.as_default():
       tf.random.set_seed(398847392)
-      params = layers.SharedSoftmaxLayer.Params()
-      params.dtype = tf.float32
-      params.fprop_dtype = None
-      params.name = 'shared_layer'
-      params.input_dim = 128
-      params.num_classes = 8000
-      params.num_shards = 1
-      params.chunk_size = 0
-      params.apply_pruning = False
-      params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
-      params.scale_sqrt_depth = scale_sqrt_depth
-      params.random_seed = 12345678
+      params = layers.SharedSoftmaxLayer.Params().Set(
+          softmax=layers.SimpleFullSoftmax.Params().Set(
+              num_shards=1, chunk_size=0, apply_pruning=False),
+          dtype=tf.float32,
+          fprop_dtype=None,
+          name='shared_layer',
+          input_dim=128,
+          num_classes=8000,
+          params_init=py_utils.WeightInit.Gaussian(0.5, 123456),
+          scale_sqrt_depth=scale_sqrt_depth,
+          random_seed=12345678)
 
       emb_layer = layers.SharedSoftmaxLayer(params)
 
-      emb_matrix = tf.einsum('ji', emb_layer._ConcatWeights(emb_layer.theta).wm)
+      emb_matrix = tf.einsum(
+          'ji',
+          emb_layer.softmax.DenseWeights(emb_layer.softmax.theta).wm)
       ids = tf.constant([[89], [100]])
       outputs = emb_layer.EmbLookup(emb_layer.theta, ids)
 

@@ -2850,13 +2850,25 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
     return p
 
+  @property
+  def wm_transposed(self):
+    """Whether wm (as returned by DenseWeights) is transposed."""
+    return False
+
+  def DenseWeights(self, theta):
+    """Returns a NestedMap containing dense weights for 'wm'/'bias'."""
+    raise NotImplementedError(
+        f'DenseWeights is not implemented: {self.params.cls}.')
+
   def Logits(self, **unused):
     """Returns the logits computed before the softmax."""
-    raise NotImplementedError('GetLogits is not implemented.')
+    raise NotImplementedError(
+        f'GetLogits is not implemented: {self.params.cls}.')
 
   def XentLossFromLogits(self, **unused):
     """Returns the Xent loss from pre-computed logits."""
-    raise NotImplementedError('XentLossFromLogits is not implemented.')
+    raise NotImplementedError(
+        f'XentLossFromLogits is not implemented: {self.params.cls}.')
 
   def XentLoss(self, *args, **kwargs):
     """Computes cross entropy."""
@@ -2870,7 +2882,8 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
                class_probabilities=None):
     """Specialized FProp for matrix inputs."""
     raise NotImplementedError(
-        'Subclasses of SoftmaxLayer must implement _FProp2D')
+        f'Subclasses of SoftmaxLayer must implement _FProp2D: {self.params.cls}'
+    )
 
   def FProp(self,
             theta,
@@ -3089,7 +3102,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
       return inputs[0]
     return inputs
 
-  def _ConcatWeights(self, theta):
+  @property
+  def wm_transposed(self):
+    return self._transpose_weight_params
+
+  def DenseWeights(self, theta):
     p = self.params
     # Add per-step noise if configured so.
     concat_axis = 1
@@ -3098,7 +3115,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
     weights = [
         self.QWeight(theta['weight_%d' % i]) for i in range(p.num_shards)
     ]
-    new_theta = theta.copy()
+    new_theta = py_utils.NestedMap()
     if p.use_bias:
       biases = [self.QWeight(theta['bias_%d' % i]) for i in range(p.num_shards)]
       new_theta.bias = py_utils.AddVN(
@@ -3180,7 +3197,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
       logits: [N, num_classes]
     """
     inputs = self.QTensor('inputs', inputs)
-    theta = self._ConcatWeights(theta)
+    theta = self.DenseWeights(theta)
     wm = self.QWeight(theta.wm)
     logits = py_utils.Matmul(
         inputs, wm, transpose_b=self._transpose_weight_params)
@@ -3200,7 +3217,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
       logits [batch, num_classes]
     """
     return self._LogitsUsingConcatenatedWeights(
-        self._ConcatWeights(theta), self._GetInputs(inputs))
+        self.DenseWeights(theta), self._GetInputs(inputs))
 
   def _XentLossByChunk(self, theta, activation, class_ids):
     """Computes per-example xent loss between activation and class_ids."""
@@ -3240,7 +3257,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
       return py_utils.NestedMap(xent=xent, amax=amax), py_utils.NestedMap()
 
     acc, _ = recurrent.Recurrent(
-        theta=self._ConcatWeights(theta),
+        theta=self.DenseWeights(theta),
         state0=py_utils.NestedMap(
             xent=tf.zeros([p.chunk_size], dtype=p.dtype),
             amax=tf.zeros([p.chunk_size], dtype=id_dtype)),
@@ -3421,6 +3438,14 @@ class EinsumSoftmax(base_layer.BaseLayer):
             tensor_split_dims_mapping=bias_split_dims_mapping,
             collections=[self.__class__.__name__ + '_vars']))
 
+  @property
+  def wm_transposed(self):
+    """Whether wm (as returned by DenseWeights) is transposed."""
+    return False
+
+  def DenseWeights(self, theta):
+    return py_utils.NestedMap(wm=theta.w, bias=theta.b)
+
   def Logits(self, theta, inputs):
     """Returns the logits computed before the softmax.
 
@@ -3466,13 +3491,27 @@ class EinsumSoftmax(base_layer.BaseLayer):
     return per_example_xent, per_example_argmax
 
 
-class SharedSoftmaxLayer(SimpleFullSoftmax):
-  """Shared softmax layer for decoder embedding/softmax matrix."""
+class SharedSoftmaxLayer(base_layer.BaseLayer):
+  """Shared softmax layer for decoder embedding/softmax matrix.
+
+  This implements weight tying, where the softmax weights are the transpose of
+  the embedding matrix.
+  """
 
   @classmethod
   def Params(cls):
     """Params for SharedSoftmaxLayer."""
     p = super().Params()
+    p.Define('softmax', SimpleFullSoftmax.Params(), 'Softmax params.')
+    p.Define('input_dim', 0,
+             'Dimension of the input. Overrides softmax.input_dim.')
+    p.Define('num_classes', 0,
+             'Total number of target classes. Overrides softmax.num_classes.')
+    p.Define(
+        'chunk_size', 0,
+        'If non-zero, computes the per example xent by small chunks along '
+        'the batch dimension. Overrides softmax.num_classes.')
+    # Embedding params.
     p.Define(
         'scale_sqrt_depth', False, 'If set True, activations are scaled'
         ' with sqrt(input_dim) in EmbLookup.')
@@ -3484,19 +3523,50 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
         'it is equivalent to num_classes')
     return p
 
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    softmax_params = p.softmax.Copy().Set(name=p.name)
+    if p.input_dim:
+      softmax_params.input_dim = p.input_dim
+    if p.num_classes:
+      softmax_params.num_classes = p.num_classes
+    if p.chunk_size:
+      softmax_params.chunk_size = p.chunk_size
+    if not p.vocab_size:
+      p.vocab_size = softmax_params.num_classes
+    if p.vocab_size != softmax_params.num_classes:
+      raise ValueError('SharedSoftmaxLayer vocab_size must equal num_classes.')
+    self.CreateChild('softmax', softmax_params)
+
+  def _CreateChildrenVariables(self):
+    # Backwards compatibility: 'softmax' should be created outside of
+    # tf.variable_scope(p.name).
+    self.softmax.InstantiateVariables()
+    super()._CreateChildrenVariables()
+
+  def Logits(self, theta, *args, **kwargs):
+    return self.softmax.Logits(theta.softmax, *args, **kwargs)
+
+  def XentLossFromLogits(self, theta, *args, **kwargs):
+    return self.softmax.XentLossFromLogits(theta.softmax, *args, **kwargs)
+
+  def FProp(self, theta, *args, **kwargs):
+    return self.softmax.FProp(theta.softmax, *args, **kwargs)
+
   def EmbLookup(self, theta, ids):
     p = self.params
     ids = py_utils.with_dependencies([
         py_utils.assert_between(
             ids,
             0,
-            p.num_classes,
+            p.vocab_size,
             summarize=100000,
             message='{}:class_id_validation'.format(p.cls))
     ], ids)
 
-    wm = self._ConcatWeights(theta).wm
-    if not self._transpose_weight_params:
+    wm = self.softmax.DenseWeights(theta.softmax).wm
+    if not self.softmax.wm_transposed:
       wm = tf.transpose(wm)
     embs_result = tf.gather(wm, ids)
 
@@ -3534,6 +3604,9 @@ class SingleShardFullSoftmax(SoftmaxLayer):
         device_mesh=p.device_mesh,
         weight_split_dims_mapping=bias_split_dims_mapping)
     self.CreateChild('bias', bias_p)
+
+  def DenseWeights(self, theta):
+    return py_utils.NestedMap(wm=theta.linear.w, bias=theta.bias.b)
 
   def Logits(self, theta, inputs):
     """Returns the logits computed before the softmax.

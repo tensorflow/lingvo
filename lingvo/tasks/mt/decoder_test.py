@@ -247,8 +247,9 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       proj_tpl.params_init = py_utils.WeightInit.Uniform(0.04, 1234)
       p.emb_projection_tpl = proj_tpl
       p.softmax = layers.SharedSoftmaxLayer.Params().Set(
+          softmax=layers.SimpleFullSoftmax.Params().Set(
+              num_shards=p.softmax.num_shards),
           num_classes=p.softmax.num_classes,
-          num_shards=p.softmax.num_shards,
           params_init=p.softmax.params_init.Copy(),
           embedding_dim=p.emb.embedding_dim,
           vocab_size=p.softmax.num_classes)
@@ -598,8 +599,9 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       p.emb.embedding_dim = 4
       p.rnn_cell_dim = 32
       p.softmax = layers.SharedSoftmaxLayer.Params().Set(
+          softmax=layers.SimpleFullSoftmax.Params().Set(
+              num_shards=p.softmax.num_shards),
           num_classes=p.softmax.num_classes,
-          num_shards=p.softmax.num_shards,
           params_init=p.softmax.params_init.Copy(),
           embedding_dim=p.emb.embedding_dim,
           vocab_size=p.softmax.num_classes)
