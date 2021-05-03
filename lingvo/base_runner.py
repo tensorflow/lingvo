@@ -126,8 +126,9 @@ class BaseRunner:
 
     if (self._early_stop.params.logging_interval and
         global_step % self._early_stop.params.logging_interval == 0):
-      early_stop.MetricHistory.ConditionalAppend(jobname, metric_name,
-                                                 global_step, metric_value)
+      early_stop.MetricHistory.ConditionalAppend(
+          os.path.join(self._logdir, jobname), metric_name, global_step,
+          metric_value)
 
   def _ShouldStop(self, sess, step):
     """Check if the runner should stop."""
