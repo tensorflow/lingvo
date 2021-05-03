@@ -1505,7 +1505,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;projection&#39;</span><span class="p">,</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;Projection layer params. A single parameter that will be shared by&#39;</span>
-        <span class="s1">&#39;all layers.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;all layers, or a list of params matching the number of layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;Dropout layer params. Can be a single params or a tuple/list of params&#39;</span>
@@ -1580,6 +1580,13 @@
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">has_bias</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">has_bias</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">params_proj_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_proj_layers</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_proj_layers</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">params_proj_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">params_proj_layers</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+
     <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
@@ -1605,17 +1612,24 @@
       <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
       <span class="n">proj_out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
       <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-      <span class="n">params_i</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">params_i</span> <span class="o">=</span> <span class="n">params_proj_layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+
+      <span class="k">if</span> <span class="s1">&#39;dense_tpl&#39;</span> <span class="ow">in</span> <span class="n">params_i</span><span class="p">:</span>
+        <span class="n">dense_params</span> <span class="o">=</span> <span class="n">params_i</span><span class="o">.</span><span class="n">dense_tpl</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">dense_params</span> <span class="o">=</span> <span class="n">params_i</span>
+      <span class="n">dense_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">batch_norm</span><span class="o">=</span><span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">weight_norm</span><span class="o">=</span><span class="n">weight_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">has_bias</span><span class="o">=</span><span class="n">has_bias</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-          <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
-          <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
           <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
           <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-          <span class="n">activation_split_dims_mapping</span><span class="o">=</span><span class="n">activation_split_dims_mapping_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">activation_split_dims_mapping</span><span class="o">=</span><span class="n">activation_split_dims_mapping_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="n">params_i</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
+          <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
+          <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
       <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
       <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
@@ -3565,6 +3579,7 @@
         <span class="s1">&#39;The weighting factor alpha with shape [#classes] for focal loss.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_gamma&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The modulating factor scalar gamma for focal loss.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether or not to use a bias variable.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="EinsumSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3581,14 +3596,15 @@
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-        <span class="s1">&#39;b&#39;</span><span class="p">,</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span></div>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;b&#39;</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
+              <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">,</span>
+              <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">wm_transposed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3596,7 +3612,11 @@
     <span class="k">return</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="EinsumSoftmax.DenseWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.DenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">DenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">wm</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span></div>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">wm</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="EinsumSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
@@ -3622,7 +3642,9 @@
         <span class="n">logits</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logits</span></div>
 
 <div class="viewcode-block" id="EinsumSoftmax.XentLossFromLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.XentLossFromLogits">[docs]</a>  <span class="k">def</span> <span class="nf">XentLossFromLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                          <span class="n">theta</span><span class="p">,</span>
@@ -4175,6 +4197,7 @@
         <span class="s1">&#39;without a +1.0.  Var is initialized to 1.0 instead. This makes &#39;</span>
         <span class="s1">&#39;the layer weight-compatible with the implementation in &#39;</span>
         <span class="s1">&#39;contrib.layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use bias.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_defun&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use CallDefun for normalization.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -4187,13 +4210,14 @@
 <div class="viewcode-block" id="LayerNorm._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span> <span class="o">+</span>
-        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span> <span class="o">+</span>
+          <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direct_scale</span><span class="p">:</span>
       <span class="n">scale_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -4207,7 +4231,11 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale_pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerNorm._GetScaleAndBias"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._GetScaleAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_GetScaleAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span></div>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
+      <span class="n">bias</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">bias</span></div>
 
 <div class="viewcode-block" id="LayerNorm.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies normalization over the last dimension (layer).</span>
@@ -5359,21 +5387,27 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gate_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
     <span class="c1"># Initialize layer norm.</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;layer_norm&#39;</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;layer_norm&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
     <span class="c1"># Initialize dropout.</span>
     <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GluLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GluLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
-    <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;layer_norm&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+      <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="n">inputs</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">paddings</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+        <span class="n">paddings</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">!=</span> <span class="n">inputs_normalized</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">):</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value_layer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span>
-                                    <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-    <span class="n">gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gate_layer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span>
-                                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                                    <span class="n">paddings</span><span class="p">)</span>
+    <span class="n">gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gate_layer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
     <span class="n">glu_output</span> <span class="o">=</span> <span class="n">values</span> <span class="o">*</span> <span class="n">gates</span>
     <span class="n">glu_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">glu_output</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">apply_residual</span><span class="p">:</span>
