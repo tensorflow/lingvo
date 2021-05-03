@@ -1657,6 +1657,18 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.layers.SoftmaxLayer.wm_transposed">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">wm_transposed</span></code><a class="headerlink" href="#lingvo.core.layers.SoftmaxLayer.wm_transposed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether wm (as returned by DenseWeights) is transposed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SoftmaxLayer.DenseWeights">
+<code class="sig-name descname"><span class="pre">DenseWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SoftmaxLayer.DenseWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SoftmaxLayer.DenseWeights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a NestedMap containing dense weights for ‘wm’/’bias’.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.layers.SoftmaxLayer.Logits">
 <code class="sig-name descname"><span class="pre">Logits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">unused</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SoftmaxLayer.Logits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SoftmaxLayer.Logits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the logits computed before the softmax.</p>
@@ -1747,9 +1759,16 @@ this layer’s dtype.</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.SimpleFullSoftmax._ConcatWeights">
-<code class="sig-name descname"><span class="pre">_ConcatWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax._ConcatWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax._ConcatWeights" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="lingvo.core.layers.SimpleFullSoftmax.wm_transposed">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">wm_transposed</span></code><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax.wm_transposed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether wm (as returned by DenseWeights) is transposed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SimpleFullSoftmax.DenseWeights">
+<code class="sig-name descname"><span class="pre">DenseWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax.DenseWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax.DenseWeights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a NestedMap containing dense weights for ‘wm’/’bias’.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper">
@@ -1863,6 +1882,17 @@ input_dim].</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.layers.EinsumSoftmax.wm_transposed">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">wm_transposed</span></code><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax.wm_transposed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether wm (as returned by DenseWeights) is transposed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.EinsumSoftmax.DenseWeights">
+<code class="sig-name descname"><span class="pre">DenseWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax.DenseWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax.DenseWeights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.layers.EinsumSoftmax.Logits">
 <code class="sig-name descname"><span class="pre">Logits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EinsumSoftmax.Logits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.EinsumSoftmax.Logits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the logits computed before the softmax.</p>
@@ -1891,12 +1921,72 @@ its children layers.</p></li>
 <dl class="py class">
 <dt id="lingvo.core.layers.SharedSoftmaxLayer">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></code><code class="sig-name descname"><span class="pre">SharedSoftmaxLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.SimpleFullSoftmax" title="lingvo.core.layers.SimpleFullSoftmax"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.SimpleFullSoftmax</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Shared softmax layer for decoder embedding/softmax matrix.</p>
+<p>This implements weight tying, where the softmax weights are the transpose of
+the embedding matrix.</p>
 <dl class="py method">
 <dt id="lingvo.core.layers.SharedSoftmaxLayer.Params">
 <em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Params for SharedSoftmaxLayer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SharedSoftmaxLayer._CreateChildrenVariables">
+<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SharedSoftmaxLayer.Logits">
+<code class="sig-name descname"><span class="pre">Logits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer.Logits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer.Logits" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SharedSoftmaxLayer.XentLossFromLogits">
+<code class="sig-name descname"><span class="pre">XentLossFromLogits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer.XentLossFromLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer.XentLossFromLogits" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SharedSoftmaxLayer.FProp">
+<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SharedSoftmaxLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SharedSoftmaxLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.layers.SharedSoftmaxLayer.FProp" title="lingvo.core.layers.SharedSoftmaxLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.layers.SharedSoftmaxLayer.FProp" title="lingvo.core.layers.SharedSoftmaxLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -1911,6 +2001,12 @@ its children layers.</p></li>
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></code><code class="sig-name descname"><span class="pre">SingleShardFullSoftmax</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.SoftmaxLayer" title="lingvo.core.layers.SoftmaxLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.SoftmaxLayer</span></code></a></p>
 <p>Full softmax layer.</p>
+<dl class="py method">
+<dt id="lingvo.core.layers.SingleShardFullSoftmax.DenseWeights">
+<code class="sig-name descname"><span class="pre">DenseWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax.DenseWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax.DenseWeights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a NestedMap containing dense weights for ‘wm’/’bias’.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt id="lingvo.core.layers.SingleShardFullSoftmax.Logits">
 <code class="sig-name descname"><span class="pre">Logits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardFullSoftmax.Logits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardFullSoftmax.Logits" title="Permalink to this definition">¶</a></dt>

@@ -642,8 +642,6 @@
 </li>
       <li><a href="lingvo.core.rnn_layers.html#lingvo.core.rnn_layers._ConcatLastDim">_ConcatLastDim() (in module lingvo.core.rnn_layers)</a>
 </li>
-      <li><a href="lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._ConcatWeights">_ConcatWeights() (lingvo.core.layers.SimpleFullSoftmax method)</a>
-</li>
       <li><a href="lingvo.core.attention.html#lingvo.core.attention._ConditionalCallDefun">_ConditionalCallDefun() (in module lingvo.core.attention)</a>
 </li>
       <li><a href="lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._ConfigFFLayerOrMoEParams">_ConfigFFLayerOrMoEParams() (lingvo.core.conformer_layer.ConformerLayer method)</a>
@@ -732,6 +730,8 @@
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateChildrenVariables">(lingvo.core.layers.BaseConv2DLayer method)</a>
 </li>
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateChildrenVariables">(lingvo.core.layers.ProjectionLayer method)</a>
+</li>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer._CreateChildrenVariables">(lingvo.core.layers.SharedSoftmaxLayer method)</a>
 </li>
         <li><a href="lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack._CreateChildrenVariables">(lingvo.core.layers_with_gpipe.GPipeBatchMajorTransformerStack method)</a>
 </li>
@@ -4082,6 +4082,16 @@
 </li>
       <li><a href="lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedSILU">DenseReluDenseGatedSILU() (lingvo.core.gshard_builder.MoEBuilder method)</a>
 </li>
+      <li><a href="lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.DenseWeights">DenseWeights() (lingvo.core.layers.EinsumSoftmax method)</a>
+
+      <ul>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.DenseWeights">(lingvo.core.layers.SimpleFullSoftmax method)</a>
+</li>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SingleShardFullSoftmax.DenseWeights">(lingvo.core.layers.SingleShardFullSoftmax method)</a>
+</li>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.DenseWeights">(lingvo.core.layers.SoftmaxLayer method)</a>
+</li>
+      </ul></li>
       <li><a href="lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder.DepthwiseConv2D">DepthwiseConv2D() (lingvo.core.conv_layers_builder.Builder method)</a>
 </li>
       <li><a href="lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer">DepthwiseConv2DLayer (class in lingvo.core.conv_layers_with_time_padding)</a>
@@ -4090,14 +4100,14 @@
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.DepthwiseConv2DLayer">(class in lingvo.core.layers)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive">DepthwiseConvAutoregressive() (lingvo.core.gshard_builder.DenseBuilder method)</a>
 
       <ul>
         <li><a href="lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">(lingvo.core.gshard_builder.MoEBuilder method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough">DequeueCpuPassthrough() (lingvo.core.base_input_generator.BaseInputGenerator method)</a>
 </li>
       <li><a href="lingvo.core.hyperparams_pb2.html#lingvo.core.hyperparams_pb2.EnumVal.DESCRIPTOR">DESCRIPTOR (lingvo.core.hyperparams_pb2.EnumVal attribute)</a>
@@ -4894,6 +4904,8 @@
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.ResidualAdapterLayer.FProp">(lingvo.core.layers.ResidualAdapterLayer method)</a>
 </li>
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.SeparableConv2DLayer.FProp">(lingvo.core.layers.SeparableConv2DLayer method)</a>
+</li>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.FProp">(lingvo.core.layers.SharedSoftmaxLayer method)</a>
 </li>
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer.FProp">(lingvo.core.layers.SimpleEmbeddingLayer method)</a>
 </li>
@@ -7061,8 +7073,6 @@
         <li><a href="lingvo.core.steps.embedding_steps.html#module-lingvo.core.steps.embedding_steps">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     lingvo.core.steps.rnn_steps
 
@@ -7070,6 +7080,8 @@
         <li><a href="lingvo.core.steps.rnn_steps.html#module-lingvo.core.steps.rnn_steps">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     lingvo.core.summary_utils
 
@@ -7822,6 +7834,8 @@
 
       <ul>
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.Logits">(lingvo.core.layers.EinsumSoftmax method)</a>
+</li>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.Logits">(lingvo.core.layers.SharedSoftmaxLayer method)</a>
 </li>
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.Logits">(lingvo.core.layers.SimpleFullSoftmax method)</a>
 </li>
@@ -11699,12 +11713,20 @@
 </li>
       <li><a href="lingvo.tasks.milan.labels.html#lingvo.tasks.milan.labels.ExamplePairs.WithinBatch">WithinBatch() (lingvo.tasks.milan.labels.ExamplePairs class method)</a>
 </li>
-      <li><a href="lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer">WmtCaptionEnDeTransformer (class in lingvo.tasks.mt.params.wmtm16_en_de)</a>
+      <li><a href="lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.wm_transposed">wm_transposed() (lingvo.core.layers.EinsumSoftmax property)</a>
+
+      <ul>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.wm_transposed">(lingvo.core.layers.SimpleFullSoftmax property)</a>
 </li>
-      <li><a href="lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformerCloudTpu">WmtCaptionEnDeTransformerCloudTpu (class in lingvo.tasks.mt.params.wmtm16_en_de)</a>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.wm_transposed">(lingvo.core.layers.SoftmaxLayer property)</a>
+</li>
+      </ul></li>
+      <li><a href="lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformer">WmtCaptionEnDeTransformer (class in lingvo.tasks.mt.params.wmtm16_en_de)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="lingvo.tasks.mt.params.wmtm16_en_de.html#lingvo.tasks.mt.params.wmtm16_en_de.WmtCaptionEnDeTransformerCloudTpu">WmtCaptionEnDeTransformerCloudTpu (class in lingvo.tasks.mt.params.wmtm16_en_de)</a>
+</li>
       <li><a href="lingvo.tasks.mt.params.wmt14_en_de.html#lingvo.tasks.mt.params.wmt14_en_de.WmtEnDeRNMT">WmtEnDeRNMT (class in lingvo.tasks.mt.params.wmt14_en_de)</a>
 </li>
       <li><a href="lingvo.tasks.mt.params.wmt14_en_de.html#lingvo.tasks.mt.params.wmt14_en_de.WmtEnDeRNMTCloudTpu">WmtEnDeRNMTCloudTpu (class in lingvo.tasks.mt.params.wmt14_en_de)</a>
@@ -11761,6 +11783,8 @@
 
       <ul>
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.FocalFullSoftmax.XentLossFromLogits">(lingvo.core.layers.FocalFullSoftmax method)</a>
+</li>
+        <li><a href="lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.XentLossFromLogits">(lingvo.core.layers.SharedSoftmaxLayer method)</a>
 </li>
         <li><a href="lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.XentLossFromLogits">(lingvo.core.layers.SimpleFullSoftmax method)</a>
 </li>

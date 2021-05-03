@@ -3002,13 +3002,25 @@
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">wm_transposed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Whether wm (as returned by DenseWeights) is transposed.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="SoftmaxLayer.DenseWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.DenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">DenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a NestedMap containing dense weights for &#39;wm&#39;/&#39;bias&#39;.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;DenseWeights is not implemented: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="SoftmaxLayer.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">unused</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.&quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;GetLogits is not implemented.&#39;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;GetLogits is not implemented: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SoftmaxLayer.XentLossFromLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.XentLossFromLogits">[docs]</a>  <span class="k">def</span> <span class="nf">XentLossFromLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">unused</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the Xent loss from pre-computed logits.&quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;XentLossFromLogits is not implemented.&#39;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;XentLossFromLogits is not implemented: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SoftmaxLayer.XentLoss"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.XentLoss">[docs]</a>  <span class="k">def</span> <span class="nf">XentLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes cross entropy.&quot;&quot;&quot;</span>
@@ -3022,7 +3034,8 @@
                <span class="n">class_probabilities</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Specialized FProp for matrix inputs.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-        <span class="s1">&#39;Subclasses of SoftmaxLayer must implement _FProp2D&#39;</span><span class="p">)</span></div>
+        <span class="sa">f</span><span class="s1">&#39;Subclasses of SoftmaxLayer must implement _FProp2D: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="p">)</span></div>
 
 <div class="viewcode-block" id="SoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">theta</span><span class="p">,</span>
@@ -3241,7 +3254,11 @@
       <span class="k">return</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">inputs</span></div>
 
-<div class="viewcode-block" id="SimpleFullSoftmax._ConcatWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._ConcatWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_ConcatWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">wm_transposed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span>
+
+<div class="viewcode-block" id="SimpleFullSoftmax.DenseWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.DenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">DenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Add per-step noise if configured so.</span>
     <span class="n">concat_axis</span> <span class="o">=</span> <span class="mi">1</span>
@@ -3250,7 +3267,7 @@
     <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="s1">&#39;weight_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)</span>
     <span class="p">]</span>
-    <span class="n">new_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">new_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
       <span class="n">biases</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)]</span>
       <span class="n">new_theta</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span>
@@ -3332,7 +3349,7 @@
 <span class="sd">      logits: [N, num_classes]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-    <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DenseWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">)</span>
@@ -3352,7 +3369,7 @@
 <span class="sd">      logits [batch, num_classes]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LogitsUsingConcatenatedWeights</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetInputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DenseWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetInputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._XentLossByChunk"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._XentLossByChunk">[docs]</a>  <span class="k">def</span> <span class="nf">_XentLossByChunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes per-example xent loss between activation and class_ids.&quot;&quot;&quot;</span>
@@ -3392,7 +3409,7 @@
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">xent</span><span class="o">=</span><span class="n">xent</span><span class="p">,</span> <span class="n">amax</span><span class="o">=</span><span class="n">amax</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="n">acc</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
+        <span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DenseWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span>
         <span class="n">state0</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
             <span class="n">xent</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="n">amax</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">id_dtype</span><span class="p">)),</span>
@@ -3573,6 +3590,14 @@
             <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span></div>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">wm_transposed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Whether wm (as returned by DenseWeights) is transposed.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="EinsumSoftmax.DenseWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.DenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">DenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">wm</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="EinsumSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
 
@@ -3618,13 +3643,27 @@
     <span class="k">return</span> <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span></div></div>
 
 
-<div class="viewcode-block" id="SharedSoftmaxLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer">[docs]</a><span class="k">class</span> <span class="nc">SharedSoftmaxLayer</span><span class="p">(</span><span class="n">SimpleFullSoftmax</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Shared softmax layer for decoder embedding/softmax matrix.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SharedSoftmaxLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer">[docs]</a><span class="k">class</span> <span class="nc">SharedSoftmaxLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Shared softmax layer for decoder embedding/softmax matrix.</span>
+
+<span class="sd">  This implements weight tying, where the softmax weights are the transpose of</span>
+<span class="sd">  the embedding matrix.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SharedSoftmaxLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Params for SharedSoftmaxLayer.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">SimpleFullSoftmax</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Softmax params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Dimension of the input. Overrides softmax.input_dim.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_classes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Total number of target classes. Overrides softmax.num_classes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;If non-zero, computes the per example xent by small chunks along &#39;</span>
+        <span class="s1">&#39;the batch dimension. Overrides softmax.num_classes.&#39;</span><span class="p">)</span>
+    <span class="c1"># Embedding params.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;scale_sqrt_depth&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set True, activations are scaled&#39;</span>
         <span class="s1">&#39; with sqrt(input_dim) in EmbLookup.&#39;</span><span class="p">)</span>
@@ -3636,19 +3675,50 @@
         <span class="s1">&#39;it is equivalent to num_classes&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">softmax_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">:</span>
+      <span class="n">softmax_params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">:</span>
+      <span class="n">softmax_params</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span><span class="p">:</span>
+      <span class="n">softmax_params</span><span class="o">.</span><span class="n">chunk_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">softmax_params</span><span class="o">.</span><span class="n">num_classes</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">!=</span> <span class="n">softmax_params</span><span class="o">.</span><span class="n">num_classes</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;SharedSoftmaxLayer vocab_size must equal num_classes.&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">softmax_params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SharedSoftmaxLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Backwards compatibility: &#39;softmax&#39; should be created outside of</span>
+    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SharedSoftmaxLayer.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SharedSoftmaxLayer.XentLossFromLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.XentLossFromLogits">[docs]</a>  <span class="k">def</span> <span class="nf">XentLossFromLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">XentLossFromLogits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SharedSoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="SharedSoftmaxLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
             <span class="n">ids</span><span class="p">,</span>
             <span class="mi">0</span><span class="p">,</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span>
             <span class="n">summarize</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
             <span class="n">message</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:class_id_validation&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span>
     <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
 
-    <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">wm</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">:</span>
+    <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">DenseWeights</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span><span class="o">.</span><span class="n">wm</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">wm_transposed</span><span class="p">:</span>
       <span class="n">wm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">wm</span><span class="p">)</span>
     <span class="n">embs_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">wm</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
 
@@ -3686,6 +3756,9 @@
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
         <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">bias_split_dims_mapping</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">bias_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SingleShardFullSoftmax.DenseWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardFullSoftmax.DenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">DenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">wm</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">b</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SingleShardFullSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardFullSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
