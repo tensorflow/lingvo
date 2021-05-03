@@ -761,16 +761,21 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
   # pyformat: disable
   @parameterized.named_parameters(
-      ('_LSTMSimple', rnn_cell.LSTMCellSimple, True,
+      ('_LSTMSimple', rnn_cell.LSTMCellSimple, True, False,
        [[0.0083883, 0.10644437], [0.04662009, 0.18058866],
         [0.0016561, 0.37414068]],
        [[0.96451449, 0.65317708], [0.08686253, 0.34972212],
         [0.00317609, 0.6554482]]),
-      ('_LSTMSimpleDeterministic', rnn_cell.LSTMCellSimpleDeterministic, False,
+      ('_LSTMSimpleDeterministicParam', rnn_cell.LSTMCellSimple, False, True,
+       [[-0.145889, 0.], [-0.008282, 0.073219], [-0.041057, 0.]],
+       [[0., 0.532332], [-0.016117, 0.13752], [0., 0.]]),
+      ('_LSTMSimpleDeterministic', rnn_cell.LSTMCellSimpleDeterministic,
+       False, False,
        [[-0.145889, 0.], [-0.008282, 0.073219], [-0.041057, 0.]],
        [[0., 0.532332], [-0.016117, 0.13752], [0., 0.]]))
   # pyformat: enable
-  def testCellWithZoneOut(self, cell_cls, manual_state, m_expected, c_expected):
+  def testCellWithZoneOut(self, cell_cls, manual_state, deterministic,
+                          m_expected, c_expected):
     params = cell_cls.Params().Set(
         name='lstm',
         params_init=py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED),
@@ -780,6 +785,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
         random_seed=_RANDOM_SEED)
     params.vn.global_vn = False
     params.vn.per_step_vn = False
+    params.deterministic = deterministic
     lstm = cell_cls(params)
 
     np.random.seed(_NUMPY_RANDOM_SEED)

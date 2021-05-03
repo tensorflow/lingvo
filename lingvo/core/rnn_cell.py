@@ -276,7 +276,11 @@ class LSTMCellSimple(RNNCell):
     p.Define(
         'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
         'with hyperparameter: value pairs. See google-research.model_pruning.')
-
+    p.Define(
+        'deterministic', False, 'Whether to use stateless random functions '
+        'or not (for the Zoneout functionality). Setting this to True '
+        'will store the random states in the cell. This will make it '
+        'completely deterministic.')
     # Non-default quantization behaviour.
     p.qdomain.Define('weight', None, 'Quantization for the weights')
     p.qdomain.Define('c_state', None, 'Quantization for the c-state.')
@@ -429,6 +433,18 @@ class LSTMCellSimple(RNNCell):
     _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
     _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
 
+    if p.deterministic:
+      self.CreateVariable(
+          name='lstm_step_counter',
+          var_params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
+                                           tf.int64),
+          trainable=False)
+      vname = self.vars.lstm_step_counter.name
+      self._prng_seed = tf.constant(
+          py_utils.GenerateSeedFromName(vname), dtype=tf.int64)
+      if p.random_seed:
+        self._prng_seed += p.random_seed
+
   @property
   def output_size(self):
     return self.params.num_output_nodes
@@ -446,18 +462,33 @@ class LSTMCellSimple(RNNCell):
 
   def zero_state(self, theta, batch_size):
     p = self.params
-    zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
-                                       init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p),
-                                       is_eval=self.do_eval)
-    zero_c = py_utils.InitRNNCellState((batch_size, self.hidden_size),
-                                       init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p),
-                                       is_eval=self.do_eval)
+    if p.deterministic:
+      zero_m = tf.zeros((batch_size, self.output_size),
+                        dtype=py_utils.FPropDtype(p))
+      zero_c = tf.zeros((batch_size, self.hidden_size),
+                        dtype=py_utils.FPropDtype(p))
+    else:
+      zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
+                                         init=p.zero_state_init_params,
+                                         dtype=py_utils.FPropDtype(p),
+                                         is_eval=self.do_eval)
+      zero_c = py_utils.InitRNNCellState((batch_size, self.hidden_size),
+                                         init=p.zero_state_init_params,
+                                         dtype=py_utils.FPropDtype(p),
+                                         is_eval=self.do_eval)
     if p.is_inference:
       zero_m = self.QTensor('zero_m', zero_m)
       zero_c = self.QTensor('zero_c', zero_c)
-    return py_utils.NestedMap(m=zero_m, c=zero_c)
+
+    if p.deterministic:
+      # The first random seed changes for different layers and training steps.
+      random_seed1 = self._prng_seed + theta.lstm_step_counter
+      # The second random seed changes for different unroll time steps.
+      random_seed2 = tf.constant(0, dtype=tf.int64)
+      random_seeds = tf.stack([random_seed1, random_seed2])
+      return py_utils.NestedMap(m=zero_m, c=zero_c, r=random_seeds)
+    else:
+      return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def _ResetState(self, state, inputs):
     state.m = inputs.reset_mask * state.m
@@ -588,12 +619,42 @@ class LSTMCellSimple(RNNCell):
   def _ApplyZoneOut(self, state0, inputs, new_c, new_m):
     """Apply Zoneout and returns the updated states."""
     p = self.params
+    if p.deterministic:
+      random_seed1 = state0.r[0]
+      random_seed2 = state0.r[1]
+      padding = inputs.padding
+      qt_c = 'zero_c'
+      qt_m = 'zero_m'
+    else:
+      padding = self.QRPadding(inputs.padding)
+      qt_c = 'c_zoneout'
+      qt_m = 'm_zoneout'
+
     if p.zo_prob > 0.0:
-      assert not py_utils.use_tpu(), (
-          'LSTMCellSimple does not support zoneout on TPU. Switch to '
-          'LSTMCellSimpleDeterministic instead.')
-      c_random_uniform = tf.random.uniform(tf.shape(new_c), seed=p.random_seed)
-      m_random_uniform = tf.random.uniform(tf.shape(new_m), seed=p.random_seed)
+      if p.deterministic:
+        # Note(yonghui): It seems that currently TF only supports int64 as the
+        # random seeds, however, TPU will support int32 as the seed.
+        # TODO(yonghui): Fix me for TPU.
+        c_seed = tf.stack([random_seed1, 2 * random_seed2])
+        m_seed = tf.stack([random_seed1, 2 * random_seed2 + 1])
+        if py_utils.use_tpu():
+          c_random_uniform = tf.random.stateless_uniform(
+              py_utils.GetShape(new_c, 2), tf.cast(c_seed, tf.int32))
+          m_random_uniform = tf.random.stateless_uniform(
+              py_utils.GetShape(new_m, 2), tf.cast(m_seed, tf.int32))
+        else:
+          c_random_uniform = tf.random.stateless_uniform(
+              py_utils.GetShape(new_c, 2), c_seed)
+          m_random_uniform = tf.random.stateless_uniform(
+              py_utils.GetShape(new_m, 2), m_seed)
+      else:
+        assert not py_utils.use_tpu(), (
+            '"Non-determinstic" LSTMCellSimple does not support zoneout on '
+            'TPU. Set the deterministic parameter to True instead.')
+        c_random_uniform = tf.random.uniform(
+            tf.shape(new_c), seed=p.random_seed)
+        m_random_uniform = tf.random.uniform(
+            tf.shape(new_m), seed=p.random_seed)
     else:
       c_random_uniform = None
       m_random_uniform = None
@@ -601,24 +662,40 @@ class LSTMCellSimple(RNNCell):
     new_c = self._ZoneOut(
         state0.c,
         new_c,
-        self.QRPadding(inputs.padding),
+        padding,
         p.zo_prob,
         self.do_eval,
         c_random_uniform,
-        qt='c_zoneout',
+        qt_c,
         qdomain='c_state')
     new_m = self._ZoneOut(
         state0.m,
         new_m,
-        self.QRPadding(inputs.padding),
+        padding,
         p.zo_prob,
         self.do_eval,
         m_random_uniform,
-        qt='m_zoneout',
+        qt_m,
         qdomain='m_state')
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
-    return py_utils.NestedMap(m=new_m, c=new_c)
+    if p.deterministic:
+      # TODO(yonghui): stop the proliferation of tf.stop_gradient
+      r = tf.stop_gradient(tf.stack([random_seed1, random_seed2 + 1]))
+      r.set_shape(state0.r.shape)
+      return py_utils.NestedMap(m=new_m, c=new_c, r=r)
+    else:
+      return py_utils.NestedMap(m=new_m, c=new_c)
+
+  def PostTrainingStepUpdate(self):
+    """Update the global_step value."""
+    p = self.params
+    if p.deterministic:
+      with tf.name_scope(p.name):
+        summary_utils.scalar('step_counter', self.vars.lstm_step_counter)
+      return self.vars.lstm_step_counter.assign(py_utils.GetGlobalStep())
+    else:
+      return super().PostTrainingStepUpdate()
 
 
 class LSTMCellGrouped(RNNCell):
