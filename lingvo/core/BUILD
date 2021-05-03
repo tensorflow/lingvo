@@ -846,7 +846,6 @@ py_library(
         ":bn_layers",
         ":builder_layers",
         ":computation_cost",
-        ":constants",
         ":conv_layers_with_time_padding",
         ":gshard_utils",
         ":pruning_utils",

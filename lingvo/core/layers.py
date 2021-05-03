@@ -1353,7 +1353,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     p.Define(
         'projection', ProjectionLayer.Params(),
         'Projection layer params. A single parameter that will be shared by'
-        'all layers.')
+        'all layers, or a list of params matching the number of layers.')
     p.Define(
         'dropout', DropoutLayer.Params(),
         'Dropout layer params. Can be a single params or a tuple/list of params'
@@ -1428,6 +1428,13 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     for i in range(num_layers):
       if has_bias[i] is None:
         has_bias[i] = (not batch_norm[i])
+
+    params_proj_layers = p.projection
+    if isinstance(params_proj_layers, (list, tuple)):
+      assert len(params_proj_layers) == num_layers
+    else:
+      params_proj_layers = [params_proj_layers] * num_layers
+
     params_dropout_layers = p.dropout
     if isinstance(params_dropout_layers, (list, tuple)):
       assert len(params_dropout_layers) == num_layers
@@ -1453,17 +1460,24 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
       out_dim = p.hidden_layer_dims[i]
       proj_out_dim = out_dim
       name = '%s_%d' % (p.name, i)
-      params_i = p.projection.Copy().Set(
+      params_i = params_proj_layers[i].Copy()
+
+      if 'dense_tpl' in params_i:
+        dense_params = params_i.dense_tpl
+      else:
+        dense_params = params_i
+      dense_params.Set(
           batch_norm=batch_norm[i],
           weight_norm=weight_norm[i],
           has_bias=has_bias[i],
-          activation=activation[i],
-          input_dim=in_dim,
-          output_dim=proj_out_dim,
           bn_fold_weights=p.bn_fold_weights,
           device_mesh=p.device_mesh,
           weight_split_dims_mapping=weight_split_dims_mapping_list[i],
-          activation_split_dims_mapping=activation_split_dims_mapping_list[i],
+          activation_split_dims_mapping=activation_split_dims_mapping_list[i])
+      params_i.Set(
+          input_dim=in_dim,
+          output_dim=proj_out_dim,
+          activation=activation[i],
           name=name)
       params_fc_layers.append(params_i)
       in_dim = out_dim
@@ -3413,6 +3427,7 @@ class EinsumSoftmax(base_layer.BaseLayer):
         'The weighting factor alpha with shape [#classes] for focal loss.')
     p.Define('focal_loss_gamma', None,
              'The modulating factor scalar gamma for focal loss.')
+    p.Define('use_bias', True, 'Whether or not to use a bias variable.')
     return p
 
   def _CreateLayerVariables(self):
@@ -3429,14 +3444,15 @@ class EinsumSoftmax(base_layer.BaseLayer):
         tensor_split_dims_mapping=weight_split_dims_mapping,
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('w', w_pc)
-    self.CreateVariable(
-        'b',
-        py_utils.WeightParams(
-            shape=[p.num_classes],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            tensor_split_dims_mapping=bias_split_dims_mapping,
-            collections=[self.__class__.__name__ + '_vars']))
+    if p.use_bias:
+      self.CreateVariable(
+          'b',
+          py_utils.WeightParams(
+              shape=[p.num_classes],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              tensor_split_dims_mapping=bias_split_dims_mapping,
+              collections=[self.__class__.__name__ + '_vars']))
 
   @property
   def wm_transposed(self):
@@ -3444,7 +3460,11 @@ class EinsumSoftmax(base_layer.BaseLayer):
     return False
 
   def DenseWeights(self, theta):
-    return py_utils.NestedMap(wm=theta.w, bias=theta.b)
+    ret = py_utils.NestedMap()
+    ret.wm = theta.w
+    if self.params.use_bias:
+      ret.bias = theta.b
+    return ret
 
   def Logits(self, theta, inputs):
     """Returns the logits computed before the softmax.
@@ -3470,7 +3490,9 @@ class EinsumSoftmax(base_layer.BaseLayer):
         logits,
         p.device_mesh,
         tensor_split_dims_mapping=p.activation_split_dims_mapping)
-    return tf.nn.bias_add(logits, theta.b)
+    if p.use_bias:
+      logits = tf.nn.bias_add(logits, theta.b)
+    return logits
 
   def XentLossFromLogits(self,
                          theta,
@@ -4023,6 +4045,7 @@ class LayerNorm(base_layer.BaseLayer):
         'without a +1.0.  Var is initialized to 1.0 instead. This makes '
         'the layer weight-compatible with the implementation in '
         'contrib.layers.')
+    p.Define('bias', True, 'Whether to use bias.')
     p.Define('use_defun', True, 'Whether to use CallDefun for normalization.')
     return p
 
@@ -4035,13 +4058,14 @@ class LayerNorm(base_layer.BaseLayer):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
-    pc = py_utils.WeightParams(
-        shape=[p.input_dim],
-        init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'] +
-        [py_utils.SKIP_LP_REGULARIZATION])
-    self.CreateVariable('bias', pc)
+    if p.bias:
+      pc = py_utils.WeightParams(
+          shape=[p.input_dim],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'] +
+          [py_utils.SKIP_LP_REGULARIZATION])
+      self.CreateVariable('bias', pc)
 
     if p.direct_scale:
       scale_pc = py_utils.WeightParams(
@@ -4055,7 +4079,11 @@ class LayerNorm(base_layer.BaseLayer):
     self.CreateVariable('scale', scale_pc)
 
   def _GetScaleAndBias(self, theta):
-    return theta.scale, theta.bias
+    if self.params.bias:
+      bias = theta.bias
+    else:
+      bias = tf.zeros_like(theta.scale)
+    return theta.scale, bias
 
   def FProp(self, theta, inputs):
     """Applies normalization over the last dimension (layer).
@@ -5207,21 +5235,27 @@ class GluLayer(base_layer.BaseLayer):
     self.CreateChild('gate_layer', params)
 
     # Initialize layer norm.
-    params = p.ln_tpl.Copy()
-    params.name = 'layer_norm'
-    params.input_dim = p.input_dim
-    self.CreateChild('layer_norm', params)
+    if p.ln_tpl:
+      params = p.ln_tpl.Copy()
+      params.name = 'layer_norm'
+      params.input_dim = p.input_dim
+      self.CreateChild('layer_norm', params)
 
     # Initialize dropout.
     dropout_tpl = p.dropout_tpl.Copy()
     self.CreateChild('dropout', dropout_tpl)
 
   def FProp(self, theta, inputs, paddings):
-    inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+    if 'layer_norm' in self.children:
+      inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+    else:
+      inputs_normalized = inputs
+    if (paddings.shape.ndims is None or
+        paddings.shape.ndims != inputs_normalized.shape.ndims):
+      paddings = tf.expand_dims(paddings, -1)
     values = self.value_layer.FProp(theta.value_layer, inputs_normalized,
-                                    tf.expand_dims(paddings, -1))
-    gates = self.gate_layer.FProp(theta.gate_layer, inputs_normalized,
-                                  tf.expand_dims(paddings, -1))
+                                    paddings)
+    gates = self.gate_layer.FProp(theta.gate_layer, inputs_normalized, paddings)
     glu_output = values * gates
     glu_output = self.dropout.FProp(theta.dropout, glu_output)
     if self.params.apply_residual:
