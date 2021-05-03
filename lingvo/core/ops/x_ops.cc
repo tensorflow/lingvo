@@ -249,7 +249,7 @@ REGISTER_OP("BeamSearchStepV2")
     .Input("in_prev_hyps: int32")              // 6
     .Input("in_done_hyps: string")             // 7
     .Input("in_atten_probs: float32")          // 8
-    .Input("in_all_done_per_beam: bool")       // 9
+    .Input("in_beam_done: bool")               // 9
     .Input("is_last_chunk: bool")              // 10
     .Input("cur_step: int32")                  // 11
     .Output("out_best_scores: float32")        // 0
@@ -259,7 +259,7 @@ REGISTER_OP("BeamSearchStepV2")
     .Output("out_prev_hyps: int32")            // 4
     .Output("out_done_hyps: string")           // 5
     .Output("out_atten_probs: float32")        // 6
-    .Output("out_all_done_per_beam: bool")     // 7
+    .Output("out_beam_done: bool")             // 7
     .Output("all_done: bool")                  // 8
     .Attr("eoc_id: int = -1")
     .Attr("eos_id: int")
@@ -287,11 +287,11 @@ REGISTER_OP("BeamSearchStepV2")
     .Doc(R"doc(
 The same as BeamSearchStep above, except the following.
 
-New input/output: {in,out}_all_done_per_beam, bool tensor of shape [k * b],
-where all_done_per_beam[i] means beam i is done.
+New input/output: {in,out}_beam_done, bool tensor of shape [b], where
+beam_done[i] means beam i is done.
 
-New attr beam_independence. When enabled, all_done_per_beam[i] set means
-the forward step is a no-op for beam i.
+New attr beam_independence. When enabled, beam_done[i] set means the forward
+step is a no-op for beam i.
 
 TODO(b/181636326): do not use yet, implementation WIP.
 )doc");

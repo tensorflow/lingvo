@@ -138,7 +138,7 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
   // The thread sharding is along the hyps_size.
   Shard(
       kNumWorkers, workers, hyps_size, num_ids, [&](int64 start, int64 limit) {
-        // TODO(b/181636326): Make this a no-op if all_done_per_beam[beam_id]
+        // TODO(b/181636326): Make this a no-op if beam_done[beam_id]
         // under op_version_ == 2 and beam_independence mode.
         for (int32 hyp_id = start; hyp_id < limit; ++hyp_id) {
           if (is_first_step && hyp_id >= num_beams) {
@@ -530,24 +530,21 @@ class BeamSearchStepOp : public OpKernel {
             atten_probs.dim_size(1), " and ", in_atten_probs.dim_size(2)));
 
     if (op_version_ == 2) {
-      const Tensor& in_all_done_per_beam = ctx->input(9);
-      OP_REQUIRES(
-          ctx, in_all_done_per_beam.dtype() == DT_BOOL,
-          errors::InvalidArgument("Failed tensor type sanity check. "
-                                  "in_all_done_per_beam is tf.bool. Got ",
-                                  in_all_done_per_beam.dtype()));
-      OP_REQUIRES(
-          ctx, in_all_done_per_beam.dims() == 1,
-          errors::InvalidArgument("Failed tensor shape sanity check. "
-                                  "in_all_done_per_beam.dims() == 1. Got ",
-                                  in_all_done_per_beam.dims()));
-      OP_REQUIRES(ctx,
-                  in_all_done_per_beam.dim_size(0) == best_scores.dim_size(0),
+      const Tensor& in_beam_done = ctx->input(9);
+      OP_REQUIRES(ctx, in_beam_done.dtype() == DT_BOOL,
+                  errors::InvalidArgument("Failed tensor type sanity check. "
+                                          "in_beam_done is tf.bool. Got ",
+                                          in_beam_done.dtype()));
+      OP_REQUIRES(ctx, in_beam_done.dims() == 1,
                   errors::InvalidArgument("Failed tensor shape sanity check. "
-                                          "in_all_done_per_beam.dim_size(0) == "
+                                          "in_beam_done.dims() == 1. Got ",
+                                          in_beam_done.dims()));
+      OP_REQUIRES(ctx, in_beam_done.dim_size(0) == best_scores.dim_size(0),
+                  errors::InvalidArgument("Failed tensor shape sanity check. "
+                                          "in_beam_done.dim_size(0) == "
                                           "best_scores.dim_size(0). Got ",
-                                          in_all_done_per_beam.dim_size(0),
-                                          " and ", best_scores.dim_size(0)));
+                                          in_beam_done.dim_size(0), " and ",
+                                          best_scores.dim_size(0)));
     }
   }
 
@@ -701,26 +698,26 @@ class BeamSearchStepOp : public OpKernel {
       }
     }
 
-    Tensor* out_all_done_per_beam = nullptr;
+    Tensor* out_beam_done = nullptr;
     // Only used when op_version_ == 1.
-    Tensor temp_all_done_per_beam;
+    Tensor temp_beam_done;
     if (op_version_ == 2) {
-      OP_REQUIRES_OK(
-          ctx, ForwardOrCopyInputToOutput(ctx, 9, 7, &out_all_done_per_beam));
+      OP_REQUIRES_OK(ctx,
+                     ForwardOrCopyInputToOutput(ctx, 9, 7, &out_beam_done));
     } else {
       OP_REQUIRES_OK(ctx, ctx->allocate_temp(DT_BOOL, best_scores.shape(),
-                                             &temp_all_done_per_beam));
-      temp_all_done_per_beam.vec<bool>().setConstant(false);
-      out_all_done_per_beam = &temp_all_done_per_beam;
+                                             &temp_beam_done));
+      temp_beam_done.vec<bool>().setConstant(false);
+      out_beam_done = &temp_beam_done;
     }
     // Update all_done (scalar) output.
     UpdateAllDone(top_k_hyps, num_beams, num_hyps, t, t_out_done_hyps,
-                  t_out_best_scores, out_all_done_per_beam, all_done);
+                  t_out_best_scores, out_beam_done, all_done);
   }
 
  private:
   // Under op_version_ == 1, we may return early without fully updating
-  // 'all_done_per_beam' for all beams.
+  // 'beam_done' for all beams.
   //
   // top_k_hyps: [K]
   // out_done_hyps: [T, N]
@@ -728,19 +725,19 @@ class BeamSearchStepOp : public OpKernel {
   void UpdateAllDone(const std::vector<Hyp>& top_k_hyps, const int num_beams,
                      const int num_hyps, const int t,
                      TTypes<tstring>::Matrix t_out_done_hyps,
-                     TTypes<float>::Vec t_out_best_scores,
-                     Tensor* all_done_per_beam, Tensor* all_done) {
+                     TTypes<float>::Vec t_out_best_scores, Tensor* beam_done,
+                     Tensor* all_done) {
     // [B]
-    auto t_all_done_per_beam = all_done_per_beam->vec<bool>();
+    auto t_beam_done = beam_done->vec<bool>();
     auto t_all_done = all_done->scalar<bool>();
 
-    // For each beam i, all_done_per_beam is true if and only if:
-    //   - all_done_per_beam[i] was previously already true, OR;
+    // For each beam with beam_id, beam_done[beam_id] is true if and only if:
+    //   - beam_done[i] was previously already true, OR;
     //   - the following condition is met:
     //     - (if ensure_full_beam_) we have num_hyps_per_beam EOS hyps, AND;
     //     - all hyps outside of 'beam_size' of best score.
     //
-    // all_done is logical AND over elements of all_done_per_beam.
+    // all_done is logical AND over elements of beam_done.
     for (int beam_id = 0; beam_id < num_beams; ++beam_id) {
       if (ensure_full_beam_) {
         // First check how many EOS hyps we have.  If we have
@@ -754,9 +751,9 @@ class BeamSearchStepOp : public OpKernel {
             }
           }
         }
-        t_all_done_per_beam(beam_id) = t_all_done_per_beam(beam_id) ||
-                                       (num_done_hyps == num_hyps_per_beam_);
-        if (!t_all_done_per_beam(beam_id)) {
+        t_beam_done(beam_id) =
+            t_beam_done(beam_id) || (num_done_hyps == num_hyps_per_beam_);
+        if (!t_beam_done(beam_id)) {
           if (op_version_ == 1) {
             t_all_done() = false;
             return;
@@ -781,10 +778,9 @@ class BeamSearchStepOp : public OpKernel {
           break;
         }
       }
-      t_all_done_per_beam(beam_id) =
-          t_all_done_per_beam(beam_id) || all_below_beam_size;
+      t_beam_done(beam_id) = t_beam_done(beam_id) || all_below_beam_size;
 
-      if (op_version_ == 1 && !t_all_done_per_beam(beam_id)) {
+      if (op_version_ == 1 && !t_beam_done(beam_id)) {
         t_all_done() = false;
         return;
       }
@@ -795,9 +791,9 @@ class BeamSearchStepOp : public OpKernel {
       return;
     }
 
-    // all_done is logical AND over elements of all_done_per_beam.
+    // all_done is logical AND over elements of beam_done.
     for (int beam_id = 0; beam_id < num_beams; ++beam_id) {
-      t_all_done() = t_all_done() && t_all_done_per_beam(beam_id);
+      t_all_done() = t_all_done() && t_beam_done(beam_id);
     }
   }
 
