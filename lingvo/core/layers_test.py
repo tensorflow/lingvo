@@ -359,12 +359,19 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       expected_var_names = ['gn/beta/var:0', 'gn/gamma/var:0']
       self.assertEqual(expected_var_names, gn_var_names)
 
-  def testFProp(self):
+  @parameterized.named_parameters(
+      ('Default', None),
+      ('1e_3', 1e-3),
+      ('1e_6', 1e-6),
+  )
+  def testFProp(self, epsilon=None):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
       params.dim = 4
       params.num_groups = 2
+      if epsilon is not None:
+        params.epsilon = epsilon
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       gn_in = tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4])
 
@@ -372,10 +379,14 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       gn_out = gn_layer.FPropDefaultTheta(gn_in)
 
       tf.global_variables_initializer().run()
-      base_block = np.array([[[-1.44440889, -1.22219217],
-                              [-0.55554187, -0.33332515]],
-                             [[0.33332515, 0.55554187],
-                              [1.22219217, 1.44440889]]])
+      if epsilon == 1e-6:
+        base_block = np.array([[[-1.444444, -1.222222], [-0.555555, -0.333333]],
+                               [[0.333333, 0.555555], [1.222222, 1.444444]]])
+      else:
+        base_block = np.array([[[-1.44440889, -1.22219217],
+                                [-0.55554187, -0.33332515]],
+                               [[0.33332515, 0.55554187],
+                                [1.22219217, 1.44440889]]])
       expected_out = np.array([
           np.concatenate((base_block, base_block), -1),
           np.concatenate((base_block, base_block), -1)

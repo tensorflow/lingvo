@@ -714,6 +714,7 @@ class GroupNormLayer(base_layer.BaseLayer):
         'Only effective for tpu.')
     p.Define('input_rank', 4, 'Rank of input. Only 3(BTD) and 4(NHWC) are '
              'supported.')
+    p.Define('epsilon', 0.001, 'Epsilon.')
     return p
 
   def __init__(self, params):
@@ -728,7 +729,6 @@ class GroupNormLayer(base_layer.BaseLayer):
       assert p.dim % p.num_groups == 0, ('p.dim({0}) is not dividable by '
                                          'p.num_groups({1})').format(
                                              p.dim, p.num_groups)
-    self._epsilon = 0.001
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -806,10 +806,10 @@ class GroupNormLayer(base_layer.BaseLayer):
       # tf.rsqrt is not implemented for bfloat16, hence we always cast into
       # tf.float32.
       group_stddev_inv = tf.cast(
-          tf.math.rsqrt(tf.cast(group_variance + self._epsilon, tf.float32)),
+          tf.math.rsqrt(tf.cast(group_variance + p.epsilon, tf.float32)),
           group_mean.dtype)
     else:
-      group_stddev_inv = tf.math.rsqrt(group_variance + self._epsilon)
+      group_stddev_inv = tf.math.rsqrt(group_variance + p.epsilon)
 
     grouped_inputs = (grouped_inputs - group_mean) * group_stddev_inv
     # Merges the last two dims.
