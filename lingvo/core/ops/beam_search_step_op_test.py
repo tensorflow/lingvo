@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for beam_search_op."""
 
+from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
@@ -26,7 +27,7 @@ from google.protobuf import text_format
 _MIN_SCORE = -1e36
 
 
-class BeamSearchOpTest(test_utils.TestCase):
+class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -489,7 +490,7 @@ class BeamSearchOpTest(test_utils.TestCase):
     prev_hyps = tf.zeros([seq_len, b_size], dtype=tf.int32)
     done_hyps = tf.as_string(tf.zeros([seq_len, b_size], dtype=tf.int32))
     best_scores += init_best_score
-    all_done_per_beam = tf.zeros([b_size], dtype=tf.bool)
+    all_done_per_beam = tf.zeros([num_beams], dtype=tf.bool)
 
     for i, prob in enumerate(probs):
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
@@ -539,13 +540,14 @@ class BeamSearchOpTest(test_utils.TestCase):
         probs,
         init_atten_probs=tf.zeros([b_size, 0]),
         atten_probs=np.zeros([seq_len, b_size, 0]))
-    expected_all_done_per_beam = np.array([False, False])
+    expected_all_done_per_beam = np.array([False])
     self.assertAllEqual(results[-1], expected_all_done_per_beam)
 
   def _testBeamSearchStoppingHelper(self,
                                     beam_size,
                                     ensure_full_beam,
-                                    local_eos_threshold=-100):
+                                    local_eos_threshold=-100,
+                                    use_v2=False):
     b_size = 2
     num_beams = 1
     seq_len = 3
@@ -554,7 +556,10 @@ class BeamSearchOpTest(test_utils.TestCase):
         np.log([[0.05, 0.05, 0.9], [0.05, 0.9, 0.05]]),
     ]
 
-    results = self._runBeamSearchOpHelper(
+    op_helper_func = (
+        self._runBeamSearchV2OpHelper
+        if use_v2 else self._runBeamSearchOpHelper)
+    results = op_helper_func(
         b_size,
         num_beams,
         seq_len,
@@ -566,38 +571,47 @@ class BeamSearchOpTest(test_utils.TestCase):
         ensure_full_beam=ensure_full_beam,
         local_eos_threshold=local_eos_threshold)
     all_done = results[7]
+    if use_v2:
+      self.assertAllEqual([all_done], results[8])
     return all_done
 
-  def test_beam_size_large(self):
+  @parameterized.parameters(False, True)
+  def test_beam_size_large(self, use_v2):
     # With default beam size, we are not yet all done, because we still have an
     # active hyp within 3.0 of best done hyp.
-    all_done = self._testBeamSearchStoppingHelper(3.0, False)
+    all_done = self._testBeamSearchStoppingHelper(3.0, False, use_v2=use_v2)
     self.assertEqual(False, all_done)
 
-  def test_beam_size_small(self):
+  @parameterized.parameters(False, True)
+  def test_beam_size_small(self, use_v2):
     # With small beam size, we are all done, because the active hyp is not
     # within such a narrow margin of best done hyp.
-    all_done = self._testBeamSearchStoppingHelper(0.1, False)
+    all_done = self._testBeamSearchStoppingHelper(0.1, False, use_v2=use_v2)
     self.assertEqual(True, all_done)
 
-  def test_ensure_full_beam(self):
+  @parameterized.parameters(False, True)
+  def test_ensure_full_beam(self, use_v2):
     # With small beam size and ensure_full_beam, we are _not_ yet done,
     # because we require to have two done hyps before stopping, regardless of
     # beam size.
-    all_done = self._testBeamSearchStoppingHelper(0.1, True)
+    all_done = self._testBeamSearchStoppingHelper(0.1, True, use_v2=use_v2)
     self.assertEqual(False, all_done)
 
-  def test_small_eos_threshold(self):
+  @parameterized.parameters(False, True)
+  def test_small_eos_threshold(self, use_v2):
     # With a small eos_threshold, we are done because the active hyp produced,
     # </s>, independent of small beam size.
-    all_done = self._testBeamSearchStoppingHelper(0.1, False, -100.0)
+    all_done = self._testBeamSearchStoppingHelper(
+        0.1, False, -100.0, use_v2=use_v2)
     self.assertTrue(all_done)
 
-  def test_large_eos_threshold(self):
+  @parameterized.parameters(False, True)
+  def test_large_eos_threshold(self, use_v2):
     # With larger eos_threshold, we are _not_ yet done, because we do not hit
     # </s> criteria we we require to have two done hyps before stopping,
     # regardless of beam size.
-    all_done = self._testBeamSearchStoppingHelper(0.1, False, 0.01)
+    all_done = self._testBeamSearchStoppingHelper(
+        0.1, False, 0.01, use_v2=use_v2)
     self.assertFalse(all_done)
 
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):
