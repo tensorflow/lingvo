@@ -866,6 +866,7 @@
         <span class="s1">&#39;Only effective for tpu.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_rank&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;Rank of input. Only 3(BTD) and 4(NHWC) are &#39;</span>
              <span class="s1">&#39;supported.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="s1">&#39;Epsilon.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -880,7 +881,6 @@
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;p.dim(</span><span class="si">{0}</span><span class="s1">) is not dividable by &#39;</span>
                                          <span class="s1">&#39;p.num_groups(</span><span class="si">{1}</span><span class="s1">)&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                                              <span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span> <span class="o">=</span> <span class="mf">0.001</span>
 
 <div class="viewcode-block" id="GroupNormLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
@@ -958,10 +958,10 @@
       <span class="c1"># tf.rsqrt is not implemented for bfloat16, hence we always cast into</span>
       <span class="c1"># tf.float32.</span>
       <span class="n">group_stddev_inv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span>
           <span class="n">group_mean</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">group_stddev_inv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">)</span>
+      <span class="n">group_stddev_inv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
 
     <span class="n">grouped_inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">grouped_inputs</span> <span class="o">-</span> <span class="n">group_mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">group_stddev_inv</span>
     <span class="c1"># Merges the last two dims.</span>
