@@ -17,6 +17,7 @@
 Prefix sum tf implementation by Valerii Likhosherstov.
 """
 from lingvo import compat as tf
+from lingvo.core import py_utils
 
 BIG_CONSTANT = 1e8
 
@@ -333,6 +334,7 @@ def causal_denominator(qs, ks):
 def favor_attention(query,
                     key,
                     value,
+                    paddings,
                     kernel_transformation,
                     causal,
                     projection_matrix=None):
@@ -342,6 +344,7 @@ def favor_attention(query,
     query: query tensor.
     key: key tensor.
     value: value tensor.
+    paddings: paddings tensor.
     kernel_transformation: transformation used to get finite kernel features.
     causal: whether attention is causal or not.
     projection_matrix: projection matrix to be used.
@@ -352,6 +355,10 @@ def favor_attention(query,
   query_prime = kernel_transformation(query, True,
                                       projection_matrix)  # [B,L,H,M]
   key_prime = kernel_transformation(key, False, projection_matrix)  # [B,L,H,M]
+  if paddings is not None:
+    b, l, h, m = py_utils.GetShape(key_prime, 4)
+    paddings = tf.tile(tf.reshape(paddings, [b, l, 1, 1]), [1, 1, h, m])
+    key_prime *= tf.cast(1.0 - paddings, key_prime.dtype)
   query_prime = tf.transpose(query_prime, [1, 0, 2, 3])  # [L,B,H,M]
   key_prime = tf.transpose(key_prime, [1, 0, 2, 3])  # [L,B,H,M]
   value = tf.transpose(value, [1, 0, 2, 3])  # [L,B,H,D]

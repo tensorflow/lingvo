@@ -41,7 +41,7 @@ class FAVORTest(test_utils.TestCase, parameterized.TestCase):
     key = tf.cast(key, tf.float64)
     value = tf.cast(value, tf.float64)
     projection_matrix = tf.cast(projection_matrix, tf.float64)
-    attention_block_output = favor.favor_attention(query, key, value,
+    attention_block_output = favor.favor_attention(query, key, value, None,
                                                    kernel_transformation, False,
                                                    projection_matrix)
 

@@ -362,6 +362,7 @@ py_library(
     srcs = ["favor_attention.py"],
     srcs_version = "PY3",
     deps = [
+        ":py_utils",
         "//lingvo:compat",
     ],
 )

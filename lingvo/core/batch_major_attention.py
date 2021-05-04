@@ -1057,17 +1057,19 @@ class MultiHeadedFavorAttention(MultiHeadedAttention):
 
     if p.attention_type == 'relu':
       kernel_transformation = favor.relu_kernel_transformation
-      encoded = favor.favor_attention(query, key, value, kernel_transformation,
-                                      False)
+      encoded = favor.favor_attention(query, key, value, paddings,
+                                      kernel_transformation, False)
     elif p.attention_type == 'softmax':
       kernel_transformation = favor.softmax_kernel_transformation
       # TODO(kchoro): Add the option of redrawing projection matrices. This
       # improves in several applications.
       projection_matrix = favor.create_projection_matrix(
           p.num_random_features, query.shape[-1], None if p.redraw else 0)
-      encoded = favor.favor_attention(query, key, value, kernel_transformation,
-                                      False, projection_matrix)
+      encoded = favor.favor_attention(query, key, value, paddings,
+                                      kernel_transformation, False,
+                                      projection_matrix)
     elif p.attention_type == 'cossim':
+      # TODO(kchoro): Add paddings to the cossim variant.
       projection_matrix = favor.create_projection_matrix(
           p.num_random_features, query.shape[-1], None if p.redraw else 0)
       key_prime = favor.cossim_kernel_transformation(key, False,
@@ -4766,8 +4768,8 @@ class TransformerFeedForwardLayerWithTaskId(
     fflayer_args = [inputs_normalized, expanded_paddings]
     fflayer_args += [task_id] if p.use_task_ids else []
     h = inputs + self.residual_dropout.FProp(
-        theta.residual_dropout, self.fflayer.FProp(theta.fflayer,
-                                                   *fflayer_args))
+        theta.residual_dropout, self.fflayer.FProp(theta.fflayer, *
+                                                   fflayer_args))
     return h
 
 
