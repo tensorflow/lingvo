@@ -513,16 +513,6 @@
       <span class="n">program_schedule</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
-          <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
-              <span class="n">program</span><span class="o">.</span><span class="n">SaveProgramState</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-          <span class="k">if</span> <span class="n">program_schedule</span><span class="p">:</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Shutting down programs.&#39;</span><span class="p">)</span>
-            <span class="n">program_schedule</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
-          <span class="k">return</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">():</span>
 
@@ -566,6 +556,17 @@
         <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Program schedule told us to stop.</span><span class="se">\n</span><span class="s1">&#39;</span>
                           <span class="s1">&#39;Shutting down programs.&#39;</span><span class="p">)</span>
+          <span class="n">program_schedule</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
+          <span class="k">return</span>
+
+        <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
+              <span class="n">program</span><span class="o">.</span><span class="n">SaveProgramState</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Shutting down programs.&#39;</span><span class="p">)</span>
           <span class="n">program_schedule</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
           <span class="k">return</span></div></div>
 </pre></div>

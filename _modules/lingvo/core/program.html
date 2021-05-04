@@ -236,6 +236,7 @@
                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">OverrideModelParams</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
@@ -599,6 +600,11 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span></div>
 
 <div class="viewcode-block" id="TrainProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="c1"># Prevent overtraining.</span>
+    <span class="n">task_global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">task_global_step</span><span class="p">):</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
     <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
     <span class="n">ary</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span><span class="p">)</span>
@@ -634,7 +640,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteSummaries</span><span class="p">(</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span>
 
-    <span class="c1"># Simpler version of _ShouldStop without early stopping.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">task_global_step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TrainProgram._ShouldStop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram._ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simpler version of _ShouldStop without early stopping.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">task_global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> params.train.max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span>
                       <span class="n">task_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
