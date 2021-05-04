@@ -220,6 +220,9 @@
     <span class="c1"># Set of embedding feature names.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">=</span> <span class="kc">None</span>
 
+    <span class="c1"># Schedule for the value that is used as TPU embedding gradient multiplier.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="TpuEmbeddingCollection.AddTableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddTableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add TPU embedding table variable list to the collection.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">:</span>
@@ -288,7 +291,15 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;feature_names already exists. &#39;</span>
                        <span class="sa">f</span><span class="s1">&#39;Existing feature names: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span><span class="si">}</span><span class="s1">, &#39;</span>
                        <span class="sa">f</span><span class="s1">&#39;feature names being added: </span><span class="si">{</span><span class="n">feature_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">=</span> <span class="n">feature_names</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">=</span> <span class="n">feature_names</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">gradient_multiplier_schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span>
+
+  <span class="nd">@gradient_multiplier_schedule</span><span class="o">.</span><span class="n">setter</span>
+  <span class="k">def</span> <span class="nf">gradient_multiplier_schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">multiplier_schedule</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="n">multiplier_schedule</span></div>
 
 
 <span class="c1"># TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.</span>
@@ -766,6 +777,10 @@
         <span class="s1">&#39;partition_strategy&#39;</span><span class="p">,</span> <span class="s1">&#39;div&#39;</span><span class="p">,</span> <span class="s1">&#39;A string, either &quot;mod&quot; or &quot;div&quot;, &#39;</span>
         <span class="s1">&#39;specifying how to map the lookup id to the embedding tensor. For &#39;</span>
         <span class="s1">&#39;more information see `tf.nn.embedding_lookup_sparse`.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gradient_multiplier_schedule&#39;</span><span class="p">,</span> <span class="n">schedule</span><span class="o">.</span><span class="n">ConstantOne</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Values from this schedule will be multiplied to the embedding &#39;</span>
+        <span class="s1">&#39;gradients. Gradients from Tensorcore will not be affected.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -778,6 +793,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">partition_strategy</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mod&#39;</span><span class="p">,</span> <span class="s1">&#39;div&#39;</span><span class="p">]</span>
 
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
@@ -801,6 +817,8 @@
           <span class="n">table_params</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gradient_multiplier_schedule&#39;</span><span class="p">,</span>
+                     <span class="n">p</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span> <span class="o">=</span> <span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
 
     <span class="c1"># Save embedding feature names in the collection.</span>
@@ -907,7 +925,9 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">),</span>
             <span class="n">partition_strategy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">partition_strategy</span><span class="p">,</span>
             <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._TpuEmbLookup"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">_TpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;TPU Embedding lookup.&quot;&quot;&quot;</span>

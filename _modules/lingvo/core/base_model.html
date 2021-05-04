@@ -833,8 +833,12 @@
       <span class="c1"># Lookup the per-task activations.</span>
       <span class="n">tpu_embedding_activations_dict</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
       <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span>
+      <span class="n">tpu_embedding_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="p">)</span>
+
       <span class="n">tpu_embedding_send_gradient_op</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeTpuEmbeddingGradients</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tpu_embedding_activations_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span>
+          <span class="n">tpu_embedding_gradient_multiplier_schedule</span><span class="p">)</span>
       <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;tpu_embedding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_send_gradient_op</span>
 
       <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
