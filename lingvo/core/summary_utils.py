@@ -224,12 +224,18 @@ def AddAttentionSummaryBatchMajor(name,
     src = src[0 if len(src) == 1 else i] if isinstance(src, list) else src
     tgt = tgt[0 if len(tgt) == 1 else i] if isinstance(tgt, list) else tgt
     tgt_shape = py_utils.GetShape(tgt)
+
+    if not tf.executing_eagerly():
+      attention_tensor_name = attention_tensor.name
+    else:
+      attention_tensor_name = f'[eager]_{name}_{i}'
+
     attention_tensors[i] = tf.identity(
         py_utils.with_dependencies([
             py_utils.assert_equal(
                 py_utils.GetShape(attention_tensor),
                 tgt_shape[:2] + [py_utils.GetShape(src)[1]] + tgt_shape[2:])
-        ], attention_tensor), re.sub(':.*$', '', attention_tensor.name))
+        ], attention_tensor), re.sub(':.*$', '', attention_tensor_name))
 
   if not _ShouldAddSummary():
     return
@@ -259,10 +265,16 @@ def AddAttentionSummaryBatchMajor(name,
       args = [atten, Get(src_lens, n), Get(tgt_lens, n)]
       if transcripts is not None and n == 0:
         args.append(transcripts)
+
+      if not tf.executing_eagerly():
+        atten_name = atten.name
+      else:
+        atten_name = f'[eager]_{name}_{n}'
+
       fig.AddSubplot(
           args,
           TrimPaddingAndPlotAttention,
-          title=atten.name,
+          title=atten_name,
           xlabel='Input',
           ylabel='Output')
 
@@ -338,10 +350,15 @@ def PlotSequenceFeatures(plots, name, **kwargs):
     return
 
   with plot.MatplotlibFigureSummary(name, figsize=(8, len(plots) * 3.5)) as fig:
-    for tensor, seq_len in plots:
+    for i, (tensor, seq_len) in enumerate(plots):
+      if not tf.executing_eagerly():
+        tensor_name = tensor.name
+      else:
+        tensor_name = f'[eager]_{name}_{i}'
+
       fig.AddSubplot([tensor, seq_len],
                      TrimPaddingAndPlotSequence,
-                     title=tensor.name,
+                     title=tensor_name,
                      **kwargs)
 
 
