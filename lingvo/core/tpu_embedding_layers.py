@@ -68,6 +68,9 @@ class TpuEmbeddingCollection:
     # Set of embedding feature names.
     self._feature_names = None
 
+    # Schedule for the value that is used as TPU embedding gradient multiplier.
+    self._gradient_multiplier_schedule = None
+
   def AddTableVariables(self, table_name, var_list):
     """Add TPU embedding table variable list to the collection."""
     if table_name in self._table_vars:
@@ -137,6 +140,14 @@ class TpuEmbeddingCollection:
                        f'Existing feature names: {self._feature_names}, '
                        f'feature names being added: {feature_names}')
     self._feature_names = feature_names
+
+  @property
+  def gradient_multiplier_schedule(self):
+    return self._gradient_multiplier_schedule
+
+  @gradient_multiplier_schedule.setter
+  def gradient_multiplier_schedule(self, multiplier_schedule):
+    self._gradient_multiplier_schedule = multiplier_schedule
 
 
 # TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.
@@ -614,6 +625,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         'partition_strategy', 'div', 'A string, either "mod" or "div", '
         'specifying how to map the lookup id to the embedding tensor. For '
         'more information see `tf.nn.embedding_lookup_sparse`.')
+    p.Define(
+        'gradient_multiplier_schedule', schedule.ConstantOne.Params(),
+        'Values from this schedule will be multiplied to the embedding '
+        'gradients. Gradients from Tensorcore will not be affected.')
     return p
 
   def __init__(self, params):
@@ -626,6 +641,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.optimizer
     assert p.learning_rate
     assert p.lr_schedule
+    assert p.gradient_multiplier_schedule
     assert p.partition_strategy in ['mod', 'div']
 
     num_tpu_hosts = p.tables[0].num_tpu_hosts
@@ -649,6 +665,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           table_params.lr_schedule = p.lr_schedule.Copy()
 
     self.CreateChildren('tables', p.tables)
+    self.CreateChild('gradient_multiplier_schedule',
+                     p.gradient_multiplier_schedule)
     self._tpu_embedding_collection = TpuEmbeddingCollection.Get()
 
     # Save embedding feature names in the collection.
@@ -756,6 +774,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             partition_strategy=p.partition_strategy,
             device_config=device_config)
         self._tpu_embedding_collection.tpu_embedding = self._tpu_embedding
+        self._tpu_embedding_collection.gradient_multiplier_schedule = (
+            self.gradient_multiplier_schedule)
 
   def _TpuEmbLookup(self) -> Dict[str, tf.Tensor]:
     """TPU Embedding lookup."""
