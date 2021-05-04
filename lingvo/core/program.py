@@ -84,6 +84,7 @@ class BaseProgram:
                **kwargs):
     self.params = params.Copy()
     p = self.params
+    p.task = trial.OverrideModelParams(p.task)
     self._task_params = p.task
     self._logdir = p.logdir
     self._task_name = p.task_name
@@ -447,6 +448,11 @@ class TrainProgram(BaseProgram):
     return self.tpu_ops
 
   def Run(self, sess):
+    # Prevent overtraining.
+    task_global_step = sess.run(self._task.global_step)
+    if self._ShouldStop(task_global_step):
+      return True
+
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
@@ -482,7 +488,10 @@ class TrainProgram(BaseProgram):
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
 
-    # Simpler version of _ShouldStop without early stopping.
+    return self._ShouldStop(task_global_step)
+
+  def _ShouldStop(self, task_global_step):
+    """Simpler version of _ShouldStop without early stopping."""
     if task_global_step >= self._task_params.train.max_steps:
       tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d',
                       task_global_step, self._task_params.train.max_steps)

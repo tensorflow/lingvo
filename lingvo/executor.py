@@ -361,16 +361,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       program_schedule = None
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
-        if self._ShouldStop(sess, global_step):
-          tf.logging.info('Training finished.')
-          if not self._ml_perf_log:
-            self.save_only_checkpointer.Save(sess, global_step)
-            for program in self._programs:
-              program.SaveProgramState(sess, global_step)
-          if program_schedule:
-            tf.logging.info('Shutting down programs.')
-            program_schedule.Shutdown()
-          return
 
         if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave():
 
@@ -414,5 +404,16 @@ class ExecutorTpu(base_runner.BaseRunner):
         if done:
           tf.logging.info('Program schedule told us to stop.\n'
                           'Shutting down programs.')
+          program_schedule.Shutdown()
+          return
+
+        global_step = sess.run(py_utils.GetGlobalStep())
+        if self._ShouldStop(sess, global_step):
+          tf.logging.info('Training finished.')
+          if not self._ml_perf_log:
+            self.save_only_checkpointer.Save(sess, global_step)
+            for program in self._programs:
+              program.SaveProgramState(sess, global_step)
+          tf.logging.info('Shutting down programs.')
           program_schedule.Shutdown()
           return
