@@ -62,18 +62,19 @@ def GetDatasets(cls, warn_on_error=True):
       pass
 
   datasets = []
-  for name, _ in inspect.getmembers(
-      cls, lambda x: inspect.isfunction(x) or inspect.ismethod(x)):
+  for name, _ in inspect.getmembers(cls, inspect.isroutine):
     if name not in [
         'GetAllDatasetParams', 'GetDatasetParams', 'Model', 'Task',
         'ProgramSchedule'
     ] and not name.startswith('_'):
       # Datasets are assumed to have no required positional arguments.
-      args = list(inspect.signature(getattr(cls, name)).parameters.values())
-      if inspect.isclass(cls):
-        # Class method inspection includes a 'self' or 'cls' first argument
-        # that should be ignored. Instances do not have this argument in the
-        # signature.
+      fn = getattr(cls, name)
+      args = list(inspect.signature(fn).parameters.values())
+      if inspect.isclass(cls) and not inspect.ismethod(fn):
+        # Methods obtained from inspecting a class includes a 'self' first
+        # argument that should be ignored. That is because they are not bound.
+        # Methods obtained from inspecting an instance, or classmethods obtained
+        # from inspecting a class are bound and inspect.ismethod() returns True.
         args = args[1:]
       positional_arguments = [p.name for p in args if p.default == p.empty]
       if positional_arguments:
