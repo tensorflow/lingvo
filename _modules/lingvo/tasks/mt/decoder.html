@@ -855,6 +855,7 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_emb</span><span class="p">:</span>
           <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+          <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;emb_proj&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
           <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
         <span class="c1"># Layer 0 intertwines with attention.</span>
@@ -896,6 +897,7 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_out</span><span class="p">:</span>
           <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">out_proj</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+          <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;out_proj&#39;</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
           <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
 
         <span class="c1"># Get intermediate attention information</span>
