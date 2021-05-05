@@ -236,6 +236,9 @@
   <span class="c1"># &#39;model_name&#39; follows &lt;task&gt;.&lt;path&gt;.&lt;class name&gt;</span>
   <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model_name</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid model name </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">model_name</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;test.&#39;</span><span class="p">):</span>
+    <span class="c1"># Test models don&#39;t need external imports.</span>
+    <span class="k">return</span> <span class="kc">True</span>
   <span class="n">model_module</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
   <span class="c1"># Try importing the module directly, in case it&#39;s a local import.</span>
   <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">model_module</span><span class="p">)</span>
