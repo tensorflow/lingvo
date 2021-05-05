@@ -607,12 +607,13 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
   def testFRNNWithConvLSTMCellGradientChecker(self):
     self._testFRNNWithConvLSTMCellGradientChecker()
 
-  def testFRNNWithLSTMCellSimpleDeterministicGradientChecker(self):
+  def testFRNNWithLSTMCellSimpleGradientChecker(self):
     with self.session(use_gpu=True) as sess:
-      params = rnn_cell.LSTMCellSimpleDeterministic.Params()
+      params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'conv_lstm'
       params.output_nonlinearity = True
       params.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
+      params.deterministic = True
       params.zo_prob = 0.25
       params.num_input_nodes = 4
       params.num_output_nodes = 6

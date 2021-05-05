@@ -766,11 +766,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
         [0.0016561, 0.37414068]],
        [[0.96451449, 0.65317708], [0.08686253, 0.34972212],
         [0.00317609, 0.6554482]]),
-      ('_LSTMSimpleDeterministicParam', rnn_cell.LSTMCellSimple, False, True,
-       [[-0.145889, 0.], [-0.008282, 0.073219], [-0.041057, 0.]],
-       [[0., 0.532332], [-0.016117, 0.13752], [0., 0.]]),
-      ('_LSTMSimpleDeterministic', rnn_cell.LSTMCellSimpleDeterministic,
-       False, False,
+      ('_LSTMSimpleDeterministic', rnn_cell.LSTMCellSimple, False, True,
        [[-0.145889, 0.], [-0.008282, 0.073219], [-0.041057, 0.]],
        [[0., 0.532332], [-0.016117, 0.13752], [0., 0.]]))
   # pyformat: enable

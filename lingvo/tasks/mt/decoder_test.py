@@ -119,7 +119,8 @@ class DecoderTestCaseBase(test_utils.TestCase):
       p.per_example_tensors = per_example_tensors
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       if use_deterministic_cell:
-        p.rnn_cell_tpl = rnn_cell.LSTMCellSimpleDeterministic.Params()
+        p.rnn_cell_tpl = rnn_cell.LSTMCellSimple.Params()
+        p.rnn_cell_tpl.deterministic = True
       dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs(dtype=fprop_dtype)
       fprop_out = dec.FPropDefaultTheta(encoder_outputs, targets)
