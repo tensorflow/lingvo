@@ -537,45 +537,6 @@ scattered across output groups.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></code><code class="sig-name descname"><span class="pre">LSTMCellSimpleDeterministic</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
-<p>Same as LSTMCellSimple, except this cell is completely deterministic.</p>
-<dl class="py method">
-<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic._CreateLayerVariables">
-<code class="sig-name descname"><span class="pre">_CreateLayerVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.zero_state">
-<code class="sig-name descname"><span class="pre">zero_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the initial state given the batch size.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic._ApplyZoneOut">
-<code class="sig-name descname"><span class="pre">_ApplyZoneOut</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic._ApplyZoneOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic._ApplyZoneOut" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply Zoneout and returns the updated states.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.PostTrainingStepUpdate">
-<code class="sig-name descname"><span class="pre">PostTrainingStepUpdate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.PostTrainingStepUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update the global_step value.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt id="lingvo.core.rnn_cell.QuantizedLSTMCell">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></code><code class="sig-name descname"><span class="pre">QuantizedLSTMCell</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
