@@ -730,8 +730,10 @@ class TransformerEncoder(base_layer.BaseLayer):
         input_embs += self.task_emb.EmbLookup(theta.task_emb,
                                               input_batch.task_ids)
 
+      summary_utils.histogram('input_embs', input_embs)
       if p.model_dim != p.token_emb.embedding_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
+        summary_utils.histogram('emb_proj', input_embs)
 
       paddings = tf.cast(tf.transpose(paddings), py_utils.FPropDtype(p))
       if p.packed_input:

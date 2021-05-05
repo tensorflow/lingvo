@@ -703,6 +703,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
         if self._project_emb:
           inputs = self.emb_proj.FProp(theta.emb_proj, inputs)
+          summary_utils.histogram('emb_proj', inputs)
           inputs = self.ApplyClipping(theta, inputs)
 
         # Layer 0 intertwines with attention.
@@ -744,6 +745,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
         if self._project_out:
           xs = self.out_proj.FProp(theta.out_proj, xs)
+          summary_utils.histogram('out_proj', xs)
           xs = self.ApplyClipping(theta, xs)
 
         # Get intermediate attention information
