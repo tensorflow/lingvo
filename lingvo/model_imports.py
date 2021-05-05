@@ -84,6 +84,9 @@ def ImportParams(model_name,
   # 'model_name' follows <task>.<path>.<class name>
   if '.' not in model_name:
     raise ValueError('Invalid model name %s' % model_name)
+  if model_name.startswith('test.'):
+    # Test models don't need external imports.
+    return True
   model_module = model_name.rpartition('.')[0]
   # Try importing the module directly, in case it's a local import.
   success = _Import(model_module)
