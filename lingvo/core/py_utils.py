@@ -2636,19 +2636,24 @@ def ComputeGradients(
   assert filtered_vmap is not None
 
   # Filter out variables not contributing to 'loss_or_activations'.
+  # This doesn't work if the training loop is wrapped inside a tf.function,
+  # since all variables will be lifted out and trainable_variables will be
+  # empty. In that case we skip the check.
   trainable_variables = set(tf.trainable_variables())
+  if trainable_variables:
 
-  def Needed(v):
-    if isinstance(v, tf.Variable):
-      if v not in trainable_variables:
-        # Skip non-trainable variables. Otherwise,
-        # tf.Optimizer.apply_gradients throws up an exception instead
-        # of skipping the update.
-        return False
-    return True
+    def Needed(v):
+      if isinstance(v, tf.Variable):
+        if v not in trainable_variables:
+          # Skip non-trainable variables. Otherwise,
+          # tf.Optimizer.apply_gradients throws up an exception instead
+          # of skipping the update.
+          return False
+      return True
 
-  filtered_vmap = filtered_vmap.Filter(Needed)
-  assert filtered_vmap is not None
+    filtered_vmap = filtered_vmap.Filter(Needed)
+    assert filtered_vmap is not None
+
   filtered_vlist = filtered_vmap.Flatten()
 
   # Use caller-supplied gradient function if supplied.
