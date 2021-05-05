@@ -5581,9 +5581,22 @@ def ClearTpuSummaryTensors():
 
 
 def ComputationShape(split_size, topology=None):
-  """Decides the computation shape based on the split_size."""
+  """Decides the computation shape based on the split_size.
+
+  Args:
+    split_size: number of accelerators to use per split.
+    topology: a serialized string of `tensorflow.tpu.TopologyProto`, or a
+      `tf.tpu.experimental.Topology` object, that describes the TPU cluster
+      topology. If not set, it'll use a default setting based on split_size.
+
+  Returns:
+    A 4-element list that describes the computation shape.
+  """
   if topology:
-    topology_info = tf_topology.Topology(serialized=topology)
+    if isinstance(topology, tf.tpu.experimental.Topology):
+      topology_info = topology
+    else:
+      topology_info = tf_topology.Topology(serialized=topology)
   computation_shape = None
   if topology and functools.reduce(lambda a, b: a * b,
                                    topology_info.mesh_shape) == split_size:
