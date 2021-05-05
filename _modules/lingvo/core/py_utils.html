@@ -5733,9 +5733,22 @@
 
 
 <div class="viewcode-block" id="ComputationShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputationShape">[docs]</a><span class="k">def</span> <span class="nf">ComputationShape</span><span class="p">(</span><span class="n">split_size</span><span class="p">,</span> <span class="n">topology</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Decides the computation shape based on the split_size.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Decides the computation shape based on the split_size.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    split_size: number of accelerators to use per split.</span>
+<span class="sd">    topology: a serialized string of `tensorflow.tpu.TopologyProto`, or a</span>
+<span class="sd">      `tf.tpu.experimental.Topology` object, that describes the TPU cluster</span>
+<span class="sd">      topology. If not set, it&#39;ll use a default setting based on split_size.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A 4-element list that describes the computation shape.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">topology</span><span class="p">:</span>
-    <span class="n">topology_info</span> <span class="o">=</span> <span class="n">tf_topology</span><span class="o">.</span><span class="n">Topology</span><span class="p">(</span><span class="n">serialized</span><span class="o">=</span><span class="n">topology</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">topology</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">Topology</span><span class="p">):</span>
+      <span class="n">topology_info</span> <span class="o">=</span> <span class="n">topology</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">topology_info</span> <span class="o">=</span> <span class="n">tf_topology</span><span class="o">.</span><span class="n">Topology</span><span class="p">(</span><span class="n">serialized</span><span class="o">=</span><span class="n">topology</span><span class="p">)</span>
   <span class="n">computation_shape</span> <span class="o">=</span> <span class="kc">None</span>
   <span class="k">if</span> <span class="n">topology</span> <span class="ow">and</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span>
                                    <span class="n">topology_info</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">split_size</span><span class="p">:</span>

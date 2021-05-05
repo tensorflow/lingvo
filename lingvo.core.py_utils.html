@@ -2945,6 +2945,19 @@ the exact definition of weight for eval metrics.</p>
 <dt id="lingvo.core.py_utils.ComputationShape">
 <code class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></code><code class="sig-name descname"><span class="pre">ComputationShape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">split_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topology</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputationShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputationShape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decides the computation shape based on the split_size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>split_size</strong> – number of accelerators to use per split.</p></li>
+<li><p><strong>topology</strong> – a serialized string of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tensorflow.tpu.TopologyProto</span></code>, or a
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.tpu.experimental.Topology</span></code> object, that describes the TPU cluster
+topology. If not set, it’ll use a default setting based on split_size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A 4-element list that describes the computation shape.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
