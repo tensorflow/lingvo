@@ -371,6 +371,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     Wq, Wk, Wv: [D, N, H]
     Wout: [D, N, H]
 
+  Note it also allows k, v and q to have different input dimension by setting
+  input_dim as a dict: {'key': key_dim, 'value': value_dim, 'query': query_dim}.
+
   Input q:[B, T, D]; k:[B, S, D]; v:[B, S, D]
   q_proj:[B, T, N, H] = einsum('BTD,DNH->BTNH', x, Wq)
   k_proj:[B, S, N, H] = einsum('BSD,DNH->BSNH', x, Wk)
@@ -385,7 +388,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
   def Params(cls):
     """Params for _MultiHeadedAttention."""
     p = super().Params()
-    p.Define('input_dim', 0, 'Number of key nodes.')
+    p.Define(
+        'input_dim', 0,
+        'An integer or a dict of integer values as number of input nodes. If '
+        'input_dim is a dict, keys must be key, value and query.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     p.Define('num_heads', 1, 'Num of attention heads.')
     p.Define(
@@ -450,19 +456,31 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       assert p.weight_split_dims_mapping is not None
       assert p.activation_split_dims_mapping is not None
 
-    def ProjectInput():
+    def ProjectInput(input_dim):
       return p.proj_tpl.Copy().Set(
-          input_dim=p.input_dim,
+          input_dim=input_dim,
           num_heads=p.num_heads,
           use_bias=p.use_bias,
           device_mesh=p.device_mesh,
           weight_split_dims_mapping=p.weight_split_dims_mapping,
           make_output_proj_no_op=False)
 
-    self.CreateChild('key', ProjectInput())
-    self.CreateChild('query', ProjectInput())
+    if isinstance(p.input_dim, dict):
+      key_input_dim = p.input_dim['key']
+      value_input_dim = p.input_dim['value']
+      query_input_dim = p.input_dim['query']
+      assert key_input_dim, f'key_input_dim is {key_input_dim}'
+      assert query_input_dim, f'query_input_dim is {query_input_dim}'
+    else:
+      key_input_dim = p.input_dim
+      value_input_dim = p.input_dim
+      query_input_dim = p.input_dim
+
+    self.CreateChild('key', ProjectInput(key_input_dim))
+    self.CreateChild('query', ProjectInput(query_input_dim))
     if p.enable_value_proj:
-      self.CreateChild('value', ProjectInput())
+      assert value_input_dim, f'value_input_dim is {value_input_dim}'
+      self.CreateChild('value', ProjectInput(value_input_dim))
     if p.enable_per_dim_scale:
       self.CreateChild(
           'per_dim_scale',
@@ -470,11 +488,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     self.CreateChild('atten_dropout',
                      p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
     # Setting is_output_projection=True to set the projection direction
-    # from hidden dim to input dim.
+    # from hidden dim to input dim. Ouput projection follows query_input_dim.
     self.CreateChild(
         'post',
         p.proj_tpl.Copy().Set(
-            input_dim=p.input_dim,
+            input_dim=query_input_dim,
             num_heads=p.num_heads,
             is_output_projection=True,
             use_bias=p.use_bias,
@@ -3287,7 +3305,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('input_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('input_dim', 0, 'Dimension of the transformer input.')
     p.Define('hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define(
         'num_heads', 8, 'Number of attention heads. This can be a list in'

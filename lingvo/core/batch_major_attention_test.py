@@ -230,6 +230,39 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [27.417763, 31.783672, 19.99568, 23.907103, 21.078259, 28.429199],
           np.sum(context_vec_out, axis=1))
 
+  def testMultiHeadedCrossAttentionDotProduct(self):
+    with self.session(use_gpu=True) as sess:
+      input_vecs, input_padding, _, _ = self._AttentionInputs()
+      # Set query input dim to 8 with value as concat of input_vecs.
+      query_vecs = tf.concat([input_vecs, input_vecs], axis=-1)
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='self_atten',
+          num_heads=2,
+          input_dim={
+              'query': 8,
+              'key': 4,
+              'value': 4
+          },
+          hidden_dim=4)
+
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      ctx_vec, _ = l.FProp(
+          l.theta,
+          query_vecs,
+          input_vecs,
+          input_vecs,
+          input_padding,
+          segment_mask=None)
+      context_vec_out = sess.run(ctx_vec)
+      context_vec_out = np.reshape(context_vec_out, (12, 24))
+      self.assertAllClose([
+          11.009628, 10.825181, 12.373755, 12.3311825, 7.5814877, 7.620001,
+          9.472344, 9.438789, 8.375568, 8.353212, 11.167051, 11.240829
+      ], np.sum(context_vec_out, axis=1))
+
   def testCausalSegmentMask(self):
     # input_batch:6, seq_len:6. Test n = 2 case.
     with self.session(use_gpu=False) as sess:
