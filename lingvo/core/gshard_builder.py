@@ -1488,6 +1488,9 @@ class MoEBuilder(builder.Base):
 
   def _ShardedFeedForwardNetworksWeights(self, name):
     """Gets the sharded weights for the two layer feedforward nets."""
+    tf.logging.warning(
+        'Deprecated. DenseBuilder should universally be used for MoE, '
+        'Dense and Hybrid models.')
     p = self.params
     emh_shape = [p.e_dim, p.model_dim, p.moe_hidden_dim]
     # See VarianceScalingInitializer in py_utils
@@ -1557,6 +1560,9 @@ class MoEBuilder(builder.Base):
 
   def _ShardedMoEPositionWiseFeedForwardNetworks(self, name):
     """Simple MoE FFN with xla_sharding."""
+    tf.logging.warning(
+        'Deprecated. DenseBuilder should universally be used for MoE, '
+        'Dense and Hybrid models.')
     p = self.params
     num_groups = p.num_groups or p.num_devices
 
@@ -1762,17 +1768,19 @@ class DenseBuilder(MoEBuilder):
     return self._Fn(name,
                     lambda x: self._MeshSplit(x, tensor_split_dims_mapping))
 
-  def _ShardedFeedForwardNetworksWeights(self, name):
+  def _ShardedFeedForwardNetworksWeights(self, name, model_dim=None):
     """Gets the sharded weights for the two layer feedforward nets."""
     p = self.params
     device_mesh = self._device_mesh
-    emh_shape = [p.e_dim, p.model_dim, p.moe_hidden_dim]
+    if model_dim is None:
+      model_dim = p.model_dim
+    emh_shape = [p.e_dim, model_dim, p.moe_hidden_dim]
     # See VarianceScalingInitializer in py_utils
     #   scale        ~ 1.0
     #   reduced_dims ~ params.input_dim
     #   mode         ~ 'fan_in'
     #
-    stddev = (1. / p.model_dim)**0.5
+    stddev = (1. / model_dim)**0.5
     wi_kernel_param_init_scale = stddev * 3.**0.5
     wi_pc = gshard_layers.ShardedWeightParams(
         shape=emh_shape,
@@ -1781,7 +1789,7 @@ class DenseBuilder(MoEBuilder):
         tensor_split_dims_mapping=p.emh_split)
 
     # EHM Tensor (output transformation after RELU)
-    ehm_shape = [p.e_dim, p.moe_hidden_dim, p.model_dim]
+    ehm_shape = [p.e_dim, p.moe_hidden_dim, model_dim]
     # See VarianceScalingInitializer in py_utils
     #   scale        ~ 1.0
     #   reduced_dims ~ params.moe_hidden_dim
