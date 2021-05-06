@@ -404,6 +404,8 @@ projection, its shape is [D, N, H].</p>
 Wout: [D, N, H]</p>
 </dd>
 </dl>
+<p>Note it also allows k, v and q to have different input dimension by setting
+input_dim as a dict: {‘key’: key_dim, ‘value’: value_dim, ‘query’: query_dim}.</p>
 <p>Input q:[B, T, D]; k:[B, S, D]; v:[B, S, D]
 q_proj:[B, T, N, H] = einsum(‘BTD,DNH-&gt;BTNH’, x, Wq)
 k_proj:[B, S, N, H] = einsum(‘BSD,DNH-&gt;BSNH’, x, Wk)

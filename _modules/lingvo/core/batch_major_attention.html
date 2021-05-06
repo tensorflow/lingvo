@@ -523,6 +523,9 @@
 <span class="sd">    Wq, Wk, Wv: [D, N, H]</span>
 <span class="sd">    Wout: [D, N, H]</span>
 
+<span class="sd">  Note it also allows k, v and q to have different input dimension by setting</span>
+<span class="sd">  input_dim as a dict: {&#39;key&#39;: key_dim, &#39;value&#39;: value_dim, &#39;query&#39;: query_dim}.</span>
+
 <span class="sd">  Input q:[B, T, D]; k:[B, S, D]; v:[B, S, D]</span>
 <span class="sd">  q_proj:[B, T, N, H] = einsum(&#39;BTD,DNH-&gt;BTNH&#39;, x, Wq)</span>
 <span class="sd">  k_proj:[B, S, N, H] = einsum(&#39;BSD,DNH-&gt;BSNH&#39;, x, Wk)</span>
@@ -537,7 +540,10 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Params for _MultiHeadedAttention.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of key nodes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;An integer or a dict of integer values as number of input nodes. If &#39;</span>
+        <span class="s1">&#39;input_dim is a dict, keys must be key, value and query.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of hidden nodes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Num of attention heads.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -602,19 +608,31 @@
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="nf">ProjectInput</span><span class="p">():</span>
+    <span class="k">def</span> <span class="nf">ProjectInput</span><span class="p">(</span><span class="n">input_dim</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
           <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
           <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
           <span class="n">make_output_proj_no_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;query&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+      <span class="n">key_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+      <span class="n">value_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+      <span class="n">query_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">[</span><span class="s1">&#39;query&#39;</span><span class="p">]</span>
+      <span class="k">assert</span> <span class="n">key_input_dim</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;key_input_dim is </span><span class="si">{</span><span class="n">key_input_dim</span><span class="si">}</span><span class="s1">&#39;</span>
+      <span class="k">assert</span> <span class="n">query_input_dim</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;query_input_dim is </span><span class="si">{</span><span class="n">query_input_dim</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">key_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="n">value_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="n">query_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">(</span><span class="n">key_input_dim</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;query&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">(</span><span class="n">query_input_dim</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_value_proj</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
+      <span class="k">assert</span> <span class="n">value_input_dim</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;value_input_dim is </span><span class="si">{</span><span class="n">value_input_dim</span><span class="si">}</span><span class="s1">&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">(</span><span class="n">value_input_dim</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
           <span class="s1">&#39;per_dim_scale&#39;</span><span class="p">,</span>
@@ -622,11 +640,11 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_dropout&#39;</span><span class="p">,</span>
                      <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">))</span>
     <span class="c1"># Setting is_output_projection=True to set the projection direction</span>
-    <span class="c1"># from hidden dim to input dim.</span>
+    <span class="c1"># from hidden dim to input dim. Ouput projection follows query_input_dim.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
         <span class="s1">&#39;post&#39;</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+            <span class="n">input_dim</span><span class="o">=</span><span class="n">query_input_dim</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
             <span class="n">is_output_projection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
@@ -3439,7 +3457,7 @@
 <div class="viewcode-block" id="TransformerAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention hidden dim.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of attention heads. This can be a list in&#39;</span>
