@@ -391,14 +391,13 @@ class BaseInputGenerator(base_layer.BaseLayer):
           # and remove fields they don't want to enqueue onto TPU.
           # However, the TPUEmbedding singleton and TPU embedding enqueue ops
           # are currently constructed after CreateTpuEnqueueOps() is called.
-          emb_batch = [py_utils.NestedMap() for _ in range(len(batch))]
-          new_batch = [py_utils.NestedMap() for _ in range(len(batch))]
+          emb_batch = []
+          new_batch = []
           for i, b in enumerate(batch):
-            for k, v in b.items():
-              if isinstance(v, tf.sparse.SparseTensor):
-                emb_batch[i][k] = v
-              else:
-                new_batch[i][k] = v
+            emb_batch.append(
+                b.Filter(lambda v: isinstance(v, tf.sparse.SparseTensor)))
+            new_batch.append(
+                b.Filter(lambda v: not isinstance(v, tf.sparse.SparseTensor)))
           self._per_host_emb_batches.append(emb_batch)
           batch = new_batch
 

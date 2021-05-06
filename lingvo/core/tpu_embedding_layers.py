@@ -789,7 +789,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         ret[k] = v
       else:
         # Non-sequence embeddings, we fill the "time" dimension with 1.
-        ret[k] = tf.expand_dims(v, axis=[1])
+        with tf.name_scope(k):
+          ret[k] = tf.expand_dims(v, axis=[1])
     return ret
 
   def EmbLookup(self, ids_map: Dict[str, tf.Tensor]) -> Dict[str, tf.Tensor]:
