@@ -189,7 +189,7 @@
 <p>Base class that simplifies configuration of Milan dual encoder models.</p>
 <p><a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoderRecipe</span></code></a> is a <code class="xref py py-obj docutils literal notranslate"><span class="pre">SingleTaskModelParams</span></code> with extra builder-like
 methods for configuring the dual encoder (the <a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Task" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Task"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Task()</span></code></a> params) and input
-generators (<a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Train" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Train()</span></code></a>, <a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Dev" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Dev"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Dev()</span></code></a>, <a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Test" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Test"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Test()</span></code></a>).</p>
+generators (advertised through <a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.GetAllDatasetParams" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.GetAllDatasetParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetAllDatasetParams()</span></code></a>).</p>
 <p>In typical usage, model definitions subclass <a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoderRecipe</span></code></a>, call helper
 methods in the constructor to configure the dual encoder, and specify a
 <a class="reference internal" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.default_dataset" title="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.default_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_dataset</span></code></a> for the model to run on. For example:</p>
@@ -265,21 +265,22 @@ experiment).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Train">
-<code class="sig-name descname"><span class="pre">Train</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/params/dual_encoder_recipe.html#DualEncoderRecipe.Train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Train" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns Params for the training dataset.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Dev">
-<code class="sig-name descname"><span class="pre">Dev</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/params/dual_encoder_recipe.html#DualEncoderRecipe.Dev"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Dev" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns Params for the development dataset.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Test">
-<code class="sig-name descname"><span class="pre">Test</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/params/dual_encoder_recipe.html#DualEncoderRecipe.Test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Test" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns Params for the test dataset.</p>
+<dt id="lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.GetAllDatasetParams">
+<code class="sig-name descname"><span class="pre">GetAllDatasetParams</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/params/dual_encoder_recipe.html#DualEncoderRecipe.GetAllDatasetParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.GetAllDatasetParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enumerates all dataset params for this model.</p>
+<p>If implemented, other methods (such as Train, Dev, and Test) will not
+be treated as dataset specifications.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>dataset_params}.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>A dict of {dataset_name</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference internal" href="lingvo.core.base_model_params.html#lingvo.core.base_model_params.GetAllDatasetParamsNotImplementedError" title="lingvo.core.base_model_params.GetAllDatasetParamsNotImplementedError"><strong>GetAllDatasetParamsNotImplementedError</strong></a> – by default.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

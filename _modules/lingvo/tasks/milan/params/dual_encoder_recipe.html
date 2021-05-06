@@ -188,7 +188,7 @@
 
 <span class="sd">  `DualEncoderRecipe` is a `SingleTaskModelParams` with extra builder-like</span>
 <span class="sd">  methods for configuring the dual encoder (the `Task()` params) and input</span>
-<span class="sd">  generators (`Train()`, `Dev()`, `Test()`).</span>
+<span class="sd">  generators (advertised through `GetAllDatasetParams()`).</span>
 
 <span class="sd">  In typical usage, model definitions subclass `DualEncoderRecipe`, call helper</span>
 <span class="sd">  methods in the constructor to configure the dual encoder, and specify a</span>
@@ -299,25 +299,30 @@
   <span class="c1"># Methods below implement the lingvo SingleTaskModelParams interface, allowing</span>
   <span class="c1"># the recipe to be registered with `RegisterSingleTaskModel()`.</span>
 
-<div class="viewcode-block" id="DualEncoderRecipe.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Train">[docs]</a>  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns Params for the training dataset.&quot;&quot;&quot;</span>
-    <span class="n">dataset_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span>
-        <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TRAIN</span><span class="p">,</span>
-        <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="n">dataset_fn</span><span class="o">=</span><span class="n">dataset_fn</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="DualEncoderRecipe.Dev"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Dev">[docs]</a>  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns Params for the development dataset.&quot;&quot;&quot;</span>
-    <span class="n">dataset_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">DEV</span><span class="p">,</span> <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Dev&#39;</span><span class="p">,</span> <span class="n">dataset_fn</span><span class="o">=</span><span class="n">dataset_fn</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="DualEncoderRecipe.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Test">[docs]</a>  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns Params for the test dataset.&quot;&quot;&quot;</span>
-    <span class="n">dataset_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TEST</span><span class="p">,</span> <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">dataset_fn</span><span class="o">=</span><span class="n">dataset_fn</span><span class="p">)</span></div>
+<div class="viewcode-block" id="DualEncoderRecipe.GetAllDatasetParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.GetAllDatasetParams">[docs]</a>  <span class="k">def</span> <span class="nf">GetAllDatasetParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;Train&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
+                <span class="n">dataset_fn</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span>
+                    <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TRAIN</span><span class="p">,</span>
+                    <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)),</span>
+        <span class="s1">&#39;Dev&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Dev&#39;</span><span class="p">,</span>
+                <span class="n">dataset_fn</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span>
+                    <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">DEV</span><span class="p">,</span>
+                    <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+        <span class="s1">&#39;Test&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span>
+                <span class="n">dataset_fn</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Read</span><span class="p">,</span>
+                    <span class="n">split</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">Split</span><span class="o">.</span><span class="n">TEST</span><span class="p">,</span>
+                    <span class="n">shuffle_buffer_size</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+    <span class="p">}</span></div>
 
 <div class="viewcode-block" id="DualEncoderRecipe.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.milan.params.dual_encoder_recipe.html#lingvo.tasks.milan.params.dual_encoder_recipe.DualEncoderRecipe.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">task_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
