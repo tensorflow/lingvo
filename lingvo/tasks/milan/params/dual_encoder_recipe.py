@@ -36,7 +36,7 @@ class DualEncoderRecipe(base_model_params.SingleTaskModelParams):
 
   `DualEncoderRecipe` is a `SingleTaskModelParams` with extra builder-like
   methods for configuring the dual encoder (the `Task()` params) and input
-  generators (`Train()`, `Dev()`, `Test()`).
+  generators (advertised through `GetAllDatasetParams()`).
 
   In typical usage, model definitions subclass `DualEncoderRecipe`, call helper
   methods in the constructor to configure the dual encoder, and specify a
@@ -147,25 +147,30 @@ class DualEncoderRecipe(base_model_params.SingleTaskModelParams):
   # Methods below implement the lingvo SingleTaskModelParams interface, allowing
   # the recipe to be registered with `RegisterSingleTaskModel()`.
 
-  def Train(self):
-    """Returns Params for the training dataset."""
-    dataset_fn = functools.partial(
-        self.dataset.Read,
-        split=constants.Split.TRAIN,
-        shuffle_buffer_size=1024)
-    return self.input_params.Copy().Set(name='Train', dataset_fn=dataset_fn)
-
-  def Dev(self):
-    """Returns Params for the development dataset."""
-    dataset_fn = functools.partial(
-        self.dataset.Read, split=constants.Split.DEV, shuffle_buffer_size=0)
-    return self.input_params.Copy().Set(name='Dev', dataset_fn=dataset_fn)
-
-  def Test(self):
-    """Returns Params for the test dataset."""
-    dataset_fn = functools.partial(
-        self.dataset.Read, split=constants.Split.TEST, shuffle_buffer_size=0)
-    return self.input_params.Copy().Set(name='Test', dataset_fn=dataset_fn)
+  def GetAllDatasetParams(self):
+    return {
+        'Train':
+            self.input_params.Copy().Set(
+                name='Train',
+                dataset_fn=functools.partial(
+                    self.dataset.Read,
+                    split=constants.Split.TRAIN,
+                    shuffle_buffer_size=1024)),
+        'Dev':
+            self.input_params.Copy().Set(
+                name='Dev',
+                dataset_fn=functools.partial(
+                    self.dataset.Read,
+                    split=constants.Split.DEV,
+                    shuffle_buffer_size=0)),
+        'Test':
+            self.input_params.Copy().Set(
+                name='Test',
+                dataset_fn=functools.partial(
+                    self.dataset.Read,
+                    split=constants.Split.TEST,
+                    shuffle_buffer_size=0)),
+    }
 
   def Task(self):
     task_params = self.task_params.Copy()
