@@ -191,7 +191,7 @@ class RNNCell(quant_utils.QuantizableLayer):
       # This quantized mixed operation should probably occur as fused kernel to
       # avoid quantized-math rounding errors. Current accuracy has not been
       # verified.
-      prev_weight = self.QWeight(zo_prob, domain=qdomain)
+      prev_weight = self.QWeight(tf.cast(zo_prob, prev_v.dtype), domain=qdomain)
       new_weight = self.QWeight(1.0 - prev_weight, domain=qdomain)
       if qt is None:
         mix_prev = tf.multiply(tf.fill(tf.shape(prev_v), prev_weight), prev_v)
