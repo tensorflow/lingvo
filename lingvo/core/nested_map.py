@@ -131,8 +131,7 @@ class NestedMap(Dict[str, Any]):
   def GetItem(self, key: str) -> Any:
     """Gets the value for the nested `key`.
 
-    Note that indexing lists is not supported, names with underscores will be
-    considered as one key.
+    Names with underscores will be considered as one key.
 
     Args:
       key: str of the form
@@ -159,8 +158,7 @@ class NestedMap(Dict[str, Any]):
   def Get(self, key: str, default: Optional[Any] = None) -> Any:
     """Gets the value for nested `key`, returns `default` if key does not exist.
 
-    Note that indexing lists is not supported, names with underscores will be
-    considered as one key.
+    Names with underscores will be considered as one key.
 
     Args:
       key: str of the form
