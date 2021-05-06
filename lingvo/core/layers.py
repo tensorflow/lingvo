@@ -3559,6 +3559,9 @@ class SharedSoftmaxLayer(base_layer.BaseLayer):
       p.vocab_size = softmax_params.num_classes
     if p.vocab_size != softmax_params.num_classes:
       raise ValueError('SharedSoftmaxLayer vocab_size must equal num_classes.')
+    if p.scale_sqrt_depth and p.input_dim == 0:
+      tf.logging.warning(
+          'Input_dim is not set for scaled embedding! Outputs will be 0s!')
     self.CreateChild('softmax', softmax_params)
 
   def _CreateChildrenVariables(self):
