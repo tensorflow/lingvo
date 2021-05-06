@@ -3711,6 +3711,9 @@
       <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">softmax_params</span><span class="o">.</span><span class="n">num_classes</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">!=</span> <span class="n">softmax_params</span><span class="o">.</span><span class="n">num_classes</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;SharedSoftmaxLayer vocab_size must equal num_classes.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;Input_dim is not set for scaled embedding! Outputs will be 0s!&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">softmax_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SharedSoftmaxLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
