@@ -172,30 +172,14 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
 
-<div class="viewcode-block" id="Gelu"><a class="viewcode-back" href="../../../lingvo.core.activations.html#lingvo.core.activations.Gelu">[docs]</a><span class="k">def</span> <span class="nf">Gelu</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Gaussian Error Linear Unit.</span>
-
-<span class="sd">  This is a smoother version of the RELU.</span>
-<span class="sd">  Original paper: https://arxiv.org/abs/1606.08415</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    input_tensor: float Tensor to perform activation.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    `input_tensor` with the GELU activation applied.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">cdf</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">erf</span><span class="p">(</span>
-      <span class="n">input_tensor</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
-  <span class="k">return</span> <span class="n">input_tensor</span> <span class="o">*</span> <span class="n">cdf</span></div>
-
-
 <span class="c1"># Supported activation functions.</span>
 <span class="n">_ACTIVATIONS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
     <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span>
     <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span>
     <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span>
-    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="n">Gelu</span><span class="p">,</span>
+    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">,</span>
+    <span class="s1">&#39;GELU_APPROXIMATE&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
     <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">swish</span><span class="p">,</span>
     <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softplus</span><span class="p">,</span>
     <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
@@ -207,10 +191,13 @@
     <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
     <span class="c1"># 1 / (1 + exp(-x))</span>
     <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># neg, exp, add, div</span>
-    <span class="c1"># (exp(2*x) - 1) / (exp(2*x) - 1)</span>
+    <span class="c1"># (exp(2*x) - 1) / (exp(2*x) + 1)</span>
     <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># mul, exp, sub, mul, exp, add, div</span>
-    <span class="c1"># Gelu is tough, let&#39;s assume it is approximated as x * sigmoid(1.702 * x).</span>
-    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># mul, sigmoid, mul</span>
+    <span class="c1"># Gelu is tough, let&#39;s assume it is</span>
+    <span class="c1"># .5 * x * (1 + tanh(x * 0.7978845608 * (1 + 0.044715 * x * x)))</span>
+    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>  <span class="c1"># mul, mul, add, tanh, mul, mul, add, mul, mul</span>
+    <span class="c1"># Or approximated as x * sigmoid(1.702 * x).</span>
+    <span class="s1">&#39;GELU_APPROXIMATE&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># mul, sigmoid, mul</span>
     <span class="c1"># x * sigmoid(x)</span>
     <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># sigmoid, mul</span>
     <span class="c1"># ln(1+exp(x))</span>
