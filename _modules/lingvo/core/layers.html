@@ -5357,6 +5357,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
         <span class="s1">&#39;Non-linearity applied after the dense layer in the value branch.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gate_activation&#39;</span><span class="p">,</span> <span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Non-linearity applied for the gating.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_tpl&#39;</span><span class="p">,</span> <span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Dropout applied to output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_residual&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether or not to add inputs to outputs.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -5387,7 +5389,7 @@
     <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dense_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gate_layer&#39;</span>
     <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;SIGMOID&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">gate_activation</span>
     <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gate_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
