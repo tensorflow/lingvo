@@ -4859,6 +4859,44 @@ class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
       npy_output = (npy_input - mean) / np.sqrt(variance + p.epsilon)
       self.assertAllClose(sym_output, npy_output)
 
+  def testLayerNormFPropNoCenter(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.LayerNorm.Params()
+      p.name = 'ln'
+      p.input_dim = 3
+      p.center = False
+      layer_norm = p.Instantiate()
+      npy_input = np.random.normal(1.0, 0.5,
+                                   [2, 4, 4, p.input_dim]).astype('float32')
+      inputs = tf.constant(npy_input, dtype=tf.float32)
+      output = layer_norm.FPropDefaultTheta(inputs)
+
+      self.evaluate(tf.global_variables_initializer())
+      sym_output = self.evaluate(output)
+
+      # Mean should be non-zero.
+      self.assertNotAlmostEqual(0.0, sym_output.sum())
+      # Mean of squared should be close to one.
+      self.assertNear(1.0, np.mean(sym_output**2), 1e-4)
+
+  def testLayerNormFPropNoCenterFused(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.LayerNorm.Params()
+      p.name = 'ln'
+      p.input_dim = 3
+      p.center = False
+      p.use_fused_layernorm = True
+      layer_norm = p.Instantiate()
+      npy_input = np.random.normal(1.0, 0.5,
+                                   [2, 4, 4, p.input_dim]).astype('float32')
+      inputs = tf.constant(npy_input, dtype=tf.float32)
+      with self.assertRaisesRegex(ValueError, 'does not support center=false'):
+        layer_norm.FPropDefaultTheta(inputs)
+
   def testLayerNormBProp(self):
     with self.session(use_gpu=True) as sess:
       tf.random.set_seed(398847392)

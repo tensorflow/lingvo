@@ -4050,6 +4050,8 @@ class LayerNorm(base_layer.BaseLayer):
         'the layer weight-compatible with the implementation in '
         'contrib.layers.')
     p.Define('bias', True, 'Whether to use bias.')
+    p.Define('center', True,
+             'Whether to subtract the mean when computing variance.')
     p.Define('use_defun', True, 'Whether to use CallDefun for normalization.')
     return p
 
@@ -4117,6 +4119,8 @@ class LayerNorm(base_layer.BaseLayer):
         scale = 1.0 + cur_scale
 
       if p.use_fused_layernorm:
+        if not p.center:
+          raise ValueError('use_fused_layernorm does not support center=false.')
         counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
             inputs, axes=[-1], keepdims=True)
         mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
@@ -4131,25 +4135,22 @@ class LayerNorm(base_layer.BaseLayer):
       def Normalize(xs):
         """Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift."""
         x_shape = py_utils.GetShape(xs.x)
-        inner_dim = x_shape[-1]
-        x_reshaped = tf.reshape(xs.x, [-1, inner_dim])
+        x_reshaped = tf.reshape(xs.x, [-1, x_shape[-1]])
         mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
-        if x_reshaped.dtype == tf.bfloat16:
+        if p.center:
+          x_in = x_reshaped - mean
+        else:
+          x_in = x_reshaped
+        if x_in.dtype == tf.bfloat16:
           # tf.rsqrt and SquaredDifference are not implemented for bfloat16,
           # hence we always cast into tf.float32.
-          variance = tf.reduce_mean(
-              tf.square(tf.cast(x_reshaped - mean, tf.float32)),
-              axis=[1],
-              keepdims=True)
-          x_norm_den_inv = tf.cast(
-              tf.math.rsqrt(tf.cast(variance + p.epsilon, tf.float32)),
-              x_reshaped.dtype)
+          x_cast = tf.cast(x_in, tf.float32)
         else:
-          variance = tf.reduce_mean(
-              tf.square(x_reshaped - mean), axis=[1], keepdims=True)
-          x_norm_den_inv = tf.cast(
-              tf.math.rsqrt(variance + p.epsilon), x_reshaped.dtype)
-        x_norm = (x_reshaped - mean) * x_norm_den_inv
+          x_cast = x_in
+        variance = tf.reduce_mean(tf.square(x_cast), axis=[1], keepdims=True)
+        x_norm_den_inv = tf.cast(
+            tf.math.rsqrt(variance + p.epsilon), x_in.dtype)
+        x_norm = x_in * x_norm_den_inv
         x_norm = tf.reshape(x_norm, x_shape)
         return x_norm * xs.scale + xs.bias
 
