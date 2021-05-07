@@ -20,30 +20,14 @@ from lingvo.core import base_layer
 from lingvo.core import py_utils
 
 
-def Gelu(input_tensor):
-  """Gaussian Error Linear Unit.
-
-  This is a smoother version of the RELU.
-  Original paper: https://arxiv.org/abs/1606.08415
-
-  Args:
-    input_tensor: float Tensor to perform activation.
-
-  Returns:
-    `input_tensor` with the GELU activation applied.
-  """
-  cdf = 0.5 * (1.0 + tf.math.erf(
-      input_tensor / tf.cast(tf.sqrt(2.0), input_tensor.dtype)))
-  return input_tensor * cdf
-
-
 # Supported activation functions.
 _ACTIVATIONS = {
     'RELU': tf.nn.relu,
     'RELU6': tf.nn.relu6,
     'SIGMOID': tf.sigmoid,
     'TANH': tf.tanh,
-    'GELU': Gelu,
+    'GELU': tf.nn.gelu,
+    'GELU_APPROXIMATE': lambda x: tf.nn.gelu(x, approximate=True),
     'SWISH': tf.nn.swish,
     'SOFTPLUS': tf.nn.softplus,
     'NONE': tf.identity,
@@ -55,10 +39,13 @@ _ACTIVATIONS_FLOPS = {
     'RELU6': 1,
     # 1 / (1 + exp(-x))
     'SIGMOID': 4,  # neg, exp, add, div
-    # (exp(2*x) - 1) / (exp(2*x) - 1)
+    # (exp(2*x) - 1) / (exp(2*x) + 1)
     'TANH': 7,  # mul, exp, sub, mul, exp, add, div
-    # Gelu is tough, let's assume it is approximated as x * sigmoid(1.702 * x).
-    'GELU': 6,  # mul, sigmoid, mul
+    # Gelu is tough, let's assume it is
+    # .5 * x * (1 + tanh(x * 0.7978845608 * (1 + 0.044715 * x * x)))
+    'GELU': 15,  # mul, mul, add, tanh, mul, mul, add, mul, mul
+    # Or approximated as x * sigmoid(1.702 * x).
+    'GELU_APPROXIMATE': 6,  # mul, sigmoid, mul
     # x * sigmoid(x)
     'SWISH': 5,  # sigmoid, mul
     # ln(1+exp(x))

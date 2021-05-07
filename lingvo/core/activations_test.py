@@ -16,7 +16,6 @@
 """Tests for layers."""
 
 import lingvo.compat as tf
-from lingvo.core import activations
 from lingvo.core import test_utils
 import numpy as np
 
@@ -27,18 +26,15 @@ class ActivationsTest(test_utils.TestCase):
     with self.session(use_gpu=True):
       inputs = tf.constant(
           np.linspace(-10.0, 10.0, num=21, dtype='float32'), dtype=tf.float32)
-      grads_gelu = tf.gradients(activations.Gelu(inputs), inputs)
+      grads_gelu = tf.gradients(tf.nn.gelu(inputs), inputs)
       grads_relu = tf.gradients(tf.nn.relu(inputs), inputs)
 
-      self.assertEqual(
-          0.0,
-          activations.Gelu(tf.constant(-10.0, dtype='float32')).eval())
-      self.assertEqual(
-          0.0,
-          activations.Gelu(tf.constant(0.0, dtype='float32')).eval())
-      self.assertEqual(
-          10.0,
-          activations.Gelu(tf.constant(10.0, dtype='float32')).eval())
+      self.assertEqual(0.0,
+                       tf.nn.gelu(tf.constant(-10.0, dtype='float32')).eval())
+      self.assertEqual(0.0,
+                       tf.nn.gelu(tf.constant(0.0, dtype='float32')).eval())
+      self.assertEqual(10.0,
+                       tf.nn.gelu(tf.constant(10.0, dtype='float32')).eval())
       actual_grads_gelu = grads_gelu[0].eval()
       actual_grads_relu = grads_relu[0].eval()
 
