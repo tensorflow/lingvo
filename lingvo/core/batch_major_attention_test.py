@@ -1820,7 +1820,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       print(f'actual: {repr(actual)}, {actual.shape}')
       print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
       print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual)
+      self.assertAllClose(expected, actual, atol=1e-5)
       self.assertEqual(
           tuple(expected.shape), (batch_size, max_seqlen, input_dim))
 

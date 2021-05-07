@@ -5205,6 +5205,8 @@ class GluLayer(base_layer.BaseLayer):
     p.Define(
         'activation', 'NONE',
         'Non-linearity applied after the dense layer in the value branch.')
+    p.Define('gate_activation', 'SIGMOID',
+             'Non-linearity applied for the gating.')
     p.Define('dropout_tpl', DropoutLayer.Params(), 'Dropout applied to output.')
     p.Define('apply_residual', True, 'Whether or not to add inputs to outputs.')
     return p
@@ -5235,7 +5237,7 @@ class GluLayer(base_layer.BaseLayer):
     params = p.dense_tpl.Copy()
     params.name = 'gate_layer'
     params.input_dim = p.input_dim
-    params.activation = 'SIGMOID'
+    params.activation = p.gate_activation
     params.output_dim = output_dim
     self.CreateChild('gate_layer', params)
 
