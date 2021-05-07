@@ -227,6 +227,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;spmd&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether program is running under SPMD mode.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;write_train_input_stats&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to write input data stats during training.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_metrics&#39;</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="s1">&#39;Overrides TpuEvalMetrics.max_metrics&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -514,11 +515,12 @@
 
 <div class="viewcode-block" id="TrainProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TrainProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">spmd</span> <span class="o">=</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">spmd</span> <span class="ow">or</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">(</span><span class="n">max_metrics</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_metrics</span><span class="p">)</span>
     <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
 
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
@@ -697,8 +699,9 @@
 
 <div class="viewcode-block" id="EvalProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EvalProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">(</span><span class="n">max_metrics</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_metrics</span><span class="p">)</span>
       <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
       <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
@@ -1001,6 +1004,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_warmup_seconds</span> <span class="o">=</span> <span class="mi">60</span>
 
 <div class="viewcode-block" id="MLPerfTrainDecodeProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfTrainDecodeProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;global_batch_size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">global_batch_size</span><span class="p">)</span>
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;max_sequence_length&#39;</span><span class="p">,</span>
@@ -1011,7 +1015,7 @@
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;opt_learning_rate_warmup_steps&#39;</span><span class="p">,</span>
                            <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">(</span><span class="n">max_metrics</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_metrics</span><span class="p">)</span>
     <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
