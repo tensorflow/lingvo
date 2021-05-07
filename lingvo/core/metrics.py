@@ -185,9 +185,9 @@ class TpuEvalMetrics:
   instead).
   """
 
-  def __init__(self):
+  def __init__(self, max_metrics=256):
     self._metrics = None
-    self._max_metrics = 256
+    self._max_metrics = max_metrics
 
     # Loop-carried values alternate value and weight; all values are scalars.
     self._initial_values = (2 *
@@ -211,7 +211,7 @@ class TpuEvalMetrics:
       loop).
     """
     num_metrics = len(metric_dict)
-    assert num_metrics <= self._max_metrics, ('Increase _max_metrics to >= %d' %
+    assert num_metrics <= self._max_metrics, ('Increase max_metrics to >= %d' %
                                               num_metrics)
     self._metrics = metric_dict
 

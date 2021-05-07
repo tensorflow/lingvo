@@ -75,6 +75,7 @@ class BaseProgram:
     p.Define('spmd', False, 'Whether program is running under SPMD mode.')
     p.Define('write_train_input_stats', False,
              'Whether to write input data stats during training.')
+    p.Define('max_metrics', 256, 'Overrides TpuEvalMetrics.max_metrics')
     return p
 
   def __init__(self,
@@ -362,11 +363,12 @@ class TrainProgram(BaseProgram):
 
   def BuildTpuSubgraph(self):
     tf.logging.info('TrainProgram BuildTpuSubGraph')
+    p = self.params
     self.spmd = (
         self.params.spmd or
         self._task_params.input.use_partitioned_infeed_queue)
 
-    self._eval_metrics = metrics.TpuEvalMetrics()
+    self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
     data_parallelism = self.data_parallelism
 
     with cluster_factory.SetImmediatelyInstantiateVariables(False):
@@ -545,8 +547,9 @@ class EvalProgram(BaseProgram):
 
   def BuildTpuSubgraph(self):
     tf.logging.info('EvalProgram BuildTpuSubGraph')
+    p = self.params
     with cluster_factory.SetEval(True):
-      self._eval_metrics = metrics.TpuEvalMetrics()
+      self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
       data_parallelism = self.data_parallelism
       with cluster_factory.SetImmediatelyInstantiateVariables(False):
         self._model = self._InstantiateTaskModel(self._task_params)
@@ -849,6 +852,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     self._warmup_seconds = 60
 
   def BuildTpuSubgraph(self):
+    p = self.params
     if self._ml_perf_log:
       mlp_log.mlperf_print('global_batch_size', self._ml_perf.global_batch_size)
       mlp_log.mlperf_print('max_sequence_length',
@@ -859,7 +863,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       mlp_log.mlperf_print('opt_learning_rate_warmup_steps',
                            self._ml_perf.warmup_steps)
 
-    self._eval_metrics = metrics.TpuEvalMetrics()
+    self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
     data_parallelism = self.data_parallelism
     with cluster_factory.SetImmediatelyInstantiateVariables(False):
       self._train_model = self._train_task_params.Instantiate()
