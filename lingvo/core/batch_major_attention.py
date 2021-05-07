@@ -402,8 +402,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define(
         'enable_value_proj', True, 'Whether value v is pre-projected '
         ' before self attention or not.')
-    p.Define('enable_per_dim_scale', True,
-             'Whether using per_dim_scale or scaling by a constant factor.')
+    p.Define('enable_query_scale', True, 'Enable scaling of query vector.')
+    p.Define(
+        'enable_per_dim_scale', True,
+        'Whether using per_dim_scale or scaling by a constant factor. '
+        'Only applied when enable_query_scale == True.')
     p.Define('atten_dropout_prob', 0.0,
              'Probability at which we apply dropout to the attention weights.')
     p.Define('proj_tpl', MultiHeadedProjectionLayer.Params(), 'Params for '
@@ -481,7 +484,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     if p.enable_value_proj:
       assert value_input_dim, f'value_input_dim is {value_input_dim}'
       self.CreateChild('value', ProjectInput(value_input_dim))
-    if p.enable_per_dim_scale:
+    if p.enable_query_scale and p.enable_per_dim_scale:
       self.CreateChild(
           'per_dim_scale',
           PerDimScaleLayer.Params().Set(dim=p.proj_tpl.dim_per_head))
@@ -668,10 +671,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     """
     p = self.params
     # Scale the query projection.
-    if p.enable_per_dim_scale:
-      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
-    else:
-      query *= (p.hidden_dim // p.num_heads)**-0.5
+    if p.enable_query_scale:
+      if p.enable_per_dim_scale:
+        query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
+      else:
+        query *= (p.hidden_dim // p.num_heads)**-0.5
 
     # Compute prob with shape [batch, heads, target_time, source_time].
     with tf.name_scope('probs'):
@@ -724,10 +728,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     """
     p = self.params
     # Scale the query projection.
-    if p.enable_per_dim_scale:
-      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
-    else:
-      query *= (p.hidden_dim // p.num_heads)**-0.5
+    if p.enable_query_scale:
+      if p.enable_per_dim_scale:
+        query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
+      else:
+        query *= (p.hidden_dim // p.num_heads)**-0.5
 
     key = py_utils.HasRank(key, 4)
 
@@ -1070,7 +1075,7 @@ class MultiHeadedFavorAttention(MultiHeadedAttention):
     assert p.device_mesh is None, 'GShard mesh splits not supported.'
     assert not p.packed_input, 'Packed input not supported.'
     # Scale the query projection.
-    if p.enable_per_dim_scale:
+    if p.enable_query_scale and p.enable_per_dim_scale:
       query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
 
     if p.attention_type == 'relu':
@@ -2217,10 +2222,11 @@ class LocalSelfAttention(MultiHeadedAttention):
       # query projection.
       # [B, Q, N, H]
       query_proj = self.query.FProp(theta.query, query_vec)
-      if p.enable_per_dim_scale:
-        query_proj = self.per_dim_scale.FProp(theta.per_dim_scale, query_proj)
-      else:
-        query_proj *= h**-0.5
+      if p.enable_query_scale:
+        if p.enable_per_dim_scale:
+          query_proj = self.per_dim_scale.FProp(theta.per_dim_scale, query_proj)
+        else:
+          query_proj *= h**-0.5
 
       key, value, state1 = self._StreamStepStaticComputeKeyValue(
           theta, query_vec, paddings, state0)
@@ -2299,10 +2305,11 @@ class LocalSelfAttention(MultiHeadedAttention):
       # query projection.
       # [B, Q, N, H]
       query_proj = self.query.FProp(theta.query, query_vec)
-      if p.enable_per_dim_scale:
-        query_proj = self.per_dim_scale.FProp(theta.per_dim_scale, query_proj)
-      else:
-        query_proj *= h**-0.5
+      if p.enable_query_scale:
+        if p.enable_per_dim_scale:
+          query_proj = self.per_dim_scale.FProp(theta.per_dim_scale, query_proj)
+        else:
+          query_proj *= h**-0.5
 
       if p.right_context == 0:
         # [B, Q, N, H]
@@ -5450,8 +5457,10 @@ class Builder(builder.Base):
              'input.')
     p.Define('packed_input', False,
              'Whether to support packed input')
+    p.Define('enable_query_scale', True, 'Enable scaling of query vector.')
     p.Define('enable_per_dim_scale', True,
-             'Whether using per_dim_scale or scaling by a constant factor.')
+             'Whether using per_dim_scale or scaling by a constant factor. '
+             'Only applied when enable_query_scale == True.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm. ')
     p.Define('layernorm_tpl', layers.LayerNorm.Params(), 'Template for the '
              'LayerNorm layers. use_fused_layernorm param above overrides the '
@@ -5592,6 +5601,7 @@ class Builder(builder.Base):
         num_heads=num_heads,
         atten_dropout_prob=p.atten_dropout_prob,
         enable_value_proj=p.selfatten_enable_value_proj,
+        enable_query_scale=p.enable_query_scale,
         enable_per_dim_scale=p.enable_per_dim_scale,
         packed_input=p.packed_input,
         fprop_dtype=p.fprop_dtype,
@@ -6150,6 +6160,7 @@ class PerformerBuilder(Builder):
         num_heads=num_heads,
         atten_dropout_prob=p.atten_dropout_prob,
         enable_value_proj=p.selfatten_enable_value_proj,
+        enable_query_scale=p.enable_query_scale,
         enable_per_dim_scale=p.enable_per_dim_scale,
         packed_input=False,
         fprop_dtype=p.fprop_dtype,
@@ -6295,6 +6306,7 @@ class LmBuilder(Builder):
     )
     tr_atten_p.atten_tpl.use_bias = p.use_bias
     tr_atten_p.atten_tpl.enable_value_proj = p.selfatten_enable_value_proj
+    tr_atten_p.atten_tpl.enable_query_scale = p.enable_query_scale
     tr_atten_p.atten_tpl.enable_per_dim_scale = p.enable_per_dim_scale
     tr_atten_p.atten_tpl.device_mesh = p.device_mesh
     tr_atten_p.atten_tpl.weight_split_dims_mapping = (
