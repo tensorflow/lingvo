@@ -61,9 +61,7 @@ from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
 # pylint: enable=g-direct-tensorflow-import
 
-
 FLAGS = tf.flags.FLAGS
-
 
 # pylint: disable=protected-access
 _FromGlobal = py_utils_flags._FromGlobal
@@ -621,6 +619,7 @@ def tpu_host(func):  # pylint: disable=invalid-name
     return RunOnTpuHost(func, *args, **kwargs)
 
   return Wrapped
+
 
 # Maps a TPU job name ('/job:xxx') to the job's DeviceAssignment object.
 # When there is only a single TPU job, the key could be None.
@@ -2416,14 +2415,19 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding,
   # Scale the loss to account for the full batch size.
   shards = tpu_function.get_tpu_context().number_of_shards
   loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
-  grads = tf.gradients(loss, list(activation_dict.values()))
+  gradients = tf.gradients(
+      loss,
+      list(activation_dict.values()),
+      # TPUEmbedding expects gradients for all embedding
+      # features, so return zero if unconnected.
+      unconnected_gradients=tf.UnconnectedGradients.ZERO)
 
   # Apply gradient multiplier schedule.
   grad_multiplier = gradient_multiplier_schedule.Value()
-  grads = [g * grad_multiplier for g in grads]
+  gradients = [g * grad_multiplier for g in gradients]
 
   feature_to_gradient_dict = py_collections.OrderedDict(
-      zip(list(activation_dict.keys()), grads))
+      zip(list(activation_dict.keys()), gradients))
   send_gradient_op = tpu_embedding.generate_send_gradients_op(
       feature_to_gradient_dict, step=GetGlobalStep())
   return send_gradient_op
