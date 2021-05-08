@@ -213,9 +213,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">deprecation</span>
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
-
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
-
 
 <span class="c1"># pylint: disable=protected-access</span>
 <span class="n">_FromGlobal</span> <span class="o">=</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">_FromGlobal</span>
@@ -773,6 +771,7 @@
     <span class="k">return</span> <span class="n">RunOnTpuHost</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">Wrapped</span></div>
+
 
 <span class="c1"># Maps a TPU job name (&#39;/job:xxx&#39;) to the job&#39;s DeviceAssignment object.</span>
 <span class="c1"># When there is only a single TPU job, the key could be None.</span>
@@ -2568,14 +2567,19 @@
   <span class="c1"># Scale the loss to account for the full batch size.</span>
   <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
   <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-  <span class="n">grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+  <span class="n">gradients</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
+      <span class="n">loss</span><span class="p">,</span>
+      <span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+      <span class="c1"># TPUEmbedding expects gradients for all embedding</span>
+      <span class="c1"># features, so return zero if unconnected.</span>
+      <span class="n">unconnected_gradients</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">UnconnectedGradients</span><span class="o">.</span><span class="n">ZERO</span><span class="p">)</span>
 
   <span class="c1"># Apply gradient multiplier schedule.</span>
   <span class="n">grad_multiplier</span> <span class="o">=</span> <span class="n">gradient_multiplier_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
-  <span class="n">grads</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="o">*</span> <span class="n">grad_multiplier</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">grads</span><span class="p">]</span>
+  <span class="n">gradients</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="o">*</span> <span class="n">grad_multiplier</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gradients</span><span class="p">]</span>
 
   <span class="n">feature_to_gradient_dict</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
-      <span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">grads</span><span class="p">))</span>
+      <span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">gradients</span><span class="p">))</span>
   <span class="n">send_gradient_op</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
       <span class="n">feature_to_gradient_dict</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">GetGlobalStep</span><span class="p">())</span>
   <span class="k">return</span> <span class="n">send_gradient_op</span></div>
