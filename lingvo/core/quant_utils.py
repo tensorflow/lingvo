@@ -16,6 +16,8 @@
 """Utilities for model quantization."""
 
 import enum
+from typing import Union
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -318,7 +320,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     """AQT Quantized weight FQ style.
 
     This is analogous to QWeight; either AqtWeight or QWeight should be identity
-    for alll domains. AqtQDomain additionally supports per channel quantization.
+    for all domains. AqtQDomain additionally supports per channel quantization.
 
     w_name must have been previously created via CreateAqtWeight.
 
@@ -348,7 +350,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     """Quantized integer weight AQT style.
 
     This only scales, rounds and clips; resulting quantized weight would be
-    either integer ot integer emulated in float.
+    either integer or integer emulated in float.
 
     w_name must have been previously created via CreateAqtWeight.
 
@@ -397,19 +399,22 @@ class QuantizableLayer(base_layer.BaseLayer):
   def ToAqtActActInputs(self,
                         act_lhs,
                         act_rhs,
-                        act_lhs_distribution,
-                        act_rhs_distribution,
+                        *,
+                        act_lhs_distribution='symmetric',
+                        act_rhs_distribution='symmetric',
                         domain=None):
     """Quantizes activations for (act * act) matmul AQT style.
 
     This only scales, rounds and clips; resulting quantized acts would be
-    either integer ot integer emulated in float.
+    either integer or integer emulated in float.
 
     Args:
       act_lhs: Left hand side activation.
       act_rhs: Right hand side activation.
-      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution.
-      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution.
+      act_lhs_distribution: Distribution of act_lhs; either an InputDistribution
+        or a string representation of one of its members.
+      act_rhs_distribution: Distribution of act_rhs; either an InputDistribution
+        or a string representation of one of its members.
       domain: Custom domain to match (defaults to 'default').
 
     Returns:
@@ -419,8 +424,11 @@ class QuantizableLayer(base_layer.BaseLayer):
     if not qd:
       return act_lhs, act_rhs
 
-    return qd.ToAqtActActInputs(act_lhs, act_rhs, act_lhs_distribution,
-                                act_rhs_distribution)
+    return qd.ToAqtActActInputs(
+        act_lhs=act_lhs,
+        act_rhs=act_rhs,
+        act_lhs_distribution=act_lhs_distribution,
+        act_rhs_distribution=act_rhs_distribution)
 
   def FromAqtActActMatmul(self, output, domain=None):
     """Rescales the output of (act*act) matmul for AQT style quantized acts.
@@ -999,7 +1007,7 @@ class QDomain(base_layer.BaseLayer):
     """Quantizes activations for (act * act) matmul AQT style.
 
     This only scales, rounds and clips; resulting quantized acts would be
-    either integer ot integer emulated in float.
+    either integer or integer emulated in float.
 
     Args:
       act_lhs: Left hand side activation.
@@ -1022,7 +1030,6 @@ class QDomain(base_layer.BaseLayer):
     Returns:
       Rescaled output.
     """
-
     return output
 
   def QuantizeConstantRange(self, t, min_value, max_value):
@@ -1437,3 +1444,24 @@ class InputDistribution(enum.Enum):
   """
   SYMMETRIC = enum.auto()
   POSITIVE = enum.auto()
+
+  @classmethod
+  def Parse(cls, spec: Union[str, 'InputDistribution']) -> 'InputDistribution':
+    """Parses or returns an InputDistribution.
+
+    Args:
+      spec: An InputDistribution instance or the case-insensitive name of one of
+        the enum values.
+
+    Returns:
+      An InputDistribution instance.
+    """
+    if isinstance(spec, cls):
+      return spec
+    spec = spec.upper().replace('-', '_')
+    # pylint: disable=unsupported-membership-test
+    if spec not in cls.__members__:
+      raise ValueError(f'For act_distribution argument, expected one of: '
+                       f"{', '.join(cls.__members__.keys())}")
+    # pylint: enable=unsupported-membership-test
+    return cls[spec]
