@@ -1516,6 +1516,18 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     return all_layers
 
   def FProp(self, theta, inputs, paddings=None):
+    """Computes the output of the feed-forward network.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [..., input_dim].
+      paddings: The paddings tensor.  Shaped [..., 1], where all but the last
+        dimension match.
+
+    Returns:
+      Output after applying all layers.  Shaped [..., p.hidden_layer_dims[-1]].
+    """
     return self.FPropAllLayers(theta, inputs, paddings)[-1]
 
   @classmethod
@@ -3511,6 +3523,14 @@ class EinsumSoftmax(base_layer.BaseLayer):
         alpha=p.focal_loss_alpha,
         gamma=p.focal_loss_gamma)
     return per_example_xent, per_example_argmax
+
+  def FProp(self, theta, inputs, class_weights, *args, **kwargs):
+    logits = self.Logits(theta, inputs)
+    per_example_xent, per_example_argmax = self.XentLossFromLogits(
+        theta, logits, class_weights, *args, **kwargs)
+    return py_utils.NestedMap(
+        per_example_xent=per_example_xent,
+        per_example_argmax=per_example_argmax)
 
 
 class SharedSoftmaxLayer(base_layer.BaseLayer):
