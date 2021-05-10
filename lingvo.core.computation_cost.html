@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -174,8 +177,8 @@
 <span id="lingvo-core-computation-cost-module"></span><h1>lingvo.core.computation_cost module<a class="headerlink" href="#module-lingvo.core.computation_cost" title="Permalink to this headline">¶</a></h1>
 <p>Utilities to estimate computation costs of layers.</p>
 <dl class="py function">
-<dt id="lingvo.core.computation_cost.Prepare">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></code><code class="sig-name descname"><span class="pre">Prepare</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Prepare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost.Prepare" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.computation_cost.Prepare">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></span><span class="sig-name descname"><span class="pre">Prepare</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Prepare"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost.Prepare" title="Permalink to this definition">¶</a></dt>
 <dd><p>Registers cost accumulators for layer and each of its child layers.</p>
 <p>This function should be called before FProp().</p>
 <dl class="field-list simple">
@@ -186,23 +189,23 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.computation_cost._HasAccumulator">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></code><code class="sig-name descname"><span class="pre">_HasAccumulator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#_HasAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost._HasAccumulator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.computation_cost._HasAccumulator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></span><span class="sig-name descname"><span class="pre">_HasAccumulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#_HasAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost._HasAccumulator" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.computation_cost._GetAccumulator">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></code><code class="sig-name descname"><span class="pre">_GetAccumulator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#_GetAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost._GetAccumulator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.computation_cost._GetAccumulator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></span><span class="sig-name descname"><span class="pre">_GetAccumulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#_GetAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost._GetAccumulator" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.computation_cost.Add">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></code><code class="sig-name descname"><span class="pre">Add</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost.Add" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.computation_cost.Add">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></span><span class="sig-name descname"><span class="pre">Add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost.Add" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.computation_cost.Get">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></code><code class="sig-name descname"><span class="pre">Get</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost.Get" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.computation_cost.Get">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.computation_cost.</span></span><span class="sig-name descname"><span class="pre">Get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_metric_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/computation_cost.html#Get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.computation_cost.Get" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the aggregated cost metric.</p>
 </dd></dl>
 

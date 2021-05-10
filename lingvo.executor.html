@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -176,8 +179,8 @@
 <span id="lingvo-executor-module"></span><h1>lingvo.executor module<a class="headerlink" href="#module-lingvo.executor" title="Permalink to this headline">¶</a></h1>
 <p>An experimental new unified TPU executor.</p>
 <dl class="py function">
-<dt id="lingvo.executor.GetExecutorParams">
-<code class="sig-prename descclassname"><span class="pre">lingvo.executor.</span></code><code class="sig-name descname"><span class="pre">GetExecutorParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_registry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#GetExecutorParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.GetExecutorParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.executor.GetExecutorParams">
+<span class="sig-prename descclassname"><span class="pre">lingvo.executor.</span></span><span class="sig-name descname"><span class="pre">GetExecutorParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_registry</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#GetExecutorParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.GetExecutorParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the params needed to instantiate the Executor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -201,8 +204,8 @@
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.executor.ExecutorTpu">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.executor.</span></code><code class="sig-name descname"><span class="pre">ExecutorTpu</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ps_params_dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.executor.ExecutorTpu">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.executor.</span></span><span class="sig-name descname"><span class="pre">ExecutorTpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ps_params_dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
 <p>An experimental runner that does arbitrary multi-program execution on TPU.</p>
 <p>Overview of operation:</p>
@@ -215,13 +218,13 @@ eg: [train x 1000 steps, checkpoint, eval 4 steps, decode 2 steps]</p></li>
 share the TPU.</p></li>
 </ul>
 <dl class="py method">
-<dt id="lingvo.executor.ExecutorTpu._GetSession">
-<code class="sig-name descname"><span class="pre">_GetSession</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._GetSession"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._GetSession" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.executor.ExecutorTpu._GetSession">
+<span class="sig-name descname"><span class="pre">_GetSession</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._GetSession"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._GetSession" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.executor.ExecutorTpu._MaybeConstructSharedModel">
-<code class="sig-name descname"><span class="pre">_MaybeConstructSharedModel</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_cfg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._MaybeConstructSharedModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._MaybeConstructSharedModel" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.executor.ExecutorTpu._MaybeConstructSharedModel">
+<span class="sig-name descname"><span class="pre">_MaybeConstructSharedModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_cfg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._MaybeConstructSharedModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._MaybeConstructSharedModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a single shared copy of the model if this is a MultiTaskModel.</p>
 <p>If the share_model_object parameter is set, for MultiTaskModels,
 we create a MultiTaskSubModel for each task, but construct the model only
@@ -237,13 +240,13 @@ once.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.executor.ExecutorTpu.Start">
-<code class="sig-name descname"><span class="pre">Start</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu.Start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu.Start" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.executor.ExecutorTpu.Start">
+<span class="sig-name descname"><span class="pre">Start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu.Start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu.Start" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.executor.ExecutorTpu._Loop">
-<code class="sig-name descname"><span class="pre">_Loop</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._Loop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._Loop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.executor.ExecutorTpu._Loop">
+<span class="sig-name descname"><span class="pre">_Loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/executor.html#ExecutorTpu._Loop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.executor.ExecutorTpu._Loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -174,8 +177,8 @@
 <span id="lingvo-core-attention-util-module"></span><h1>lingvo.core.attention_util module<a class="headerlink" href="#module-lingvo.core.attention_util" title="Permalink to this headline">¶</a></h1>
 <p>Attention related utils, e.g. relative positional embeddings.</p>
 <dl class="py function">
-<dt id="lingvo.core.attention_util.ConvertToBlocks">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">ConvertToBlocks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ConvertToBlocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.ConvertToBlocks" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.ConvertToBlocks">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">ConvertToBlocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ConvertToBlocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.ConvertToBlocks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Turns a sequence to non overlapping blocks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -193,8 +196,8 @@ where output[:, i, …] are x[:, i*block_size:(i+1)*block_size, …].</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.ExtractBlockContext">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">ExtractBlockContext</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ExtractBlockContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.ExtractBlockContext" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.ExtractBlockContext">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">ExtractBlockContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ExtractBlockContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.ExtractBlockContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts temporal context for every block.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -216,8 +219,8 @@ start = i * block_size, end = (i + 1) * block_size.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.MakeLocalMask">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">MakeLocalMask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">tf.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#MakeLocalMask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.MakeLocalMask" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.MakeLocalMask">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">MakeLocalMask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">tf.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#MakeLocalMask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.MakeLocalMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Makes the mask tensor for a full sequence.</p>
 <p>The returned mask reflects the given context sizes, where position i
 attends to tokens in the range [i - (left_context-1), i + right_context].</p>
@@ -241,8 +244,8 @@ the j-th frame in the context.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.RelShift">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">RelShift</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#RelShift"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.RelShift" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.RelShift">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">RelShift</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#RelShift"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.RelShift" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs relative shift on 4D tensor (first 2 axis are batching dims).</p>
 <p>Given input of shape [?, ?, W, W], this does “relative shifting” for the
 last two dims, s.t. output[b, n, i, j] = 0 if i &gt; j else input[b, n, i, j-i]</p>
@@ -258,8 +261,8 @@ above).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.RelPositionBias">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">RelPositionBias</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#RelPositionBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.RelPositionBias" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.RelPositionBias">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">RelPositionBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#RelPositionBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.RelPositionBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute relative position bias.</p>
 <p>This is a subroutine used by variants of self-attentions with relative
 positional embedding.</p>
@@ -286,8 +289,8 @@ abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.AttenLogits">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">AttenLogits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogits" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.AttenLogits">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">AttenLogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention logits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -303,8 +306,8 @@ abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.AttenContext">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">AttenContext</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenContext" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.AttenContext">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">AttenContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenContext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the attention context vector based on per-head probs and value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -323,8 +326,8 @@ abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util._AttenLogitsXL">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">_AttenLogitsXL</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#_AttenLogitsXL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util._AttenLogitsXL" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util._AttenLogitsXL">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">_AttenLogitsXL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#_AttenLogitsXL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util._AttenLogitsXL" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits from …</p>
 <p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
 self attention with relative position embedding.</p>
@@ -354,8 +357,8 @@ H: per-head attention dimension.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.AttenLogitsTransformerXL">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">AttenLogitsTransformerXL</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsTransformerXL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsTransformerXL" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.AttenLogitsTransformerXL">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">AttenLogitsTransformerXL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsTransformerXL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsTransformerXL" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits from …</p>
 <p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
 self attention with relative position embedding.</p>
@@ -385,8 +388,8 @@ H: per-head attention dimension.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.AttenLogitsRPE">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">AttenLogitsRPE</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsRPE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsRPE" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.AttenLogitsRPE">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">AttenLogitsRPE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsRPE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsRPE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits from …</p>
 <p><a class="reference external" href="https://arxiv.org/pdf/1803.02155.pdf">https://arxiv.org/pdf/1803.02155.pdf</a> with trainable rel position emb.</p>
 <p>Notice padding is supposed to be masked by the caller of this function.</p>
@@ -411,8 +414,8 @@ the emb of relative distance i - (T-1).</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.attention_util.KMeansClusteringForAtten">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">KMeansClusteringForAtten</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.KMeansClusteringForAtten">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">KMeansClusteringForAtten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Implements k-means clustering with mini-batch updates.</p>
 <p>This is used in the implementation of <a class="reference external" href="https://arxiv.org/pdf/2003.05997">https://arxiv.org/pdf/2003.05997</a>.</p>
@@ -425,22 +428,22 @@ K = number of clusters</p>
 </dd>
 </dl>
 <dl class="py method">
-<dt id="lingvo.core.attention_util.KMeansClusteringForAtten.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.KMeansClusteringForAtten.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables">
-<code class="sig-name descname"><span class="pre">_CreateLayerVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">LayerNorm</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.LayerNorm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">LayerNorm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.LayerNorm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs layer normalization on the last dimension of ‘x’.</p>
 <p>This differs from layers.LayerNorm in that it fixes both scale and bias at
 0.</p>
@@ -458,8 +461,8 @@ K = number of clusters</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.attention_util.KMeansClusteringForAtten.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.FProp" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.KMeansClusteringForAtten.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes distances of the given input ‘x’ to all centroids.</p>
 <p>This implementation applies layer normalization on ‘x’ internally first,
 and the returned ‘dists’ is computed using the normalized ‘x’.</p>
@@ -490,8 +493,8 @@ and the returned ‘dists’ is computed using the normalized ‘x’.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.attention_util.ComputeSparseAttention">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></code><code class="sig-name descname"><span class="pre">ComputeSparseAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sparsity_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ComputeSparseAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.ComputeSparseAttention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.attention_util.ComputeSparseAttention">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">ComputeSparseAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sparsity_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ComputeSparseAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.ComputeSparseAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention according to a sparsity pattern.</p>
 <dl class="simple">
 <dt>We use the following capital letters to denote shape parameters:</dt><dd><p>B = batch size

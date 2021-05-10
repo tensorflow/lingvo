@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -174,13 +177,13 @@
 <span id="lingvo-core-gshard-builder-module"></span><h1>lingvo.core.gshard_builder module<a class="headerlink" href="#module-lingvo.core.gshard_builder" title="Permalink to this headline">¶</a></h1>
 <p>GShard Builder. To be used with xla_sharding + SPMD.</p>
 <dl class="py function">
-<dt id="lingvo.core.gshard_builder._ToInt32">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></code><code class="sig-name descname"><span class="pre">_ToInt32</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#_ToInt32"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder._ToInt32" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder._ToInt32">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">_ToInt32</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#_ToInt32"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder._ToInt32" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.gshard_builder.MoEBuilder">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></code><code class="sig-name descname"><span class="pre">MoEBuilder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">MoEBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.builder.html#lingvo.core.builder.Base" title="lingvo.core.builder.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder.Base</span></code></a></p>
 <p>Mixture-of-Experts, Dense and DenseSparse Builder.</p>
 <p>To be used with xla_sharding + SPMD.</p>
@@ -252,46 +255,46 @@ further stack with Builder.{Encoder,Decoder}LayerStack. To be moved from
 XlaShardingBuilder.</p>
 <p>TODO(lepikhin): enable MoE-Attention.</p>
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>The params of this layer.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._device_mesh">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_device_mesh</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._device_mesh" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._device_mesh">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_device_mesh</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._device_mesh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._model_dim_reshape_segments">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_model_dim_reshape_segments</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._model_dim_reshape_segments" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._model_dim_reshape_segments">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_model_dim_reshape_segments</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._model_dim_reshape_segments" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._AdjustMSplit">
-<code class="sig-name descname"><span class="pre">_AdjustMSplit</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">split</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AdjustMSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AdjustMSplit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._AdjustMSplit">
+<span class="sig-name descname"><span class="pre">_AdjustMSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">split</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AdjustMSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AdjustMSplit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adjusts split annotation according to model_dim_reshape_segments.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._Dropout">
-<code class="sig-name descname"><span class="pre">_Dropout</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_shape_broadcast_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Dropout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Dropout" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Dropout">
+<span class="sig-name descname"><span class="pre">_Dropout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_shape_broadcast_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Dropout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Dropout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a DropoutLayer Params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._OneHotEncode">
-<code class="sig-name descname"><span class="pre">_OneHotEncode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._OneHotEncode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._OneHotEncode" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._OneHotEncode">
+<span class="sig-name descname"><span class="pre">_OneHotEncode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._OneHotEncode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._OneHotEncode" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._Var">
-<code class="sig-name descname"><span class="pre">_Var</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_var_collection_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Var" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Var">
+<span class="sig-name descname"><span class="pre">_Var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_var_collection_suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Var" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ShardedVar">
-<code class="sig-name descname"><span class="pre">_ShardedVar</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedVar" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ShardedVar">
+<span class="sig-name descname"><span class="pre">_ShardedVar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedVar" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a layer of variables potentially sharded in a device mesh.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -310,8 +313,8 @@ sharding specification in ShardedWeightParams.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray">
-<code class="sig-name descname"><span class="pre">_ShardedVarOn1DDeviceArray</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedVarOn1DDeviceArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray">
+<span class="sig-name descname"><span class="pre">_ShardedVarOn1DDeviceArray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedVarOn1DDeviceArray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray" title="Permalink to this definition">¶</a></dt>
 <dd><p>Variables sharded along dimension 0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -327,44 +330,44 @@ sharding specification in ShardedWeightParams.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight">
-<code class="sig-name descname"><span class="pre">_EmbeddingWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EmbeddingWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight">
+<span class="sig-name descname"><span class="pre">_EmbeddingWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EmbeddingWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax">
-<code class="sig-name descname"><span class="pre">SharedEmbSoftmax</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logits_abs_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_loss_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_tgt_labels_size_as_loss_denominator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SharedEmbSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax">
+<span class="sig-name descname"><span class="pre">SharedEmbSoftmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logits_abs_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_loss_coef</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_tgt_labels_size_as_loss_denominator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SharedEmbSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.Embedding">
-<code class="sig-name descname"><span class="pre">Embedding</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Embedding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Embedding" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.Embedding">
+<span class="sig-name descname"><span class="pre">Embedding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Embedding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Embedding" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.SoftmaxWeight">
-<code class="sig-name descname"><span class="pre">SoftmaxWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SoftmaxWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SoftmaxWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.SoftmaxWeight">
+<span class="sig-name descname"><span class="pre">SoftmaxWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SoftmaxWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SoftmaxWeight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.Mask">
-<code class="sig-name descname"><span class="pre">Mask</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Mask" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.Mask">
+<span class="sig-name descname"><span class="pre">Mask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Mask" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.EncoderLayer">
-<code class="sig-name descname"><span class="pre">EncoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.EncoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.EncoderLayer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.EncoderLayer">
+<span class="sig-name descname"><span class="pre">EncoderLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.EncoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.EncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns params for lambda x: x + residual_weight * DropOut(layer(LN(x))).</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._EncoderLayerInMapKeys">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_EncoderLayerInMapKeys</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._EncoderLayerInMapKeys">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_EncoderLayerInMapKeys</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack">
-<code class="sig-name descname"><span class="pre">EncoderLayerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_repeat_layer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_stages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_microbatches</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.EncoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack">
+<span class="sig-name descname"><span class="pre">EncoderLayerStack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_repeat_layer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_stages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_microbatches</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.EncoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.EncoderLayerStack" title="Permalink to this definition">¶</a></dt>
 <dd><p>Clean EncoderLayerStack with minimal layer nesting.</p>
 <p>E.g:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">encoder</span><span class="o">/</span>
@@ -406,77 +409,77 @@ sharding specification in ShardedWeightParams.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">
-<code class="sig-name descname"><span class="pre">DecoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">
+<span class="sig-name descname"><span class="pre">DecoderLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._DecoderLayerInMapKeys">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_DecoderLayerInMapKeys</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._DecoderLayerInMapKeys">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_DecoderLayerInMapKeys</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack">
-<code class="sig-name descname"><span class="pre">DecoderLayerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_repeat_layer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_stages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_microbatches</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack">
+<span class="sig-name descname"><span class="pre">DecoderLayerStack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_repeat_layer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_stages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_microbatches</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecoderLayerStack" title="Permalink to this definition">¶</a></dt>
 <dd><p>Clean DecoderLayerStack, similar to EncoderLayerStack.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.Repeat">
-<code class="sig-name descname"><span class="pre">Repeat</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_layer_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Repeat" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.Repeat">
+<span class="sig-name descname"><span class="pre">Repeat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_layer_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Repeat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapper to call builder_layers.RepeatLayer.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.ShardablePipeline">
-<code class="sig-name descname"><span class="pre">ShardablePipeline</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stages</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.ShardablePipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.ShardablePipeline" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.ShardablePipeline">
+<span class="sig-name descname"><span class="pre">ShardablePipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stages</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.ShardablePipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.ShardablePipeline" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapper to call gshard_layers.LayerwiseShardablePipelinedLayer.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._LayerStack">
-<code class="sig-name descname"><span class="pre">_LayerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_repeat_layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_stages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_microbatches</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imap_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LayerStack" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._LayerStack">
+<span class="sig-name descname"><span class="pre">_LayerStack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_repeat_layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_stages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spmd_pipeline_microbatches</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imap_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LayerStack" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights">
-<code class="sig-name descname"><span class="pre">_DenseReluDenseWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wi_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights">
+<span class="sig-name descname"><span class="pre">_DenseReluDenseWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wi_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">
-<code class="sig-name descname"><span class="pre">DenseReluDense</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDense"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">
+<span class="sig-name descname"><span class="pre">DenseReluDense</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDense"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU">
-<code class="sig-name descname"><span class="pre">_DenseReluDenseWeightsGatedGELU</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wi_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeightsGatedGELU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU">
+<span class="sig-name descname"><span class="pre">_DenseReluDenseWeightsGatedGELU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wi_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DenseReluDenseWeightsGatedGELU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeightsGatedGELU" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGated">
-<code class="sig-name descname"><span class="pre">DenseReluDenseGated</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDenseGated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGated" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGated">
+<span class="sig-name descname"><span class="pre">DenseReluDenseGated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDenseGated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGated" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedGELU">
-<code class="sig-name descname"><span class="pre">DenseReluDenseGatedGELU</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDenseGatedGELU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedGELU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedGELU">
+<span class="sig-name descname"><span class="pre">DenseReluDenseGatedGELU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDenseGatedGELU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedGELU" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedSILU">
-<code class="sig-name descname"><span class="pre">DenseReluDenseGatedSILU</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDenseGatedSILU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedSILU" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedSILU">
+<span class="sig-name descname"><span class="pre">DenseReluDenseGatedSILU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DenseReluDenseGatedSILU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DenseReluDenseGatedSILU" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.MoE">
-<code class="sig-name descname"><span class="pre">MoE</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.MoE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.MoE" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.MoE">
+<span class="sig-name descname"><span class="pre">MoE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.MoE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.MoE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns layer params to compute (outputs, scalar_aux_loss).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.Attention">
-<code class="sig-name descname"><span class="pre">Attention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Attention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.Attention">
+<span class="sig-name descname"><span class="pre">Attention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Attention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention with multiple attention heads.</p>
 <p>Keys, values share same dimensionality
 params.self.params.attention_key_value_dim.</p>
@@ -491,43 +494,43 @@ params.self.params.attention_key_value_dim.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ComputeAttenOutputs">
-<code class="sig-name descname"><span class="pre">_ComputeAttenOutputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeAttenOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeAttenOutputs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ComputeAttenOutputs">
+<span class="sig-name descname"><span class="pre">_ComputeAttenOutputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeAttenOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeAttenOutputs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._EncNotVisible">
-<code class="sig-name descname"><span class="pre">_EncNotVisible</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EncNotVisible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncNotVisible" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._EncNotVisible">
+<span class="sig-name descname"><span class="pre">_EncNotVisible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EncNotVisible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncNotVisible" title="Permalink to this definition">¶</a></dt>
 <dd><p>a, b are encoder_segment_id, decoder_segment_id Tensors.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.SelfAttention">
-<code class="sig-name descname"><span class="pre">SelfAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.SelfAttention">
+<span class="sig-name descname"><span class="pre">SelfAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerEncoder SelfAttention.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DecEncAttention">
-<code class="sig-name descname"><span class="pre">DecEncAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecEncAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecEncAttention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DecEncAttention">
+<span class="sig-name descname"><span class="pre">DecEncAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecEncAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecEncAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Decoder-Encoder Attention.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._DecNotVisible">
-<code class="sig-name descname"><span class="pre">_DecNotVisible</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segment_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_pos</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DecNotVisible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecNotVisible" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._DecNotVisible">
+<span class="sig-name descname"><span class="pre">_DecNotVisible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">segment_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_pos</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DecNotVisible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecNotVisible" title="Permalink to this definition">¶</a></dt>
 <dd><p>Causal padding with segment_id and segment_pos.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._DecComputeBiasGraphEdge">
-<code class="sig-name descname"><span class="pre">_DecComputeBiasGraphEdge</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DecComputeBiasGraphEdge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecComputeBiasGraphEdge" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._DecComputeBiasGraphEdge">
+<span class="sig-name descname"><span class="pre">_DecComputeBiasGraphEdge</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._DecComputeBiasGraphEdge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._DecComputeBiasGraphEdge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an edge of GraphLayer to compute attenion bias for Decoders.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">
-<code class="sig-name descname"><span class="pre">DecSelfAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention">
+<span class="sig-name descname"><span class="pre">DecSelfAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerDecoder SelfAttention.</p>
 <p>Note that attention bias (see _DecNotvisible) ensures that current position
 (~row) is less that memory position(~column).</p>
@@ -547,29 +550,29 @@ params.self.params.attention_key_value_dim.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket">
-<code class="sig-name descname"><span class="pre">_RelativePositionBucket</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relative_position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bidirectional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._RelativePositionBucket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket">
+<span class="sig-name descname"><span class="pre">_RelativePositionBucket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relative_position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bidirectional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._RelativePositionBucket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._AddRelativeBias">
-<code class="sig-name descname"><span class="pre">_AddRelativeBias</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_segment_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_segment_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_bias_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bidirectional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AddRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AddRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._AddRelativeBias">
+<span class="sig-name descname"><span class="pre">_AddRelativeBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_segment_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_segment_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_bias_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bidirectional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AddRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AddRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._EncoderAddRelativeBias">
-<code class="sig-name descname"><span class="pre">_EncoderAddRelativeBias</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_bias_weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EncoderAddRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncoderAddRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._EncoderAddRelativeBias">
+<span class="sig-name descname"><span class="pre">_EncoderAddRelativeBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_bias_weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EncoderAddRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EncoderAddRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias">
-<code class="sig-name descname"><span class="pre">SelfAttentionRelativeBias</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias">
+<span class="sig-name descname"><span class="pre">SelfAttentionRelativeBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerEncoder SelfAttention with relative Attention Bias.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">
-<code class="sig-name descname"><span class="pre">DecSelfAttentionRelativeBias</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias">
+<span class="sig-name descname"><span class="pre">DecSelfAttentionRelativeBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>DecSelfAttention with relative Attention Bias.</p>
 <p>Note that attention bias (see _DecNotVisible) ensures that current position
 (~row) is less that memory position(~column).</p>
@@ -597,19 +600,19 @@ to compute per position-pair bias.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._RelativeAttentionBiasWeights">
-<code class="sig-name descname"><span class="pre">_RelativeAttentionBiasWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collections</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._RelativeAttentionBiasWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._RelativeAttentionBiasWeights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._RelativeAttentionBiasWeights">
+<span class="sig-name descname"><span class="pre">_RelativeAttentionBiasWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collections</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._RelativeAttentionBiasWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._RelativeAttentionBiasWeights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper for ‘-&gt;rb’ Graph edge.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._zero_aux_loss">
-<code class="sig-name descname"><span class="pre">_zero_aux_loss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._zero_aux_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._zero_aux_loss" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._zero_aux_loss">
+<span class="sig-name descname"><span class="pre">_zero_aux_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._zero_aux_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._zero_aux_loss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">
-<code class="sig-name descname"><span class="pre">DepthwiseConvAutoregressive</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DepthwiseConvAutoregressive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">
+<span class="sig-name descname"><span class="pre">DepthwiseConvAutoregressive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.DepthwiseConvAutoregressive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive" title="Permalink to this definition">¶</a></dt>
 <dd><p>Depthwise convolution for autoregressive models.</p>
 <p>Same implementation as mesh_tensorflow/
 transformer/transformer.sublayer_depthwise_conv_autoregressive</p>
@@ -636,136 +639,136 @@ where Shift(X, d) function rolls X forward in the time dimension by d.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._LNNoScale">
-<code class="sig-name descname"><span class="pre">_LNNoScale</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LNNoScale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LNNoScale" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._LNNoScale">
+<span class="sig-name descname"><span class="pre">_LNNoScale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LNNoScale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LNNoScale" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._LN">
-<code class="sig-name descname"><span class="pre">_LN</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LN" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._LN">
+<span class="sig-name descname"><span class="pre">_LN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overriding with bias-less layer norm.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._LNConv">
-<code class="sig-name descname"><span class="pre">_LNConv</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LNConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LNConv" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._LNConv">
+<span class="sig-name descname"><span class="pre">_LNConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LNConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LNConv" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._LNInternal">
-<code class="sig-name descname"><span class="pre">_LNInternal</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ln_weight_reshape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LNInternal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LNInternal" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._LNInternal">
+<span class="sig-name descname"><span class="pre">_LNInternal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ln_weight_reshape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._LNInternal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._LNInternal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Internal implementation of _LN with optional reshape of the weight.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.Split">
-<code class="sig-name descname"><span class="pre">Split</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Split" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.Split">
+<span class="sig-name descname"><span class="pre">Split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.Split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.Split" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets sharding attribute for the Tensor. Split across dim=0.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._Add">
-<code class="sig-name descname"><span class="pre">_Add</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Add" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Add">
+<span class="sig-name descname"><span class="pre">_Add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Add" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._Identity">
-<code class="sig-name descname"><span class="pre">_Identity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Identity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Identity" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Identity">
+<span class="sig-name descname"><span class="pre">_Identity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Identity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Identity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply identity transformation.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._AttentionWeights">
-<code class="sig-name descname"><span class="pre">_AttentionWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AttentionWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AttentionWeights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._AttentionWeights">
+<span class="sig-name descname"><span class="pre">_AttentionWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_qkv_mhd_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_hdm_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AttentionWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AttentionWeights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper for ‘-&gt;wq,wk,wv,wo’ Graph edge.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ComputeQKV">
-<code class="sig-name descname"><span class="pre">_ComputeQKV</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeQKV"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeQKV" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ComputeQKV">
+<span class="sig-name descname"><span class="pre">_ComputeQKV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeQKV"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeQKV" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ComputeQKVCombine">
-<code class="sig-name descname"><span class="pre">_ComputeQKVCombine</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeQKVCombine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeQKVCombine" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ComputeQKVCombine">
+<span class="sig-name descname"><span class="pre">_ComputeQKVCombine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeQKVCombine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeQKVCombine" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._Top2GatingWeights">
-<code class="sig-name descname"><span class="pre">_Top2GatingWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Top2GatingWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Top2GatingWeights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Top2GatingWeights">
+<span class="sig-name descname"><span class="pre">_Top2GatingWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Top2GatingWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Top2GatingWeights" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ComputeTopKGating">
-<code class="sig-name descname"><span class="pre">_ComputeTopKGating</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeTopKGating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeTopKGating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ComputeTopKGating">
+<span class="sig-name descname"><span class="pre">_ComputeTopKGating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ComputeTopKGating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ComputeTopKGating" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ShardedFeedForwardNetworksWeights">
-<code class="sig-name descname"><span class="pre">_ShardedFeedForwardNetworksWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedFeedForwardNetworksWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedFeedForwardNetworksWeights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ShardedFeedForwardNetworksWeights">
+<span class="sig-name descname"><span class="pre">_ShardedFeedForwardNetworksWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedFeedForwardNetworksWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedFeedForwardNetworksWeights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the sharded weights for the two layer feedforward nets.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._FeedForwardNetworksApplyGating">
-<code class="sig-name descname"><span class="pre">_FeedForwardNetworksApplyGating</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._FeedForwardNetworksApplyGating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._FeedForwardNetworksApplyGating" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._FeedForwardNetworksApplyGating">
+<span class="sig-name descname"><span class="pre">_FeedForwardNetworksApplyGating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._FeedForwardNetworksApplyGating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._FeedForwardNetworksApplyGating" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks">
-<code class="sig-name descname"><span class="pre">_ShardedMoEPositionWiseFeedForwardNetworks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks">
+<span class="sig-name descname"><span class="pre">_ShardedMoEPositionWiseFeedForwardNetworks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._ShardedMoEPositionWiseFeedForwardNetworks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Simple MoE FFN with xla_sharding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._State">
-<code class="sig-name descname"><span class="pre">_State</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._State"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._State" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._State">
+<span class="sig-name descname"><span class="pre">_State</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._State"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._State" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._Override">
-<code class="sig-name descname"><span class="pre">_Override</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Override" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Override">
+<span class="sig-name descname"><span class="pre">_Override</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Override" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder._Softmax">
-<code class="sig-name descname"><span class="pre">_Softmax</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dec_outs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Softmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Softmax" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Softmax">
+<span class="sig-name descname"><span class="pre">_Softmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dec_outs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Softmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Softmax" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.MoEBuilder.SmoothedSoftmax">
-<code class="sig-name descname"><span class="pre">SmoothedSoftmax</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SmoothedSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SmoothedSoftmax" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.SmoothedSoftmax">
+<span class="sig-name descname"><span class="pre">SmoothedSoftmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder.SmoothedSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder.SmoothedSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the Softmax layer with optional label smoothing.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.gshard_builder.DenseBuilder">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></code><code class="sig-name descname"><span class="pre">DenseBuilder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">DenseBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.MoEBuilder" title="lingvo.core.gshard_builder.MoEBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.MoEBuilder</span></code></a></p>
 <p>Desnse layrs with GShard annotations.</p>
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>The params of this layer.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ReshapedModelDims">
-<code class="sig-name descname"><span class="pre">_ReshapedModelDims</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ReshapedModelDims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ReshapedModelDims" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ReshapedModelDims">
+<span class="sig-name descname"><span class="pre">_ReshapedModelDims</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ReshapedModelDims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ReshapedModelDims" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the dimensions that M is reshaped into.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ReshapeM">
-<code class="sig-name descname"><span class="pre">_ReshapeM</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ReshapeM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ReshapeM" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ReshapeM">
+<span class="sig-name descname"><span class="pre">_ReshapeM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ReshapeM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ReshapeM" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reshapes tensor x according to model_dim_reshape_segments.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._EinsumWithModelDim">
-<code class="sig-name descname"><span class="pre">_EinsumWithModelDim</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">equation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._EinsumWithModelDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._EinsumWithModelDim" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._EinsumWithModelDim">
+<span class="sig-name descname"><span class="pre">_EinsumWithModelDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">equation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._EinsumWithModelDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._EinsumWithModelDim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Einsum with adjusted equation according to model_dim_reshape_segments.</p>
 <p>It changes each dimension named ‘M’ in the equation into two dimensions ‘NM’
 if model_dim_reshape_segments is set in the params. Therefore the original
@@ -787,8 +790,8 @@ numpy.einsum.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive">
-<code class="sig-name descname"><span class="pre">DepthwiseConvAutoregressive</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DepthwiseConvAutoregressive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive">
+<span class="sig-name descname"><span class="pre">DepthwiseConvAutoregressive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DepthwiseConvAutoregressive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive" title="Permalink to this definition">¶</a></dt>
 <dd><p>Depthwise convolution for autoregressive models.</p>
 <p>Same implementation as mesh_tensorflow/
 transformer/transformer.sublayer_depthwise_conv_autoregressive</p>
@@ -815,68 +818,68 @@ where Shift(X, d) function rolls X forward in the time dimension by d.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.EinsumWithModelDim">
-<code class="sig-name descname"><span class="pre">EinsumWithModelDim</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.EinsumWithModelDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.EinsumWithModelDim" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.EinsumWithModelDim">
+<span class="sig-name descname"><span class="pre">EinsumWithModelDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.EinsumWithModelDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.EinsumWithModelDim" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._LN">
-<code class="sig-name descname"><span class="pre">_LN</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._LN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._LN" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._LN">
+<span class="sig-name descname"><span class="pre">_LN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._LN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._LN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overriding _LN to consider model_dim_reshape_segments.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._device_mesh">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_device_mesh</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._device_mesh" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._device_mesh">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_device_mesh</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._device_mesh" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._MeshSplit">
-<code class="sig-name descname"><span class="pre">_MeshSplit</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tensor_split_dims_mapping</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._MeshSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._MeshSplit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._MeshSplit">
+<span class="sig-name descname"><span class="pre">_MeshSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tensor_split_dims_mapping</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._MeshSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._MeshSplit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.MeshSplit">
-<code class="sig-name descname"><span class="pre">MeshSplit</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tensor_split_dims_mapping</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.MeshSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.MeshSplit" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.MeshSplit">
+<span class="sig-name descname"><span class="pre">MeshSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tensor_split_dims_mapping</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.MeshSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.MeshSplit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ShardedFeedForwardNetworksWeights">
-<code class="sig-name descname"><span class="pre">_ShardedFeedForwardNetworksWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ShardedFeedForwardNetworksWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ShardedFeedForwardNetworksWeights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ShardedFeedForwardNetworksWeights">
+<span class="sig-name descname"><span class="pre">_ShardedFeedForwardNetworksWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ShardedFeedForwardNetworksWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ShardedFeedForwardNetworksWeights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the sharded weights for the two layer feedforward nets.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks">
-<code class="sig-name descname"><span class="pre">_ShardedMoEPositionWiseFeedForwardNetworks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks">
+<span class="sig-name descname"><span class="pre">_ShardedMoEPositionWiseFeedForwardNetworks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ShardedMoEPositionWiseFeedForwardNetworks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Simple MoE FFN with xla_sharding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.Embedding">
-<code class="sig-name descname"><span class="pre">Embedding</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.Embedding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.Embedding" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.Embedding">
+<span class="sig-name descname"><span class="pre">Embedding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.Embedding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.Embedding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._attention_output_hdm_w_split">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_attention_output_hdm_w_split</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._attention_output_hdm_w_split" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._attention_output_hdm_w_split">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_attention_output_hdm_w_split</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._attention_output_hdm_w_split" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.SelfAttention">
-<code class="sig-name descname"><span class="pre">SelfAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.SelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.SelfAttention">
+<span class="sig-name descname"><span class="pre">SelfAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.SelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.SelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerEncoder SelfAttention.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.DecEncAttention">
-<code class="sig-name descname"><span class="pre">DecEncAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecEncAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecEncAttention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.DecEncAttention">
+<span class="sig-name descname"><span class="pre">DecEncAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecEncAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecEncAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Decoder-Encoder Attention.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention">
-<code class="sig-name descname"><span class="pre">DecSelfAttention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention">
+<span class="sig-name descname"><span class="pre">DecSelfAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerDecoder SelfAttention.</p>
 <p>Note that attention bias (see _DecNotvisible) ensures that current position
 (~row) is less that memory position(~column).</p>
@@ -896,14 +899,14 @@ where Shift(X, d) function rolls X forward in the time dimension by d.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias">
-<code class="sig-name descname"><span class="pre">SelfAttentionRelativeBias</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.SelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias">
+<span class="sig-name descname"><span class="pre">SelfAttentionRelativeBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.SelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>TransformerEncoder SelfAttention with relative Attention Bias.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias">
-<code class="sig-name descname"><span class="pre">DecSelfAttentionRelativeBias</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias">
+<span class="sig-name descname"><span class="pre">DecSelfAttentionRelativeBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DecSelfAttentionRelativeBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DecSelfAttentionRelativeBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>DecSelfAttention with relative Attention Bias.</p>
 <p>Note that attention bias (see _DecNotVisible) ensures that current position
 (~row) is less that memory position(~column).</p>
@@ -931,63 +934,63 @@ to compute per position-pair bias.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN">
-<code class="sig-name descname"><span class="pre">ParallelDecSelfAttentionRelativeBiasFFN</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN">
+<span class="sig-name descname"><span class="pre">ParallelDecSelfAttentionRelativeBiasFFN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs DecSelfAttentionRelativeBias and FFNWithConv in parallel.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._CapLogits">
-<code class="sig-name descname"><span class="pre">_CapLogits</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._CapLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._CapLogits" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._CapLogits">
+<span class="sig-name descname"><span class="pre">_CapLogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._CapLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._CapLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>When enabled, cap logits by p.atten_logit_cap with tanh.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.Attention">
-<code class="sig-name descname"><span class="pre">Attention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.Attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.Attention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.Attention">
+<span class="sig-name descname"><span class="pre">Attention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.Attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.Attention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention with multiple attention heads.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ComputeQKV">
-<code class="sig-name descname"><span class="pre">_ComputeQKV</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeQKV"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeQKV" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ComputeQKV">
+<span class="sig-name descname"><span class="pre">_ComputeQKV</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeQKV"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeQKV" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ComputeQKVCombine">
-<code class="sig-name descname"><span class="pre">_ComputeQKVCombine</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeQKVCombine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeQKVCombine" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ComputeQKVCombine">
+<span class="sig-name descname"><span class="pre">_ComputeQKVCombine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeQKVCombine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeQKVCombine" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ComputeQKVH">
-<code class="sig-name descname"><span class="pre">_ComputeQKVH</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeQKVH"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeQKVH" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ComputeQKVH">
+<span class="sig-name descname"><span class="pre">_ComputeQKVH</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeQKVH"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeQKVH" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ComputeAttenOutputs">
-<code class="sig-name descname"><span class="pre">_ComputeAttenOutputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeAttenOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeAttenOutputs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ComputeAttenOutputs">
+<span class="sig-name descname"><span class="pre">_ComputeAttenOutputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeAttenOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeAttenOutputs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder._ComputeCombinedOutputs">
-<code class="sig-name descname"><span class="pre">_ComputeCombinedOutputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeCombinedOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeCombinedOutputs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ComputeCombinedOutputs">
+<span class="sig-name descname"><span class="pre">_ComputeCombinedOutputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ComputeCombinedOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ComputeCombinedOutputs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.DenseReluDense">
-<code class="sig-name descname"><span class="pre">DenseReluDense</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DenseReluDense"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DenseReluDense" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.DenseReluDense">
+<span class="sig-name descname"><span class="pre">DenseReluDense</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DenseReluDense"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DenseReluDense" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseGated">
-<code class="sig-name descname"><span class="pre">DenseReluDenseGated</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DenseReluDenseGated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseGated" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseGated">
+<span class="sig-name descname"><span class="pre">DenseReluDenseGated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DenseReluDenseGated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseGated" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></code><code class="sig-name descname"><span class="pre">RecurrentDenseBuilderParallelDecode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">RecurrentDenseBuilderParallelDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.DenseBuilder" title="lingvo.core.gshard_builder.DenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.DenseBuilder</span></code></a></p>
 <p>Same as RecurrentDenseBuilder but with micro variables.</p>
 <p>Projection variables created under this builder will be replaced by multiple
@@ -1004,88 +1007,88 @@ each with shape [L, 16k, 64, 128] only. Using leasting loading placer those
 micro variables will be placed at different hosts.</p>
 <p>To disable micro variables, set proj_weight_hdim to None.</p>
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>The params of this layer.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_input_proj_weights">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_num_input_proj_weights</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_input_proj_weights" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_input_proj_weights">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_num_input_proj_weights</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_input_proj_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_num_output_proj_weights</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ffw_var_h_dim_size">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_ffw_var_h_dim_size</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ffw_var_h_dim_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_q_var_heads">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_atten_q_var_heads</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_q_var_heads" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_kv_var_heads">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_atten_kv_var_heads</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_kv_var_heads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_num_output_proj_weights</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._num_output_proj_weights" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights">
+<span class="sig-name descname"><span class="pre">_DecoderLayerInputProjWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ffw_var_h_dim_size">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_ffw_var_h_dim_size</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ffw_var_h_dim_size" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights">
+<span class="sig-name descname"><span class="pre">_DecoderLayerOutputProjWeights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_q_var_heads">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_atten_q_var_heads</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_q_var_heads" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ComputeQKVH">
+<span class="sig-name descname"><span class="pre">_ComputeQKVH</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._ComputeQKVH"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ComputeQKVH" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_kv_var_heads">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_atten_kv_var_heads</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._atten_kv_var_heads" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer">
+<span class="sig-name descname"><span class="pre">DecoderLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.DecoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInMapKeys">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_DecoderLayerInMapKeys</span></span><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights">
-<code class="sig-name descname"><span class="pre">_DecoderLayerInputProjWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInputProjWeights" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights">
-<code class="sig-name descname"><span class="pre">_DecoderLayerOutputProjWeights</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerOutputProjWeights" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ComputeQKVH">
-<code class="sig-name descname"><span class="pre">_ComputeQKVH</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode._ComputeQKVH"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._ComputeQKVH" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer">
-<code class="sig-name descname"><span class="pre">DecoderLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.DecoderLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayer" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInMapKeys">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">_DecoderLayerInMapKeys</span></code><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode._DecoderLayerInMapKeys" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack">
-<code class="sig-name descname"><span class="pre">DecoderLayerStack</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.DecoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack">
+<span class="sig-name descname"><span class="pre">DecoderLayerStack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode.DecoderLayerStack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack" title="Permalink to this definition">¶</a></dt>
 <dd><p>DecoderLayerStack with self attention and feedforward in parallel.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.gshard_builder.UniTransformer">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></code><code class="sig-name descname"><span class="pre">UniTransformer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">UniTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
 <p>LM TransformerModel with z-loss.</p>
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput">
-<code class="sig-name descname"><span class="pre">_ComputeDecoderInput</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeDecoderInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput">
+<span class="sig-name descname"><span class="pre">_ComputeDecoderInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeDecoderInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer.ComputePredictions">
-<code class="sig-name descname"><span class="pre">ComputePredictions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer.ComputePredictions">
+<span class="sig-name descname"><span class="pre">ComputePredictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation through one tower of the model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1102,23 +1105,23 @@ copied to this tower’s devices.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding">
-<code class="sig-name descname"><span class="pre">_ComputeNonPadding</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeNonPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding">
+<span class="sig-name descname"><span class="pre">_ComputeNonPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeNonPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeNonPadding" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer._ComputeSoftLabels">
-<code class="sig-name descname"><span class="pre">_ComputeSoftLabels</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeSoftLabels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeSoftLabels" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer._ComputeSoftLabels">
+<span class="sig-name descname"><span class="pre">_ComputeSoftLabels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeSoftLabels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeSoftLabels" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer.ComputePerTokenLoss">
-<code class="sig-name descname"><span class="pre">ComputePerTokenLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ComputePerTokenLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ComputePerTokenLoss" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer.ComputePerTokenLoss">
+<span class="sig-name descname"><span class="pre">ComputePerTokenLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ComputePerTokenLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ComputePerTokenLoss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer.ComputeLoss">
-<code class="sig-name descname"><span class="pre">ComputeLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer.ComputeLoss">
+<span class="sig-name descname"><span class="pre">ComputeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1145,8 +1148,8 @@ index.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer.FilterPerExampleTensors">
-<code class="sig-name descname"><span class="pre">FilterPerExampleTensors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.FilterPerExampleTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.FilterPerExampleTensors" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer.FilterPerExampleTensors">
+<span class="sig-name descname"><span class="pre">FilterPerExampleTensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.FilterPerExampleTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.FilterPerExampleTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the per-example tensors ProcessFPropResults needs.</p>
 <p>By default we don’t send any per-example tensors to ProcessFPropResults
 because some may be expensive to compute. Implement this method to let
@@ -1162,8 +1165,8 @@ some of them pass through.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.gshard_builder.UniTransformer.ProcessFPropResults">
-<code class="sig-name descname"><span class="pre">ProcessFPropResults</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ProcessFPropResults"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer.ProcessFPropResults">
+<span class="sig-name descname"><span class="pre">ProcessFPropResults</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer.ProcessFPropResults"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
 <dd><p>Called once for each train loop.</p>
 <p>BaseModel.ProcessFPropResults is also called on each loop, so you
 can put your implementation wherever it is most convenient for you.</p>

@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -177,20 +180,20 @@
 mechanisms. A BaseTask can have multiple learners, each optimizing a (usually
 disjoint) subset of variables.</p>
 <dl class="py class">
-<dt id="lingvo.core.learner.Learner">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.learner.</span></code><code class="sig-name descname"><span class="pre">Learner</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.learner.</span></span><span class="sig-name descname"><span class="pre">Learner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A training program layer.</p>
 <p>The layer takes a loss tensor as input and outputs a trainer op.</p>
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner._CreateChildrenVariables">
-<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._CreateChildrenVariables">
+<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
 children InstantiateVariables calls are needed. eg, if children variables
@@ -204,18 +207,18 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.GetVarGrads">
-<code class="sig-name descname"><span class="pre">GetVarGrads</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.GetVarGrads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.GetVarGrads" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.GetVarGrads">
+<span class="sig-name descname"><span class="pre">GetVarGrads</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.GetVarGrads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.GetVarGrads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.GetTrainableVariables">
-<code class="sig-name descname"><span class="pre">GetTrainableVariables</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.GetTrainableVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.GetTrainableVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.GetTrainableVariables">
+<span class="sig-name descname"><span class="pre">GetTrainableVariables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.GetTrainableVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.GetTrainableVariables" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.ApplyPostTrainingLoop">
-<code class="sig-name descname"><span class="pre">ApplyPostTrainingLoop</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ApplyPostTrainingLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ApplyPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ApplyPostTrainingLoop">
+<span class="sig-name descname"><span class="pre">ApplyPostTrainingLoop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ApplyPostTrainingLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ApplyPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies any computation to run after each tpu trainining loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -225,13 +228,13 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.LearningRate">
-<code class="sig-name descname"><span class="pre">LearningRate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.LearningRate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.LearningRate" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.LearningRate">
+<span class="sig-name descname"><span class="pre">LearningRate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.LearningRate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.LearningRate" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.Apply">
-<code class="sig-name descname"><span class="pre">Apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Apply" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.Apply">
+<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes updates on ‘vmap’ to optimize ‘loss’.</p>
 <p>TODO(rpang): explore merging gradient_mask and gradient_adjuster.</p>
 <dl class="field-list simple">
@@ -260,29 +263,29 @@ is a scalar tensor.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.ComputeActivationGradients">
-<code class="sig-name descname"><span class="pre">ComputeActivationGradients</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activations_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ComputeActivationGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ComputeActivationGradients" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ComputeActivationGradients">
+<span class="sig-name descname"><span class="pre">ComputeActivationGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activations_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ComputeActivationGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ComputeActivationGradients" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.ComputeLosses">
-<code class="sig-name descname"><span class="pre">ComputeLosses</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ComputeLosses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ComputeLosses" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ComputeLosses">
+<span class="sig-name descname"><span class="pre">ComputeLosses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ComputeLosses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ComputeLosses" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner._CustomComputeGradientsFn">
-<code class="sig-name descname"><span class="pre">_CustomComputeGradientsFn</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._CustomComputeGradientsFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._CustomComputeGradientsFn" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._CustomComputeGradientsFn">
+<span class="sig-name descname"><span class="pre">_CustomComputeGradientsFn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._CustomComputeGradientsFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._CustomComputeGradientsFn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the compute_gradients_fn to use for py_utils.ComputeGradients.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner._ComputeLossesAndGradients">
-<code class="sig-name descname"><span class="pre">_ComputeLossesAndGradients</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._ComputeLossesAndGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._ComputeLossesAndGradients" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._ComputeLossesAndGradients">
+<span class="sig-name descname"><span class="pre">_ComputeLossesAndGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._ComputeLossesAndGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._ComputeLossesAndGradients" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.AdjustGradients">
-<code class="sig-name descname"><span class="pre">AdjustGradients</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_grads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.AdjustGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.AdjustGradients" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.AdjustGradients">
+<span class="sig-name descname"><span class="pre">AdjustGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_grads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.AdjustGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.AdjustGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adjusts gradients according to learner params.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -300,8 +303,8 @@ is a scalar tensor.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner._GetGlobalGradScale">
-<code class="sig-name descname"><span class="pre">_GetGlobalGradScale</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grad_norm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_nan_or_inf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._GetGlobalGradScale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._GetGlobalGradScale" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._GetGlobalGradScale">
+<span class="sig-name descname"><span class="pre">_GetGlobalGradScale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grad_norm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_nan_or_inf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._GetGlobalGradScale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._GetGlobalGradScale" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a scaling factor for all gradients according to their norm.</p>
 <p>In case there are NaN or Inf values the function will return 0.0.</p>
 <dl class="field-list simple">
@@ -319,8 +322,8 @@ Inf in input gradients.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner.ScaleGradients">
-<code class="sig-name descname"><span class="pre">ScaleGradients</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_grads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ScaleGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ScaleGradients" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ScaleGradients">
+<span class="sig-name descname"><span class="pre">ScaleGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_grads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ScaleGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ScaleGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scales gradients according to training params.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -344,15 +347,15 @@ used.)</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.learner.Learner._AddEvalMetric">
-<code class="sig-name descname"><span class="pre">_AddEvalMetric</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._AddEvalMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._AddEvalMetric" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._AddEvalMetric">
+<span class="sig-name descname"><span class="pre">_AddEvalMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._AddEvalMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._AddEvalMetric" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.learner.ExtractLearnerFromLegacyParams">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.learner.</span></code><code class="sig-name descname"><span class="pre">ExtractLearnerFromLegacyParams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">tp</span></em>, <em class="sig-param"><span class="pre">cls=&lt;class</span> <span class="pre">'lingvo.core.learner.Learner'&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#ExtractLearnerFromLegacyParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.ExtractLearnerFromLegacyParams" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.learner.ExtractLearnerFromLegacyParams">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.learner.</span></span><span class="sig-name descname"><span class="pre">ExtractLearnerFromLegacyParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">tp</span></em>, <em class="sig-param"><span class="pre">cls=&lt;class</span> <span class="pre">'lingvo.core.learner.Learner'&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#ExtractLearnerFromLegacyParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.ExtractLearnerFromLegacyParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts legacy learner params from ‘tp’ to a Learner params.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

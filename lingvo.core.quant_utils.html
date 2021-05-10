@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -174,8 +177,8 @@
 <span id="lingvo-core-quant-utils-module"></span><h1>lingvo.core.quant_utils module<a class="headerlink" href="#module-lingvo.core.quant_utils" title="Permalink to this headline">¶</a></h1>
 <p>Utilities for model quantization.</p>
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.QuantizableLayer">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">QuantizableLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">QuantizableLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A layer that supports various forms of quantization.</p>
 <p>It is always safe to extend QuantizableLayer instead of BaseLayer (i.e. at
@@ -270,14 +273,14 @@ output range must have either qt or qmin/qmax specified manually.</p>
 <li><p>qrelu</p></li>
 </ul>
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer._CreateChildrenVariables">
-<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer._CreateChildrenVariables">
+<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
 children InstantiateVariables calls are needed. eg, if children variables
@@ -291,44 +294,44 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QRTanh">
-<code class="sig-name descname"><span class="pre">QRTanh</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'actf'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRTanh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRTanh" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QRTanh">
+<span class="sig-name descname"><span class="pre">QRTanh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'actf'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRTanh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRTanh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes the output of a tanh (-1.0, 1.0).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QRSigmoid">
-<code class="sig-name descname"><span class="pre">QRSigmoid</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'actf'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRSigmoid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRSigmoid" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QRSigmoid">
+<span class="sig-name descname"><span class="pre">QRSigmoid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'actf'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRSigmoid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRSigmoid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes the output of a sigmoid (0, 1.0).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QRSoftmax">
-<code class="sig-name descname"><span class="pre">QRSoftmax</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'softmax'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">narrow_to_asym_bit_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRSoftmax" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QRSoftmax">
+<span class="sig-name descname"><span class="pre">QRSoftmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'softmax'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">narrow_to_asym_bit_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes the output of a softmax (0, 1.0 - 1.0/2^-bits).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QRRelu">
-<code class="sig-name descname"><span class="pre">QRRelu</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRRelu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRRelu" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QRRelu">
+<span class="sig-name descname"><span class="pre">QRRelu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRRelu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRRelu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes the output of a relu (0, 1.0).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QRRelu6">
-<code class="sig-name descname"><span class="pre">QRRelu6</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu6'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRRelu6"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRRelu6" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QRRelu6">
+<span class="sig-name descname"><span class="pre">QRRelu6</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu6'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRRelu6"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRRelu6" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes the output of a relu6 (0, 6.0).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QRPadding">
-<code class="sig-name descname"><span class="pre">QRPadding</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'padding'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRPadding" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QRPadding">
+<span class="sig-name descname"><span class="pre">QRPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'padding'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRPadding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes the padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.TrackQTensor">
-<code class="sig-name descname"><span class="pre">TrackQTensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">t_names</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.TrackQTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.TrackQTensor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.TrackQTensor">
+<span class="sig-name descname"><span class="pre">TrackQTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">t_names</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.TrackQTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.TrackQTensor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates one or more QTensors for later use.</p>
 <p>Any tensor that will later be quantized must be created first, preferably
 in _CreateLayerVariables().</p>
@@ -350,8 +353,8 @@ python2 limitations.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight">
-<code class="sig-name descname"><span class="pre">CreateAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'weight'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.CreateAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight">
+<span class="sig-name descname"><span class="pre">CreateAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'weight'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.CreateAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates Quantized weights for later use.</p>
 <p>Weight that will later be quantized must be created first, preferably
 in _CreateLayerVariables().</p>
@@ -369,8 +372,8 @@ limitations</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QTensor">
-<code class="sig-name descname"><span class="pre">QTensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QTensor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QTensor">
+<span class="sig-name descname"><span class="pre">QTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QTensor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a general tensor input/output in one step.</p>
 <p>t_name must have been previously created via TrackQTensor.</p>
 <dl class="field-list simple">
@@ -388,8 +391,8 @@ limitations</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QTensorMulti">
-<code class="sig-name descname"><span class="pre">QTensorMulti</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QTensorMulti"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QTensorMulti" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QTensorMulti">
+<span class="sig-name descname"><span class="pre">QTensorMulti</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QTensorMulti"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QTensorMulti" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes multiple tensors simultaneously.</p>
 <p>t_name must have been previously created via TrackQTensor.</p>
 <p>This is different from multiple calls to QTensor because each of the
@@ -410,8 +413,8 @@ Typically used for tensors that are being added together.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.GetQTensorRange">
-<code class="sig-name descname"><span class="pre">GetQTensorRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.GetQTensorRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.GetQTensorRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.GetQTensorRange">
+<span class="sig-name descname"><span class="pre">GetQTensorRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.GetQTensorRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.GetQTensorRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the range for a quantized tensor.</p>
 <p>t_name must have been previously create via TrackQTensor and t should be
 previously quantized.</p>
@@ -429,8 +432,8 @@ previously quantized.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.QWeight">
-<code class="sig-name descname"><span class="pre">QWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'weight'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.QWeight">
+<span class="sig-name descname"><span class="pre">QWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'weight'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a weight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -446,8 +449,8 @@ previously quantized.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.FqWeight">
-<code class="sig-name descname"><span class="pre">FqWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FqWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FqWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.FqWeight">
+<span class="sig-name descname"><span class="pre">FqWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FqWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FqWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>AQT Quantized weight FQ style.</p>
 <p>This is analogous to QWeight; either AqtWeight or QWeight should be identity
 for alll domains. AqtQDomain additionally supports per channel quantization.</p>
@@ -469,8 +472,8 @@ expected. Defaults to None.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight">
-<code class="sig-name descname"><span class="pre">ToAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight">
+<span class="sig-name descname"><span class="pre">ToAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantized integer weight AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized weight would be
 either integer ot integer emulated in float.</p>
@@ -492,8 +495,8 @@ Defaults to None.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">
-<code class="sig-name descname"><span class="pre">FromAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">
+<span class="sig-name descname"><span class="pre">FromAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales the output corresponding to AQT style quantized matmul’s weight.</p>
 <p>Uses the same scale used by <a class="reference internal" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ToAqtWeight</span></code></a> and apply its inverse to rescale.</p>
 <p>w_name must have been previously created via CreateAqtWeight.</p>
@@ -511,8 +514,8 @@ Defaults to None.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs">
-<code class="sig-name descname"><span class="pre">ToAqtActActInputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs">
+<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes activations for (act * act) matmul AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized acts would be
 either integer ot integer emulated in float.</p>
@@ -533,8 +536,8 @@ either integer ot integer emulated in float.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.FromAqtActActMatmul">
-<code class="sig-name descname"><span class="pre">FromAqtActActMatmul</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtActActMatmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtActActMatmul" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.FromAqtActActMatmul">
+<span class="sig-name descname"><span class="pre">FromAqtActActMatmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtActActMatmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtActActMatmul" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales the output of (act*act) matmul for AQT style quantized acts.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -550,8 +553,8 @@ either integer ot integer emulated in float.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer.GetQDomain">
-<code class="sig-name descname"><span class="pre">GetQDomain</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.GetQDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.GetQDomain" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.GetQDomain">
+<span class="sig-name descname"><span class="pre">GetQDomain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.GetQDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.GetQDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the QDomain matching a given domain name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -564,26 +567,26 @@ either integer ot integer emulated in float.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QuantizableLayer._AddQuantizationFunctions">
-<code class="sig-name descname"><span class="pre">_AddQuantizationFunctions</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer._AddQuantizationFunctions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer._AddQuantizationFunctions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer._AddQuantizationFunctions">
+<span class="sig-name descname"><span class="pre">_AddQuantizationFunctions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer._AddQuantizationFunctions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer._AddQuantizationFunctions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds standard quantization functions against the given layer.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">BaseClippingCapSchedule</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">BaseClippingCapSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for clipping cap schedules.</p>
-<dl class="py method">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule.is_quantized">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">is_quantized</span></code><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.is_quantized" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule.is_quantized">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">is_quantized</span></span><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.is_quantized" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule.GetEndRange">
-<code class="sig-name descname"><span class="pre">GetEndRange</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule.GetEndRange">
+<span class="sig-name descname"><span class="pre">GetEndRange</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Public method to get the final range as a constant.</p>
 <p>Note that this returns the “ideal” end range (i.e. -1..1) as opposed to
 the actual range, which has its upper bound slightly adjusted based on
@@ -601,8 +604,8 @@ parts may use altered caps or bit depths.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule.GetQuantizedEndRange">
-<code class="sig-name descname"><span class="pre">GetQuantizedEndRange</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.GetQuantizedEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.GetQuantizedEndRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule.GetQuantizedEndRange">
+<span class="sig-name descname"><span class="pre">GetQuantizedEndRange</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.GetQuantizedEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.GetQuantizedEndRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the quantized ending range.</p>
 <p>Unlike GetEndRange(), this takes quantization effects into account.
 The default implementation just returns self.GetEndRange(). Subclasses
@@ -616,8 +619,8 @@ of specific types.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyConstantClip">
-<code class="sig-name descname"><span class="pre">ApplyConstantClip</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyConstantClip">
+<span class="sig-name descname"><span class="pre">ApplyConstantClip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies a constant clip with the clipping op for the implementation.</p>
 <p>This is a special case which allows applying a custom clipping range to
 constants that are not used arithmetically. This exists to support padding.</p>
@@ -636,8 +639,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule.GetState">
-<code class="sig-name descname"><span class="pre">GetState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.GetState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule.GetState">
+<span class="sig-name descname"><span class="pre">GetState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.GetState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets a state tensor that can be used to calculate clipping.</p>
 <p>The state will be a float32 tensor that is safe to pass to TF functions.</p>
 <dl class="field-list simple">
@@ -651,8 +654,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClipping">
-<code class="sig-name descname"><span class="pre">ApplyClipping</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.ApplyClipping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClipping" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClipping">
+<span class="sig-name descname"><span class="pre">ApplyClipping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.ApplyClipping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClipping" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies clipping to x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -669,8 +672,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClippingWithState">
-<code class="sig-name descname"><span class="pre">ApplyClippingWithState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClippingWithState">
+<span class="sig-name descname"><span class="pre">ApplyClippingWithState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#BaseClippingCapSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.BaseClippingCapSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies clipping to x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -688,13 +691,13 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.IdentityClippingCapSchedule">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">IdentityClippingCapSchedule</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.IdentityClippingCapSchedule">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">IdentityClippingCapSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.quant_utils.BaseClippingCapSchedule" title="lingvo.core.quant_utils.BaseClippingCapSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.BaseClippingCapSchedule</span></code></a></p>
 <p>Dummy cc schedule (useful in some cases instead of None).</p>
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.IdentityClippingCapSchedule.GetEndRange">
-<code class="sig-name descname"><span class="pre">GetEndRange</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.IdentityClippingCapSchedule.GetEndRange">
+<span class="sig-name descname"><span class="pre">GetEndRange</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Public method to get the final range as a constant.</p>
 <p>Note that this returns the “ideal” end range (i.e. -1..1) as opposed to
 the actual range, which has its upper bound slightly adjusted based on
@@ -712,8 +715,8 @@ parts may use altered caps or bit depths.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyConstantClip">
-<code class="sig-name descname"><span class="pre">ApplyConstantClip</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyConstantClip">
+<span class="sig-name descname"><span class="pre">ApplyConstantClip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies a constant clip with the clipping op for the implementation.</p>
 <p>This is a special case which allows applying a custom clipping range to
 constants that are not used arithmetically. This exists to support padding.</p>
@@ -732,8 +735,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.IdentityClippingCapSchedule.GetState">
-<code class="sig-name descname"><span class="pre">GetState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.GetState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.IdentityClippingCapSchedule.GetState">
+<span class="sig-name descname"><span class="pre">GetState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.GetState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets a state tensor that can be used to calculate clipping.</p>
 <p>The state will be a float32 tensor that is safe to pass to TF functions.</p>
 <dl class="field-list simple">
@@ -747,8 +750,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyClippingWithState">
-<code class="sig-name descname"><span class="pre">ApplyClippingWithState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyClippingWithState">
+<span class="sig-name descname"><span class="pre">ApplyClippingWithState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#IdentityClippingCapSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.IdentityClippingCapSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies clipping to x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -766,24 +769,24 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">LinearClippingCapSchedule</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">LinearClippingCapSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.quant_utils.BaseClippingCapSchedule" title="lingvo.core.quant_utils.BaseClippingCapSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.BaseClippingCapSchedule</span></code></a></p>
 <p>Class for linear clipping cap decay.</p>
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.is_quantized">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">is_quantized</span></code><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.is_quantized" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule.is_quantized">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">is_quantized</span></span><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.is_quantized" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyConstantClip">
-<code class="sig-name descname"><span class="pre">ApplyConstantClip</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyConstantClip">
+<span class="sig-name descname"><span class="pre">ApplyConstantClip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies a constant clip with the clipping op for the implementation.</p>
 <p>This is a special case which allows applying a custom clipping range to
 constants that are not used arithmetically. This exists to support padding.</p>
@@ -802,8 +805,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.GetState">
-<code class="sig-name descname"><span class="pre">GetState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.GetState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule.GetState">
+<span class="sig-name descname"><span class="pre">GetState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.GetState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets a state tensor that can be used to calculate clipping.</p>
 <p>The state will be a float32 tensor that is safe to pass to TF functions.</p>
 <dl class="field-list simple">
@@ -817,8 +820,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyClippingWithState">
-<code class="sig-name descname"><span class="pre">ApplyClippingWithState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyClippingWithState">
+<span class="sig-name descname"><span class="pre">ApplyClippingWithState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies clipping to x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -834,8 +837,8 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.GetEndRange">
-<code class="sig-name descname"><span class="pre">GetEndRange</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule.GetEndRange">
+<span class="sig-name descname"><span class="pre">GetEndRange</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the range of values that are clipped towards the end of training.</p>
 <p>This is always a constant and is used by downstream systems.</p>
 <dl class="field-list simple">
@@ -846,16 +849,16 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule._Value">
-<code class="sig-name descname"><span class="pre">_Value</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule._Value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule._Value" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.LinearClippingCapSchedule._Value">
+<span class="sig-name descname"><span class="pre">_Value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule._Value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule._Value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the current clipping cap.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">FakeQuantizationSchedule</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">FakeQuantizationSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.quant_utils.BaseClippingCapSchedule" title="lingvo.core.quant_utils.BaseClippingCapSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.BaseClippingCapSchedule</span></code></a></p>
 <p>Manages application of fake quantization via a schedule.</p>
 <p>This implementation is a general-purpose clipping cap schedule but also
@@ -863,24 +866,24 @@ works with the Fake Quantization approach used by mobile inference engines.
 It is tightly coupled to the FakeQuantizedLSTMCell. See more exhaustive
 documentation and links there.</p>
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.is_quantized">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">is_quantized</span></code><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.is_quantized" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.is_quantized">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">is_quantized</span></span><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.is_quantized" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.bits">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">bits</span></span><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.bits" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.bits">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">bits</span></code><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.bits" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.GetEndRange">
-<code class="sig-name descname"><span class="pre">GetEndRange</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.GetEndRange">
+<span class="sig-name descname"><span class="pre">GetEndRange</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.GetEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.GetEndRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Public method to get the final range as a constant.</p>
 <p>Note that this returns the “ideal” end range (i.e. -1..1) as opposed to
 the actual range, which has its upper bound slightly adjusted based on
@@ -898,8 +901,8 @@ parts may use altered caps or bit depths.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.GetQuantizedEndRange">
-<code class="sig-name descname"><span class="pre">GetQuantizedEndRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.GetQuantizedEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.GetQuantizedEndRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.GetQuantizedEndRange">
+<span class="sig-name descname"><span class="pre">GetQuantizedEndRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">end_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.GetQuantizedEndRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.GetQuantizedEndRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the quantized ending range.</p>
 <p>Unlike GetEndRange(), this takes quantization effects into account.</p>
 <dl class="field-list simple">
@@ -916,8 +919,8 @@ parts may use altered caps or bit depths.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyConstantClip">
-<code class="sig-name descname"><span class="pre">ApplyConstantClip</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyConstantClip">
+<span class="sig-name descname"><span class="pre">ApplyConstantClip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.ApplyConstantClip"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyConstantClip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies a constant clip with the clipping op for the implementation.</p>
 <p>This is a special case which allows applying a custom clipping range to
 constants that are not used arithmetically. This exists to support padding.</p>
@@ -936,14 +939,14 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.GetState">
-<code class="sig-name descname"><span class="pre">GetState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.GetState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.GetState">
+<span class="sig-name descname"><span class="pre">GetState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.GetState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.GetState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the state from theta.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule._GetQuantizedRangeForCap">
-<code class="sig-name descname"><span class="pre">_GetQuantizedRangeForCap</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_cap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule._GetQuantizedRangeForCap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule._GetQuantizedRangeForCap" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule._GetQuantizedRangeForCap">
+<span class="sig-name descname"><span class="pre">_GetQuantizedRangeForCap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_cap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule._GetQuantizedRangeForCap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule._GetQuantizedRangeForCap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the range for the given cap and number of bits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -960,8 +963,8 @@ scalar, then a Tensor scalar.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule._GetCurrentMinMax">
-<code class="sig-name descname"><span class="pre">_GetCurrentMinMax</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_cap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_cap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixate_to_end_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule._GetCurrentMinMax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule._GetCurrentMinMax" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule._GetCurrentMinMax">
+<span class="sig-name descname"><span class="pre">_GetCurrentMinMax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_cap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_cap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixate_to_end_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule._GetCurrentMinMax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule._GetCurrentMinMax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the current min/max for the bit depth and caps.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -984,8 +987,8 @@ scalar, then a Tensor scalar.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyClippingWithState">
-<code class="sig-name descname"><span class="pre">ApplyClippingWithState</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyClippingWithState">
+<span class="sig-name descname"><span class="pre">ApplyClippingWithState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_cap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.ApplyClippingWithState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyClippingWithState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies clipping.</p>
 <p>The start_cap, end_cap and bits can be set explicitly and take the default
 if None.</p>
@@ -1008,14 +1011,14 @@ if None.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.QDomain">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">QDomain</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">QDomain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for a quantization domain layer.</p>
 <p>This implementation doubles as a no-op quantization domain.</p>
-<dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.bits">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">bits</span></code><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.bits" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.bits">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">bits</span></span><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.bits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieves the bits used by this quantization layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -1025,8 +1028,8 @@ if None.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.QuantizeWeight">
-<code class="sig-name descname"><span class="pre">QuantizeWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.QuantizeWeight">
+<span class="sig-name descname"><span class="pre">QuantizeWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a weight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1039,8 +1042,8 @@ if None.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.FqWeight">
-<code class="sig-name descname"><span class="pre">FqWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FqWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FqWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.FqWeight">
+<span class="sig-name descname"><span class="pre">FqWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FqWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FqWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>AQT Quantized weight FQ style .</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1058,8 +1061,8 @@ if None.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.ToAqtWeight">
-<code class="sig-name descname"><span class="pre">ToAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.ToAqtWeight">
+<span class="sig-name descname"><span class="pre">ToAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantized weight AQT style.</p>
 <p>Refer to quantizable_layer.ToAqtWeight.</p>
 <dl class="field-list simple">
@@ -1078,8 +1081,8 @@ if None.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.FromAqtWeight">
-<code class="sig-name descname"><span class="pre">FromAqtWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.FromAqtWeight">
+<span class="sig-name descname"><span class="pre">FromAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales the output corresponding to AQT quantized matmuls’ weight.</p>
 <p>Refer to quantizable_layer.FromAqtWeight.</p>
 <dl class="field-list simple">
@@ -1096,8 +1099,8 @@ if None.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.ToAqtActActInputs">
-<code class="sig-name descname"><span class="pre">ToAqtActActInputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtActActInputs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.ToAqtActActInputs">
+<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtActActInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes activations for (act * act) matmul AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized acts would be
 either integer ot integer emulated in float.</p>
@@ -1117,8 +1120,8 @@ either integer ot integer emulated in float.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.FromAqtActActMatmul">
-<code class="sig-name descname"><span class="pre">FromAqtActActMatmul</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtActActMatmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtActActMatmul" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.FromAqtActActMatmul">
+<span class="sig-name descname"><span class="pre">FromAqtActActMatmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtActActMatmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtActActMatmul" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales output of dynamic matmul (act * act).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1131,8 +1134,8 @@ either integer ot integer emulated in float.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.QuantizeConstantRange">
-<code class="sig-name descname"><span class="pre">QuantizeConstantRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeConstantRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.QuantizeConstantRange">
+<span class="sig-name descname"><span class="pre">QuantizeConstantRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeConstantRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a true-constant range that is not used for arithmetic.</p>
 <p>This supports special values like padding that should have a precise
 range that we do not deviate from.</p>
@@ -1151,8 +1154,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.QuantizeNaturalRange">
-<code class="sig-name descname"><span class="pre">QuantizeNaturalRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeNaturalRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.QuantizeNaturalRange">
+<span class="sig-name descname"><span class="pre">QuantizeNaturalRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeNaturalRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with a known, natural range.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1169,8 +1172,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.CreateTensor">
-<code class="sig-name descname"><span class="pre">CreateTensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.CreateTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.CreateTensor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.CreateTensor">
+<span class="sig-name descname"><span class="pre">CreateTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.CreateTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.CreateTensor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a QTensor with t_name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1180,8 +1183,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.CreateTensorWithShape">
-<code class="sig-name descname"><span class="pre">CreateTensorWithShape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.CreateTensorWithShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.CreateTensorWithShape" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.CreateTensorWithShape">
+<span class="sig-name descname"><span class="pre">CreateTensorWithShape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.CreateTensorWithShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.CreateTensorWithShape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a QTensor with t_name and given shape.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1195,8 +1198,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.QuantizeTensors">
-<code class="sig-name descname"><span class="pre">QuantizeTensors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.QuantizeTensors">
+<span class="sig-name descname"><span class="pre">QuantizeTensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.QuantizeTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with t_name previously created with CreateTensor.</p>
 <p>If applicable, each of the passed tensors contributes to a shared
 range.</p>
@@ -1215,8 +1218,8 @@ range.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.QDomain.GetTensorRange">
-<code class="sig-name descname"><span class="pre">GetTensorRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.GetTensorRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.GetTensorRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.GetTensorRange">
+<span class="sig-name descname"><span class="pre">GetTensorRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.GetTensorRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.GetTensorRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieves the range of a tensor given the t_name used by CreateTensor.</p>
 <p>Note, this computes the batch range across the list of tensors at training
 time but fetches the stored tensor over time. This depends on
@@ -1237,8 +1240,8 @@ QuantizeTensors updating the appropriate value.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">SymmetricScheduledClipQDomain</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">SymmetricScheduledClipQDomain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.quant_utils.QDomain" title="lingvo.core.quant_utils.QDomain"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QDomain</span></code></a></p>
 <p>A quantization domain that does symmetric scheduled clipping.</p>
 <p>This contains a BaseClippingCapSchedule which handles the actual clipping. It
@@ -1248,14 +1251,14 @@ operation within known ranges (such as LSTM cells). The clipping range will
 converge over a range of steps and is setup to match ideal, symmetric ranges
 for quantized types.</p>
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.bits">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">bits</span></code><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.bits" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.bits">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">bits</span></span><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.bits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieves the bits used by this quantization layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -1265,8 +1268,8 @@ for quantized types.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeWeight">
-<code class="sig-name descname"><span class="pre">QuantizeWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeWeight">
+<span class="sig-name descname"><span class="pre">QuantizeWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a weight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1279,8 +1282,8 @@ for quantized types.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeNaturalRange">
-<code class="sig-name descname"><span class="pre">QuantizeNaturalRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeNaturalRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeNaturalRange">
+<span class="sig-name descname"><span class="pre">QuantizeNaturalRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeNaturalRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with a known, natural range.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1297,8 +1300,8 @@ for quantized types.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeConstantRange">
-<code class="sig-name descname"><span class="pre">QuantizeConstantRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeConstantRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeConstantRange">
+<span class="sig-name descname"><span class="pre">QuantizeConstantRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeConstantRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a true-constant range that is not used for arithmetic.</p>
 <p>This supports special values like padding that should have a precise
 range that we do not deviate from.</p>
@@ -1317,8 +1320,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors">
-<code class="sig-name descname"><span class="pre">QuantizeTensors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors">
+<span class="sig-name descname"><span class="pre">QuantizeTensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with t_name previously created with CreateTensor.</p>
 <p>If applicable, each of the passed tensors contributes to a shared
 range.</p>
@@ -1339,27 +1342,27 @@ range.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils._CountedMinMaxAccumulator">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">_CountedMinMaxAccumulator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CountedMinMaxAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CountedMinMaxAccumulator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils._CountedMinMaxAccumulator">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">_CountedMinMaxAccumulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CountedMinMaxAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CountedMinMaxAccumulator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.Accumulator" title="lingvo.core.base_layer.Accumulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.Accumulator</span></code></a></p>
 <p>Accumulator for a counted min/max.</p>
 <p>Represented as a tensor of shape [count, min, max]. Every update
 increases the count and expands the min/max (initially zeros).</p>
 <dl class="py method">
-<dt id="lingvo.core.quant_utils._CountedMinMaxAccumulator.DefaultValue">
-<code class="sig-name descname"><span class="pre">DefaultValue</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CountedMinMaxAccumulator.DefaultValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CountedMinMaxAccumulator.DefaultValue" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils._CountedMinMaxAccumulator.DefaultValue">
+<span class="sig-name descname"><span class="pre">DefaultValue</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CountedMinMaxAccumulator.DefaultValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CountedMinMaxAccumulator.DefaultValue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils._CountedMinMaxAccumulator.Update">
-<code class="sig-name descname"><span class="pre">Update</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CountedMinMaxAccumulator.Update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CountedMinMaxAccumulator.Update" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils._CountedMinMaxAccumulator.Update">
+<span class="sig-name descname"><span class="pre">Update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CountedMinMaxAccumulator.Update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CountedMinMaxAccumulator.Update" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">PassiveAsymQDomain</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">PassiveAsymQDomain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.quant_utils.QDomain" title="lingvo.core.quant_utils.QDomain"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QDomain</span></code></a></p>
 <p>A quantization domain that does passive, asymmetric quantization.</p>
 <p>See: <a class="reference external" href="https://arxiv.org/abs/1712.05877">https://arxiv.org/abs/1712.05877</a></p>
@@ -1367,27 +1370,27 @@ increases the count and expands the min/max (initially zeros).</p>
 time, recording them into vars via an exponential moving average and then
 applying them at eval/inference time.</p>
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables">
-<code class="sig-name descname"><span class="pre">_CreateLayerVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._MaybeFakeQuant">
-<code class="sig-name descname"><span class="pre">_MaybeFakeQuant</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._MaybeFakeQuant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._MaybeFakeQuant" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain._MaybeFakeQuant">
+<span class="sig-name descname"><span class="pre">_MaybeFakeQuant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._MaybeFakeQuant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._MaybeFakeQuant" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.bits">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">bits</span></code><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.bits" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.bits">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">bits</span></span><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.bits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieves the bits used by this quantization layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -1397,8 +1400,8 @@ applying them at eval/inference time.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeWeight">
-<code class="sig-name descname"><span class="pre">QuantizeWeight</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeWeight">
+<span class="sig-name descname"><span class="pre">QuantizeWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a weight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1411,8 +1414,8 @@ applying them at eval/inference time.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeNaturalRange">
-<code class="sig-name descname"><span class="pre">QuantizeNaturalRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeNaturalRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeNaturalRange">
+<span class="sig-name descname"><span class="pre">QuantizeNaturalRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeNaturalRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with a known, natural range.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1429,8 +1432,8 @@ applying them at eval/inference time.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeConstantRange">
-<code class="sig-name descname"><span class="pre">QuantizeConstantRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeConstantRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeConstantRange">
+<span class="sig-name descname"><span class="pre">QuantizeConstantRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeConstantRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a true-constant range that is not used for arithmetic.</p>
 <p>This supports special values like padding that should have a precise
 range that we do not deviate from.</p>
@@ -1449,8 +1452,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.CreateTensor">
-<code class="sig-name descname"><span class="pre">CreateTensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.CreateTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.CreateTensor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.CreateTensor">
+<span class="sig-name descname"><span class="pre">CreateTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.CreateTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.CreateTensor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a QTensor with t_name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1460,8 +1463,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeTensors">
-<code class="sig-name descname"><span class="pre">QuantizeTensors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeTensors">
+<span class="sig-name descname"><span class="pre">QuantizeTensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.QuantizeTensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with t_name previously created with CreateTensor.</p>
 <p>If applicable, each of the passed tensors contributes to a shared
 range.</p>
@@ -1480,8 +1483,8 @@ range.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.GetTensorRange">
-<code class="sig-name descname"><span class="pre">GetTensorRange</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.GetTensorRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.GetTensorRange" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.GetTensorRange">
+<span class="sig-name descname"><span class="pre">GetTensorRange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.GetTensorRange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.GetTensorRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Retrieves the range of a tensor given the t_name used by CreateTensor.</p>
 <p>Note, this computes the batch range across the list of tensors at training
 time but fetches the stored tensor over time. This depends on
@@ -1500,48 +1503,48 @@ QuantizeTensors updating the appropriate value.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate">
-<code class="sig-name descname"><span class="pre">PostTrainingStepUpdate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.PostTrainingStepUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate">
+<span class="sig-name descname"><span class="pre">PostTrainingStepUpdate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.PostTrainingStepUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a TF op which will be invoked at each training step.</p>
 <p>Subclasses of <code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseLayer</span></code> can implement this method. The method should
 return a TF op to be invoked during training after gradients are applied.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._CreateQStateVar">
-<code class="sig-name descname"><span class="pre">_CreateQStateVar</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._CreateQStateVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._CreateQStateVar" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain._CreateQStateVar">
+<span class="sig-name descname"><span class="pre">_CreateQStateVar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._CreateQStateVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._CreateQStateVar" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._GetAccumulatorNameForTensor">
-<code class="sig-name descname"><span class="pre">_GetAccumulatorNameForTensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._GetAccumulatorNameForTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._GetAccumulatorNameForTensor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain._GetAccumulatorNameForTensor">
+<span class="sig-name descname"><span class="pre">_GetAccumulatorNameForTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._GetAccumulatorNameForTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._GetAccumulatorNameForTensor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._GetQStateVar">
-<code class="sig-name descname"><span class="pre">_GetQStateVar</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._GetQStateVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._GetQStateVar" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain._GetQStateVar">
+<span class="sig-name descname"><span class="pre">_GetQStateVar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._GetQStateVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._GetQStateVar" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._SummarizeTensor">
-<code class="sig-name descname"><span class="pre">_SummarizeTensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._SummarizeTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._SummarizeTensor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain._SummarizeTensor">
+<span class="sig-name descname"><span class="pre">_SummarizeTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._SummarizeTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._SummarizeTensor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._RecordTensor">
-<code class="sig-name descname"><span class="pre">_RecordTensor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._RecordTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._RecordTensor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.PassiveAsymQDomain._RecordTensor">
+<span class="sig-name descname"><span class="pre">_RecordTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._RecordTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._RecordTensor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.quant_utils._CopyShape">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">_CopyShape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CopyShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CopyShape" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils._CopyShape">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">_CopyShape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#_CopyShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils._CopyShape" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.quant_utils.InputDistribution">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></code><code class="sig-name descname"><span class="pre">InputDistribution</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#InputDistribution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">InputDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#InputDistribution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/enum.html#enum.Enum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
 <p>Distribution type for the inputs for AqtQdomain.</p>
 <p>Symmetric distribution is for signed inputs, here we quantize the inputs using
@@ -1549,13 +1552,13 @@ symmetric range around 0 i.e. in range [-max, max]. Weights are signed.
 Positive distribution is for unsigned distribution, here we quantize the
 inputs in range [0, max_val]</p>
 <dl class="py attribute">
-<dt id="lingvo.core.quant_utils.InputDistribution.SYMMETRIC">
-<code class="sig-name descname"><span class="pre">SYMMETRIC</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.SYMMETRIC" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution.SYMMETRIC">
+<span class="sig-name descname"><span class="pre">SYMMETRIC</span></span><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.SYMMETRIC" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="lingvo.core.quant_utils.InputDistribution.POSITIVE">
-<code class="sig-name descname"><span class="pre">POSITIVE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">2</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.POSITIVE" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution.POSITIVE">
+<span class="sig-name descname"><span class="pre">POSITIVE</span></span><em class="property"> <span class="pre">=</span> <span class="pre">2</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.POSITIVE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

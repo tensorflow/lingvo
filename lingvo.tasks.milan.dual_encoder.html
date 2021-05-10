@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -175,31 +178,31 @@
 <span id="lingvo-tasks-milan-dual-encoder-module"></span><h1>lingvo.tasks.milan.dual_encoder module<a class="headerlink" href="#module-lingvo.tasks.milan.dual_encoder" title="Permalink to this headline">¶</a></h1>
 <p>Template for a multi-modal dual encoder model.</p>
 <dl class="py function">
-<dt id="lingvo.tasks.milan.dual_encoder._EncodeBatch">
-<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">_EncodeBatch</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><span class="pre">lingvo.core.base_layer.BaseLayer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#_EncodeBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder._EncodeBatch" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder._EncodeBatch">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></span><span class="sig-name descname"><span class="pre">_EncodeBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoder</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><span class="pre">lingvo.core.base_layer.BaseLayer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_shape</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.tensor_shape.TensorShape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#_EncodeBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder._EncodeBatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">encoder</span></code> on <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> with an arbitrary number of batch dimensions.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.tasks.milan.dual_encoder.EncoderConfig">
-<code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">EncoderConfig</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><span class="pre">lingvo.core.hyperparams.Params</span></a><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#EncoderConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.EncoderConfig" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.EncoderConfig">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></span><span class="sig-name descname"><span class="pre">EncoderConfig</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><span class="pre">lingvo.core.hyperparams.Params</span></a><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#EncoderConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.EncoderConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns Params for configuring one <a class="reference internal" href="#lingvo.tasks.milan.dual_encoder.DualEncoder" title="lingvo.tasks.milan.dual_encoder.DualEncoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoder</span></code></a> modality.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">DualEncoder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.DualEncoder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></span><span class="sig-name descname"><span class="pre">DualEncoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Implements a dual encoder trained with in-batch softmax loss.</p>
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.DualEncoder.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder._CreateChildrenVariables">
-<code class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.DualEncoder._CreateChildrenVariables">
+<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
 children InstantiateVariables calls are needed. eg, if children variables
@@ -213,8 +216,8 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.EncodeModality">
-<code class="sig-name descname"><span class="pre">EncodeModality</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modality</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.EncodeModality"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.EncodeModality" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.DualEncoder.EncodeModality">
+<span class="sig-name descname"><span class="pre">EncodeModality</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modality</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.EncodeModality"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.EncodeModality" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> through <code class="xref py py-obj docutils literal notranslate"><span class="pre">modality</span></code>’s encoder and optional projection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -235,8 +238,8 @@ contains 5 encodable items.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions">
-<code class="sig-name descname"><span class="pre">ComputePredictions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions">
+<span class="sig-name descname"><span class="pre">ComputePredictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encodes the examples in <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code> with respect to each modality.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -261,8 +264,8 @@ name to a <code class="xref py py-obj docutils literal notranslate"><span class=
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.DualEncoder.ComputeLoss">
-<code class="sig-name descname"><span class="pre">ComputeLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.DualEncoder.ComputeLoss">
+<span class="sig-name descname"><span class="pre">ComputeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#DualEncoder.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.DualEncoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -290,19 +293,19 @@ batch index.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.tasks.milan.dual_encoder.MilanTask">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></code><code class="sig-name descname"><span class="pre">MilanTask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.MilanTask">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.milan.dual_encoder.</span></span><span class="sig-name descname"><span class="pre">MilanTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
 <p>Task that runs a <a class="reference internal" href="#lingvo.tasks.milan.dual_encoder.DualEncoder" title="lingvo.tasks.milan.dual_encoder.DualEncoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoder</span></code></a>.</p>
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.MilanTask.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions">
-<code class="sig-name descname"><span class="pre">ComputePredictions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions">
+<span class="sig-name descname"><span class="pre">ComputePredictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
 <p>The output can be in the form of probablistic distributions, e.g., softmax
 logits for discrete outputs, mixture of logistics for continuous values, or
@@ -325,8 +328,8 @@ used to compute final outputs, perhaps with sampling.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.ComputeLoss">
-<code class="sig-name descname"><span class="pre">ComputeLoss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.MilanTask.ComputeLoss">
+<span class="sig-name descname"><span class="pre">ComputeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -353,8 +356,8 @@ index.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.Decode">
-<code class="sig-name descname"><span class="pre">Decode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.Decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.Decode" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.MilanTask.Decode">
+<span class="sig-name descname"><span class="pre">Decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.Decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.Decode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph for eval decoding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -368,8 +371,8 @@ spiltting is used, a list of <code class="xref py py-obj docutils literal notran
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.milan.dual_encoder.MilanTask.CreateDecoderMetrics">
-<code class="sig-name descname"><span class="pre">CreateDecoderMetrics</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.CreateDecoderMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.tasks.milan.dual_encoder.MilanTask.CreateDecoderMetrics">
+<span class="sig-name descname"><span class="pre">CreateDecoderMetrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/milan/dual_encoder.html#MilanTask.CreateDecoderMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.milan.dual_encoder.MilanTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a dict of decoder metrics for <code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code> to update.</p>
 <p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
 </dd></dl>

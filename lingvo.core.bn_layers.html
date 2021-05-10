@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -174,73 +177,73 @@
 <span id="lingvo-core-bn-layers-module"></span><h1>lingvo.core.bn_layers module<a class="headerlink" href="#module-lingvo.core.bn_layers" title="Permalink to this headline">¶</a></h1>
 <p>Batch normalization layers.</p>
 <dl class="py class">
-<dt id="lingvo.core.bn_layers.AddingAccumulator">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></code><code class="sig-name descname"><span class="pre">AddingAccumulator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#AddingAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.AddingAccumulator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.AddingAccumulator">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">AddingAccumulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#AddingAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.AddingAccumulator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.Accumulator" title="lingvo.core.base_layer.Accumulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.Accumulator</span></code></a></p>
 <p>Accumulator for the sufficient statistics.</p>
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.AddingAccumulator.DefaultValue">
-<code class="sig-name descname"><span class="pre">DefaultValue</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#AddingAccumulator.DefaultValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.AddingAccumulator.DefaultValue" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.AddingAccumulator.DefaultValue">
+<span class="sig-name descname"><span class="pre">DefaultValue</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#AddingAccumulator.DefaultValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.AddingAccumulator.DefaultValue" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the default value of the accumulator.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.AddingAccumulator.Update">
-<code class="sig-name descname"><span class="pre">Update</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#AddingAccumulator.Update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.AddingAccumulator.Update" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.AddingAccumulator.Update">
+<span class="sig-name descname"><span class="pre">Update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#AddingAccumulator.Update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.AddingAccumulator.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds value to the accumulator.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.bn_layers.ComputeMoments">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></code><code class="sig-name descname"><span class="pre">ComputeMoments</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce_over_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_cross_replica_sum_on_tpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keepdims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#ComputeMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.ComputeMoments" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.ComputeMoments">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">ComputeMoments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduce_over_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_cross_replica_sum_on_tpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keepdims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#ComputeMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.ComputeMoments" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes mean and variance over the valid data points in inputs.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.bn_layers.BatchNormLayer">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></code><code class="sig-name descname"><span class="pre">BatchNormLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">BatchNormLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Batch normalization layer.</p>
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer._GetWeightShape">
-<code class="sig-name descname"><span class="pre">_GetWeightShape</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._GetWeightShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._GetWeightShape" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer._GetWeightShape">
+<span class="sig-name descname"><span class="pre">_GetWeightShape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._GetWeightShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._GetWeightShape" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer._CreateLayerVariables">
-<code class="sig-name descname"><span class="pre">_CreateLayerVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer.epsilon">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">epsilon</span></code><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.epsilon" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer.epsilon">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">epsilon</span></span><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.epsilon" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer._GetDefaultPaddings">
-<code class="sig-name descname"><span class="pre">_GetDefaultPaddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._GetDefaultPaddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._GetDefaultPaddings" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer._GetDefaultPaddings">
+<span class="sig-name descname"><span class="pre">_GetDefaultPaddings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._GetDefaultPaddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._GetDefaultPaddings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the default paddings for an input.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer._GetBetaGamma">
-<code class="sig-name descname"><span class="pre">_GetBetaGamma</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._GetBetaGamma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._GetBetaGamma" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer._GetBetaGamma">
+<span class="sig-name descname"><span class="pre">_GetBetaGamma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._GetBetaGamma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._GetBetaGamma" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer.GetCurrentMoments">
-<code class="sig-name descname"><span class="pre">GetCurrentMoments</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.GetCurrentMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.GetCurrentMoments" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer.GetCurrentMoments">
+<span class="sig-name descname"><span class="pre">GetCurrentMoments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.GetCurrentMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.GetCurrentMoments" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the current computed moments, which should be applied at eval.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -254,8 +257,8 @@ its children layers.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer.ComputeAndUpdateMoments">
-<code class="sig-name descname"><span class="pre">ComputeAndUpdateMoments</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.ComputeAndUpdateMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.ComputeAndUpdateMoments" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer.ComputeAndUpdateMoments">
+<span class="sig-name descname"><span class="pre">ComputeAndUpdateMoments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.ComputeAndUpdateMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.ComputeAndUpdateMoments" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes moments and updates state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -275,18 +278,18 @@ input tensor.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer._ComputeBN">
-<code class="sig-name descname"><span class="pre">_ComputeBN</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_variance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._ComputeBN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._ComputeBN" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer._ComputeBN">
+<span class="sig-name descname"><span class="pre">_ComputeBN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_variance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._ComputeBN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._ComputeBN" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer._MaybeExpandPaddings">
-<code class="sig-name descname"><span class="pre">_MaybeExpandPaddings</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._MaybeExpandPaddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._MaybeExpandPaddings" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer._MaybeExpandPaddings">
+<span class="sig-name descname"><span class="pre">_MaybeExpandPaddings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._MaybeExpandPaddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._MaybeExpandPaddings" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply batch normalization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -306,8 +309,8 @@ either the same as inputs or tf.rank(inputs) - 1.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayer.FPropMeta">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">FPropMeta</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer.FPropMeta">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">FPropMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.bn_layers.BatchNormLayer.FProp" title="lingvo.core.bn_layers.BatchNormLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
 <p><strong>Experimental feature.</strong>
 Don’t use or depend on it without consulting Lingvo authors.</p>
@@ -344,32 +347,32 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.bn_layers.CategoricalBN">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></code><code class="sig-name descname"><span class="pre">CategoricalBN</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.CategoricalBN">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">CategoricalBN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.bn_layers.BatchNormLayer" title="lingvo.core.bn_layers.BatchNormLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.bn_layers.BatchNormLayer</span></code></a></p>
 <p>Implements a categorical BN which is akin to …</p>
 <p><a class="reference external" href="https://arxiv.org/pdf/1809.11096.pdf">https://arxiv.org/pdf/1809.11096.pdf</a></p>
 <p>Specifically, the moving stats are category-agnostic, while {beta, gamma} are
 category-aware.</p>
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.CategoricalBN.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.CategoricalBN.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.CategoricalBN._GetWeightShape">
-<code class="sig-name descname"><span class="pre">_GetWeightShape</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN._GetWeightShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN._GetWeightShape" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.CategoricalBN._GetWeightShape">
+<span class="sig-name descname"><span class="pre">_GetWeightShape</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN._GetWeightShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN._GetWeightShape" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.CategoricalBN._GetBetaGamma">
-<code class="sig-name descname"><span class="pre">_GetBetaGamma</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN._GetBetaGamma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN._GetBetaGamma" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.CategoricalBN._GetBetaGamma">
+<span class="sig-name descname"><span class="pre">_GetBetaGamma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN._GetBetaGamma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN._GetBetaGamma" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.CategoricalBN.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_emb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN.FProp" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.CategoricalBN.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_emb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply batch normalization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -392,39 +395,39 @@ as the input tensor.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.bn_layers.BatchNormLayerNoPadding">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></code><code class="sig-name descname"><span class="pre">BatchNormLayerNoPadding</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">BatchNormLayerNoPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Batchnorm layer without padding.</p>
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayerNoPadding.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters for BatchNormLayerNoPadding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayerNoPadding._CreateLayerVariables">
-<code class="sig-name descname"><span class="pre">_CreateLayerVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayerNoPadding.PostTrainingStepUpdate">
-<code class="sig-name descname"><span class="pre">PostTrainingStepUpdate</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.PostTrainingStepUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding.PostTrainingStepUpdate">
+<span class="sig-name descname"><span class="pre">PostTrainingStepUpdate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.PostTrainingStepUpdate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates moving_mean, moving_variance after each training step.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayerNoPadding._Moments">
-<code class="sig-name descname"><span class="pre">_Moments</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding._Moments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding._Moments" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding._Moments">
+<span class="sig-name descname"><span class="pre">_Moments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding._Moments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding._Moments" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes mean and variance over N,H,W dimensions in inputs.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayerNoPadding.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.FProp" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies batch normalization.</p>
 <p>Using the implementation in github.com/
 tensorflow/tpu/blob/master/models/official/amoeba_net/network_utils.py#L550</p>
@@ -444,55 +447,55 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.BatchNormLayerNoPadding.FPropMeta">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">FPropMeta</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding.FPropMeta">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">FPropMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.FPropMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding.FProp" title="lingvo.core.bn_layers.BatchNormLayerNoPadding.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.bn_layers.GroupNormLayer">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></code><code class="sig-name descname"><span class="pre">GroupNormLayer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">GroupNormLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Group normalization layer(<a class="reference external" href="https://arxiv.org/abs/1803.08494">https://arxiv.org/abs/1803.08494</a>).</p>
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer.Params">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">Params</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer._CreateLayerVariables">
-<code class="sig-name descname"><span class="pre">_CreateLayerVariables</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer.group_size">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">group_size</span></code><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.group_size" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.group_size">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">group_size</span></span><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.group_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.num_groups">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">num_groups</span></span><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.num_groups" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer.num_groups">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">num_groups</span></code><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.num_groups" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.zero_state">
+<span class="sig-name descname"><span class="pre">zero_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer.zero_state">
-<code class="sig-name descname"><span class="pre">zero_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer._Normalize">
+<span class="sig-name descname"><span class="pre">_Normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouped_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_variance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._Normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._Normalize" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer._Normalize">
-<code class="sig-name descname"><span class="pre">_Normalize</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grouped_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_variance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._Normalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._Normalize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer.FProp">
-<code class="sig-name descname"><span class="pre">FProp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply group normalization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -514,8 +517,8 @@ paddings is not None.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer._StreamMoments">
-<code class="sig-name descname"><span class="pre">_StreamMoments</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_sum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._StreamMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._StreamMoments" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer._StreamMoments">
+<span class="sig-name descname"><span class="pre">_StreamMoments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_sum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer._StreamMoments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer._StreamMoments" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes mean and variance over the valid data points in inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -540,13 +543,13 @@ new_cached_count: same shape as cached_count.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer.StreamStep">
-<code class="sig-name descname"><span class="pre">StreamStep</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.StreamStep">
+<span class="sig-name descname"><span class="pre">StreamStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.StreamStep" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.bn_layers.GroupNormLayer.FPropMeta">
-<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">FPropMeta</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.FPropMeta">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">FPropMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.bn_layers.GroupNormLayer.FProp" title="lingvo.core.bn_layers.GroupNormLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
 <p><strong>Experimental feature.</strong>
 Don’t use or depend on it without consulting Lingvo authors.</p>

@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -175,13 +178,13 @@
 <p>Implementation of multiheaded FAVOR-attention &amp; FAVOR-self-attention layers.</p>
 <p>Prefix sum tf implementation by Valerii Likhosherstov.</p>
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.next_seed">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">next_seed</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#next_seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.next_seed" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.next_seed">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">next_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#next_seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.next_seed" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.create_projection_matrix">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">create_projection_matrix</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nb_random_projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#create_projection_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.create_projection_matrix" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.create_projection_matrix">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">create_projection_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nb_random_projections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#create_projection_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.create_projection_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the matrix of random projections.</p>
 <p>Constructs a matrix of random orthogonal projections. Each projection vector
 has direction chosen uniformly at random and either deterministic length
@@ -206,8 +209,8 @@ chi(dim) distribution.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.relu_kernel_transformation">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">relu_kernel_transformation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_stabilizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#relu_kernel_transformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.relu_kernel_transformation" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.relu_kernel_transformation">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">relu_kernel_transformation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_stabilizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#relu_kernel_transformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.relu_kernel_transformation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes features for the ReLU-kernel.</p>
 <p>Computes random features for the ReLU kernel from
 <a class="reference external" href="https://arxiv.org/pdf/2009.14794.pdf">https://arxiv.org/pdf/2009.14794.pdf</a>.</p>
@@ -230,8 +233,8 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.softmax_kernel_transformation">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">softmax_kernel_transformation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_stabilizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#softmax_kernel_transformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.softmax_kernel_transformation" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.softmax_kernel_transformation">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">softmax_kernel_transformation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_stabilizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#softmax_kernel_transformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.softmax_kernel_transformation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes random features for the softmax kernel using FAVOR+ mechanism.</p>
 <p>Computes random features for the softmax kernel using FAVOR+ mechanism from
 <a class="reference external" href="https://arxiv.org/pdf/2009.14794.pdf">https://arxiv.org/pdf/2009.14794.pdf</a>.</p>
@@ -254,8 +257,8 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.cossim_kernel_transformation">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">cossim_kernel_transformation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_stabilizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randomized</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#cossim_kernel_transformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.cossim_kernel_transformation" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.cossim_kernel_transformation">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">cossim_kernel_transformation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numerical_stabilizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randomized</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#cossim_kernel_transformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.cossim_kernel_transformation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes features for the softmax kernel with FAVOR+ cossim mechanism.</p>
 <p>Computes random features for the softmax kernel using FAVOR+ mechanism from
 <a class="reference external" href="https://arxiv.org/pdf/2009.14794.pdf">https://arxiv.org/pdf/2009.14794.pdf</a>.</p>
@@ -279,8 +282,8 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.noncausal_numerator">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">noncausal_numerator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#noncausal_numerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.noncausal_numerator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.noncausal_numerator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">noncausal_numerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#noncausal_numerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.noncausal_numerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes not-normalized FAVOR noncausal attention AV.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -297,8 +300,8 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.noncausal_denominator">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">noncausal_denominator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#noncausal_denominator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.noncausal_denominator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.noncausal_denominator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">noncausal_denominator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#noncausal_denominator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.noncausal_denominator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes FAVOR normalizer in noncausal attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -314,8 +317,8 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.causal_numerator">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">causal_numerator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#causal_numerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.causal_numerator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.causal_numerator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">causal_numerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#causal_numerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.causal_numerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes not-normalized FAVOR causal attention A_{masked}V.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -332,8 +335,8 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.causal_denominator">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">causal_denominator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#causal_denominator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.causal_denominator" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.causal_denominator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">causal_denominator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#causal_denominator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.causal_denominator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes FAVOR normalizer in causal attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -349,8 +352,8 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.favor_attention.favor_attention">
-<code class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></code><code class="sig-name descname"><span class="pre">favor_attention</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_transformation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">causal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#favor_attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.favor_attention" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.favor_attention">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">favor_attention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_transformation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">causal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#favor_attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.favor_attention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes FAVOR normalized attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
