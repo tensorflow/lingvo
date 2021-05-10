@@ -453,7 +453,7 @@ previously quantized.</p>
 <span class="sig-name descname"><span class="pre">FqWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FqWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FqWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>AQT Quantized weight FQ style.</p>
 <p>This is analogous to QWeight; either AqtWeight or QWeight should be identity
-for alll domains. AqtQDomain additionally supports per channel quantization.</p>
+for all domains. AqtQDomain additionally supports per channel quantization.</p>
 <p>w_name must have been previously created via CreateAqtWeight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -476,7 +476,7 @@ expected. Defaults to None.</p></li>
 <span class="sig-name descname"><span class="pre">ToAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantized integer weight AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized weight would be
-either integer ot integer emulated in float.</p>
+either integer or integer emulated in float.</p>
 <p>w_name must have been previously created via CreateAqtWeight.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -515,17 +515,19 @@ Defaults to None.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs">
-<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'symmetric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'symmetric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes activations for (act * act) matmul AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized acts would be
-either integer ot integer emulated in float.</p>
+either integer or integer emulated in float.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>act_lhs</strong> – Left hand side activation.</p></li>
 <li><p><strong>act_rhs</strong> – Right hand side activation.</p></li>
-<li><p><strong>act_lhs_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
-<li><p><strong>act_rhs_distribution</strong> – Distribution of act_rhs; of type InputDistribution.</p></li>
+<li><p><strong>act_lhs_distribution</strong> – Distribution of act_lhs; either an InputDistribution
+or a string representation of one of its members.</p></li>
+<li><p><strong>act_rhs_distribution</strong> – Distribution of act_rhs; either an InputDistribution
+or a string representation of one of its members.</p></li>
 <li><p><strong>domain</strong> – Custom domain to match (defaults to ‘default’).</p></li>
 </ul>
 </dd>
@@ -1103,7 +1105,7 @@ if None.</p>
 <span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtActActInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes activations for (act * act) matmul AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized acts would be
-either integer ot integer emulated in float.</p>
+either integer or integer emulated in float.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1560,6 +1562,21 @@ inputs in range [0, max_val]</p>
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution.POSITIVE">
 <span class="sig-name descname"><span class="pre">POSITIVE</span></span><em class="property"> <span class="pre">=</span> <span class="pre">2</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.POSITIVE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution.Parse">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#lingvo.core.quant_utils.InputDistribution" title="lingvo.core.quant_utils.InputDistribution"><span class="pre">lingvo.core.quant_utils.InputDistribution</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#lingvo.core.quant_utils.InputDistribution" title="lingvo.core.quant_utils.InputDistribution"><span class="pre">lingvo.core.quant_utils.InputDistribution</span></a><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#InputDistribution.Parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.Parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses or returns an InputDistribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>spec</strong> – An InputDistribution instance or the case-insensitive name of one of
+the enum values.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An InputDistribution instance.</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
