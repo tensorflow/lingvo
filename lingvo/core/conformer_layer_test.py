@@ -443,6 +443,25 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(fflayer_activation, actual_end_activation)
     self.assertEqual(fflayer_residual_weight, actual_end_residual_weight)
 
+  @parameterized.named_parameters(
+      ('shared', True),
+      ('not_shared', False),
+  )
+  def testFFlayerWeightSharing(self, fflayer_weight_sharing):
+    p = self._GetParams()
+    p.fflayer_weight_sharing = fflayer_weight_sharing
+    layer = p.Instantiate()
+
+    # FFLayer variables will all have same full name iif weights are shared.
+    def _VarNamesDebugString(vars_):
+      return py_utils.Transform(lambda x: x.name, vars_).DebugString()
+
+    fflayer_start_var_names = _VarNamesDebugString(layer.fflayer_start.vars)
+    fflayer_end_var_names = _VarNamesDebugString(layer.fflayer_end.vars)
+
+    self.assertEqual(fflayer_weight_sharing,
+                     (fflayer_start_var_names == fflayer_end_var_names))
+
   def testCommonParamsAbuse(self):
     """Checks CommonParams() is not called in __init__()."""
     p = self._GetParams()

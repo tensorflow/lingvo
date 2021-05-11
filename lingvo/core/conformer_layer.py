@@ -504,6 +504,10 @@ class ConformerLayer(base_layer.BaseLayer):
         'Layer params for Feed forward layer at the end. Supports using '
         'gshard_builder.MoEBuilder.Params() as well wherein the MoE() '
         'will be used.')
+    p.Define(
+        'fflayer_weight_sharing', False,
+        'If True, will ignore `fflayer_end_tpl`, and will make the fflayer_end '
+        'layer as a weight-shared copy of the fflayer_start layer.')
     p.Define('final_ln_tpl', layers.LayerNorm.Params(), 'Final layer norm.')
     # https://b/167460492#comment16
     p.Define(
@@ -682,12 +686,18 @@ class ConformerLayer(base_layer.BaseLayer):
       else:
         self.CreateChild('fflayer_start', fflayer_start_p)
 
-    fflayer_end_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
-        p.fflayer_end_tpl, 'fflayer_end')
-    if is_moe_layer:
-      self.CreateChild('fflayer_end_moe', fflayer_end_p)
+    if not p.fflayer_weight_sharing:
+      fflayer_end_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
+          p.fflayer_end_tpl, 'fflayer_end')
+      if is_moe_layer:
+        self.CreateChild('fflayer_end_moe', fflayer_end_p)
+      else:
+        self.CreateChild('fflayer_end', fflayer_end_p)
     else:
-      self.CreateChild('fflayer_end', fflayer_end_p)
+      if is_moe_layer:
+        self.AddChild('fflayer_end_moe', self.fflayer_start_moe)
+      else:
+        self.AddChild('fflayer_end', self.fflayer_start)
 
     # For local MHSA, is_masked is ignored, thus it's safe to set is_masked
     # based on p.is_causal, for global and local MHSA cases.
