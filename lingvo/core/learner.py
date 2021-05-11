@@ -434,6 +434,8 @@ class Learner(base_layer.BaseLayer):
     all_var_norm = tf.sqrt(py_utils.SumSquared([v for (v, _) in flatten]))
     grad_norm_is_nan_or_inf = tf.math.logical_or(
         tf.math.is_nan(all_grad_norm), tf.math.is_inf(all_grad_norm))
+    self._AddEvalMetric('grad_norm_is_nan_or_inf', grad_norm_is_nan_or_inf,
+                        tf.constant(1.0))
 
     # Optional gradient adjustment. Note that this happens after computing
     # all_grad_norm.

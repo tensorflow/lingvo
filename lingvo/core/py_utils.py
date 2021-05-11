@@ -2753,6 +2753,18 @@ def ApplyGradMultiplier(vs_gs, grad_scale=None):
   return vs_gs.Transform(Scale)
 
 
+def HasNanOrInf(x):
+  if isinstance(x, tf.IndexedSlices):
+    x = x.values
+  with tf.device(x.device):
+    if x.dtype.is_complex:
+      return tf.reduce_any(
+          [HasNanOrInf(tf.math.real(x)),
+           HasNanOrInf(tf.math.imag(x))])
+    return tf.reduce_any(
+        tf.math.logical_or(tf.math.is_nan(x), tf.math.is_inf(x)))
+
+
 def HasNanOrInfGradient(var_grads):
   """Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.
 
@@ -2762,18 +2774,6 @@ def HasNanOrInfGradient(var_grads):
   Returns:
     A bool scalar tensor to indicate if the `var_grads` contains NaNs or Infs.
   """
-
-  def HasNanOrInf(x):
-    if isinstance(x, tf.IndexedSlices):
-      x = x.values
-    with tf.device(x.device):
-      if x.dtype.is_complex:
-        return tf.reduce_any(
-            [HasNanOrInf(tf.math.real(x)),
-             HasNanOrInf(tf.math.imag(x))])
-      return tf.reduce_any(
-          tf.math.logical_or(tf.math.is_nan(x), tf.math.is_inf(x)))
-
   return tf.reduce_any([HasNanOrInf(g) for (_, g) in var_grads.Flatten()])
 
 
