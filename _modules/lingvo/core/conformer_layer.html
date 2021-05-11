@@ -659,6 +659,10 @@
         <span class="s1">&#39;Layer params for Feed forward layer at the end. Supports using &#39;</span>
         <span class="s1">&#39;gshard_builder.MoEBuilder.Params() as well wherein the MoE() &#39;</span>
         <span class="s1">&#39;will be used.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fflayer_weight_sharing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, will ignore `fflayer_end_tpl`, and will make the fflayer_end &#39;</span>
+        <span class="s1">&#39;layer as a weight-shared copy of the fflayer_start layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;final_ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Final layer norm.&#39;</span><span class="p">)</span>
     <span class="c1"># https://b/167460492#comment16</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -837,12 +841,18 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_start&#39;</span><span class="p">,</span> <span class="n">fflayer_start_p</span><span class="p">)</span>
 
-    <span class="n">fflayer_end_p</span><span class="p">,</span> <span class="n">is_moe_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigFFLayerOrMoEParams</span><span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="p">,</span> <span class="s1">&#39;fflayer_end&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">is_moe_layer</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end_moe&#39;</span><span class="p">,</span> <span class="n">fflayer_end_p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">fflayer_weight_sharing</span><span class="p">:</span>
+      <span class="n">fflayer_end_p</span><span class="p">,</span> <span class="n">is_moe_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigFFLayerOrMoEParams</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">fflayer_end_tpl</span><span class="p">,</span> <span class="s1">&#39;fflayer_end&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">is_moe_layer</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end_moe&#39;</span><span class="p">,</span> <span class="n">fflayer_end_p</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end&#39;</span><span class="p">,</span> <span class="n">fflayer_end_p</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end&#39;</span><span class="p">,</span> <span class="n">fflayer_end_p</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">is_moe_layer</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">AddChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end_moe&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer_start_moe</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">AddChild</span><span class="p">(</span><span class="s1">&#39;fflayer_end&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer_start</span><span class="p">)</span>
 
     <span class="c1"># For local MHSA, is_masked is ignored, thus it&#39;s safe to set is_masked</span>
     <span class="c1"># based on p.is_causal, for global and local MHSA cases.</span>
