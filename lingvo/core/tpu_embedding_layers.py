@@ -28,6 +28,11 @@ from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 # pylint:enable=g-direct-tensorflow-import
 
 
+def _ShouldUseTpu(p):
+  """Whether we should create embedding tables and run lookup on tpu."""
+  return not p.is_inference and py_utils.use_tpu()
+
+
 class TpuEmbeddingCollection:
   """Manage various TPU embedding related ops and tensors."""
 
@@ -433,7 +438,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     self._tpu_embedding_collection.AddTableVariables(self.table_name,
                                                      embedding_table_vars)
 
-    if not py_utils.use_tpu():
+    if not _ShouldUseTpu(p):
       # We don't want to add this for TrainerTpu, otherwise the identity
       # reference leads to copying the embedding to the TPU for no reason.
       # However, this is needed for CPU (eval/decode/controller).
@@ -731,7 +736,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     # with "sequence embeddings".
     self._sequence_features = {}
 
-    if py_utils.use_tpu():
+    if _ShouldUseTpu(p):
       num_cores = self.cluster.params.worker.tpus_per_replica
       global_batch_size = (
           self.params.batch_size * self.cluster.num_splits_per_client)
@@ -827,10 +832,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           rets[k] = v
       return rets
 
-    if not py_utils.use_tpu():
-      return CpuEmbLookup(ids_map)
-    else:
+    if _ShouldUseTpu(p):
       return self._TpuEmbLookup()
+    else:
+      return CpuEmbLookup(ids_map)
 
   def EmbLookupSparse(
       self, ids_map: Dict[str, tf.SparseTensor]) -> Dict[str, tf.Tensor]:
@@ -866,7 +871,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           rets[k] = v
       return rets
 
-    if not py_utils.use_tpu():
-      return CpuEmbLookupSparse(ids_map)
-    else:
+    if _ShouldUseTpu(p):
       return self._TpuEmbLookup()
+    else:
+      return CpuEmbLookupSparse(ids_map)
