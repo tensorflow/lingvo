@@ -1123,15 +1123,16 @@ class LayerNormalizedLSTMCell(RNNCell):
     # TODO(b/172580007): Support weight quantization for RNN. Right now we do
     # not support checkpointing vars for Recurrent cell, and setting AqtQdomain
     # for LayerNormalizedLSTM cell might run into errors.
-    concat = tf.concat(inputs.act + [state0.m], 1)
-    wm = self.ToAqtWeight('rnn_aqt', theta.wm, feature_axis=-1)
+    act, wm = self.ToAqtInputs(
+        'rnn_aqt', act=inputs.act, weight=theta.wm, w_feature_axis=-1)
+    concat = tf.concat(act + [state0.m], 1)
     if self.params.apply_pruning:
-      wm = self.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weights'))
+      wm = self.QWeight(tf.multiply(wm, theta.mask, 'masked_weights'))
     if self.params.pruning_hparams_dict and not self.params.apply_pruning:
       out = pruning_utils.PruningOp.GetMixResult(theta, concat, self)
     else:
       out = py_utils.Matmul(concat, wm)
-    return self.FromAqtWeight('rnn_aqt', out)
+    return self.FromAqtMatmul('rnn_aqt', out)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""

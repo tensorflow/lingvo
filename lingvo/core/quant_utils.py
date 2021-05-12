@@ -26,6 +26,39 @@ from lingvo.core import summary_utils
 import numpy as np
 
 
+class InputDistribution(enum.Enum):
+  """Distribution type for the inputs for AqtQdomain.
+
+  Symmetric distribution is for signed inputs, here we quantize the inputs using
+  symmetric range around 0 i.e. in range [-max, max]. Weights are signed.
+  Positive distribution is for unsigned distribution, here we quantize the
+  inputs in range [0, max_val]
+  """
+  SYMMETRIC = enum.auto()
+  POSITIVE = enum.auto()
+
+  @classmethod
+  def Parse(cls, spec: Union[str, 'InputDistribution']) -> 'InputDistribution':
+    """Parses or returns an InputDistribution.
+
+    Args:
+      spec: An InputDistribution instance or the case-insensitive name of one of
+        the enum values.
+
+    Returns:
+      An InputDistribution instance.
+    """
+    if isinstance(spec, cls):
+      return spec
+    spec = spec.upper().replace('-', '_')
+    # pylint: disable=unsupported-membership-test
+    if spec not in cls.__members__:
+      raise ValueError(f'For act_distribution argument, expected one of: '
+                       f"{', '.join(cls.__members__.keys())}")
+    # pylint: enable=unsupported-membership-test
+    return cls[spec]
+
+
 class QuantizableLayer(base_layer.BaseLayer):
   """A layer that supports various forms of quantization.
 
@@ -395,6 +428,66 @@ class QuantizableLayer(base_layer.BaseLayer):
          '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
     qd = self._aqt_weights[w_name]
     return qd.FromAqtWeight(w_name, out) if qd else out
+
+  def ToAqtInputs(self,
+                  w_name,
+                  act,
+                  weight,
+                  w_feature_axis,
+                  act_distribution=InputDistribution.SYMMETRIC,
+                  w_expected_scale_shape=None):
+    """Quantizes weights and activations for (act * w) matmul AQT style.
+
+    This only scales, rounds and clips; resulting quantized inputs would be
+    either integer ot integer emulated in float.
+
+    w_name must have been previously created via CreateAqtWeight.
+
+    Args:
+      w_name: Previously created w_name QWeight to quantize weight.
+      act: The activation tensor to quantize.
+      weight: The weight tensor to quantizes.
+      w_feature_axis: axis corresponding to output channel/feature for weights.
+      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      w_expected_scale_shape: Optional shape to verify if scale shape is
+        expected. Defaults to None.
+
+    Returns:
+      Quantized act and weight.
+    """
+    assert w_name in self._aqt_weights, (
+        ('Call to ToAqtWeight without first calling CreateAqtWeight: %s '
+         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+    qd = self._aqt_weights[w_name]
+    if not qd:
+      return act, weight
+    return qd.ToAqtInputs(
+        w_name,
+        act=act,
+        weight=weight,
+        act_distribution=act_distribution,
+        w_feature_axis=w_feature_axis,
+        w_expected_scale_shape=w_expected_scale_shape)
+
+  def FromAqtMatmul(self, w_name, output):
+    """Rescales the output corresponding to AQT style quantized matmul.
+
+    Uses the same scales used by `ToAqtInputs` and apply its inverse to rescale.
+
+    w_name must have been previously created via CreateAqtWeight.
+
+    Args:
+      w_name: Previously created w_name QWeight to quantize weight.
+      output: The tensor to rescale.
+
+    Returns:
+      Rescaled output.
+    """
+    assert w_name in self._aqt_weights, (
+        ('Call to FromAqtWeight without first calling CreateAqtWeight: %s '
+         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+    qd = self._aqt_weights[w_name]
+    return qd.FromAqtMatmul(w_name, output) if qd else output
 
   def ToAqtActActInputs(self,
                         act_lhs,
@@ -955,6 +1048,47 @@ class QDomain(base_layer.BaseLayer):
     """
     return w
 
+  def ToAqtInputs(self,
+                  w_name,
+                  act,
+                  weight,
+                  w_feature_axis,
+                  act_distribution,
+                  w_expected_scale_shape=None):
+    """Quantizes weights and activations for (act * w) matmul AQT style.
+
+    Refer to quantizable_layer.ToAqtInputs.
+
+    Args:
+      w_name: Previously created w_name QWeight to quantize weight.
+      act: The activation tensor to quantize.
+      weight: The weight tensor to quantizes.
+      w_feature_axis: axis corresponding to output channel/feature for weights.
+      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      w_expected_scale_shape: Optional shape to verify if scale shape is
+        expected. Defaults to None.
+
+    Returns:
+      Quantized act and weight.
+    """
+    del w_feature_axis, w_expected_scale_shape, w_name, act_distribution
+    return act, weight
+
+  def FromAqtMatmul(self, w_name, output):
+    """Rescales the output corresponding to AQT quantized matmuls.
+
+    Refer to quantizable_layer.FromAqtOutput.
+
+    Args:
+      w_name: weight name.
+      output: The tensor to rescale.
+
+    Returns:
+      Rescaled output.
+    """
+    del w_name
+    return output
+
   def FqWeight(self, w_name, w, feature_axis, expected_scale_shape):
     """AQT Quantized weight FQ style .
 
@@ -1429,39 +1563,7 @@ class PassiveAsymQDomain(QDomain):
 
 
 def _CopyShape(from_t, to_t):
+  """Sets the shape of from_t to to_t."""
   if isinstance(from_t, tf.Tensor) and isinstance(to_t, tf.Tensor):
     to_t.set_shape(from_t.shape)
   return to_t
-
-
-class InputDistribution(enum.Enum):
-  """Distribution type for the inputs for AqtQdomain.
-
-  Symmetric distribution is for signed inputs, here we quantize the inputs using
-  symmetric range around 0 i.e. in range [-max, max]. Weights are signed.
-  Positive distribution is for unsigned distribution, here we quantize the
-  inputs in range [0, max_val]
-  """
-  SYMMETRIC = enum.auto()
-  POSITIVE = enum.auto()
-
-  @classmethod
-  def Parse(cls, spec: Union[str, 'InputDistribution']) -> 'InputDistribution':
-    """Parses or returns an InputDistribution.
-
-    Args:
-      spec: An InputDistribution instance or the case-insensitive name of one of
-        the enum values.
-
-    Returns:
-      An InputDistribution instance.
-    """
-    if isinstance(spec, cls):
-      return spec
-    spec = spec.upper().replace('-', '_')
-    # pylint: disable=unsupported-membership-test
-    if spec not in cls.__members__:
-      raise ValueError(f'For act_distribution argument, expected one of: '
-                       f"{', '.join(cls.__members__.keys())}")
-    # pylint: enable=unsupported-membership-test
-    return cls[spec]

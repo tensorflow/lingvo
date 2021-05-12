@@ -1406,15 +1406,17 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_vec_depth = py_utils.GetShape(source_vecs)[2]
       with tf.name_scope('init__0b'):
         if p.enable_source_proj:
-          w_source_proj = self.ToAqtWeight(
-              'source_proj_aqt', theta.source_proj, feature_axis=-1)
+          source_vecs = tf.reshape(source_vecs, [-1, source_vec_depth])
+          source_vecs, w_source_proj = self.ToAqtInputs(
+              'source_proj_aqt',
+              act=source_vecs,
+              weight=theta.source_proj,
+              w_feature_axis=-1)
           w_source_proj = fns.qweight(w_source_proj)
           source_projected = (
               fns.qbatchmatmul(
-                  tf.reshape(source_vecs, [-1, source_vec_depth]),
-                  w_source_proj,
-                  qt='source_proj_matmul'))
-          source_projected = self.FromAqtWeight('source_proj_aqt',
+                  source_vecs, w_source_proj, qt='source_proj_matmul'))
+          source_projected = self.FromAqtMatmul('source_proj_aqt',
                                                 source_projected)
           if p.use_bias:
             source_projected = fns.qadd(
@@ -1436,16 +1438,18 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_contexts_reshaped = source_projected
       else:
         if p.enable_ctx_pre_proj:
-          w_ctx_proj = self.ToAqtWeight(
-              'ctx_pre_proj_aqt', theta.ctx_proj, feature_axis=-1)
+          source_contexts = tf.reshape(
+              source_contexts, [-1, py_utils.GetShape(source_contexts)[2]])
+          source_contexts, w_ctx_proj = self.ToAqtInputs(
+              'ctx_pre_proj_aqt',
+              act=source_contexts,
+              weight=theta.ctx_proj,
+              w_feature_axis=-1)
           w_ctx_proj = fns.qweight(w_ctx_proj)
 
           source_contexts_projected = fns.qbatchmatmul(
-              tf.reshape(source_contexts,
-                         [-1, py_utils.GetShape(source_contexts)[2]]),
-              w_ctx_proj,
-              qt='ctx_pre_proj_matmul')
-          source_contexts_projected = self.FromAqtWeight(
+              source_contexts, w_ctx_proj, qt='ctx_pre_proj_matmul')
+          source_contexts_projected = self.FromAqtMatmul(
               'ctx_pre_proj_aqt', source_contexts_projected)
           if p.use_bias:
             source_contexts_projected = fns.qadd(
@@ -1655,12 +1659,15 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     query_vec_projected_shape = [batch_size * num_heads, static_inner_atten_dim]
 
     if p.enable_query_proj:
-      w_query_proj = self.ToAqtWeight(
-          'query_proj_aqt', theta.query_proj, feature_axis=-1)
+      query_vec, w_query_proj = self.ToAqtInputs(
+          'query_proj_aqt',
+          act=query_vec,
+          weight=theta.query_proj,
+          w_feature_axis=-1)
       w_query_proj = fns.qweight(w_query_proj)
       query_vec_projected = fns.qbatchmatmul(
           query_vec, w_query_proj, qt='query_proj_matmul')
-      query_vec_projected = self.FromAqtWeight('query_proj_aqt',
+      query_vec_projected = self.FromAqtMatmul('query_proj_aqt',
                                                query_vec_projected)
       if p.use_bias:
         query_vec_projected = fns.qadd(
@@ -1711,12 +1718,15 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             'atten_idx is None, this means there is no need to select '
             'different post projections, and p.num_post_proj is supposed to be '
             '1. However you set p.num_post_proj=%s .' % p.num_post_proj)
-        w_ctx_post_proj = self.ToAqtWeight(
-            'ctx_post_proj_aqt', theta.ctx_post_proj, feature_axis=-1)
+        ctx_vec, w_ctx_post_proj = self.ToAqtInputs(
+            'ctx_post_proj_aqt',
+            act=ctx_vec,
+            weight=theta.ctx_post_proj,
+            w_feature_axis=-1)
         w_ctx_post_proj = fns.qweight(w_ctx_post_proj)
         ctx_vec = fns.qbatchmatmul(
             ctx_vec, w_ctx_post_proj, qt='ctx_post_proj_matmul')
-        ctx_vec = self.FromAqtWeight('ctx_post_proj_aqt', ctx_vec)
+        ctx_vec = self.FromAqtMatmul('ctx_post_proj_aqt', ctx_vec)
         if p.use_bias:
           ctx_vec = fns.qadd(
               ctx_vec,
