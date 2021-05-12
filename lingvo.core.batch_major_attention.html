@@ -2513,7 +2513,7 @@ target_time, dim].</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.batch_major_attention.StackedTransformerLayers.ExtendStep">
-<span class="sig-name descname"><span class="pre">ExtendStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_short_seq_opt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#StackedTransformerLayers.ExtendStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.StackedTransformerLayers.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">ExtendStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cached_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_short_seq_opt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#StackedTransformerLayers.ExtendStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.StackedTransformerLayers.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer decoder layer, extend one step in autoregressive decoding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2531,6 +2531,7 @@ each element is a NestedMap with attention keys and values:
 - value: [target_time, target_batch, num_heads, dim_per_head].</p></li>
 <li><p><strong>time_step</strong> – A scalar, the current decode step, 0-based.</p></li>
 <li><p><strong>use_short_seq_opt</strong> – A bool, whether using short sequence optimization.</p></li>
+<li><p><strong>**kwargs</strong> – additional kwargs for TransformerLayer.ExtendStep.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

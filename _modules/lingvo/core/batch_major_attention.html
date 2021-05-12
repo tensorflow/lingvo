@@ -3815,7 +3815,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span> <span class="ow">and</span> <span class="n">per_step_padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;ExtendStep should be used only by masked/causal self-attention.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -4869,7 +4869,8 @@
                  <span class="n">aux_paddings</span><span class="p">,</span>
                  <span class="n">cached_states</span><span class="p">,</span>
                  <span class="n">time_step</span><span class="p">,</span>
-                 <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                 <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer decoder layer, extend one step in autoregressive decoding.</span>
 
 <span class="sd">    Args:</span>
@@ -4886,6 +4887,7 @@
 <span class="sd">        - value: [target_time, target_batch, num_heads, dim_per_head].</span>
 <span class="sd">      time_step: A scalar, the current decode step, 0-based.</span>
 <span class="sd">      use_short_seq_opt: A bool, whether using short sequence optimization.</span>
+<span class="sd">      **kwargs: additional kwargs for TransformerLayer.ExtendStep.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      cur_output: The last decoder layer output of shape [target_batch, 1, dim].</span>
@@ -4904,7 +4906,7 @@
                                                   <span class="n">cached_states</span><span class="o">.</span><span class="n">x_layers</span><span class="p">):</span>
         <span class="n">decoder_output</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">updated_layer_states</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
             <span class="n">layer_theta</span><span class="p">,</span> <span class="n">decoder_input</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">layer_states</span><span class="p">,</span>
-            <span class="n">time_step</span><span class="p">,</span> <span class="n">use_short_seq_opt</span><span class="p">)</span>
+            <span class="n">time_step</span><span class="p">,</span> <span class="n">use_short_seq_opt</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="n">updated_states</span><span class="o">.</span><span class="n">x_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">updated_layer_states</span><span class="p">)</span>
         <span class="n">decoder_input</span> <span class="o">=</span> <span class="n">decoder_output</span>
 
