@@ -546,14 +546,20 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
           seed=p.random_seed)
     atten_params = p.attention.Copy()
 
+    if ('enable_ctx_post_proj' in p.attention and
+        p.attention.enable_ctx_post_proj):
+      atten_context_dim = p.attention.ctx_post_proj_dim
+    else:
+      atten_context_dim = p.attention.source_dim
+
     params = p.atten_rnn_cell_tpl.Copy()
     params.name = 'atten_rnn'
     params.dtype = p.dtype
     params.reset_cell_state = p.packed_input
     if self._project_emb:
-      params.num_input_nodes = p.rnn_cell_dim + p.attention.source_dim
+      params.num_input_nodes = p.rnn_cell_dim + atten_context_dim
     else:
-      params.num_input_nodes = p.emb.embedding_dim + p.attention.source_dim
+      params.num_input_nodes = p.emb.embedding_dim + atten_context_dim
     params.num_output_nodes = p.rnn_cell_dim
     atten_rnn_cell = params.Copy()
 
@@ -565,7 +571,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     params.output_prev_atten_ctx = p.use_prev_atten_ctx
     params.packed_input = p.packed_input
     params.use_zero_atten_state = p.use_zero_atten_state
-    params.atten_context_dim = p.attention.source_dim
+    params.atten_context_dim = atten_context_dim
     self.CreateChild('frnn_with_atten', params)
 
     # TODO(zhifengc): Avoid this?
@@ -576,7 +582,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       params = p.rnn_cell_tpl.Copy()
       params.name = 'rnn%d' % i
       params.dtype = p.dtype
-      params.num_input_nodes = p.rnn_cell_dim + p.attention.source_dim
+      params.num_input_nodes = p.rnn_cell_dim + atten_context_dim
       params.num_output_nodes = p.rnn_cell_dim
       params.reset_cell_state = p.packed_input
       rnn_cell_p = params
@@ -594,7 +600,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       assert not self._share_sm_emb
       assert not self._project_emb
       assert not self._project_out
-      p.softmax.input_dim = p.rnn_cell_dim + p.attention.source_dim
+      p.softmax.input_dim = p.rnn_cell_dim + atten_context_dim
     else:
       p.softmax.input_dim = p.rnn_cell_dim
 
