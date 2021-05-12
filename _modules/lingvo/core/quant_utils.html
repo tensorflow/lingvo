@@ -181,6 +181,39 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
+<div class="viewcode-block" id="InputDistribution"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.InputDistribution">[docs]</a><span class="k">class</span> <span class="nc">InputDistribution</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Distribution type for the inputs for AqtQdomain.</span>
+
+<span class="sd">  Symmetric distribution is for signed inputs, here we quantize the inputs using</span>
+<span class="sd">  symmetric range around 0 i.e. in range [-max, max]. Weights are signed.</span>
+<span class="sd">  Positive distribution is for unsigned distribution, here we quantize the</span>
+<span class="sd">  inputs in range [0, max_val]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">SYMMETRIC</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+  <span class="n">POSITIVE</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+
+<div class="viewcode-block" id="InputDistribution.Parse"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.InputDistribution.Parse">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">spec</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s1">&#39;InputDistribution&#39;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">&#39;InputDistribution&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parses or returns an InputDistribution.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      spec: An InputDistribution instance or the case-insensitive name of one of</span>
+<span class="sd">        the enum values.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An InputDistribution instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">spec</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+    <span class="c1"># pylint: disable=unsupported-membership-test</span>
+    <span class="k">if</span> <span class="n">spec</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;For act_distribution argument, expected one of: &#39;</span>
+                       <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># pylint: enable=unsupported-membership-test</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">[</span><span class="n">spec</span><span class="p">]</span></div></div>
+
+
 <div class="viewcode-block" id="QuantizableLayer"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer">[docs]</a><span class="k">class</span> <span class="nc">QuantizableLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A layer that supports various forms of quantization.</span>
 
@@ -550,6 +583,66 @@
          <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="QuantizableLayer.ToAqtInputs"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtInputs">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                  <span class="n">w_name</span><span class="p">,</span>
+                  <span class="n">act</span><span class="p">,</span>
+                  <span class="n">weight</span><span class="p">,</span>
+                  <span class="n">w_feature_axis</span><span class="p">,</span>
+                  <span class="n">act_distribution</span><span class="o">=</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+                  <span class="n">w_expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Quantizes weights and activations for (act * w) matmul AQT style.</span>
+
+<span class="sd">    This only scales, rounds and clips; resulting quantized inputs would be</span>
+<span class="sd">    either integer ot integer emulated in float.</span>
+
+<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
+<span class="sd">      act: The activation tensor to quantize.</span>
+<span class="sd">      weight: The weight tensor to quantizes.</span>
+<span class="sd">      w_feature_axis: axis corresponding to output channel/feature for weights.</span>
+<span class="sd">      act_distribution: Distribution of act_lhs; of type InputDistribution.</span>
+<span class="sd">      w_expected_scale_shape: Optional shape to verify if scale shape is</span>
+<span class="sd">        expected. Defaults to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Quantized act and weight.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s1">&#39;Call to ToAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
+         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">act</span><span class="p">,</span> <span class="n">weight</span>
+    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">ToAqtInputs</span><span class="p">(</span>
+        <span class="n">w_name</span><span class="p">,</span>
+        <span class="n">act</span><span class="o">=</span><span class="n">act</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span>
+        <span class="n">act_distribution</span><span class="o">=</span><span class="n">act_distribution</span><span class="p">,</span>
+        <span class="n">w_feature_axis</span><span class="o">=</span><span class="n">w_feature_axis</span><span class="p">,</span>
+        <span class="n">w_expected_scale_shape</span><span class="o">=</span><span class="n">w_expected_scale_shape</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QuantizableLayer.FromAqtMatmul"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.FromAqtMatmul">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtMatmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Rescales the output corresponding to AQT style quantized matmul.</span>
+
+<span class="sd">    Uses the same scales used by `ToAqtInputs` and apply its inverse to rescale.</span>
+
+<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
+<span class="sd">      output: The tensor to rescale.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Rescaled output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s1">&#39;Call to FromAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
+         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">output</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.ToAqtActActInputs"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtActActInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                         <span class="n">act_lhs</span><span class="p">,</span>
@@ -1110,6 +1203,47 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">w</span></div>
 
+<div class="viewcode-block" id="QDomain.ToAqtInputs"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.ToAqtInputs">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                  <span class="n">w_name</span><span class="p">,</span>
+                  <span class="n">act</span><span class="p">,</span>
+                  <span class="n">weight</span><span class="p">,</span>
+                  <span class="n">w_feature_axis</span><span class="p">,</span>
+                  <span class="n">act_distribution</span><span class="p">,</span>
+                  <span class="n">w_expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Quantizes weights and activations for (act * w) matmul AQT style.</span>
+
+<span class="sd">    Refer to quantizable_layer.ToAqtInputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
+<span class="sd">      act: The activation tensor to quantize.</span>
+<span class="sd">      weight: The weight tensor to quantizes.</span>
+<span class="sd">      w_feature_axis: axis corresponding to output channel/feature for weights.</span>
+<span class="sd">      act_distribution: Distribution of act_lhs; of type InputDistribution.</span>
+<span class="sd">      w_expected_scale_shape: Optional shape to verify if scale shape is</span>
+<span class="sd">        expected. Defaults to None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Quantized act and weight.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">w_feature_axis</span><span class="p">,</span> <span class="n">w_expected_scale_shape</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">act_distribution</span>
+    <span class="k">return</span> <span class="n">act</span><span class="p">,</span> <span class="n">weight</span></div>
+
+<div class="viewcode-block" id="QDomain.FromAqtMatmul"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.FromAqtMatmul">[docs]</a>  <span class="k">def</span> <span class="nf">FromAqtMatmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Rescales the output corresponding to AQT quantized matmuls.</span>
+
+<span class="sd">    Refer to quantizable_layer.FromAqtOutput.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      w_name: weight name.</span>
+<span class="sd">      output: The tensor to rescale.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Rescaled output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">w_name</span>
+    <span class="k">return</span> <span class="n">output</span></div>
+
 <div class="viewcode-block" id="QDomain.FqWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.FqWeight">[docs]</a>  <span class="k">def</span> <span class="nf">FqWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;AQT Quantized weight FQ style .</span>
 
@@ -1584,42 +1718,10 @@
 
 
 <div class="viewcode-block" id="_CopyShape"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils._CopyShape">[docs]</a><span class="k">def</span> <span class="nf">_CopyShape</span><span class="p">(</span><span class="n">from_t</span><span class="p">,</span> <span class="n">to_t</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sets the shape of from_t to to_t.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">from_t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
     <span class="n">to_t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">from_t</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">to_t</span></div>
-
-
-<div class="viewcode-block" id="InputDistribution"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.InputDistribution">[docs]</a><span class="k">class</span> <span class="nc">InputDistribution</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Distribution type for the inputs for AqtQdomain.</span>
-
-<span class="sd">  Symmetric distribution is for signed inputs, here we quantize the inputs using</span>
-<span class="sd">  symmetric range around 0 i.e. in range [-max, max]. Weights are signed.</span>
-<span class="sd">  Positive distribution is for unsigned distribution, here we quantize the</span>
-<span class="sd">  inputs in range [0, max_val]</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">SYMMETRIC</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
-  <span class="n">POSITIVE</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
-
-<div class="viewcode-block" id="InputDistribution.Parse"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.InputDistribution.Parse">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Parse</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">spec</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s1">&#39;InputDistribution&#39;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">&#39;InputDistribution&#39;</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Parses or returns an InputDistribution.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      spec: An InputDistribution instance or the case-insensitive name of one of</span>
-<span class="sd">        the enum values.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      An InputDistribution instance.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">spec</span>
-    <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
-    <span class="c1"># pylint: disable=unsupported-membership-test</span>
-    <span class="k">if</span> <span class="n">spec</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;For act_distribution argument, expected one of: &#39;</span>
-                       <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="c1"># pylint: enable=unsupported-membership-test</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">[</span><span class="n">spec</span><span class="p">]</span></div></div>
 </pre></div>
 
            </div>
