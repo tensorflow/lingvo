@@ -798,6 +798,19 @@
   <span class="k">return</span> <span class="n">_tpu_device_assignment_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span></div>
 
 
+<span class="c1"># Whether it&#39;s running in eager mode.</span>
+<span class="n">_IS_EAGER_MODE</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="SetIsEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetIsEagerMode">[docs]</a><span class="k">def</span> <span class="nf">SetIsEagerMode</span><span class="p">():</span>
+  <span class="k">global</span> <span class="n">_IS_EAGER_MODE</span>
+  <span class="n">_IS_EAGER_MODE</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="IsEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.IsEagerMode">[docs]</a><span class="k">def</span> <span class="nf">IsEagerMode</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">_IS_EAGER_MODE</span></div>
+
+
 <div class="viewcode-block" id="SessionConfig"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SessionConfig">[docs]</a><span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">cluster_def</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>

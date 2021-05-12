@@ -723,7 +723,11 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GlobalBatchSize</span><span class="p">()),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
     <span class="c1"># Generates summaries.</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span>
+          <span class="n">name</span><span class="p">,</span>
+          <span class="n">value</span><span class="p">,</span>
+          <span class="n">weight</span><span class="p">,</span>
+          <span class="n">raise_if_already_added</span><span class="o">=</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">())</span>
     <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FilterPerExampleTensors</span><span class="p">(</span><span class="n">per_example</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">per_example</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">AddPerExampleTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
@@ -797,7 +801,11 @@
       <span class="n">all_losses</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">learner_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span>
+              <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">learner_name</span><span class="p">,</span>
+              <span class="n">value</span><span class="p">,</span>
+              <span class="n">weight</span><span class="p">,</span>
+              <span class="n">raise_if_already_added</span><span class="o">=</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">())</span>
 
     <span class="n">relevant_bn_updates</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FindRelevantBatchNormUpdates</span><span class="p">(</span>
         <span class="n">all_losses</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">BATCH_NORM_UPDATES</span><span class="p">))</span>
@@ -822,14 +830,15 @@
             <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">true_global_step</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">!=</span> <span class="n">true_global_step</span><span class="p">:</span>
+        <span class="c1"># TF2 will treat (tensor1 != tensor2) as a boolean tensor, so avoid</span>
+        <span class="c1"># using inequality here.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">true_global_step</span><span class="p">:</span>
           <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
             <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
                 <span class="n">increment_global_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;global_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">increment_global_steps</span>
 
-    <span class="c1"># If we are using Tpu Embeddings, generate the monolithic send</span>
-    <span class="c1"># gradient op.</span>
+    <span class="c1"># If we are using Tpu Embeddings, generate the monolithic send gradient op.</span>
     <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
     <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">activations_by_task</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
