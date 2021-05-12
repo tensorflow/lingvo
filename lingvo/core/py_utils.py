@@ -643,6 +643,19 @@ def GetTpuDeviceAssignment(job=None):
   return _tpu_device_assignment_dict[job]
 
 
+# Whether it's running in eager mode.
+_IS_EAGER_MODE = False
+
+
+def SetIsEagerMode():
+  global _IS_EAGER_MODE
+  _IS_EAGER_MODE = True
+
+
+def IsEagerMode():
+  return _IS_EAGER_MODE
+
+
 def SessionConfig(soft_placement=True,
                   inline=True,
                   cluster_def=None,

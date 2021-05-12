@@ -568,7 +568,11 @@ class BaseTask(base_layer.BaseLayer):
           self.input_generator.GlobalBatchSize()), tf.constant(1.0))
     # Generates summaries.
     for name, (value, weight) in metrics.items():
-      self.AddEvalMetric(name, value, weight)
+      self.AddEvalMetric(
+          name,
+          value,
+          weight,
+          raise_if_already_added=not py_utils.IsEagerMode())
     per_example = self.FilterPerExampleTensors(per_example)
     for name, value in per_example.items():
       self.AddPerExampleTensor(name, value)
@@ -642,7 +646,11 @@ class BaseTask(base_layer.BaseLayer):
       all_losses.extend(losses)
       if add_summary:
         for key, (value, weight) in eval_metrics.items():
-          self.AddEvalMetric(key + '/' + learner_name, value, weight)
+          self.AddEvalMetric(
+              key + '/' + learner_name,
+              value,
+              weight,
+              raise_if_already_added=not py_utils.IsEagerMode())
 
     relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
         all_losses, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
@@ -667,14 +675,15 @@ class BaseTask(base_layer.BaseLayer):
             increment_global_steps = true_global_step
           else:
             increment_global_steps = tf.assign_add(true_global_step, 1)
-        if self._global_step_var != true_global_step:
+        # TF2 will treat (tensor1 != tensor2) as a boolean tensor, so avoid
+        # using inequality here.
+        if self._global_step_var is not true_global_step:
           with tf.ops.colocate_with(self._global_step_var):
             increment_global_steps = tf.group(
                 increment_global_steps, tf.assign_add(self._global_step_var, 1))
         train_ops['global_step'] = increment_global_steps
 
-    # If we are using Tpu Embeddings, generate the monolithic send
-    # gradient op.
+    # If we are using Tpu Embeddings, generate the monolithic send gradient op.
     tpu_embedding_collection = tpu_embedding_layers.TpuEmbeddingCollection.Get()
     tpu_embedding_activations = tpu_embedding_collection.activations_by_task
     if p.name in tpu_embedding_activations:

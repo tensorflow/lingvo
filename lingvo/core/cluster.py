@@ -174,6 +174,11 @@ class _Cluster:
     self._session_devices = [d.name for d in sess.list_devices()]
     tf.logging.info('InitDevices %s' % sorted(self._session_devices))
 
+  def InitDevicesEager(self):
+    assert tf.executing_eagerly()
+    self._session_devices = [d.name for d in tf.config.list_logical_devices()]
+    tf.logging.info('InitDevices %s' % sorted(self._session_devices))
+
   def ListDevices(self, job_spec):
     """Lists devices in the job.
 
