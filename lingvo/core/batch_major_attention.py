@@ -3660,7 +3660,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     """
     p = self.params
     query_vec = self._CastToFPropDtype(query_vec)
-    if not p.is_masked:
+    if not p.is_masked and per_step_padding is None:
       raise ValueError(
           'ExtendStep should be used only by masked/causal self-attention.')
     if isinstance(self.atten, list):
@@ -4714,7 +4714,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
                  aux_paddings,
                  cached_states,
                  time_step,
-                 use_short_seq_opt=False):
+                 use_short_seq_opt=False,
+                 **kwargs):
     """Transformer decoder layer, extend one step in autoregressive decoding.
 
     Args:
@@ -4731,6 +4732,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         - value: [target_time, target_batch, num_heads, dim_per_head].
       time_step: A scalar, the current decode step, 0-based.
       use_short_seq_opt: A bool, whether using short sequence optimization.
+      **kwargs: additional kwargs for TransformerLayer.ExtendStep.
 
     Returns:
       cur_output: The last decoder layer output of shape [target_batch, 1, dim].
@@ -4749,7 +4751,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
                                                   cached_states.x_layers):
         decoder_output, _, updated_layer_states = layer.ExtendStep(
             layer_theta, decoder_input, aux_vec, aux_paddings, layer_states,
-            time_step, use_short_seq_opt)
+            time_step, use_short_seq_opt, **kwargs)
         updated_states.x_layers.append(updated_layer_states)
         decoder_input = decoder_output
 
