@@ -183,6 +183,11 @@
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 
+<div class="viewcode-block" id="_ShouldUseTpu"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._ShouldUseTpu">[docs]</a><span class="k">def</span> <span class="nf">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Whether we should create embedding tables and run lookup on tpu.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="TpuEmbeddingCollection"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection">[docs]</a><span class="k">class</span> <span class="nc">TpuEmbeddingCollection</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Manage various TPU embedding related ops and tensors.&quot;&quot;&quot;</span>
 
@@ -588,7 +593,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
                                                      <span class="n">embedding_table_vars</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="c1"># We don&#39;t want to add this for TrainerTpu, otherwise the identity</span>
       <span class="c1"># reference leads to copying the embedding to the TPU for no reason.</span>
       <span class="c1"># However, this is needed for CPU (eval/decode/controller).</span>
@@ -886,7 +891,7 @@
     <span class="c1"># with &quot;sequence embeddings&quot;.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="n">num_cores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span>
       <span class="n">global_batch_size</span> <span class="o">=</span> <span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
@@ -982,10 +987,10 @@
           <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
       <span class="k">return</span> <span class="n">rets</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TpuEmbLookup</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TpuEmbLookup</span><span class="p">()</span></div>
+      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer.EmbLookupSparse"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookupSparse">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookupSparse</span><span class="p">(</span>
       <span class="bp">self</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
@@ -1021,10 +1026,10 @@
           <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
       <span class="k">return</span> <span class="n">rets</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="k">return</span> <span class="n">CpuEmbLookupSparse</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TpuEmbLookup</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TpuEmbLookup</span><span class="p">()</span></div></div>
+      <span class="k">return</span> <span class="n">CpuEmbLookupSparse</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
