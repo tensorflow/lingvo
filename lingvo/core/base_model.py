@@ -689,17 +689,14 @@ class BaseTask(base_layer.BaseLayer):
     if p.name in tpu_embedding_activations:
       # Lookup the per-task activations.
       tpu_embedding_activations_dict = tpu_embedding_activations[p.name]
-      tpu_embedding = tpu_embedding_collection.tpu_embedding
-      tpu_embedding_gradient_multiplier_schedule = (
-          tpu_embedding_collection.gradient_multiplier_schedule)
-
-      tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
-          self.loss, tpu_embedding_activations_dict, tpu_embedding,
-          tpu_embedding_gradient_multiplier_schedule)
-      train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
+      send_gradient_op, emb_metrics = py_utils.ComputeTpuEmbeddingGradients(
+          p.name, self.loss, tpu_embedding_activations_dict,
+          tpu_embedding_collection)
+      train_ops['tpu_embedding'] = send_gradient_op
 
       if add_summary:
-        for name, value, weight in tpu_embedding_collection.summary_tensors:
+        for name, value, weight in (tpu_embedding_collection.summary_tensors +
+                                    emb_metrics):
           self.AddEvalMetric(name, value, weight, raise_if_already_added=False)
 
     for op_name, op in train_ops.items():

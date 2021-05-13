@@ -2414,16 +2414,21 @@ def ComputeGradientsSimple(loss_or_activations,
       gate_gradients=gate_gradients)
 
 
-def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding,
-                                 gradient_multiplier_schedule):
+def ComputeTpuEmbeddingGradients(task_name, loss, activation_dict,
+                                 tpu_embedding_collection):
   """Returns a TpuEmbedding SendGradient op.
 
   Args:
-   loss: The loss to backprop from.
-   activation_dict: String feature -> embedding activations dict.
-   tpu_embedding: TPUEmbedding instance.
-   gradient_multiplier_schedule: Values from this schedule will be multiplied to
-     the TPUEmbedding gradients.
+    task_name: The name of the task to compute the gradients for.
+    loss: The loss to backprop from.
+    activation_dict: String feature -> embedding activations dict.
+    tpu_embedding_collection: TpuEmbeddingCollection instance.
+
+  Returns:
+    A tuple (send_gradient_op, eval_metrics):
+    - send_gradient_op: A TF op that sends gradients to TPU Embedding.
+    - eval_metrics: A list of (name, value, weight) tuples containing the eval
+      metrics, where value and weight are scalar tensors.
   """
   # Scale the loss to account for the full batch size.
   shards = tpu_function.get_tpu_context().number_of_shards
@@ -2436,14 +2441,28 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding,
       unconnected_gradients=tf.UnconnectedGradients.ZERO)
 
   # Apply gradient multiplier schedule.
-  grad_multiplier = gradient_multiplier_schedule.Value()
+  grad_multiplier = (
+      tpu_embedding_collection.gradient_multiplier_schedule.Value())
   gradients = [g * grad_multiplier for g in gradients]
 
   feature_to_gradient_dict = py_collections.OrderedDict(
       zip(list(activation_dict.keys()), gradients))
-  send_gradient_op = tpu_embedding.generate_send_gradients_op(
-      feature_to_gradient_dict, step=GetGlobalStep())
-  return send_gradient_op
+  send_gradient_op = (
+      tpu_embedding_collection.tpu_embedding.generate_send_gradients_op(
+          feature_to_gradient_dict, step=GetGlobalStep()))
+
+  # Add eval metrics. Note we can't add these to tpu_embedding_collection since
+  # it'll leak these to a different graph from a different task in multi-task
+  # setup.
+  # TODO(laigd): find a better solution using tpu_embedding_collection.
+  eval_metrics = [
+      (f'tpu_embedding_var_norm/{task_name}/all',
+       tf.sqrt(SumSquared(activation_dict.values())), tf.constant(1.0)),
+      (f'tpu_embedding_grad_norm/{task_name}/all',
+       tf.sqrt(SumSquared(gradients)), tf.constant(1.0)),
+      ('tpu_embedding_gradient_multiplier', grad_multiplier, tf.constant(1.0)),
+  ]
+  return send_gradient_op, eval_metrics
 
 
 def _ComputeGradientsTpu(loss_or_activations,
