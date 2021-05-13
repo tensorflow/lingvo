@@ -2456,7 +2456,7 @@ def ComputeTpuEmbeddingGradients(task_name, loss, activation_dict,
   # setup.
   # TODO(laigd): find a better solution using tpu_embedding_collection.
   eval_metrics = [
-      (f'tpu_embedding_var_norm/{task_name}/all',
+      (f'tpu_embedding_activation_norm/{task_name}/all',
        tf.sqrt(SumSquared(activation_dict.values())), tf.constant(1.0)),
       (f'tpu_embedding_grad_norm/{task_name}/all',
        tf.sqrt(SumSquared(gradients)), tf.constant(1.0)),
