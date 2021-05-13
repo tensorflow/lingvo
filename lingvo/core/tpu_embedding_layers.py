@@ -446,7 +446,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
 
     # Only trainer and controller need slot variables and load/retrieve ops.
-    if not self.do_eval:
+    if not self.do_eval and not p.is_inference:
       self._load_op_list, self._retrieve_op_list = (
           self.optimizer.CreateSlotVariablesAndOps(embedding_table_vars, self))
 
