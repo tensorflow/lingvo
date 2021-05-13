@@ -2569,16 +2569,21 @@
       <span class="n">gate_gradients</span><span class="o">=</span><span class="n">gate_gradients</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ComputeTpuEmbeddingGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ComputeTpuEmbeddingGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeTpuEmbeddingGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">activation_dict</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span>
-                                 <span class="n">gradient_multiplier_schedule</span><span class="p">):</span>
+<div class="viewcode-block" id="ComputeTpuEmbeddingGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ComputeTpuEmbeddingGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeTpuEmbeddingGradients</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">activation_dict</span><span class="p">,</span>
+                                 <span class="n">tpu_embedding_collection</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a TpuEmbedding SendGradient op.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">   loss: The loss to backprop from.</span>
-<span class="sd">   activation_dict: String feature -&gt; embedding activations dict.</span>
-<span class="sd">   tpu_embedding: TPUEmbedding instance.</span>
-<span class="sd">   gradient_multiplier_schedule: Values from this schedule will be multiplied to</span>
-<span class="sd">     the TPUEmbedding gradients.</span>
+<span class="sd">    task_name: The name of the task to compute the gradients for.</span>
+<span class="sd">    loss: The loss to backprop from.</span>
+<span class="sd">    activation_dict: String feature -&gt; embedding activations dict.</span>
+<span class="sd">    tpu_embedding_collection: TpuEmbeddingCollection instance.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (send_gradient_op, eval_metrics):</span>
+<span class="sd">    - send_gradient_op: A TF op that sends gradients to TPU Embedding.</span>
+<span class="sd">    - eval_metrics: A list of (name, value, weight) tuples containing the eval</span>
+<span class="sd">      metrics, where value and weight are scalar tensors.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="c1"># Scale the loss to account for the full batch size.</span>
   <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
@@ -2591,14 +2596,28 @@
       <span class="n">unconnected_gradients</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">UnconnectedGradients</span><span class="o">.</span><span class="n">ZERO</span><span class="p">)</span>
 
   <span class="c1"># Apply gradient multiplier schedule.</span>
-  <span class="n">grad_multiplier</span> <span class="o">=</span> <span class="n">gradient_multiplier_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
+  <span class="n">grad_multiplier</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">())</span>
   <span class="n">gradients</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="o">*</span> <span class="n">grad_multiplier</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gradients</span><span class="p">]</span>
 
   <span class="n">feature_to_gradient_dict</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
       <span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">gradients</span><span class="p">))</span>
-  <span class="n">send_gradient_op</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
-      <span class="n">feature_to_gradient_dict</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">GetGlobalStep</span><span class="p">())</span>
-  <span class="k">return</span> <span class="n">send_gradient_op</span></div>
+  <span class="n">send_gradient_op</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
+          <span class="n">feature_to_gradient_dict</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">GetGlobalStep</span><span class="p">()))</span>
+
+  <span class="c1"># Add eval metrics. Note we can&#39;t add these to tpu_embedding_collection since</span>
+  <span class="c1"># it&#39;ll leak these to a different graph from a different task in multi-task</span>
+  <span class="c1"># setup.</span>
+  <span class="c1"># TODO(laigd): find a better solution using tpu_embedding_collection.</span>
+  <span class="n">eval_metrics</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;tpu_embedding_var_norm/</span><span class="si">{</span><span class="n">task_name</span><span class="si">}</span><span class="s1">/all&#39;</span><span class="p">,</span>
+       <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">SumSquared</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)),</span>
+      <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;tpu_embedding_grad_norm/</span><span class="si">{</span><span class="n">task_name</span><span class="si">}</span><span class="s1">/all&#39;</span><span class="p">,</span>
+       <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">SumSquared</span><span class="p">(</span><span class="n">gradients</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)),</span>
+      <span class="p">(</span><span class="s1">&#39;tpu_embedding_gradient_multiplier&#39;</span><span class="p">,</span> <span class="n">grad_multiplier</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)),</span>
+  <span class="p">]</span>
+  <span class="k">return</span> <span class="n">send_gradient_op</span><span class="p">,</span> <span class="n">eval_metrics</span></div>
 
 
 <div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span>
