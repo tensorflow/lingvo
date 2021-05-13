@@ -72,7 +72,7 @@ def CausalSegmentMask(segment_ids, dtype):
       tf.ones([slen, slen], dtype=dtype), -1, 0)
   causal_mask = tf.expand_dims(causal_mask, 0)
   combined_mask = tf.cast(tf.greater(causal_mask + segment_mask, 0.5), dtype)
-  min_value = tf.constant(-0.7, dtype=dtype) * dtype.max
+  min_value = GetDtypeMin(dtype)
   return tf.expand_dims(combined_mask * min_value, 1)
 
 
@@ -81,7 +81,7 @@ def CausalPadding(slen, dtype=tf.float32):
 
 
 def GetDtypeMin(dtype=tf.float32):
-  return tf.constant(-0.7, dtype=dtype) * dtype.max
+  return tf.constant(-0.7 * dtype.max, dtype=dtype)
 
 
 def SegmentMask(segment_id,
@@ -609,9 +609,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
             tf.expand_dims(per_step_padding, 1), [1, n, 1, 1])
         paddings += per_step_padding
 
-      very_negative_logits = (
-          tf.ones_like(logits) * logits.dtype.max *
-          tf.constant(-0.7, dtype=logits.dtype))
+      very_negative_logits = (tf.ones_like(logits) * GetDtypeMin(logits.dtype))
       padded_logits = tf.where(paddings > 0.0, very_negative_logits, logits)
 
     if self.params.enable_scaling_code_motion:
@@ -747,9 +745,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     query = tf.reshape(query, [b, n, h])
     pad = tf.reshape(
         tf.tile(tf.expand_dims(tf.transpose(paddings), 2), [1, 1, n]), [s, -1])
-    very_negative_logits = (
-        tf.ones_like(pad) * query.dtype.max *
-        tf.constant(-0.7, dtype=query.dtype))
+    very_negative_logits = (tf.ones_like(pad) * GetDtypeMin(query.dtype))
 
     def _LongSeq():
       """For long sequence, directly apply to the entire tensor with padding."""
@@ -1646,9 +1642,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     # -> [B, N, U, W, C]
     logits = self._AttenLogits(theta, query_blocks, key_block_context)
 
-    very_negative_logits = (
-        tf.ones_like(logits) * logits.dtype.max *
-        tf.constant(-0.7, dtype=logits.dtype))
+    very_negative_logits = (tf.ones_like(logits) * GetDtypeMin(logits.dtype))
     padded_logits = logits * mask + very_negative_logits * paddings
 
     if p.enable_scaling_code_motion:
@@ -2234,7 +2228,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query_proj, key)
 
-      very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
+      very_negative_logits = GetDtypeMin(logits.dtype)
 
       with tf.name_scope('compute_padding'):
         # Generate local atten mask.
@@ -2348,7 +2342,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query, key)
 
-      very_negative_logits = tf.constant(-0.7 * logits.dtype.max, logits.dtype)
+      very_negative_logits = GetDtypeMin(logits.dtype)
 
       with tf.name_scope('compute_padding'):
         # Generate local atten mask.
@@ -2886,7 +2880,7 @@ class RoutingAttention(MultiHeadedAttention):
     k_dists = tf.transpose(states.key_dists, [1, 0, 2, 3])
 
     very_large_dists = tf.ones_like(k_dists) * tf.constant(
-        0.1, dtype=k_dists.dtype) * k_dists.dtype.max
+        0.1 * k_dists.dtype.max, dtype=k_dists.dtype)
     paddings_tiled = tf.tile(key_paddings[:, :, None, None],
                              [1, 1, p.num_heads, p.num_clusters])
     k_dists = tf.where(paddings_tiled > 0.0, very_large_dists, k_dists)
@@ -3081,9 +3075,7 @@ class RoutingAttention(MultiHeadedAttention):
     logits = tf.einsum('BNKVD,BNKWD->BNKVW', c_query, c_key)
     logits *= tf.math.rsqrt(tf.cast(dim_per_head, py_utils.FPropDtype(p)))
 
-    very_negative_logits = (
-        tf.ones_like(logits) * logits.dtype.max *
-        tf.constant(-0.7, dtype=logits.dtype))
+    very_negative_logits = (tf.ones_like(logits) * GetDtypeMin(logits.dtype))
     padded_logits = tf.where(is_key_padded, very_negative_logits, logits)
 
     c_atten_probs = tf.nn.softmax(padded_logits)
