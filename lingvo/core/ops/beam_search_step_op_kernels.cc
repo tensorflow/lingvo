@@ -90,36 +90,34 @@ bool all_less_than(const float* p, float threshold) {
 #endif
 
 // Given the current partial hypothesis in 'hyps' for all beams in a batch and
-// the predicted next step scores 'scores', return the best scored 'k+m'
+// the predicted next step scores 'scores', return the best scored 'k'
 // hypotheses where the first 'k' hypotheses are used for search in the next
-// step while the remaining 'm' hypotheses are kept as alternatives to increase
-// diversity. 'eos_id' is the end of beam id of the target language.
+// step. 'eos_id' is the end of beam id of the target language.
 //
 // eos_in_topk is filled with true/false to indicate whether or not the eos
 // symbol is among the topk candidate for a hyp.
-void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
-                      const int32 k, const int32 m, const int32 eos_id,
-                      const int32 eoc_id, const int32 num_beams,
-                      const float valid_eos_max_logit_delta,
-                      const float local_eos_threshold, bool is_first_step,
-                      bool is_last_decoder_step, const Tensor& is_last_chunk,
-                      bool merge_paths, bool allow_empty_terminated_hyp,
-                      // Note that this is functionally a bool, however
-                      // vector<bool> is not safe to parallel write into
-                      // since it's underlying storage is at the byte-level.
-                      std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
-                      std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
-                      std::vector<int32>* terminal_symbols) {
+void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
+                 const int32 k, const int32 eos_id, const int32 eoc_id,
+                 const int32 num_beams, const float valid_eos_max_logit_delta,
+                 const float local_eos_threshold, bool is_first_step,
+                 bool is_last_decoder_step, const Tensor& is_last_chunk,
+                 bool merge_paths, bool allow_empty_terminated_hyp,
+                 const std::vector<bool>& skip_beam,
+                 // Note that this is functionally a bool, however
+                 // vector<bool> is not safe to parallel write into
+                 // since it's underlying storage is at the byte-level.
+                 std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
+                 std::vector<Hyp>* eos_hyps,
+                 std::vector<int32>* terminal_symbols) {
   VLOG(1) << "Topk clear, num_beams: " << num_beams;
   DCHECK_EQ(hyps.size(), num_beams * k);
-  DCHECK_GE(m, 0);
-  DCHECK(eos_in_topk && top_k && extra_m && eos_hyps && terminal_symbols);
+  DCHECK(eos_in_topk && top_k && eos_hyps && terminal_symbols);
   DCHECK_EQ(hyps.size(), scores.dim_size(0));
   DCHECK_LT(eos_id, scores.dim_size(1));
   int hyps_size = hyps.size();
   eos_in_topk->clear();
   top_k->clear();
-  extra_m->clear();
+  top_k->resize(hyps_size);
   eos_in_topk->resize(hyps_size);
   eos_hyps->resize(hyps_size);
   terminal_symbols->resize(hyps_size);
@@ -132,18 +130,19 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
       TopK<Hyp, HigherScore, ExtractGlobalScore, InsertHypWithEpsilonDedupe>>
       merged_topk_vec(num_beams, TopK<Hyp, HigherScore, ExtractGlobalScore,
                                       InsertHypWithEpsilonDedupe>(
-                                     m + k, epsilon_id_for_path_merging));
+                                     k, epsilon_id_for_path_merging));
   // Each mutex is used to protect corresponding merged_topk_vec.
   std::vector<mutex> mu_vec(num_beams);
   // The thread sharding is along the hyps_size.
   Shard(
       kNumWorkers, workers, hyps_size, num_ids, [&](int64 start, int64 limit) {
-        // TODO(b/181636326): Make this a no-op if beam_done[beam_id]
-        // under op_version_ == 2 and beam_independence mode.
         for (int32 hyp_id = start; hyp_id < limit; ++hyp_id) {
           if (is_first_step && hyp_id >= num_beams) {
             // For first step, we only consider the first hyp of each beam, as
             // otherwise we will be continuing k identical hyps along the way.
+            continue;
+          }
+          if (skip_beam[hyp_id % num_beams]) {
             continue;
           }
           // +1 to make sure that at least top-k hypotheses survive even with
@@ -241,17 +240,16 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
       });
 
   const int hyps_per_beam = k;
-  top_k->resize(hyps_per_beam * num_beams);
   for (int i = 0; i < num_beams; ++i) {
+    if (skip_beam[i]) {
+      continue;
+    }
     auto ith_topk = merged_topk_vec[i].Get();
     std::sort(ith_topk.begin(), ith_topk.end(), HigherScore());
     const int num_hyps =
         std::min(static_cast<int>(ith_topk.size()), hyps_per_beam);
     for (int j = 0; j < num_hyps; ++j) {
       (*top_k)[j * num_beams + i] = ith_topk[j];
-    }
-    for (int j = hyps_per_beam; j < ith_topk.size(); ++j) {
-      extra_m->push_back(ith_topk[j]);
     }
   }
   VLOG(1) << "Topk done";
@@ -598,6 +596,8 @@ class BeamSearchStepOp : public OpKernel {
     const Tensor& is_last_chunk = ctx->input(op_version_ == 2 ? 10 : 9);
     // []
     const Tensor& cur_step = ctx->input(op_version_ == 2 ? 11 : 10);
+    // [B], only when op_version_ == 2.
+    const Tensor& input_beam_done = ctx->input(9);
 
     SanityCheckInputs(ctx);
     if (!ctx->status().ok()) {
@@ -616,19 +616,23 @@ class BeamSearchStepOp : public OpKernel {
     AssembleHyps(in_hyps, in_prev_hyps, cumulative_scores, num_beams, t, &hyps);
 
     std::vector<Hyp> top_k_hyps;
-    std::vector<Hyp> extra_m_hyps;
     std::vector<Hyp> eos_hyps;
     std::vector<char> eos_in_topk;
     std::vector<int32> terminal_symbols;
     const bool is_last_decoder_step =
         (t == (in_hyps.dim_size(0) - 1)) && force_eos_in_last_step_;
-    ComputeTopKPlusM(hyps, scores, /*k=*/num_hyps_per_beam_, /*m=*/0,
-                     /*eos_id=*/eos_id_, /*eoc_id=*/eoc_id_, num_beams,
-                     valid_eos_max_logit_delta_, local_eos_threshold_,
-                     /*is_first_step=*/t == 0, is_last_decoder_step,
-                     is_last_chunk, merge_paths_, allow_empty_terminated_hyp_,
-                     &eos_in_topk, &top_k_hyps, &extra_m_hyps, &eos_hyps,
-                     &terminal_symbols);
+    std::vector<bool> skip_beam(num_beams, false);
+    if (op_version_ == 2 && beam_independence_) {
+      for (int i = 0; i < num_beams; ++i) {
+        skip_beam[i] = input_beam_done.vec<bool>()(i);
+      }
+    }
+    ComputeTopK(hyps, scores, /*k=*/num_hyps_per_beam_,
+                /*eos_id=*/eos_id_, /*eoc_id=*/eoc_id_, num_beams,
+                valid_eos_max_logit_delta_, local_eos_threshold_,
+                /*is_first_step=*/t == 0, is_last_decoder_step, is_last_chunk,
+                merge_paths_, allow_empty_terminated_hyp_, skip_beam,
+                &eos_in_topk, &top_k_hyps, &eos_hyps, &terminal_symbols);
 
     Tensor* out_done_hyps = nullptr;
     OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 7, 5, &out_done_hyps));
@@ -673,6 +677,13 @@ class BeamSearchStepOp : public OpKernel {
 
     // Fill in all the output tensors.
     for (int i = 0; i < num_hyps; ++i) {
+      const int beam_id = i % num_beams;
+      // Make this a no-op by skipping writing to output if beam_done[beam_id]
+      // under op_version_ == 2 and beam_independence mode.
+      if (op_version_ == 2 && skip_beam[beam_id]) {
+        continue;
+      }
+
       const Hyp& hyp = top_k_hyps[i];
       t_out_scores(t, i) = hyp.local_score;
       t_out_cumulative_scores(i) = hyp.global_score;
@@ -682,8 +693,7 @@ class BeamSearchStepOp : public OpKernel {
           atten_probs.matrix<float>().chip(hyp.hyp_id, 0);
       if (eos_in_topk[i]) {
         // We have a good terminated hyp.
-        const int beam_id = eos_hyps[i].beam_id;
-        DCHECK_EQ(beam_id, i % num_beams);
+        DCHECK_EQ(beam_id, eos_hyps[i].beam_id);
         VLOG(2) << "Top EOS hyp @step " << t
                 << " score=" << eos_hyps[i].global_score
                 << " toks=" << str_util::Join(eos_hyps[i].prev_labels, " ");

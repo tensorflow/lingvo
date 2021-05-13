@@ -27,12 +27,23 @@ using ::testing::SizeIs;
 
 template <typename T>
 void Populate(T* top_k) {
+  {
+    const auto& hyps = top_k->Get();
+    EXPECT_THAT(hyps, SizeIs(0));
+  }
   // Add 3 distinct hyps.
   float bottom_of_topk;
   // Hyp struct consists of:
   //  beam_id, hyp_id, word_id, local_score, global_score, prev_labels
   bottom_of_topk = top_k->Add({0, 2, 3, -0.4, -2.0, {1, 2, 3}});
   EXPECT_THAT(bottom_of_topk, FloatEq(std::numeric_limits<float>::lowest()));
+  {
+    const auto& hyps = top_k->Get();
+    EXPECT_THAT(hyps, SizeIs(1));
+    EXPECT_THAT(hyps[0].hyp_id, Eq(2));
+    EXPECT_THAT(hyps[0].global_score, FloatNear(-2.0, 0.001));
+  }
+
   bottom_of_topk = top_k->Add({0, 1, 8, -0.7, -1.3, {1, 7, 2}});
   EXPECT_THAT(bottom_of_topk, FloatEq(std::numeric_limits<float>::lowest()));
   bottom_of_topk = top_k->Add({0, 6, 2, -0.1, -1.7, {1, 9, 5}});
