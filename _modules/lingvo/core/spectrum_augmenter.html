@@ -1021,7 +1021,6 @@
     <span class="k">return</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span></div>
 
 <div class="viewcode-block" id="SpectrumAugmenter._AugmentationNetwork"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork">[docs]</a>  <span class="k">def</span> <span class="nf">_AugmentationNetwork</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                           <span class="n">series_length</span><span class="p">,</span>
                            <span class="n">inputs</span><span class="p">,</span>
                            <span class="n">paddings</span><span class="p">,</span>
                            <span class="n">global_seed</span><span class="p">,</span>
@@ -1029,7 +1028,6 @@
     <span class="sd">&quot;&quot;&quot;Returns augmented features.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      series_length: Total length of time series.</span>
 <span class="sd">      inputs: Batch of input features of shape (batch_size, time_length,</span>
 <span class="sd">        num_freq, channels).</span>
 <span class="sd">      paddings: Batch of padding vectors of shape (batch_size, time_length).</span>
@@ -1045,6 +1043,7 @@
 
     <span class="c1"># Unstack the features.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
+      <span class="n">original_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UnstackFeatures</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
 
     <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -1080,9 +1079,7 @@
 
     <span class="c1"># Restack the features after applying specaugment.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unstack</span><span class="p">:</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">series_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-                   <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">3</span><span class="p">]])</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">original_shape</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">inputs</span></div>
 
@@ -1108,13 +1105,12 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_input_dependent_random_seed</span><span class="p">:</span>
       <span class="n">global_seed</span> <span class="o">=</span> <span class="n">_global_seed_from_inputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
-    <span class="n">batch_size</span><span class="p">,</span> <span class="n">series_length</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">domain_ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="n">augmented_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
       <span class="n">original_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">domain_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">domain_ids</span><span class="p">):</span>
         <span class="n">augmented_domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AugmentationNetwork</span><span class="p">(</span>
-            <span class="n">series_length</span><span class="p">,</span>
             <span class="n">inputs</span><span class="p">,</span>
             <span class="n">paddings</span><span class="p">,</span>
             <span class="n">global_seed</span><span class="o">=</span><span class="n">global_seed</span><span class="p">,</span>
@@ -1133,7 +1129,6 @@
       <span class="n">augmented_inputs</span> <span class="o">=</span> <span class="n">original_inputs</span> <span class="o">+</span> <span class="n">augmented_inputs</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">augmented_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AugmentationNetwork</span><span class="p">(</span>
-          <span class="n">series_length</span><span class="p">,</span>
           <span class="n">inputs</span><span class="p">,</span>
           <span class="n">paddings</span><span class="p">,</span>
           <span class="n">global_seed</span><span class="o">=</span><span class="n">global_seed</span><span class="p">,</span>
