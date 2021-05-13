@@ -866,7 +866,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     return src_inputs, src_paddings
 
   def _AugmentationNetwork(self,
-                           series_length,
                            inputs,
                            paddings,
                            global_seed,
@@ -874,7 +873,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     """Returns augmented features.
 
     Args:
-      series_length: Total length of time series.
       inputs: Batch of input features of shape (batch_size, time_length,
         num_freq, channels).
       paddings: Batch of padding vectors of shape (batch_size, time_length).
@@ -890,6 +888,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     # Unstack the features.
     if p.unstack:
+      original_shape = tf.shape(inputs)
       inputs, paddings = self.UnstackFeatures(inputs, paddings)
 
     lengths = tf.reduce_sum(1 - paddings, 1)
@@ -925,9 +924,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     # Restack the features after applying specaugment.
     if p.unstack:
-      inputs = tf.reshape(
-          inputs, [tf.shape(inputs)[0], series_length, -1,
-                   tf.shape(inputs)[3]])
+      inputs = tf.reshape(inputs, original_shape)
 
     return inputs
 
@@ -953,13 +950,12 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     if p.use_input_dependent_random_seed:
       global_seed = _global_seed_from_inputs(inputs)
 
-    batch_size, series_length, _, _ = py_utils.GetShape(inputs)
+    batch_size = py_utils.GetShape(inputs)[0]
     if len(p.domain_ids) > 1:
       augmented_inputs = tf.zeros_like(inputs)
       original_inputs = inputs
       for i, domain_id in enumerate(p.domain_ids):
         augmented_domain = self._AugmentationNetwork(
-            series_length,
             inputs,
             paddings,
             global_seed=global_seed,
@@ -978,7 +974,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       augmented_inputs = original_inputs + augmented_inputs
     else:
       augmented_inputs = self._AugmentationNetwork(
-          series_length,
           inputs,
           paddings,
           global_seed=global_seed,
