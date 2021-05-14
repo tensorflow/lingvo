@@ -465,11 +465,6 @@ class ConformerLayer(base_layer.BaseLayer):
         'Notice atten_right_context must be not be infinite(None) if is_causal '
         'is True. It is important to always set is_causal for streaming case, '
         'and not expect to infer from atten_{left,right}_context.')
-    # atten layer
-    # TODO(rpang): consider removing the attention hparams since they overlap
-    # with p.trans_atten_tpl.
-    p.Define('atten_num_heads', None,
-             'Num of heads in multi-head self-attention.')
     p.Define(
         'layer_order', 'mhsa_before_conv',
         'Only mhsa, conv, mhsa_before_conv or conv_before_mhsa are '
@@ -545,7 +540,7 @@ class ConformerLayer(base_layer.BaseLayer):
                    lconv_tpl=None):
     assert all([input_dim, fflayer_hidden_dim])
     if layer_order != 'conv':
-      assert atten_num_heads
+      assert atten_num_heads or trans_atten_tpl
     if layer_order == 'mhsa':
       assert not any([kernel_size, conv_norm_layer_tpl, lconv_tpl])
     else:
@@ -567,7 +562,6 @@ class ConformerLayer(base_layer.BaseLayer):
 
     p = cls.Params().Set(
         input_dim=input_dim,
-        atten_num_heads=atten_num_heads,
         fflayer_hidden_dim=fflayer_hidden_dim,
         fflayer_activation=fflayer_activation,
         fflayer_residual_weight=fflayer_residual_weight,
@@ -585,6 +579,7 @@ class ConformerLayer(base_layer.BaseLayer):
       assert atten_left_context is None
       assert atten_right_context is None
       assert use_relative_atten is None
+      assert atten_num_heads is None
       p.trans_atten_tpl = trans_atten_tpl
     else:
       atten_tpl = cls._ConfigSelfAttenContext(
@@ -593,7 +588,7 @@ class ConformerLayer(base_layer.BaseLayer):
           use_relative_atten=use_relative_atten,
           relative_pos_emb_dim=input_dim)
       p.trans_atten_tpl = attention_lib.TransformerAttentionLayer.Params().Set(
-          atten_tpl=atten_tpl)
+          atten_tpl=atten_tpl, num_heads=atten_num_heads)
     # Set the convolution module.
     if lconv_tpl is not None:
       p.lconv_tpl = lconv_tpl
@@ -704,7 +699,6 @@ class ConformerLayer(base_layer.BaseLayer):
     if self.has_mhsa:
       trans_atten_p = p.trans_atten_tpl.Copy().Set(
           input_dim=p.input_dim,
-          num_heads=p.atten_num_heads,
           is_masked=p.is_causal,
           atten_dropout_prob=p.dropout_prob,
           residual_dropout_prob=p.dropout_prob)
