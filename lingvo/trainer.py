@@ -939,7 +939,7 @@ class Evaler(base_runner.BaseRunner):
     proto = summary_pb2.Summary()
     proto.ParseFromString(summaries)
     for i, value in enumerate(proto.value):
-      if value.HasField('simple_value'):
+      if value.WhichOneof('value') == 'simple_value':
         del proto.value[i]
     return proto.SerializeToString()
 
@@ -993,6 +993,7 @@ class Evaler(base_runner.BaseRunner):
 
           # Add non-scalar summaries only for the first batch of data.
           self._summary_writer.add_summary(summaries, global_step)
+          self._summary_writer.flush()
         else:
           ans = sess.run(self._task.eval_metrics)
 

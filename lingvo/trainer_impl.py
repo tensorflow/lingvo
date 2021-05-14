@@ -335,6 +335,14 @@ class Decoder(base_runner.BaseRunner):
   def GetCkptIdFromFile(self, checkpoint_path):
     return int(re.sub(r'.*ckpt-', '', checkpoint_path))
 
+  def _RemoveScalarSummaries(self, summaries):
+    proto = tf.Summary()
+    proto.ParseFromString(summaries)
+    for i, value in enumerate(proto.value):
+      if value.WhichOneof('value') == 'simple_value':
+        del proto.value[i]
+    return proto.SerializeToString()
+
   def DecodeCheckpoint(self, sess, checkpoint_path):
     """Decodes `samples_per_summary` examples using `checkpoint_path`."""
     p = self._task.params
@@ -367,13 +375,25 @@ class Decoder(base_runner.BaseRunner):
         tf.logging.info('Fetching dec_output.')
         fetch_start = time.time()
         run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
-        if self._summary_op is None:
-          # No summaries were collected.
-          dec_out = sess.run(self._dec_output, options=run_options)
+
+        # NOTE: We intentionally do not generate scalar summaries by
+        # default, because decoder is run  multiple times for each
+        # checkpoint. Multiple summaries at the same step is often confusing.
+        # Instead, models should generate aggregate summaries using
+        # PostProcessDecodeOut. Other types of summaries (images, audio etc.)
+        # will be generated for the first eval batch.
+        if (num_examples_metric.total_value == 0 and
+            self._summary_op is not None):
+          dec_out, summaries = sess.run([self._dec_output, self._summary_op],
+                                        options=run_options)
+          summaries = self._RemoveScalarSummaries(summaries)
+
+          # Add non-scalar summaries only for the first batch of data.
+          self._summary_writer.add_summary(summaries, global_step)
+          self._summary_writer.flush()
         else:
-          dec_out, summary = sess.run([self._dec_output, self._summary_op],
-                                      options=run_options)
-          self._summary_writer.add_summary(summary, global_step)
+          dec_out = sess.run(self._dec_output, options=run_options)
+
         self._RunTF2SummaryOps(sess)
         post_process_start = time.time()
         tf.logging.info('Done fetching (%f seconds)' %
