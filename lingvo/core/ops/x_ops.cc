@@ -139,104 +139,11 @@ REGISTER_OP("BeamSearchStep")
       return Status::OK();
     })
     .Doc(R"doc(
+See BeamSearchStepV2 below. This op is identical except that it does not support
+`beam_independence`.
 
-Move forward one step in beam search.
-
-Let "b" be the number of beams, "k" be the number hyps in each beam, "t" be the
-maximum decoding steps.
-
-The following data structures are allocated before the first decoding step and
-are passed along from cur step to the next step:
-
-in_scores
-    A tensor of shape [t, k * b]. in_scores[i, j] is the local
-    score of the j-th hyp at the i-th decoding step.
-in_hyps
-    A tensor of shape [t, k * b]. in_hyps[i, j] is the token id of the
-    j-th hyp at the i-th decoding step.
-in_prev_hyps
-    A tensor of shape [t, k * b]. in_prev_hyps[i, j] stores a
-    pointer of the j-th hyp at time step i to the hyp at previous timestep
-    (i - 1). 0 <= in_prev_hyps[i, j] < k * b.
-in_done_hyps
-    A tensor of shape [t, k * b]. in_done_hyps[i, j] can be either an
-    empty string, or a serialized Hypothesis proto. Terminated hyps are removed
-    from the beam and are moved to the corresponding in_done_hyps slot.
-in_atten_probs
-    A tensor of shape [t, k * b, s_len]. in_atten_probs[i, j, ...]
-    is the attention probs over the source words for the j-th hyp at the i-th
-    timestep.
-
-Those tensors are modified (with content for the cur_step timestep being filled
-in) within this op invocation and are passed to the corresponding output
-tensors.
-
-is_last_chunk: A tensor of shape [k * b]. Used by neural transducer, determine
-    whether the current hypothesis reaches the last chunk and should treat the
-    next end-of-chunk symbol as end-of-sentence.
-scores: A matrix of shape [k * b, vocab_size], where b is the number of
-    active beams, and k is the number of hyps in each beam. Local scores for the
-    current timestep.
-atten_probs: A matrix of shape [k * b, source_len]. Attention probabilities
-    for the current timestep.
-best_scores: A vector of size [b], best scores of terminated hyps so far in
-    each of the beams.
-cumulative_scores: A vector of size [k * b]. The cumulative score of each
-    active hyp before the current step.
-in_scores: As explained above.
-in_hyps: As explained above.
-in_prev_hyps: As explained above.
-in_done_hyps: As explained above.
-in_atten_probs: As explained above.
-cur_step: Current step id.
-out_best_scores:
-    Updated best scores for each of the beams.
-out_cumulative_scores:
-    A vector of size [k * b]. The cumulative score of the new hyps after the
-    current decoding step.
-out_scores:
-    As explained above.
-out_hyps:
-    As explained above.
-out_prev_hyps:
-    As explained above.
-out_done_hyps:
-    As explained above.
-out_atten_probs:
-    As explained above.
-all_done:
-    A scalar, whether decoding should terminate for all beams.
-eoc_id: Token id of the special end of chunk token.
-eos_id: Token id of the special end of sequence token.
-beam_size: Search terminates if the delta between the scores of the active hyps
-    in a beam and the best scores exceeds this threashold.
-num_hyps_per_beam: Number of hyps in a beam.
-valid_eos_max_logit_delta: We allow </s> to terminate a hyp only if its logit
-    is no more than `valid_eos_max_logit_delta` away from the logit of the best
-    candidate.
-local_eos_threshold: We allow </s> to terminate a hyp if the local score for
-    </s> is greater than local_eos_threshold.
-merge_paths: If true, hyps which are identical when epsilons are removed will
-    be combined into a single hyp.  The probability for that combined hyp will
-    be the sum of the probabilities of the component hyps.  This can only be
-    applied for epsilon-emitting models (RNN-T and NT).
-allow_empty_terminated_hyp: Whether it is okay to consider a hyp that consists
-    only of epsilons as terminated.  By default this is true, as an
-    utterance may consist of silence.  It should be set to false when EMBR
-    training epsilon-emitting models (e.g., RNN-T), which are prone to emit
-    all-epsilon hyps even in the absence of silence.  Note that a hyp that
-    terminates in EOS is not considered empty, so this flag has no effect for
-    non-epsilon-emitting models.
-ensure_full_beam: If True, we will not set the all_done output to True until we
-     have found 'num_hyps_per_beam' terminated hyps AND no active hyps have a
-     score within 'beam_size' of the best terminated hyp.  If False, only the
-     second condition must be satisfied.  Generally this should be False unless
-     beam search is being run as part of minimum word error rate training.
-force_eos_in_last_step: If true, then if decode does not terminate even after
-    (max - 1) steps, eos symbol is injected into the result and partial
-    hypotheses (with a valid eos symbol in the end) are returned. all_done
-    is set to true for these partials. If false, which is the default behavior,
-    empty hypothesis are returned and all_done is set to false at termination.
+This exists to support backward-compatibility of exported graphs only. Please
+use BeamSearchStepV2 below.
 )doc");
 
 REGISTER_OP("BeamSearchStepV2")
@@ -285,15 +192,113 @@ REGISTER_OP("BeamSearchStepV2")
       return Status::OK();
     })
     .Doc(R"doc(
-The same as BeamSearchStep above, except the following.
+Move forward one step in beam search.
 
-New input/output: {in,out}_beam_done, bool tensor of shape [b], where
-beam_done[i] means beam i is done.
+Let "b" be the number of beams, "k" be the number hyps in each beam, "t" be the
+maximum decoding steps.
 
-New attr beam_independence. When enabled, beam_done[i] set means the forward
-step is a no-op for beam i.
+The following data structures are allocated before the first decoding step and
+are passed along from cur step to the next step:
 
-TODO(b/181636326): do not use yet, implementation WIP.
+in_scores
+    A tensor of shape [t, k * b]. in_scores[i, j] is the local
+    score of the j-th hyp at the i-th decoding step.
+in_hyps
+    A tensor of shape [t, k * b]. in_hyps[i, j] is the token id of the
+    j-th hyp at the i-th decoding step.
+in_prev_hyps
+    A tensor of shape [t, k * b]. in_prev_hyps[i, j] stores a
+    pointer of the j-th hyp at time step i to the hyp at previous timestep
+    (i - 1). 0 <= in_prev_hyps[i, j] < k * b.
+in_done_hyps
+    A tensor of shape [t, k * b]. in_done_hyps[i, j] can be either an
+    empty string, or a serialized Hypothesis proto. Terminated hyps are removed
+    from the beam and are moved to the corresponding in_done_hyps slot.
+in_atten_probs
+    A tensor of shape [t, k * b, s_len]. in_atten_probs[i, j, ...]
+    is the attention probs over the source words for the j-th hyp at the i-th
+    timestep.
+in_beam_done
+    A tensor of shape [b] of bools, whether each individual beam is done.
+    See attr `beam_independence`.
+
+Those tensors are modified (with content for the cur_step timestep being filled
+in) within this op invocation and are passed to the corresponding output
+tensors.
+
+is_last_chunk: A tensor of shape [k * b]. Used by neural transducer, determine
+    whether the current hypothesis reaches the last chunk and should treat the
+    next end-of-chunk symbol as end-of-sentence.
+scores: A matrix of shape [k * b, vocab_size], where b is the number of
+    active beams, and k is the number of hyps in each beam. Local scores for the
+    current timestep.
+atten_probs: A matrix of shape [k * b, source_len]. Attention probabilities
+    for the current timestep.
+best_scores: A vector of size [b], best scores of terminated hyps so far in
+    each of the beams.
+cumulative_scores: A vector of size [k * b]. The cumulative score of each
+    active hyp before the current step.
+in_scores: As explained above.
+in_hyps: As explained above.
+in_prev_hyps: As explained above.
+in_done_hyps: As explained above.
+in_atten_probs: As explained above.
+in_beam_done: A vector of [b], whether each beam was previously done. See
+    attr `beam_independence`.
+cur_step: Current step id.
+out_best_scores:
+    Updated best scores for each of the beams.
+out_cumulative_scores:
+    A vector of size [k * b]. The cumulative score of the new hyps after the
+    current decoding step.
+out_scores:
+    As explained above.
+out_hyps:
+    As explained above.
+out_prev_hyps:
+    As explained above.
+out_done_hyps:
+    As explained above.
+out_atten_probs:
+    As explained above.
+out_beam_done:
+    A vector of size [b], whether each beam is done after this step is taken.
+    `all_done` below is the logical AND of out_beam_done over all beams.
+all_done:
+    A scalar, whether decoding should terminate for all beams.
+eoc_id: Token id of the special end of chunk token.
+eos_id: Token id of the special end of sequence token.
+beam_size: Search terminates if the delta between the scores of the active hyps
+    in a beam and the best scores exceeds this threashold.
+num_hyps_per_beam: Number of hyps in a beam.
+valid_eos_max_logit_delta: We allow </s> to terminate a hyp only if its logit
+    is no more than `valid_eos_max_logit_delta` away from the logit of the best
+    candidate.
+local_eos_threshold: We allow </s> to terminate a hyp if the local score for
+    </s> is greater than local_eos_threshold.
+merge_paths: If true, hyps which are identical when epsilons are removed will
+    be combined into a single hyp.  The probability for that combined hyp will
+    be the sum of the probabilities of the component hyps.  This can only be
+    applied for epsilon-emitting models (RNN-T and NT).
+allow_empty_terminated_hyp: Whether it is okay to consider a hyp that consists
+    only of epsilons as terminated.  By default this is true, as an
+    utterance may consist of silence.  It should be set to false when EMBR
+    training epsilon-emitting models (e.g., RNN-T), which are prone to emit
+    all-epsilon hyps even in the absence of silence.  Note that a hyp that
+    terminates in EOS is not considered empty, so this flag has no effect for
+    non-epsilon-emitting models.
+ensure_full_beam: If True, we will not set the all_done output to True until we
+     have found 'num_hyps_per_beam' terminated hyps AND no active hyps have a
+     score within 'beam_size' of the best terminated hyp.  If False, only the
+     second condition must be satisfied.  Generally this should be False unless
+     beam search is being run as part of minimum word error rate training.
+force_eos_in_last_step: If true, then if decode does not terminate even after
+    (max - 1) steps, eos symbol is injected into the result and partial
+    hypotheses (with a valid eos symbol in the end) are returned. all_done
+    is set to true for these partials. If false, which is the default behavior,
+    empty hypothesis are returned and all_done is set to false at termination.
+beam_independence: When enabled, this step will become a no-op for beam_id if
+    and only if in_beam_done[beam_id] == True.
 )doc");
 
 REGISTER_OP("TopKTerminatedHyps")

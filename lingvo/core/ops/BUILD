@@ -259,6 +259,7 @@ custom_kernel_library(
     op_def_lib = [":x_ops"],
     deps = [
         ":hyps_proto_cc",
+        # Implicit absl.strings dependency.
     ],
 )
 

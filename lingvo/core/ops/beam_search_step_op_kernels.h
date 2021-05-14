@@ -225,18 +225,8 @@ class TopK {
 };
 
 // Exposed for benchmarking purposes.
-// Given the current partial hypothesis in 'hyps' for all beams in a batch and
-// the predicted next step scores 'scores', return the best scored 'k'
-// hypotheses where the first 'k' hypotheses are used for search in the next
-// step. 'eos_id' is the end of beam id of the target language.
 //
-// `skip_beam`: size of `num_beams`. Caller should set to true at beam_index
-// to make this computation to ignore beam_index. This is used for beam
-// independence mode when input_beam_done[beam_index] is true,
-//
-// eos_in_topk is filled with true/false to indicate whether or not the eos
-// symbol is among the topk candidate for a hyp.
-// terminam_symbols stores the terminal token id (eos or eoc).
+// Please see the definition for function comments.
 void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
                  const int32 k, const int32 eos_id, const int32 eoc_id,
                  const int32 num_beams, const float valid_eos_max_logit_delta,
