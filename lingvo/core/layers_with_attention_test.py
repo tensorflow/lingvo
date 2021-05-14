@@ -17,9 +17,11 @@
 
 from absl.testing import parameterized
 import lingvo.compat as tf
+from lingvo.core import gshard_builder
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import symbolic
 from lingvo.core import test_utils
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 import numpy as np
@@ -74,6 +76,78 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       # pylint: enable=bad-whitespace
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
+
+  def testHybridFeedforwardLayer(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      symbol_sub_key = symbolic.Symbol('sub_key')
+
+      # create a basic fflayer.
+      fflayer_p = (layers_with_attention.TransformerFeedForwardLayer.Params())
+      fflayer_p.name = 'fflayer'
+      fflayer_p.input_dim = 3
+      fflayer_p.hidden_dim = 7
+
+      # create a moe layer.
+      moe_p = layers_with_attention.MoEFeedforwardLayer.Params()
+      moe_p.name = 'moe'
+      moe_p.moe_builder_p = gshard_builder.MoEBuilder.Params().Set(
+          model_dim=3,
+          num_devices=2,
+          num_groups=2,
+          e_dim=2,
+          c_dim=4,
+          moe_hidden_dim=7)
+
+      # create a hybrid layer.
+      hybrid_p = layers_with_attention.HybridFeedforwardLayer.Params()
+      hybrid_p.name = 'hybrid'
+      hybrid_p.sub = py_utils.NestedMap({'ff': fflayer_p, 'moe': moe_p})
+      hybrid_p.sub_key = symbol_sub_key
+
+      hybrid_fflayer = layers_with_attention.HybridFeedforwardLayer(hybrid_p)
+
+      with layers_with_attention.AuxLossContext() as aux_loss_ctx:
+        with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,
+                                       {symbol_sub_key: 'ff'}):
+          outputs_ff = hybrid_fflayer.FPropDefaultTheta(inputs, paddings)
+          self.assertEmpty(aux_loss_ctx.aux_losses)
+        with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,
+                                       {symbol_sub_key: 'moe'}):
+          outputs_moe = hybrid_fflayer.FPropDefaultTheta(inputs, paddings)
+          self.assertNotEmpty(aux_loss_ctx.aux_losses)
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_layer_output_ff = self.evaluate(outputs_ff)
+      actual_layer_output_moe = self.evaluate(outputs_moe)
+      # pylint: disable=bad-whitespace
+      expected_output_ff = ([[[-0.05825481, -0.07296887, 0.04780552],
+                              [0.40495688, 1.3521885, 1.9623209]],
+                             [[-0.538299, -0.51939666, 0.14743209],
+                              [2.0082633, 0.41585845, 1.2604249]],
+                             [[-0.16540301, -0.588541, -0.68776536],
+                              [0.22190702, 0.32639492, 0.5300334]],
+                             [[0.06300206, -0.01546569, 0.0259212],
+                              [-0.9785279, -0.96456575, -1.2386773]],
+                             [[-0.8001151, -0.08313039, -0.7068999],
+                              [-1.4299163, -0.22745167, 0.2734915]]])
+      # pylint: disable=bad-whitespace
+      expected_output_moe = ([[[0.4632624, -0.08097249, -0.10976761],
+                               [-1.1534482, 0.20076305, 2.2456918]],
+                              [[0.42073604, 1.262385, -0.47051585],
+                               [1.0274936, 1.9002852, 1.4712151]],
+                              [[-0.03316217, 0.38010496, 0.24893013],
+                               [0.34987167, -0.6271608, 1.3136444]],
+                              [[-0.68526286, 0.08780301, -0.9903437],
+                               [0.39456585, 0.1792891, 0.84773403]],
+                              [[0.08420426, -1.4146113, 0.9402321],
+                               [0.22846438, -1.857454, -0.59214497]]])
+      print(np.array_repr(actual_layer_output_ff))
+      print(np.array_repr(actual_layer_output_moe))
+      self.assertAllClose(actual_layer_output_ff, expected_output_ff)
+      self.assertAllClose(actual_layer_output_moe, expected_output_moe)
 
   def testTransformerShardedMoeLayer(self):
     with self.session(use_gpu=True):

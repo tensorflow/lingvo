@@ -205,6 +205,7 @@ py_library(
         ":layers_with_attention",
         ":py_utils",
         ":recurrent",
+        ":symbolic",
         "//lingvo:compat",
     ],
 )
@@ -1894,6 +1895,7 @@ py_library(
     deps = [
         ":attention",
         ":base_layer",
+        ":gshard_builder",
         ":gshard_layers",
         ":gshard_utils",
         ":hyperparams",
@@ -1913,6 +1915,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":attention",
+        ":gshard_builder",
         ":layers",
         ":layers_with_attention",
         ":py_utils",

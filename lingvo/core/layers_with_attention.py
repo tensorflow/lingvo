@@ -18,6 +18,7 @@ import lingvo.compat as tf
 from lingvo.core import activations
 from lingvo.core import attention
 from lingvo.core import base_layer
+from lingvo.core import gshard_builder
 from lingvo.core import gshard_layers
 from lingvo.core import gshard_utils
 from lingvo.core import hyperparams
@@ -658,6 +659,98 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       if not self.params.pre_layer_norm:
         h = self.layer_norm.FProp(theta.layer_norm, h)
       return h
+
+
+class MoEFeedforwardLayer(base_layer.BaseLayer):
+  """The feedforward net that is a MoE."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('moe_builder_p', gshard_builder.MoEBuilder.Params(),
+             'A MoE builder params.')
+    p.Define('fflayer_residual_weight', 0.5, 'fflayer residual weight.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    moe_builder = p.moe_builder_p.Instantiate()
+    moe_layer_p = moe_builder.EncoderLayer(
+        p.name,
+        moe_builder.MoE(p.name),
+        residual_weight=p.fflayer_residual_weight)
+    self.CreateChild('moe_fflayer', moe_layer_p)
+
+  def FProp(self, theta, inputs, paddings):
+    """Feed-forward, residual and layer-norm.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: [time, batch, dim].
+      paddings: [time, batch]
+
+    Returns:
+      tensor of the same shape with inputs
+    """
+    p = self.params
+    with tf.name_scope(p.name):
+      # 0 - padded positions and 1 - non-padded positions.
+      segment_ids = tf.cast(1. - paddings, tf.int32)
+      segment_pos = tf.zeros_like(segment_ids)  # not used but required by MoE.
+      moe_in = py_utils.NestedMap(
+          vec=inputs, segment_id=segment_ids, segment_pos=segment_pos)
+      moe_out = self.moe_fflayer.FProp(theta.moe_fflayer, moe_in)
+      aux_loss_ctx = AuxLossContext.current()
+      if aux_loss_ctx is None:
+        raise ValueError('aux_loss_ctx should not be None.')
+      aux_loss_ctx.add_loss(moe_out.aux_loss)
+      return moe_out.vec
+
+
+class HybridFeedforwardLayer(base_layer.BaseLayer):
+  """Hybrid Feedforward Net containing different fflayers, choosen by symbol.
+
+  Example::
+
+      hybrid_p = HybridFeedforwardLayer.Params()
+      hybrid_p.sub = py_utils.NestedMap({'ff': fflayer_p, 'moe': moe_p})
+      hybrid_p.sub_key = symbol
+      hybrid_fflayer = HybridFeedforwardLayer(hybrid_p)
+      with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,{symbol: 'moe'}):
+        outputs_moe = hybrid_fflayer.FPropDefaultTheta(inputs, paddings)
+
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'sub', None, 'A NestedMap of symbol to feedforward layers params. '
+        'Each of them requires the NestedMap input outputs.')
+    p.Define('sub_key', None,
+             'A symbol to dynamically switch between sub layers.')
+    return p
+
+  @property
+  def sub_key(self):
+    p = self.params
+    sub_key = p.sub_key
+    if symbolic.IsExpr(p.sub_key):
+      sub_key = symbolic.ToStatic(p.sub_key)
+    return sub_key
+
+  def __init__(self, params):
+    super().__init__(params)
+    for k, v in self.params.sub.items():
+      self.CreateChild(k, v)
+
+  def FProp(self, theta, inputs, paddings):
+    p = self.params
+    with tf.name_scope(p.name):
+      return self.children[self.sub_key].FProp(theta[self.sub_key], inputs,
+                                               paddings)
 
 
 # TODO(yonghui): Move this to the right place.
