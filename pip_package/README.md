@@ -24,6 +24,7 @@ rm -rf /tmp/lingvo_pip_package_build
 PYTHON_MINOR_VERSION=6 pip_package/build.sh
 PYTHON_MINOR_VERSION=7 pip_package/build.sh
 PYTHON_MINOR_VERSION=8 pip_package/build.sh
+PYTHON_MINOR_VERSION=9 pip_package/build.sh
 ```
 
 If everything goes well, this will produce a set of wheels in

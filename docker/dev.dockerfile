@@ -21,8 +21,8 @@ ARG cpu_base_image="ubuntu:18.04"
 ARG base_image=$cpu_base_image
 
 # Pick up some TF dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends software-properties-common
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
         aria2 \
         build-essential \
         curl \
@@ -48,14 +48,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install python 3.8
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776
 RUN echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/deadsnakes-ppa-bionic.list
-RUN apt-get update && apt-get install -y python3.8 python3.8-distutils
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1000
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y python3.9 python3.9-distutils
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1000
 # bazel assumes the python executable is "python".
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1000
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1000
 
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py && rm get-pip.py
 
-ARG bazel_version=3.1.0
+ARG bazel_version=4.0.0
 # This is to install bazel, for development purposes.
 ENV BAZEL_VERSION ${bazel_version}
 RUN mkdir /bazel && \
@@ -93,7 +93,7 @@ ARG pip_dependencies=' \
       sphinx \
       sphinx_rtd_theme \
       sympy \
-      waymo-open-dataset-tf-2-4-0'
+      waymo-open-dataset-tf-2-5-0'
 
 RUN pip3 --no-cache-dir install $pip_dependencies
 RUN python3 -m ipykernel.kernelspec
@@ -103,7 +103,7 @@ RUN python3 -m ipykernel.kernelspec
 # tensorflow from source instead of installing from pip.
 # Ensure we install the correct version by uninstalling first.
 RUN pip3 uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
-RUN pip3 --no-cache-dir install tensorflow-gpu tensorflow-datasets \
+RUN pip3 --no-cache-dir install tensorflow tensorflow-datasets \
   tensorflow-hub tensorflow-text
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws

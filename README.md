@@ -37,6 +37,7 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
+0.9.0        | f826e99803d1b51dccbbbed1ef857ba48a2bbefe
 0.8.2        | 93e123c6788e934e6b7b1fd85770371becf1e92e
 0.7.2        | b05642fe386ee79e0d88aa083565c9a93428519e
 
@@ -53,7 +54,14 @@ Details for older releases are unavailable.
 
 ### Major breaking changes
 
+**NOTE: this is not a comprehensive list. Lingvo releases do not offer any
+guarantees regarding backwards compatibility.**
+
 #### HEAD
+
+Nothing here.
+
+#### 0.9.0
 
 *   **General**
     *   py_utils.AddGlobalVN and py_utils.AddPerStepVN have been combined into
@@ -121,7 +129,7 @@ for how to get started with the pip package.
 
 The prerequisites are:
 
-*   a TensorFlow 2.3 [installation](https://www.tensorflow.org/install/),
+*   a TensorFlow 2.5 [installation](https://www.tensorflow.org/install/),
 *   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 

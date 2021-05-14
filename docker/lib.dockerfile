@@ -18,8 +18,8 @@ ARG cpu_base_image="ubuntu:18.04"
 ARG base_image=$cpu_base_image
 
 # Pick up some TF dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends software-properties-common
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
         build-essential \
         curl \
         git \
@@ -36,11 +36,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install python 3.8
+# Install python 3.9
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776
 RUN echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/deadsnakes-ppa-bionic.list
-RUN apt-get update && apt-get install -y python3.8 python3.8-distutils 
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1000
+RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y python3.9 python3.9-distutils
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1000
 
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py && rm get-pip.py
 
