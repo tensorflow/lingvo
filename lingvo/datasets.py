@@ -23,6 +23,10 @@ class DatasetFunctionError(TypeError):
   pass
 
 
+class GetAllDatasetParamsNotImplementedError(NotImplementedError):
+  pass
+
+
 def GetDatasets(cls, warn_on_error=True):
   """Returns the list of dataset functions (e.g., Train, Dev, ...).
 
@@ -58,7 +62,7 @@ def GetDatasets(cls, warn_on_error=True):
     try:
       all_datasets = mdl_params.GetAllDatasetParams()
       return sorted(list(all_datasets.keys()))
-    except NotImplementedError:
+    except GetAllDatasetParamsNotImplementedError:
       pass
 
   datasets = []

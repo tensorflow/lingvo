@@ -16,12 +16,13 @@
 """Helper for models_test."""
 
 import re
+from lingvo import datasets
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
-from lingvo.core import base_model_params
 from lingvo.core import bn_layers
 from lingvo.core import cluster_factory
+from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
@@ -126,7 +127,19 @@ class BaseModelsTest(test_utils.TestCase):
 
   def _testOneModelParams(self, registry, name):
     with tf.Graph().as_default():
-      p = registry.GetParams(name, 'Train')
+      model_params = registry.GetClass(name)()
+      try:
+        all_datasets = model_params.GetAllDatasetParams()
+      except datasets.GetAllDatasetParamsNotImplementedError:
+        all_datasets = {}
+        for dataset_name in datasets.GetDatasets(model_params):
+          try:
+            all_datasets[dataset_name] = getattr(model_params, dataset_name)()
+          except NotImplementedError:
+            pass
+
+      p = model_params.Model()
+      p.input = all_datasets['Train']
       self.assertTrue(issubclass(p.cls, base_model.BaseModel))
       self.assertIsNot(p.model, None)
       p.cluster.mode = 'sync'
@@ -139,34 +152,22 @@ class BaseModelsTest(test_utils.TestCase):
         self._ValidateEMA(name, mdl)
         p = mdl.params
 
-      for dataset in ('Train', 'Dev', 'Test'):
-        try:
-          input_p = registry.GetParams(name, dataset).input
-        except base_model_params.DatasetError:
-          # Dataset not defined.
-          if dataset == 'Dev':  # Dev can be optional.
-            pass
-          else:
-            raise
+      for dataset, input_p in all_datasets.items():
         if issubclass(p.cls, base_model.SingleTaskModel):
-          self.assertTrue(
-              issubclass(input_p.cls, base_input_generator.BaseInputGenerator),
-              'Error in %s' % dataset)
-          if (dataset != 'Train') and issubclass(
-              input_p.cls,
-              base_input_generator.BaseSequenceInputGenerator) and (
-                  input_p.num_samples != 0):
+          if (not isinstance(input_p, hyperparams.InstantiableParams) or
+              not issubclass(input_p.cls,
+                             base_input_generator.BaseInputGenerator)):
+            # Assume this function is not a dataset function but some helper.
+            continue
+          if (dataset != 'Train' and issubclass(
+              input_p.cls, base_input_generator.BaseSequenceInputGenerator) and
+              input_p.num_samples != 0):
             self.assertEqual(
                 input_p.num_batcher_threads, 1,
-                'num_batcher_threads too large in %s. Decoder '
-                'or eval runs over this set might not span '
-                'exactly one epoch.' % dataset)
+                f'num_batcher_threads too large in {dataset}. Decoder or eval '
+                f'runs over this set might not span exactly one epoch.')
         else:
           self.assertTrue(issubclass(p.cls, base_model.MultiTaskModel))
-          for _, v in input_p.IterParams():
-            self.assertTrue(
-                issubclass(v.cls, base_input_generator.BaseInputGenerator),
-                'Error in %s' % dataset)
 
   @classmethod
   def CreateTestMethodsForAllRegisteredModels(cls,
@@ -179,11 +180,10 @@ class BaseModelsTest(test_utils.TestCase):
     model_names = list(registry.GetAllRegisteredClasses().keys())
     for model_name in sorted(model_names):
       if not any([re.search(regex, model_name) for regex in task_regexes]):
-        tf.logging.info('Skipping tests for registered model: %s', model_name)
+        print(f'Skipping tests for registered model {model_name}')
         continue
       if any([re.search(regex, model_name) for regex in exclude_regexes]):
-        tf.logging.info(
-            'Explicitly excluding tests for registered model: %s', model_name)
+        print(f'Explicitly excluding tests for registered model {model_name}')
         continue
 
       def _Test(self, name=model_name):

@@ -35,10 +35,6 @@ class DatasetError(Exception):
   pass
 
 
-class GetAllDatasetParamsNotImplementedError(NotImplementedError):
-  pass
-
-
 class _BaseModelParams:
   """Base class for storing model Params for a single experiment."""
 
@@ -54,7 +50,7 @@ class _BaseModelParams:
     Raises:
       GetAllDatasetParamsNotImplementedError: by default.
     """
-    raise GetAllDatasetParamsNotImplementedError(type(self))
+    raise datasets.GetAllDatasetParamsNotImplementedError(type(self))
 
   def GetDatasetParams(self, dataset):
     """Convenience function that returns the param for the given dataset name.
@@ -75,7 +71,7 @@ class _BaseModelParams:
         raise DatasetError(f'Dataset {dataset} not found; '
                            f'available datasets are: {all_datasets.keys()}')
       return all_datasets.get(dataset)
-    except GetAllDatasetParamsNotImplementedError:
+    except datasets.GetAllDatasetParamsNotImplementedError:
       # Fall through the legacy path.
       pass
 

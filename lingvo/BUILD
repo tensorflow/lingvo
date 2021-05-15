@@ -94,11 +94,12 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":compat",
+        ":datasets_lib",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
-        "//lingvo/core:base_model_params",
         "//lingvo/core:bn_layers",
         "//lingvo/core:cluster_factory",
+        "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
     ],
