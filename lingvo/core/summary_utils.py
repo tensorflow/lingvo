@@ -224,18 +224,13 @@ def AddAttentionSummaryBatchMajor(name,
     src = src[0 if len(src) == 1 else i] if isinstance(src, list) else src
     tgt = tgt[0 if len(tgt) == 1 else i] if isinstance(tgt, list) else tgt
     tgt_shape = py_utils.GetShape(tgt)
-
-    if not tf.executing_eagerly():
-      attention_tensor_name = attention_tensor.name
-    else:
-      attention_tensor_name = f'[eager]_{name}_{i}'
-
     attention_tensors[i] = tf.identity(
         py_utils.with_dependencies([
             py_utils.assert_equal(
                 py_utils.GetShape(attention_tensor),
                 tgt_shape[:2] + [py_utils.GetShape(src)[1]] + tgt_shape[2:])
-        ], attention_tensor), re.sub(':.*$', '', attention_tensor_name))
+        ], attention_tensor),
+        re.sub(':.*$', '', GetTensorName(attention_tensor, name, i)))
 
   if not _ShouldAddSummary():
     return
@@ -265,16 +260,10 @@ def AddAttentionSummaryBatchMajor(name,
       args = [atten, Get(src_lens, n), Get(tgt_lens, n)]
       if transcripts is not None and n == 0:
         args.append(transcripts)
-
-      if not tf.executing_eagerly():
-        atten_name = atten.name
-      else:
-        atten_name = f'[eager]_{name}_{n}'
-
       fig.AddSubplot(
           args,
           TrimPaddingAndPlotAttention,
-          title=atten_name,
+          title=GetTensorName(atten, name, n),
           xlabel='Input',
           ylabel='Output')
 
@@ -351,14 +340,9 @@ def PlotSequenceFeatures(plots, name, **kwargs):
 
   with plot.MatplotlibFigureSummary(name, figsize=(8, len(plots) * 3.5)) as fig:
     for i, (tensor, seq_len) in enumerate(plots):
-      if not tf.executing_eagerly():
-        tensor_name = tensor.name
-      else:
-        tensor_name = f'[eager]_{name}_{i}'
-
       fig.AddSubplot([tensor, seq_len],
                      TrimPaddingAndPlotSequence,
-                     title=tensor_name,
+                     title=GetTensorName(tensor, name, i),
                      **kwargs)
 
 
@@ -460,3 +444,30 @@ def ModelAnalysis(model):
   output += '=' * 100
   output += f'\ntotal #params: {analyzer.total:,}\n'
   return output, analyzer.total
+
+
+def GetTensorName(tensor, name_eager=None, i_eager=None):
+  """Returns tensor name.
+
+  It is useful for compatibility with eager mode.
+  Args:
+    tensor: tensor
+    name_eager: additional string to append in eager mode
+    i_eager: additional index to append in eager mode
+
+  Returns:
+    tensor.name in session mode, or concatenation of name_eager, i_eager
+      in eager mode
+  """
+  if not tf.executing_eagerly():
+    tensor_name = tensor.name
+  else:
+    if name_eager and i_eager:
+      tensor_name = f'[eager]_{name_eager}_{i_eager}'
+    elif name_eager:
+      tensor_name = f'[eager]_{name_eager}'
+    elif i_eager:
+      tensor_name = f'[eager]_{i_eager}'
+    else:
+      tensor_name = '[eager]'
+  return tensor_name
