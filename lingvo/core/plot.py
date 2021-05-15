@@ -256,7 +256,12 @@ class MatplotlibFigureSummary:
   def Finalize(self):
     """Finishes creation of the overall figure, returning the image summary."""
     rendered = self.FinalizeImage()
-    return tf.summary.image(self._name, rendered, max_outputs=self._max_outputs)
+    if not tf.executing_eagerly():
+      return tf.summary.image(
+          self._name, rendered, max_outputs=self._max_outputs)
+    else:
+      return tf.compat.v2.summary.image(
+          self._name, rendered, max_outputs=self._max_outputs)
 
 
 def _RenderOneMatplotlibFigure(fig, plot_func, *numpy_data_list):
