@@ -496,6 +496,67 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
     p = self.params
     return ComputeExplicitPaddingForCausalConv(p.filter_shape, p.dilation_rate)
 
+  def zero_state(self, batch_size):
+    """Returns the initial state given the batch size.
+
+    Args:
+      batch_size: the batch size.
+
+    Returns:
+      state0: A NestedMap of tensors including:
+        - context: A Tensor of shape [b, filter_shape[0]-1, 1, c].
+    """
+    p = self.params
+    assert p.filter_shape[1] == 1, (
+        'zero_state() only supports 1d causal convolution.')
+
+    context = tf.zeros(
+        shape=[batch_size] +
+        [p.filter_shape[0] - 1, p.filter_shape[1], p.filter_shape[2]],
+        dtype=py_utils.FPropDtype(p))
+    return py_utils.NestedMap(context=context)
+
+  def StreamStep(self, theta, inputs, paddings, state0):
+    """Apply a singele step of convolution to input_tensor.
+
+    Only supports 1d causal convolution. Doesn't support dilation.
+
+    Args:
+      theta: A NestedMap of layer params.
+      inputs: A Tensor of shape [b, t, 1, c]
+      paddings: A 0/1 valued tensor of shape [b, t].
+      state0: A NestedMap of tensors of the same struct as returned by
+        zero_state().
+
+    Returns:
+      outputs: A Tensor of shape [b, t, 1, c]
+      padding: the same as input paddings.
+      state1: A NestedMap of the same struct as input state
+    """
+    p = self.params
+    assert p.filter_shape[1] == 1, (
+        'StreamStep only supports 1d causal convolution.')
+    assert all(stride == 1 for stride in p.filter_stride), (
+        f'StreamStep doesn\'t support striding: {p.filter_stride}')
+    assert p.dilation_rate == (1, 1), ('StreamStep doesn\'t support dilation')
+
+    with tf.name_scope(p.name):
+      inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
+      paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
+
+      concat_inputs = tf.concat(
+          [state0.context, inputs * (1 - py_utils.AppendDims(paddings, 2))],
+          axis=1)
+      outputs = tf.nn.conv2d(
+          concat_inputs,
+          self._GetWeight(theta),
+          strides=p.filter_stride,
+          dilations=p.dilation_rate,
+          data_format='NHWC',
+          padding='VALID')
+      new_context = concat_inputs[:, -(p.filter_shape[0] - 1):]
+      return outputs, paddings, py_utils.NestedMap(context=new_context)
+
 
 class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
   """Depthwise conv 2D layer.

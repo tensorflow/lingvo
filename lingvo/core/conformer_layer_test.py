@@ -25,6 +25,7 @@ from lingvo.core import batch_major_attention
 from lingvo.core import bn_layers
 from lingvo.core import cluster_factory
 from lingvo.core import conformer_layer
+from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import gshard_builder
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
@@ -619,6 +620,10 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'layer_order': 'mhsa_before_conv'
       },
       {
+          'testcase_name': 'Conv2D',
+          'has_lconv': 'conv2d',
+      },
+      {
           'testcase_name': 'NoLConv',
           'layer_order': 'mhsa',
           'has_lconv': False
@@ -653,7 +658,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
                      num_groups=2,
                      stride=1,
                      layer_order='conv_before_mhsa',
-                     has_lconv=True,
+                     has_lconv='depthwise',
                      has_fflayer_start=True,
                      right_context=0):
     assert norm_type in ('ln', 'gn'), norm_type
@@ -682,6 +687,11 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
             num_groups=num_groups, cumulative=True)
       if not has_lconv:
         p.lconv_tpl = None
+      elif has_lconv == 'conv2d':
+        p.lconv_tpl.depthwise_conv_tpl = (
+            conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params())
+      else:
+        assert has_lconv == 'depthwise'
       if not has_fflayer_start:
         p.fflayer_start_tpl = None
       p.name = 'conformer'

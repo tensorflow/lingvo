@@ -227,10 +227,16 @@ class LConvLayer(base_layer.BaseLayer):
       hparams_lib.CopyFieldsTo(p.depthwise_conv_tpl, depthwise_conv_p)
     else:
       depthwise_conv_p = p.depthwise_conv_tpl.Copy()
+
+    if issubclass(depthwise_conv_p.cls,
+                  conv_layers_with_time_padding.DepthwiseConv2DLayer):
+      depthwise_conv_p.filter_shape = (p.kernel_size, 1, p.input_dim, 1)
+    else:
+      depthwise_conv_p.filter_shape = (p.kernel_size, 1, p.input_dim,
+                                       p.input_dim)
     # 1d depthwise conv with channel_mulitplier = 1
     depthwise_conv_p.Set(
         name='depthwise_conv',
-        filter_shape=(p.kernel_size, 1, p.input_dim, 1),
         filter_stride=(1, 1))
     self.CreateChild('depthwise_conv1d', depthwise_conv_p)
 
