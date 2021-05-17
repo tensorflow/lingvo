@@ -349,7 +349,7 @@ class ReshapedMultiHeadedProjectionLayer(MultiHeadedProjectionLayer):
       return ret
 
 
-class MultiHeadedAttention(base_layer.BaseLayer):
+class MultiHeadedAttention(quant_utils.QuantizableLayer):
   """Dot-product attention with multiple attention heads.
 
   This implementation heavily uses einsum (wrapped in py_utils.Einsum) to be
@@ -491,7 +491,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     self.CreateChild('atten_dropout',
                      p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
     # Setting is_output_projection=True to set the projection direction
-    # from hidden dim to input dim. Ouput projection follows query_input_dim.
+    # from hidden dim to input dim. Output projection follows query_input_dim.
     self.CreateChild(
         'post',
         p.proj_tpl.Copy().Set(
@@ -526,7 +526,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     Returns:
       A Tensor of shape [B, N, T, S]
     """
+    query, key = self.ToAqtActActInputs(query, key)
     logits = attention_util.AttenLogits(query, key)
+    logits = self.FromAqtActActMatmul(logits)
     return self._CapLogits(logits)
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
@@ -545,7 +547,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     s, b, _, _ = py_utils.GetShape(key, 4)
     _, n, h = py_utils.GetShape(query, 3)
     # [s, b, n]
-    logits = tf.einsum('BNH,SBNH->SBN', query, tf.reshape(key, [s, b, n, h]))
+    key = tf.reshape(key, [s, b, n, h])
+    query, key = self.ToAqtActActInputs(query, key)
+    logits = tf.einsum('BNH,SBNH->SBN', query, key)
+    logits = self.FromAqtActActMatmul(logits)
     return self._CapLogits(logits)
 
   def AttenProbs(self,
@@ -631,13 +636,25 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     return probs, probs_sum
 
   def _AttenContext(self, theta, probs, value):
-    return attention_util.AttenContext(probs, value)
+    probs, value = self.ToAqtActActInputs(
+        probs,
+        value,
+        act_lhs_distribution='positive',
+        act_rhs_distribution='symmetric')
+    encoded = attention_util.AttenContext(probs, value)
+    return self.FromAqtActActMatmul(encoded)
 
   def _AttenContextOneStep(self, theta, probs, value, time_step, h):
     s, b, _, _ = py_utils.GetShape(value, 4)
     _, _, n = py_utils.GetShape(probs, 3)
-
-    return tf.einsum('SBN,SBNH->BNH', probs, tf.reshape(value, [s, b, n, h]))
+    value = tf.reshape(value, [s, b, n, h])
+    probs, value = self.ToAqtActActInputs(
+        probs,
+        value,
+        act_lhs_distribution='positive',
+        act_rhs_distribution='symmetric')
+    encoded = tf.einsum('SBN,SBNH->BNH', probs, value)
+    return self.FromAqtActActMatmul(encoded)
 
   def _DotAtten(self,
                 theta,
@@ -686,7 +703,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     with tf.name_scope('ctx'):
       encoded = self._AttenContext(theta, probs, value)
       if p.enable_scaling_code_motion:
-        # The 2nd part of the softamx --- scaling.
+        # The 2nd part of the softmax --- scaling.
         encoded = encoded / tf.transpose(probs_sum, [0, 2, 1, 3])
 
     encoded = gshard_utils.MeshSplit(encoded, p.device_mesh,
@@ -780,11 +797,18 @@ class MultiHeadedAttention(base_layer.BaseLayer):
             [-1])
         return scatter_update.Update(o, ts, ot), k, q, ts + 1
 
+      # Prefix with 'quant_' to avoid reassigning variables captured via closure
+      quant_key, quant_query = self.ToAqtActActInputs(key, query)
       logits, _, _, _ = tf.while_loop(
           lambda _o, _k, _q, ts: ts <= time_step,
           _AttenStep,
-          loop_vars=(tf.Empty([s, b * n], query.dtype,
-                              init=True), key, query, tf.zeros([], tf.int32)))
+          loop_vars=(
+              tf.Empty([s, b * n], query.dtype, init=True),
+              quant_key,
+              quant_query,
+              tf.zeros([], tf.int32),
+          ))
+      logits = self.FromAqtActActMatmul(logits)
       logits = self._CapLogits(logits)
 
       padded_logits = tf.where(pad > 0.0, very_negative_logits, logits)
@@ -796,7 +820,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
         Args:
           o: the output activation of shape [B, N, H]
-          p: probabiliy of shape [S, B*N]
+          p: probability of shape [S, B*N]
           v: cached value of shape [S, B, N*H/128, 8]
           ts: a scala tensor to represent time_step
 
@@ -865,7 +889,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
           [d, h, 1]) * tf.reshape(
               tf.one_hot(tf.range(d) % dh, dh, dtype=value_vec.dtype),
               [d, 1, dh])
+
+      value_vec, rhs = self.ToAqtActActInputs(value_vec, rhs)
       value_proj = tf.einsum('BTD,DNH->BTNH', value_vec, rhs)
+      value_proj = self.FromAqtActActMatmul(value_proj)
 
     query_proj = gshard_utils.MeshSplit(query_proj, p.device_mesh,
                                         p.activation_split_dims_mapping.blnh)
@@ -964,7 +991,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     new_value_proj = self.value.FProp(theta.value, query_vec)
     query_proj = self.query.FProp(theta.query, query_vec)
 
-    # Using a if condtion, in case it's more efficient to update the same index.
+    # Using a if condition, in case it's more efficient to update the same index
     new_key_proj = tf.cast(
         tf.reshape(new_key_proj, [b, n, h]), dtype=cached_states.key.dtype)
     new_value_proj = tf.cast(
@@ -1252,7 +1279,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
                  per_step_padding,
                  time_step,
                  use_short_seq_opt=False):
-    # TODO(jamesqin): support use_short_seq_opt for TransofrmerXL attention.
+    # TODO(jamesqin): support use_short_seq_opt for TransformerXL attention.
     assert not use_short_seq_opt
     return super().ExtendStep(theta, query_vec, cached_states, paddings,
                               segment_mask, per_step_padding, time_step,
@@ -1337,7 +1364,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
 
     Returns:
       Relative positional embedding, a Tensor of shape
-      [tgt_time=seqlen, src_time=seqlen, num_heads, attenion_dim]
+      [tgt_time=seqlen, src_time=seqlen, num_heads, attention_dim]
     """
     emb_layer = self.value_emb
     emb_theta = theta.value_emb
@@ -1665,7 +1692,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     Args:
      theta: Layer theta: NestedMap.
-     probs: Local-self-MultiHeaded Attention probablities: [B, N, U, W, C].
+     probs: Local-self-MultiHeaded Attention probabilities: [B, N, U, W, C].
      value: Input value vector: [B, S=T, N, H].
 
     Returns:
@@ -2640,7 +2667,7 @@ class RoutingAttention(MultiHeadedAttention):
     p.Define(
         'fast_path', True,
         'Whether to use a more efficient implementation. The fast path is '
-        'signanificantly faster by grouping queries when determining which '
+        'significantly faster by grouping queries when determining which '
         'values to attend to (which might leave out some queries or duplicate '
         'others); fast_path=False computes this per each query.')
     p.Define(
@@ -3870,7 +3897,7 @@ class TransformerLayer(base_layer.BaseLayer):
     propagated).
     For 2D sharding, typical sharding is [0, -1, 1, -1] for blnh and [0, -1, 1]
     for bld. If ReshapeDim trick is applied to model dim to remove the data
-    formatting overheads, the bld sharding annotation needs to be adpated as
+    formatting overheads, the bld sharding annotation needs to be adapted as
     [0, -1, 1, -1].
 
     Args:
@@ -5103,7 +5130,7 @@ class FunnelPoolingLayer(StrideLayer):
     p.Define(
         'trunc_seq', True,
         'Truncate ending tokens of the sequence when `begin_intact > 0` for '
-        'TPU efficieny.')
+        'TPU efficiency.')
     p.Define('pool_window', None, 'Size of the pooling window.')
     p.Define('pooling_type', 'AVG', 'Pooling type: MAX|AVG')
     p.Define(
@@ -5288,7 +5315,7 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
     p = super().Params()
     p.Define(
         'hidden_dim', 0,
-        'The static size of 3rd dimenson of both the input and output, '
+        'The static size of 3rd dimension of both the input and output, '
         'which is usually the same as the Transformer hidden dimension '
         'when used together. This will be used for the shape of weights '
         'for DECONV upsampling.')
@@ -6128,7 +6155,7 @@ class Builder(builder.Base):
 
 
 class PerformerBuilder(Builder):
-  """Builder for performr models. GShard mesh splits not supported."""
+  """Builder for performer models. GShard mesh splits not supported."""
 
   @classmethod
   def Params(cls):
