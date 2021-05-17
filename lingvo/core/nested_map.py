@@ -16,8 +16,8 @@
 """NestedMap dict structure."""
 
 import re
-from typing import (Any, Callable, Dict, List, Optional, Sequence, Tuple,
-                    TypeVar, Union)
+from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
+                    Tuple, TypeVar, Union)
 import lingvo.compat as tf
 
 _NAME_PATTERN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
@@ -100,7 +100,7 @@ class NestedMap(Dict[str, Any]):
 
   @staticmethod
   def FromNestedDict(
-      x: Union[NestedMapT, Dict[str, Any], List[Any], Tuple[Any, ...]]
+      x: Union[NestedMapT, Mapping[str, Any], List[Any], Tuple[Any, ...]]
   ) -> NestedMapT:
     """Converts every dict in nested structure 'x' to a NestedMap."""
     if isinstance(x, dict):
