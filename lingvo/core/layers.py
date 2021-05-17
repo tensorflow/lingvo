@@ -4120,10 +4120,10 @@ class LayerNorm(base_layer.BaseLayer):
 
   def _GetScaleAndBias(self, theta):
     if self.params.bias:
-      bias = theta.bias
+      bias = tf.identity(theta.bias, 'bias_feed')
     else:
       bias = tf.zeros_like(theta.scale)
-    return theta.scale, bias
+    return tf.identity(theta.scale, 'scale_feed'), bias
 
   def FProp(self, theta, inputs):
     """Applies normalization over the last dimension (layer).
@@ -5555,13 +5555,20 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     # n - bottleneck_dim
 
     # [batch, input_dim, bottleneck_dim].
-    down_w = tf.einsum('bk,kin->bin', tasks_onehot, theta.down_w)
+    down_w_feed = tf.identity(theta.down_w, 'down_w_feed')
+    down_w = tf.einsum('bk,kin->bin', tasks_onehot, down_w_feed)
+
     # [batch, 1, bottleneck_dim].
-    down_b = tf.einsum('bk,kn->bn', tasks_onehot, theta.down_b)[:, None, :]
+    down_b_feed = tf.identity(theta.down_b, 'down_b_feed')
+    down_b = tf.einsum('bk,kn->bn', tasks_onehot, down_b_feed)[:, None, :]
+
     # [batch, bottleneck_dim, input_dim].
-    up_w = tf.einsum('bk,kni->bni', tasks_onehot, theta.up_w)
+    up_w_feed = tf.identity(theta.up_w, 'up_w_feed')
+    up_w = tf.einsum('bk,kni->bni', tasks_onehot, up_w_feed)
+
     # [batch, 1, input_dim].
-    up_b = tf.einsum('bk,ki->bi', tasks_onehot, theta.up_b)[:, None, :]
+    up_b_feed = tf.identity(theta.up_b, 'up_b_feed')
+    up_b = tf.einsum('bk,ki->bi', tasks_onehot, up_b_feed)[:, None, :]
 
     # Layer norm -> down-projection -> non-linearity -> up-projection
     norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
