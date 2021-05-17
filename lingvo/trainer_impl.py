@@ -372,6 +372,7 @@ class Decoder(base_runner.BaseRunner):
     while samples_per_summary == 0 or (num_examples_metric.total_value <
                                        samples_per_summary):
       try:
+        is_first_loop = num_examples_metric.total_value == 0
         tf.logging.info('Fetching dec_output.')
         fetch_start = time.time()
         run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
@@ -382,8 +383,7 @@ class Decoder(base_runner.BaseRunner):
         # Instead, models should generate aggregate summaries using
         # PostProcessDecodeOut. Other types of summaries (images, audio etc.)
         # will be generated for the first eval batch.
-        if (num_examples_metric.total_value == 0 and
-            self._summary_op is not None):
+        if self._summary_op is not None and is_first_loop:
           dec_out, summaries = sess.run([self._dec_output, self._summary_op],
                                         options=run_options)
           summaries = self._RemoveScalarSummaries(summaries)
@@ -400,7 +400,20 @@ class Decoder(base_runner.BaseRunner):
                         (post_process_start - fetch_start))
         decode_out = self._task.PostProcessDecodeOut(dec_out, dec_metrics)
         if decode_out:
-          buffered_decode_out.extend(decode_out)
+          if isinstance(decode_out, dict):
+            decode_out = decode_out.items()
+
+          if is_first_loop:
+            # Add summaries only for the first batch of data.
+            for key, value in decode_out:
+              if isinstance(value, tf.Summary):
+                tf.logging.info(f'Adding summary {key} with tags '
+                                f'{[x.tag for x in value.value]}.')
+                self._summary_writer.add_summary(value, global_step)
+            self._summary_writer.flush()
+
+          buffered_decode_out.extend(
+              kv for kv in decode_out if not isinstance(kv[1], tf.Summary))
         tf.logging.info(
             'Total examples done: %d/%d '
             '(%f seconds decode postprocess)', num_examples_metric.total_value,

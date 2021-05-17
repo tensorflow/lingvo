@@ -670,7 +670,20 @@ class DecodeProgram(BaseProgram):
       tf.logging.info('step: %d %f' %
                       (i, dec_metrics['num_samples_in_batch'].total_value))
       if decode_out:
-        buffered_decode_out.extend(decode_out)
+        if isinstance(decode_out, dict):
+          decode_out = decode_out.items()
+
+        if i == 0:
+          # Add summaries only for the first batch of data.
+          for key, value in decode_out:
+            if isinstance(value, tf.Summary):
+              tf.logging.info(f'Adding summary {key} with tags '
+                              f'{[x.tag for x in value.value]}.')
+              self._summary_writer.add_summary(value, global_step)
+          self._summary_writer.flush()
+
+        buffered_decode_out.extend(
+            kv for kv in decode_out if not isinstance(kv[1], tf.Summary))
     infeed_future.wait()
 
     num_examples_metric = dec_metrics['num_samples_in_batch']
@@ -679,12 +692,6 @@ class DecodeProgram(BaseProgram):
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = tf.Summary(
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
-
-    if isinstance(decode_out, dict):
-      for key, value in decode_out.items():
-        if isinstance(value, tf.Summary):
-          tf.logging.info('Adding summary %s', key)
-          summaries[key] = value
 
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
