@@ -4574,7 +4574,7 @@ def ReadFileLines(file_path):
 
 # Partially borrowed from
 # https://github.com/tensorflow/tensor2tensor/blob/32929305e1a4ec926eff24123758b794df35492b/tensor2tensor/layers/common_layers.py#L349
-def CumSum(x, axis=0, exclusive=False):
+def CumSum(x, axis=0, exclusive=False, use_einsum=False):
   """A TPU efficient implementation of tf.cumsum().
 
   This is equivalent to tf.cumsum and is faster on TPU as of 08/2019 unless
@@ -4585,6 +4585,7 @@ def CumSum(x, axis=0, exclusive=False):
     x: An input Tensor.
     axis: An int for the axis.
     exclusive: A bool for performing exclusive cumsum.
+    use_einsum: If true, use einsum on TPU.
 
   Returns:
     A Tensor of the same shape as x.
@@ -4606,6 +4607,20 @@ def CumSum(x, axis=0, exclusive=False):
     if axis + rank < 0:
       raise ValueError('Unexpected axis: %d (rank = %d)' % (axis, rank))
     axis += rank
+
+  if use_einsum:
+    assert isinstance(rank, int) and rank < 26, rank
+    # Use einsum to avoid data formatting overhead.
+    a2z = ''.join([chr(i) for i in range(97, 123)])  # abc...xyz
+    src = a2z[:rank]
+    if axis == -1:
+      tgt = src[:-1] + 'z'
+    else:
+      tgt = src[:axis] + 'z' + src[axis + 1:]
+    length = GetShape(x)[axis]
+    causal_mask = tf.linalg.band_part(
+        tf.ones([length, length], dtype=x.dtype), 0, -1)
+    return tf.einsum(f'{src},{src[axis]}z->{tgt}', x, causal_mask)
 
   length = GetShape(x)[axis]
   my_range = tf.range(length)

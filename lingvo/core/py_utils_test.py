@@ -1108,7 +1108,11 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(stacked.x, tf.constant([[1, 2], [3, 4]]))
       self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
 
-  def testCumSum(self):
+  @parameterized.named_parameters(
+      ('tensordot', False),
+      ('einsum', True),
+  )
+  def testCumSum(self, use_einsum):
     with self.session(use_gpu=False), mock.patch(
         'lingvo.core.py_utils.use_tpu', return_value=True):
       np.random.seed(12345)
@@ -1119,23 +1123,23 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       rank = py_utils.GetRank(x)
       self.assertIsInstance(rank, int)
 
+      def _CumSum(x, *args, **kwargs):
+        return py_utils.CumSum(x, *args, **kwargs, use_einsum=use_einsum)
+
       self.assertAllClose(
-          self.evaluate(py_utils.CumSum(x, 0)), self.evaluate(tf.cumsum(x, 0)))
+          self.evaluate(_CumSum(x, 0)), self.evaluate(tf.cumsum(x, 0)))
       self.assertAllClose(
-          self.evaluate(py_utils.CumSum(x, 1)), self.evaluate(tf.cumsum(x, 1)))
+          self.evaluate(_CumSum(x, 1)), self.evaluate(tf.cumsum(x, 1)))
       self.assertAllClose(
-          self.evaluate(py_utils.CumSum(x, 2)), self.evaluate(tf.cumsum(x, 2)))
+          self.evaluate(_CumSum(x, 2)), self.evaluate(tf.cumsum(x, 2)))
       self.assertAllClose(
-          self.evaluate(py_utils.CumSum(x, -1)),
-          self.evaluate(tf.cumsum(x, -1)))
+          self.evaluate(_CumSum(x, -1)), self.evaluate(tf.cumsum(x, -1)))
       self.assertAllClose(
-          self.evaluate(py_utils.CumSum(x, -2)),
-          self.evaluate(tf.cumsum(x, -2)))
+          self.evaluate(_CumSum(x, -2)), self.evaluate(tf.cumsum(x, -2)))
       self.assertAllClose(
-          self.evaluate(py_utils.CumSum(x, -3)),
-          self.evaluate(tf.cumsum(x, -3)))
+          self.evaluate(_CumSum(x, -3)), self.evaluate(tf.cumsum(x, -3)))
       with self.assertRaises(ValueError):
-        self.evaluate(py_utils.CumSum(x, -4))
+        self.evaluate(_CumSum(x, -4))
 
   def testProjectLastDim(self):
     np.random.seed(12345)
