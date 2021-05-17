@@ -1240,7 +1240,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
       if not p.skip_term_b:
         logits += tf.einsum('BNH,BSNH->SBN', query + theta.v, sin_emb)
       else:
-        logits += tf.einsum('NH,BSNH->BSN', theta.v, sin_emb)
+        logits += tf.einsum('NH,BSNH->SBN', theta.v, sin_emb)
     return logits
 
   def ExtendStep(self,
