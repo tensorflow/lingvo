@@ -2872,6 +2872,10 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
         ' or a scalar tensor. Applies back pressure at training time; ignored'
         ' for inference.')
     p.Define(
+        'logits_soft_max', 0.0,
+        'If positive, soft cap logits to be within (-x, x) where x is'
+        ' this value.')
+    p.Define(
         'chunk_size', 0, 'If non-zero, computes the per example '
         'xent by small chunks along the batch dimension.')
     p.qdomain.Define('logits', None, 'Quantization domain for logits.')
@@ -3686,6 +3690,9 @@ class SingleShardFullSoftmax(SoftmaxLayer):
     if abs_max is not None and not p.is_inference:
       abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
       logits = py_utils.clip_by_value(logits, abs_min, abs_max)
+    if p.logits_soft_max > 0.0:
+      logits = py_utils.MaybeSoftCapLogits(logits, p.logits_soft_max)
+
     return logits
 
   def XentLossFromLogits(self,

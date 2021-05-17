@@ -5812,3 +5812,19 @@ def SequencePaddings(seqlen, maxlen=None):
 
 def AppendDims(x, ndims):
   return tf.reshape(x, GetShape(x) + [1] * ndims)
+
+
+def MaybeSoftCapLogits(x, cap=0.0):
+  """Caps logits x to be within a certain range.
+
+  Args:
+    x: A float tensor, the logit values to be capped.
+    cap: a float, the limit to cap x within. If cap <= 0.0, x is not capped.
+
+  Returns:
+    logits after capping.
+  """
+  if cap <= 0.0:
+    return x
+  else:
+    return cap * tf.math.tanh(x / cap)

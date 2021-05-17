@@ -3924,6 +3924,32 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       return self.evaluate(xent_loss)
 
+  def testSoftmaxCapping(self):
+    with self.session(use_gpu=True, graph=tf.Graph()):
+      inputs = tf.constant(np.random.rand(4, 3, 10), dtype=tf.float32)
+      class_weights = tf.constant(np.ones((4, 3, 1)), dtype=tf.float32)
+      class_ids = tf.constant(
+          np.random.randint(32, size=(4, 3, 1)), dtype=tf.int32)
+
+      params = layers.SingleShardFullSoftmax.Params()
+      params.name = 'softmax'
+      params.input_dim = 10
+      params.num_classes = 32
+      params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+      params.logits_soft_max = 1.0
+      params.random_seed = 12345678
+
+      params.vn.global_vn = False
+      softmax = params.Instantiate()
+      xent_loss = softmax.FProp(
+          softmax.theta,
+          inputs,
+          class_weights=class_weights,
+          class_ids=class_ids)
+
+      self.evaluate(tf.global_variables_initializer())
+      return self.evaluate(xent_loss)
+
   def testSimpleFullSoftmax_Non2D_ClassId(self):
     np.random.seed(1234578)
     xent_loss = self._RunSimpleFullSoftmax(
