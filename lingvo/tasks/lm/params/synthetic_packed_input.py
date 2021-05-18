@@ -72,6 +72,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
 
   GATED_GELU = True
   POSITIONAL_EMBEDDING = False
+  USE_REPEAT_LAYER = False
 
   def Task(self):
     # tokens per batch per replica (~64 cores)
@@ -82,6 +83,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
         gated_gelu=self.GATED_GELU,
         debug=self.DEBUG,
         positional_embedding=self.POSITIONAL_EMBEDDING,
+        use_repeat_layer=self.USE_REPEAT_LAYER,
         dtype=tf.float32,
         fprop_dtype=tf.bfloat16,
         name='transformer',
@@ -140,8 +142,8 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
     p = program.SimpleProgramScheduleForTask(
         train_dataset_name='Train',
         train_steps_per_loop=100,
-        eval_dataset_names=['Train'],
-        eval_steps_per_loop=100,
+        eval_dataset_names=[],
+        eval_steps_per_loop=0,
         decode_steps_per_loop=0,
     )
     p.train_program.spmd = True
@@ -192,6 +194,28 @@ class DenseLm128B16x16(DenseLm128B8x8):
   BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 128
   DEVICE_MESH_SHAPE = [16, 32]
   DEVICE_MESH = gshard_utils.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [16, 16, 2])
+
+
+# Total params: 174366928896
+# Expect ~51.53k tokens / sec
+@model_registry.RegisterSingleTaskModel
+class DenseLm175B32x32(DenseLm128B16x16):
+  """175B params LM model with 2D split on v3-2048."""
+  HIDDEN_DIM = 12288 * 4
+  ATTENTION_KEY_VALUE_DIM = 128
+  MODEL_DIM = 12288
+  NUM_HEADS = 96
+  NUM_TRANSFORMER_LAYERS = 96
+  GATED_GELU = False
+  POSITIONAL_EMBEDDING = True
+  USE_REPEAT_LAYER = True
+
+  SEQUENCE_LENGTH = 2048
+  NUM_DEVICES_PER_SPLIT = 2048
+  BATCH_DIM_PER_DEVICE = 0.5  # Total batch size 1M tokens
+  DEVICE_MESH_SHAPE = [64, 32]
+  DEVICE_MESH = np.reshape(
+      np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
 
 
 # Total params: 1,100,041,175,040.
