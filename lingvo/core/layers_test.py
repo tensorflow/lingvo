@@ -2658,6 +2658,39 @@ class StackingOverTimeLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_output_paddings,
                           self.evaluate(output_paddings))
 
+  def testStackingOverTimeFPropReduceMaxPadding(self):
+    with self.session(use_gpu=True):
+      params = layers.StackingOverTime.Params()
+      params.name = 'stackingOverTime'
+      params.left_context = 2
+      params.right_context = 0
+      params.stride = 2
+      params.padding_reduce_option = 'reduce_max'
+
+      stacker = layers.StackingOverTime(params)
+      self.assertEqual(stacker.window_size, 3)
+
+      inputs = tf.constant([[[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]],
+                            [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0], [0, 0]]],
+                           dtype=tf.float32)
+      paddings = tf.constant(
+          [[[0], [0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1], [1]]],
+          dtype=tf.float32)
+
+      outputs, output_paddings = stacker.FProp(inputs, paddings)
+      self.evaluate(tf.global_variables_initializer())
+      print([np.array_repr(self.evaluate(outputs))])
+      expected_outputs = [
+          [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
+          [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
+      ]
+
+      self.assertAllClose(expected_outputs, self.evaluate(outputs))
+
+      expected_output_paddings = [[[1], [0], [0]], [[1], [1], [1]]]
+      self.assertAllClose(expected_output_paddings,
+                          self.evaluate(output_paddings))
+
   def testStackingOverTimeFProp2(self):
     with self.session(use_gpu=True):
       params = layers.StackingOverTime.Params()

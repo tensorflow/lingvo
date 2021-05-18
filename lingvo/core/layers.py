@@ -1575,6 +1575,10 @@ class StackingOverTime(base_layer.BaseLayer):
     p.Define('stride', 1, 'The stride for emitting the stacked output.')
     p.Define('pad_with_left_frame', False,
              'Whether to use the left frame for padding instead of 0s.')
+    p.Define(
+        'padding_reduce_option', 'reduce_min',
+        'reduce_max or reduce_min. How to reduce stacked padding from '
+        '[b, t / stride, stride] to [b, t / stride, 1].')
     return p
 
   def __init__(self, params):
@@ -1584,6 +1588,12 @@ class StackingOverTime(base_layer.BaseLayer):
     assert p.left_context >= 0
     assert p.right_context >= 0
     assert p.stride >= 1
+    assert p.padding_reduce_option in ('reduce_min', 'reduce_max')
+
+  @classmethod
+  def WindowSize(cls, p):
+    """Returns the stacking window size."""
+    return p.left_context + p.right_context + 1
 
   @property
   def window_size(self):
@@ -1595,7 +1605,7 @@ class StackingOverTime(base_layer.BaseLayer):
       Window size.
     """
     p = self.params
-    return p.left_context + p.right_context + 1
+    return self.WindowSize(p)
 
   def _ApplyStack(self, inputs, pad_value=0.0):
     """The core function to apply the stacking to inputs.
@@ -1678,7 +1688,10 @@ class StackingOverTime(base_layer.BaseLayer):
       # an output time step becomes a padded one only if all of the underlying
       # stacked steps are padded ones.
       out_paddings = self._ApplyStack(paddings, pad_value=1)
-      out_paddings = tf.reduce_min(out_paddings, axis=2, keepdims=True)
+      if p.padding_reduce_option == 'reduce_min':
+        out_paddings = tf.reduce_min(out_paddings, axis=2, keepdims=True)
+      else:
+        out_paddings = tf.reduce_max(out_paddings, axis=2, keepdims=True)
 
       return outputs, out_paddings
 
