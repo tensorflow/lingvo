@@ -268,6 +268,15 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'local_eos_threshold', -100.0,
         'During beam search, allow </s> to terminate a hyp if the local score '
         'for </s> is greater than local_eos_threshold.')
+    p.Define(
+        'terminate_beams_independently', False,
+        'Whether each beam in the same batch can independently terminate. '
+        'This controls whether the search termination criteria set by params '
+        'like `p.beam_size` or `p.ensure_full_beam` are applied collectively '
+        'to all beams, or individually to each beam. When False, all beams '
+        'continue the search until each and every beam meets the termination '
+        'criteria. When True, each beam individually, independent of each '
+        'other, decides whether to terminate the search.')
     p.name = 'beam_search'
     return p
 
@@ -320,10 +329,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
         theta, encoder_outputs, step_ids, other_states, num_hyps_per_beam)
 
     (best_scores, cumulative_scores, in_scores, in_hyps, in_prev_hyps,
-     in_done_hyps, in_atten_probs) = core_bs_states
+     in_done_hyps, in_atten_probs, in_beam_done) = core_bs_states
 
     (out_best_scores, out_cumulative_scores, out_scores, out_hyps,
-     out_prev_hyps, out_done_hyps, out_atten_probs,
+     out_prev_hyps, out_done_hyps, out_atten_probs, out_beam_done,
      all_done) = ops.beam_search_step(
          tf.cast(bs_results.log_probs, dtype=p.dtype),
          tf.cast(bs_results.atten_probs, dtype=p.dtype),
@@ -334,6 +343,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
          in_prev_hyps,
          in_done_hyps,
          in_atten_probs,
+         in_beam_done,
          bs_results.is_last_chunk if self._model_uses_eoc_id else [],
          cur_step,
          eoc_id=p.target_eoc_id,
@@ -345,7 +355,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
          allow_empty_terminated_hyp=p.allow_empty_terminated_hyp,
          ensure_full_beam=p.ensure_full_beam,
          force_eos_in_last_step=p.force_eos_in_last_step,
-         local_eos_threshold=p.local_eos_threshold)
+         local_eos_threshold=p.local_eos_threshold,
+         beam_independence=p.terminate_beams_independently)
 
     new_step_ids = tf.reshape(out_hyps[cur_step, :], tf.shape(step_ids))
     new_step_ids.set_shape(step_ids.get_shape())
@@ -369,7 +380,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
           old_hyp_ids_in_cache_order // num_beams)
 
     new_bs_states = (out_best_scores, out_cumulative_scores, out_scores,
-                     out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs)
+                     out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs,
+                     out_beam_done)
 
     def ReOrderHyps(key, x_in):
       """Reorders x_in based on prev hyp ids."""
@@ -461,10 +473,11 @@ class BeamSearchHelper(base_layer.BaseLayer):
         [max_steps, num_hyps,
          tf.shape(initial_results.atten_probs)[1]],
         dtype=p.dtype)
+    beam_done = tf.zeros([num_beams], dtype=tf.bool)
     cur_step = tf.constant(0, dtype=tf.int32)
     all_done = tf.constant(False, dtype=tf.bool)
     core_bs_states = (best_scores, cumulative_scores, in_scores, in_hyps,
-                      in_prev_hyps, in_done_hyps, bs_atten_probs)
+                      in_prev_hyps, in_done_hyps, bs_atten_probs, beam_done)
 
     def LoopContinue(cur_step, all_done, unused_step_ids, unused_core_bs_states,
                      unused_other_states_list):

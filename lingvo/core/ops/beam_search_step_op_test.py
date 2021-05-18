@@ -63,7 +63,7 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
     for i, prob in enumerate(probs):
       if use_v2:
         (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-         atten_probs, beam_done, done) = ops.beam_search_step_v2(
+         atten_probs, beam_done, done) = ops.beam_search_step(
              prob,
              init_atten_probs,
              best_scores,
@@ -85,7 +85,7 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
              beam_independence=independence)
       else:
         (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-         atten_probs, done) = ops.beam_search_step(
+         atten_probs, done) = ops.beam_search_step_deprecated(
              prob,
              init_atten_probs,
              best_scores,
@@ -783,7 +783,7 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
 
       (out_best_scores_0, out_cumulative_scores_0, out_scores_0, out_hyps_0,
        out_prev_hyps_0, out_done_hyps_0, out_atten_probs_0, beam_done,
-       _) = ops.beam_search_step_v2(
+       _) = ops.beam_search_step(
            scores,
            atten_probs,
            best_scores,
@@ -799,7 +799,7 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
            beam_size=3.0,
            num_hyps_per_beam=num_hyps_per_beam)
 
-      outputs = ops.beam_search_step_v2(
+      outputs = ops.beam_search_step(
           scores,
           atten_probs,
           out_best_scores_0,

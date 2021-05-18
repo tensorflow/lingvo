@@ -37,8 +37,8 @@ random_permutation_sequence = gen_x_ops.random_permutation_sequence
 
 best_step = gen_x_ops.best_step
 
-beam_search_step = gen_x_ops.beam_search_step
-beam_search_step_v2 = gen_x_ops.beam_search_step_v2
+beam_search_step_deprecated = gen_x_ops.beam_search_step
+beam_search_step = gen_x_ops.beam_search_step_v2
 top_k_terminated_hyps = gen_x_ops.top_k_terminated_hyps
 unpack_hyp = gen_x_ops.unpack_hyp
 hyps_from_beam_search_outs = gen_x_ops.hyps_from_beam_search_outs

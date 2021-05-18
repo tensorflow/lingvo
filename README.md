@@ -59,7 +59,9 @@ guarantees regarding backwards compatibility.**
 
 #### HEAD
 
-Nothing here.
+*   **General**
+    *   ops.beam_search_step now takes and returns an additional arg
+        `beam_done`.
 
 #### 0.9.0
 
