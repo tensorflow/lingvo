@@ -271,9 +271,18 @@ class Decoder(base_runner.BaseRunner):
         # decode.
         cluster = self._cluster
         with tf.device(cluster.input_device):
-          input_batch = (self._task.input_generator.GetPreprocessedInputBatch())
+          input_batch = self._task.input_generator.GetPreprocessedInputBatch()
 
         self._dec_output = self._task.Decode(input_batch)
+
+        for key in self._task.input_generator.GetCpuPassthroughKeys():
+          if key in input_batch:
+            if key in self._dec_output:
+              tf.logging.warning(f'Key {key} already present in decode output. '
+                                 f'Not adding from input batch.')
+            else:
+              self._dec_output[key] = input_batch[key]
+
         self._summary_op = tf.summary.merge_all()
         self.checkpointer = self._CreateCheckpointer(self._train_dir,
                                                      self._model)
