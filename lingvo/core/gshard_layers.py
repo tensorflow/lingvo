@@ -620,9 +620,9 @@ class ReshapeInputLayer(base_layer.BaseLayer):
     paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
     orig_inputs = inputs
     # input size in tokens
-    input_size = int(orig_inputs.shape[0] * orig_inputs.shape[1])
+    input_size = (
+        py_utils.GetShape(orig_inputs)[0] * py_utils.GetShape(orig_inputs)[1])
     group_size = input_size // p.num_groups
-    assert (group_size * p.num_groups == input_size), (p.num_groups, input_size)
     model_dims = p.model_dims or [orig_inputs.shape[-1]]
     inputs = tf.reshape(
         orig_inputs, [p.num_groups, group_size] + model_dims,

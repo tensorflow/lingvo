@@ -777,6 +777,9 @@ class ConformerLayer(base_layer.BaseLayer):
           moe_builder.MoE(name),
           residual_weight=p.fflayer_residual_weight)
       return moe_p, is_moe_layer
+    elif issubclass(fflayer_tpl.cls,
+                    layers_with_attention.HybridFeedforwardLayer):
+      pass
     else:
       raise ValueError('p.fflayer_tpl must be either '
                        'TransformerFeedForwardLayer or MoEBuilder.')
