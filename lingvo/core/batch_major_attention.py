@@ -3474,8 +3474,12 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
+    if isinstance(p.input_dim, dict):
+      query_input_dim = p.input_dim['query']
+    else:
+      query_input_dim = p.input_dim
     if not p.hidden_dim:
-      p.hidden_dim = p.input_dim
+      p.hidden_dim = query_input_dim
 
     # Initialize attention.
     def _LocalAttentionError(params):
@@ -3511,7 +3515,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if p.ln_tpl:
       params = p.ln_tpl.Copy()
       params.name = 'atten_ln'
-      params.input_dim = p.input_dim
+      params.input_dim = query_input_dim
       self.CreateChild('layer_norm', params)
 
     # Initialize residual dropout.
