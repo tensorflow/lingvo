@@ -31,29 +31,29 @@ def _ShouldAddSummary():
 
 def scalar(*args, **kwargs):  # pylint: disable=invalid-name
   if _ShouldAddSummary():
-    tf.summary.scalar(*args, **kwargs)
+    return tf.summary.scalar(*args, **kwargs)
 
 
 def scalar_input_stats(*args, **kwargs):  # pylint: disable=invalid-name
   collections = kwargs.pop('collections', []) + [
       base_input_generator.INPUT_DATA_STATS_SUMMARIES_COLLECTION
   ]
-  tf.summary.scalar(*args, **kwargs, collections=collections)
+  return tf.summary.scalar(*args, **kwargs, collections=collections)
 
 
 def histogram(*args, **kwargs):  # pylint: disable=invalid-name
   if _ShouldAddSummary():
-    tf.summary.histogram(*args, **kwargs)
+    return tf.summary.histogram(*args, **kwargs)
 
 
 def image(*args, **kwargs):  # pylint: disable=invalid-name
   if _ShouldAddSummary():
-    tf.summary.image(*args, **kwargs)
+    return tf.summary.image(*args, **kwargs)
 
 
 def text(*args, **kwargs):  # pylint: disable=invalid-name
   if _ShouldAddSummary():
-    tf.summary.text(*args, **kwargs)
+    return tf.summary.text(*args, **kwargs)
 
 
 def scalar_v2(*args, **kwargs):  # pylint: disable=invalid-name
