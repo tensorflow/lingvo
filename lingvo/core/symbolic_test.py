@@ -15,22 +15,37 @@
 # ==============================================================================
 """Tests for lingvo.core.symbolic."""
 
+import pickle
+
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import symbolic
 from lingvo.core import test_utils
 import sympy
 
 
-class SymbolicTest(test_utils.TestCase):
+class SymbolicTest(test_utils.TestCase, parameterized.TestCase):
 
   def testGetSymbol(self):
     x = symbolic.Symbol('x')
     self.assertIsInstance(x, sympy.Expr)
 
-  def testEvalExpr(self):
+  @parameterized.parameters(False, True)
+  def testEvalExpr(self, serialize):
     x = symbolic.Symbol('x')
     y = symbolic.Symbol('y')
     xy = x * y
+    if serialize:
+      # also test serialization/deserialization.
+      xdump = pickle.dumps(x)
+      ydump = pickle.dumps(y)
+      xydump = pickle.dumps(xy)
+      del x
+      del y
+      del xy
+      xy = pickle.loads(xydump)
+      x = pickle.loads(xdump)
+      y = pickle.loads(ydump)
 
     # Without symbol-to-value map.
     self.assertEqual(xy, symbolic.ToStatic(xy))

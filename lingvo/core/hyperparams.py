@@ -20,6 +20,7 @@ import copy
 import enum
 import importlib
 import inspect
+import pickle
 import re
 import sys
 from typing import (Any, Dict, List, Generator, Generic, Mapping, Optional,
@@ -501,6 +502,8 @@ class Params:
         param_pb.proto_val.type = inspect.getmodule(
             proto_cls).__name__ + '/' + proto_cls.__name__
         param_pb.proto_val.val = val.SerializeToString()
+      elif symbolic.IsExpr(val):
+        param_pb.symbolic_val = pickle.dumps(val)
       elif val is None:
         # We represent a NoneType by the absence of any of the oneof.
         pass
@@ -571,6 +574,11 @@ class Params:
         proto_msg = proto_cls()
         proto_msg.ParseFromString(param_pb.proto_val.val)
         return proto_msg
+      elif which_oneof == 'symbolic_val':
+        sym = pickle.loads(param_pb.symbolic_val)
+        if not symbolic.IsExpr(sym):
+          raise TypeError('Unexpected result when deserializing symbolic expr.')
+        return sym
       elif which_oneof == 'string_repr_val':
         raise TypeError('Cannot deserialize string_repr_val instance: %s' %
                         param_pb.string_repr_val)

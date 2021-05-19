@@ -426,6 +426,8 @@ tuple : (2, 3)
     outer.Define('dataclass', TestDataClass(a=[42], b=tf.float32), '')
     outer.Define('namedtuple', tf.io.FixedLenSequenceFeature([42], tf.float32),
                  '')
+    outer.Define('symbol_x', symbolic.Symbol('x'), '')
+    outer.Define('symbol_2x', outer.symbol_x * 2, '')
 
     rebuilt_outer = hyperparams.InstantiableParams.FromProto(outer.ToProto())
 
@@ -445,6 +447,10 @@ tuple : (2, 3)
     self.assertEqual(outer.proto, rebuilt_outer.proto)
     self.assertEqual(outer.dataclass, rebuilt_outer.dataclass)
     self.assertEqual(outer.namedtuple, rebuilt_outer.namedtuple)
+
+    with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,
+                                   {rebuilt_outer.symbol_x: 42}):
+      self.assertEqual(symbolic.ToStatic(rebuilt_outer.symbol_2x), 84)
 
   def testToFromProtoSerializeAsString(self):
     p = hyperparams.Params()
