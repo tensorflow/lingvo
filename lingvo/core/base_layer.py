@@ -25,7 +25,6 @@ import re
 from typing import Callable, List, Mapping, Optional, Type, TypeVar, Union
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
-from lingvo.core import gshard_utils
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
@@ -812,6 +811,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     meta.kwargs.setdefault('default_seed', self.params.random_seed)
     var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
     self._private_vars[name] = var
+
     if self.cluster.params.worker.gpus_per_replica > 0:
       # On GPU (which always trains a single step per session.run()), reference
       # a tensor in FProp to cache it on device and avoid extraneous sends from
@@ -821,17 +821,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     else:
       # Pass the resource variable directly into the training loop.
       value = var
-
-    # Due to b/174956514, we have to annotate the use of the variable once,
-    # otherwise, the sharding annotation on the var will be ignored.
-    # TODO(yonghui): Get rid of this once b/174956514 is fixed.
-    if (meta.var_params.device_mesh is not None and
-        var.shape.rank == len(meta.var_params.tensor_split_dims_mapping)):
-      value = gshard_utils.MeshSplit(
-          value,
-          meta.var_params.device_mesh,
-          meta.var_params.tensor_split_dims_mapping,
-          use_sharding_op=True)
 
     if meta.theta_fn is not None:
       self._private_theta_fn[name] = meta.theta_fn

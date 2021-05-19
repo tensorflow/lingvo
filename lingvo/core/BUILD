@@ -323,7 +323,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":cluster_factory",
-        ":gshard_utils",
         ":hyperparams",
         ":py_utils",
         "//lingvo:compat",
