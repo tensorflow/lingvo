@@ -2644,6 +2644,9 @@ class UniTransformer(base_model.BaseTask):
         'If > 1, SPMD-shardable pipelining is used with this many stages.')
     p.Define('num_spmd_pipeline_microbatches', None,
              'Number of microbatches when num_spmd_pipeline_stages > 1.')
+    p.Define(
+        'moe', False,
+        'True for Mixture-of-Experts, False for canonical Transformer model, ')
     return p
 
   def __init__(self, params):
@@ -2699,11 +2702,17 @@ class UniTransformer(base_model.BaseTask):
       else:
         ffw_layer = b.DenseReluDenseGated(
             'dense_relu_dense', gated_ffn_activation, decoder=True)
-      decoder_sub_layers = [atten_layer, ffw_layer]
+      if p.moe:
+        moe_layer = b.MoE('moe', decoder=True)
+        decoder_sub_layers = [atten_layer, moe_layer, atten_layer, ffw_layer]
+        num_decoder_layers = p.num_transformer_layers // 2
+      else:
+        decoder_sub_layers = [atten_layer, ffw_layer]
+        num_decoder_layers = p.num_transformer_layers
       dec = b.DecoderLayerStack(
           'decoder',
           decoder_sub_layers,
-          p.num_transformer_layers,
+          num_decoder_layers,
           conv_kernel_size=p.conv_kernel_size,
           use_repeat_layer=p.use_repeat_layer,
           spmd_pipeline_stages=p.num_spmd_pipeline_stages,
