@@ -1575,6 +1575,8 @@ class StackingOverTime(base_layer.BaseLayer):
     p.Define('stride', 1, 'The stride for emitting the stacked output.')
     p.Define('pad_with_left_frame', False,
              'Whether to use the left frame for padding instead of 0s.')
+    p.Define('pad_with_right_frame', False,
+             'Whether to use the right frame for padding instead of 0s.')
     p.Define(
         'padding_reduce_option', 'reduce_min',
         'reduce_max or reduce_min. How to reduce stacked padding from '
@@ -1622,17 +1624,21 @@ class StackingOverTime(base_layer.BaseLayer):
       out = inputs
     else:
       inputs_max_len = py_utils.GetShape(inputs, 3)[1]
+      left_to_pad = p.left_context
+      right_to_pad = p.right_context
       if p.pad_with_left_frame:
         left_pad = tf.repeat(inputs[:, :1, :], repeats=p.left_context, axis=1)
         inputs = tf.concat([left_pad, inputs], axis=1)
-        inputs = tf.pad(
-            inputs, [[0, 0], [0, p.right_context], [0, 0]],
-            constant_values=pad_value)
-      else:
-        # Add zero paddings to the left and right of the input sequence.
-        inputs = tf.pad(
-            inputs, [[0, 0], [p.left_context, p.right_context], [0, 0]],
-            constant_values=pad_value)
+        left_to_pad = 0
+      if p.pad_with_right_frame:
+        right_pad = tf.repeat(
+            inputs[:, -1:, :], repeats=p.right_context, axis=1)
+        inputs = tf.concat([inputs, right_pad], axis=1)
+        right_to_pad = 0
+      # Add zero paddings to the left and right of the input sequence.
+      inputs = tf.pad(
+          inputs, [[0, 0], [left_to_pad, right_to_pad], [0, 0]],
+          constant_values=pad_value)
 
       # Make window_size() copies of the padded sequence with the original
       # sequence length, where each copy is offset by 1 time step.
