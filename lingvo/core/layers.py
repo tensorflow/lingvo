@@ -3623,6 +3623,9 @@ class SharedSoftmaxLayer(base_layer.BaseLayer):
   def Logits(self, theta, *args, **kwargs):
     return self.softmax.Logits(theta.softmax, *args, **kwargs)
 
+  def SimpleLogits(self, theta, *args, **kwargs):
+    return self.softmax.SimpleLogits(theta.softmax, *args, **kwargs)
+
   def XentLossFromLogits(self, theta, *args, **kwargs):
     return self.softmax.XentLossFromLogits(theta.softmax, *args, **kwargs)
 
