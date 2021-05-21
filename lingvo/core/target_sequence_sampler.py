@@ -43,6 +43,8 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
     p.Define('target_eoc_id', -1, 'Id of the end of chunk token.')
     p.Define('target_seq_len', 0, 'Maximum allowed target seq length.')
+    p.Define('top_k', 0, 'If > 0, use top-k sampling.')
+    p.Define('top_k_renormalize', True, 'Renormalize top-k probabilities.')
     p.Define(
         'temperature', 1., 'If > 1, a smoother distribution than logits; '
         'if < 1, a sharper distribution than logits. '
@@ -54,8 +56,14 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     p.name = 'target_sequence_sampler'
     return p
 
-  def Sample(self, decoder_theta, encoder_outputs, random_seed,
-             init_state_callback, pre_step_callback, post_step_callback):
+  def Sample(self,
+             decoder_theta,
+             encoder_outputs,
+             random_seed,
+             init_state_callback,
+             pre_step_callback,
+             post_step_callback,
+             init_step_ids=None):
     """Samples target sequences, one target sequence per source sequence.
 
     (Please see beam_search_helper.py for description of decoder callbacks.)
@@ -69,6 +77,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
       init_state_callback: decoder._InitBeamSearchStateCallback.
       pre_step_callback: decoder._PreBeamSearchStepCallback.
       post_step_callback: decoder._PostBeamSearchStepCallback.
+      init_step_ids: [batch], optional init step ids, default to SOS.
 
     Returns:
       A NestedMap containing the following tensors
@@ -83,6 +92,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     """
     p = self.params
     assert p.temperature > 0
+    assert p.top_k >= 0
     if getattr(encoder_outputs, 'segment_id', 1) is None:
       # Remove None values, which are not supported by recurrent.
       del encoder_outputs['segment_id']
@@ -100,7 +110,8 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         timestep=tf.zeros(shape=[], dtype=tf.int32),
         logits=bs_result.log_probs,
         # Start with target_sos_id.
-        ids=tf.fill([batch], tf.cast(p.target_sos_id, tf.int32)),
+        ids=init_step_ids if init_step_ids is not None else tf.fill(
+            [batch], tf.cast(p.target_sos_id, tf.int32)),
         bs_state=bs_state)
     inputs = py_utils.NestedMap(dummy=tf.zeros([p.target_seq_len, batch]))
 
@@ -118,14 +129,25 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         batch = tf.shape(bs_result.log_probs)[0]
         state1 = py_utils.NestedMap(timestep=state0.timestep + 1)
         state1.logits = bs_result.log_probs
+
+        if p.top_k > 0:
+          topk_logits, topk_ids = tf.math.top_k(state1.logits, k=p.top_k)
+          sample_logits = tf.nn.log_softmax(
+              topk_logits) if p.top_k_renormalize else topk_logits
+        else:
+          sample_logits = state1.logits
+
         # Sample ids from logits. [batch].
-        state1.ids = tf.reshape(
+        ids = tf.reshape(
             tf.random.stateless_categorical(
-                state1.logits / p.temperature,
+                sample_logits / p.temperature,
                 num_samples=1,
                 seed=tf.stack([recurrent_theta.random_seed, state0.timestep]),
                 dtype=state0.ids.dtype,
                 name='sample_next_id'), [batch])
+        state1.ids = tf.gather(
+            topk_ids, ids, axis=1, batch_dims=1) if p.top_k > 0 else ids
+
         if 'is_last_chunk' in bs_result and p.target_eoc_id >= 0:
           state1.ids = tf.where(
               tf.math.logical_and(bs_result.is_last_chunk,
