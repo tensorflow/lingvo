@@ -440,8 +440,8 @@ def _AttenCtxIsSet(atten_context):
   return atten_context is not None and atten_context >= 0
 
 
-def _GShardMoELayerParams(num_devices, num_groups, num_experts,
-                          per_expert_capacity_dim):
+def GShardMoELayerParams(num_devices, num_groups, num_experts,
+                         per_expert_capacity_dim):
   return gshard_builder.MoEBuilder.Params().Set(
       num_devices=num_devices,
       num_groups=num_groups,
@@ -475,18 +475,12 @@ class ConformerLayer(base_layer.BaseLayer):
         'layer_order', 'mhsa_before_conv',
         'Only mhsa, conv, mhsa_before_conv or conv_before_mhsa are '
         'supported.')
+    p.Define('dropout_prob', None, 'Dropout prob of inner components.')
 
     # lconv layer
     p.Define('kernel_size', None, 'Kernel size of 1d lightweight conv.')
 
-    # fflayer
-    p.Define('fflayer_hidden_dim', None,
-             'Hidden dim of the fflayers (start and end).')
-    p.Define('fflayer_activation', 'SWISH', 'fflayer activation.')
-    p.Define('fflayer_residual_weight', 0.5, 'fflayer residual weight.')
-    p.Define('dropout_prob', None, 'Signature dropout prob of inner componets.')
-
-    # tpl
+    # fflayer tpl
     p.Define(
         'fflayer_start_tpl',
         layers_with_attention.TransformerFeedForwardLayer.Params(),
@@ -544,7 +538,7 @@ class ConformerLayer(base_layer.BaseLayer):
                    fflayer_end_tpl=None,
                    trans_atten_tpl=None,
                    lconv_tpl=None):
-    assert all([input_dim, fflayer_hidden_dim])
+    assert all([input_dim])
     if layer_order != 'conv':
       assert atten_num_heads or trans_atten_tpl
     if layer_order == 'mhsa':
@@ -568,18 +562,44 @@ class ConformerLayer(base_layer.BaseLayer):
 
     p = cls.Params().Set(
         input_dim=input_dim,
-        fflayer_hidden_dim=fflayer_hidden_dim,
-        fflayer_activation=fflayer_activation,
-        fflayer_residual_weight=fflayer_residual_weight,
         kernel_size=kernel_size,
         is_causal=is_causal,
         layer_order=layer_order,
         dropout_prob=dropout_prob)
+
+    if use_moe_in_fflayer_start:
+      assert fflayer_start_tpl is None
+      fflayer_start_tpl = GShardMoELayerParams(moe_num_partitions,
+                                               moe_num_experts, moe_num_groups,
+                                               moe_per_capacity_dim)
+    if use_moe_in_fflayer_end:
+      assert fflayer_end_tpl is None
+      fflayer_end_tpl = GShardMoELayerParams(moe_num_partitions,
+                                             moe_num_experts, moe_num_groups,
+                                             moe_per_capacity_dim)
+
+    def _ConfigureFF(fflayer_tpl):
+      config_kwargs = dict(
+          input_dim=input_dim,
+          hidden_dim=fflayer_hidden_dim,
+          activation=fflayer_activation,
+          residual_weight=fflayer_residual_weight,
+          dropout_prob=dropout_prob)
+      if fflayer_tpl is None:
+        return cls.ConfigFFLayer(
+            tpl=layers_with_attention.TransformerFeedForwardLayer.Params(),
+            **config_kwargs)
+      elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
+        # TODO(rpang): make users call ConfigMoEParams directly.
+        return cls.ConfigMoEParams(tpl=fflayer_tpl, **config_kwargs)
+      else:
+        assert fflayer_hidden_dim is None, fflayer_hidden_dim
+        assert fflayer_activation is None, fflayer_activation
+        assert fflayer_residual_weight is None, fflayer_residual_weight
+        return fflayer_tpl
     # Set the two feed forward modules.
-    if fflayer_end_tpl is not None:
-      p.fflayer_end_tpl = fflayer_end_tpl
-    if fflayer_start_tpl is not None:
-      p.fflayer_start_tpl = fflayer_start_tpl
+    p.fflayer_start_tpl = _ConfigureFF(fflayer_start_tpl)
+    p.fflayer_end_tpl = _ConfigureFF(fflayer_end_tpl)
     # Set the MHSA module.
     if trans_atten_tpl is not None:
       assert atten_left_context is None
@@ -602,12 +622,6 @@ class ConformerLayer(base_layer.BaseLayer):
       p.lconv_tpl.conv_norm_layer_tpl = conv_norm_layer_tpl
     if fprop_dtype is not None:
       p.cls.SetFPropDtype(p, fprop_dtype)
-    if use_moe_in_fflayer_start:
-      p.cls.SetMoEFFLayerStartParams(p, moe_num_partitions, moe_num_experts,
-                                     moe_num_groups, moe_per_capacity_dim)
-    if use_moe_in_fflayer_end:
-      p.cls.SetMoEFFLayerEndParams(p, moe_num_partitions, moe_num_experts,
-                                   moe_num_groups, moe_per_capacity_dim)
     return p
 
   @classmethod
@@ -655,20 +669,33 @@ class ConformerLayer(base_layer.BaseLayer):
     return p
 
   @classmethod
-  def SetMoEFFLayerStartParams(cls, params, num_devices, num_experts,
-                               num_groups, per_expert_capacity_dim):
-    """Updates params setting MoE as feed-forward layer."""
-    params.fflayer_start_tpl = _GShardMoELayerParams(num_devices, num_groups,
-                                                     num_experts,
-                                                     per_expert_capacity_dim)
+  def ConfigFFLayer(cls, *, tpl, input_dim, hidden_dim, activation,
+                    residual_weight, dropout_prob):
+    """Configures tpl params for a feed-forward layer."""
+    p = tpl.Copy().Set(
+        input_dim=input_dim,
+        hidden_dim=hidden_dim,
+        activation=activation,
+        residual_weight=residual_weight,
+        residual_dropout_prob=dropout_prob,
+        relu_dropout_prob=dropout_prob)
+    return p
 
   @classmethod
-  def SetMoEFFLayerEndParams(cls, params, num_devices, num_experts, num_groups,
-                             per_expert_capacity_dim):
-    """Updates params setting MoE as feed-forward layer."""
-    params.fflayer_end_tpl = _GShardMoELayerParams(num_devices, num_groups,
-                                                   num_experts,
-                                                   per_expert_capacity_dim)
+  def ConfigMoEParams(cls, *, tpl, input_dim, hidden_dim, activation,
+                      residual_weight, dropout_prob):
+    """Configures tpl params for a MoE layer."""
+    moe_builder_p = tpl.Copy().Set(
+        model_dim=input_dim,
+        dropout_rate=dropout_prob,
+        moe_hidden_dim=hidden_dim,
+        moe_activation=activation)
+    if moe_builder_p.num_devices is None:
+      tf.logging.info('moe_builder_p=%s', moe_builder_p)
+      raise ValueError('num_devices must be specified for MoEBuilder.')
+    if residual_weight != 0.5:
+      raise ValueError('residual_weight must be 0.5')
+    return moe_builder_p
 
   def __init__(self, params):
     super().__init__(params)
@@ -680,25 +707,24 @@ class ConformerLayer(base_layer.BaseLayer):
       assert not self.has_lconv, 'mhsa must not have a lconv block.'
 
     if self.has_fflayer_start:
-      fflayer_start_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
-          p.fflayer_start_tpl, 'fflayer_start')
-      if is_moe_layer:
-        self.CreateChild('fflayer_start_moe', fflayer_start_p)
+      fflayer_start_p = self._ConfigFFLayerOrMoEParams(p.fflayer_start_tpl,
+                                                       'fflayer_start')
+      if fflayer_start_p.name:
+        assert fflayer_start_p.name == 'fflayer_start_moe'
       else:
-        self.CreateChild('fflayer_start', fflayer_start_p)
+        fflayer_start_p.name = 'fflayer_start'
+      self.CreateChild(fflayer_start_p.name, fflayer_start_p)
 
-    if not p.fflayer_weight_sharing:
-      fflayer_end_p, is_moe_layer = self._ConfigFFLayerOrMoEParams(
-          p.fflayer_end_tpl, 'fflayer_end')
-      if is_moe_layer:
-        self.CreateChild('fflayer_end_moe', fflayer_end_p)
-      else:
-        self.CreateChild('fflayer_end', fflayer_end_p)
+    fflayer_end_p = self._ConfigFFLayerOrMoEParams(p.fflayer_end_tpl,
+                                                   'fflayer_end')
+    if fflayer_end_p.name:
+      assert fflayer_end_p.name == 'fflayer_end_moe'
     else:
-      if is_moe_layer:
-        self.AddChild('fflayer_end_moe', self.fflayer_start_moe)
-      else:
-        self.AddChild('fflayer_end', self.fflayer_start)
+      fflayer_end_p.name = 'fflayer_end'
+    if not p.fflayer_weight_sharing:
+      self.CreateChild(fflayer_end_p.name, fflayer_end_p)
+    else:
+      self.AddChild(fflayer_end_p.name, self.children[fflayer_start_p.name])
 
     # For local MHSA, is_masked is ignored, thus it's safe to set is_masked
     # based on p.is_causal, for global and local MHSA cases.
@@ -738,51 +764,18 @@ class ConformerLayer(base_layer.BaseLayer):
     return bool(self.params.fflayer_start_tpl)
 
   def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix):
-    """Configures fflayer_tpl params to create Feed-forward layer or MoE params.
-
-    Args:
-      fflayer_tpl: Input Feedforward/MoE params to be initialized.
-      name_prefix: Layer name prefix to be added in case of creating MoE layer.
-
-    Returns:
-      fflayer_p: Configured Feedforward/MoE layer params to be initialized.
-      is_moe_layer_p: Whether returned `fflayer_p` params of form subclass:
-      gshard_builder.MoEBuilder.
-    """
     p = self.params
-    if (issubclass(fflayer_tpl.cls,
-                   layers_with_attention.TransformerFeedForwardLayer)):
-      fflayer_p = fflayer_tpl.Copy().Set(
-          input_dim=p.input_dim,
-          hidden_dim=p.fflayer_hidden_dim,
-          activation=p.fflayer_activation,
-          residual_weight=p.fflayer_residual_weight,
-          residual_dropout_prob=p.dropout_prob,
-          relu_dropout_prob=p.dropout_prob)
-      return fflayer_p, False
-    elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
-      moe_builder_p = fflayer_tpl.Copy().Set(
-          model_dim=p.input_dim,
-          dropout_rate=p.dropout_prob,
-          moe_hidden_dim=p.fflayer_hidden_dim,
-          moe_activation=p.fflayer_activation)
-      if moe_builder_p.num_devices is None:
-        raise ValueError('num_devices must be specified for MoEBuilder.')
-      is_moe_layer = True
-      name = name_prefix + '_moe'
-      moe_p = moe_builder_p.Instantiate().MoE(name)
-      moe_builder = moe_builder_p.Instantiate()
-      moe_p = moe_builder.EncoderLayer(
-          name,
-          moe_builder.MoE(name),
-          residual_weight=p.fflayer_residual_weight)
-      return moe_p, is_moe_layer
-    elif issubclass(fflayer_tpl.cls,
-                    layers_with_attention.HybridFeedforwardLayer):
-      pass
-    else:
-      raise ValueError('p.fflayer_tpl must be either '
-                       'TransformerFeedForwardLayer or MoEBuilder.')
+    fflayer_tpl = fflayer_tpl.Copy()
+    if not issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
+      return fflayer_tpl.Set(input_dim=p.input_dim)
+    # TODO(rpang): migrate clients to TransformerShardedMoeLayer.
+    fflayer_tpl.model_dim = p.input_dim
+    moe_builder = fflayer_tpl.Instantiate()
+    name = name_prefix + '_moe'
+    # TODO(rpang): find a way to configure residual weight.
+    moe_p = moe_builder.EncoderLayer(
+        name, moe_builder.MoE(name), residual_weight=0.5)
+    return moe_p
 
   def _SelfAtten(self, theta, inputs, paddings):
     inputs, _ = self.trans_atten.FProp(

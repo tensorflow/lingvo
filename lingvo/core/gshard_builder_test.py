@@ -69,6 +69,12 @@ class _StateLayer(gshard_layers.StateLayer):
 
 class MoEBuilderTest(test_utils.TestCase):
 
+  def testSetFPropDtypeBfloat16(self):
+    builder_p = _MoEBuilder.Params()
+    builder_p.cls.SetFPropDtype(builder_p, tf.bfloat16)
+    self.assertEqual(tf.bfloat16, builder_p.fprop_dtype)
+    self.assertEqual(tf.float32, builder_p.attention_logits_dtype)
+
   def testSharedEncBiasWeights(self):
     model_dim = 4
     key_value_dim = 2

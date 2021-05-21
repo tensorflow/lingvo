@@ -137,8 +137,9 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         kernel_size=3,
         fflayer_hidden_dim=4 * self.dim)
 
-  def _GetParams(self):
+  def _GetParams(self, **custom_kwargs):
     kwargs = self._GetCommonParamsKwargs()
+    kwargs.update(custom_kwargs)
     p = conformer_layer.ConformerLayer.CommonParams(**kwargs)
     p.name = 'conformer_layer'
     return p
@@ -230,33 +231,36 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
     num_experts, num_groups, num_devices, per_expert_capacity_dim = 2, 2, 2, 2
     # Create params setting MoEBuilder params explicitly.
-    ref_p = self._GetParams()
+    ref_kwargs = dict()
     if use_fflayer_start_moe:
       # Set MoEBuilder params explicitly.
-      ref_p.fflayer_start_tpl = gshard_builder.MoEBuilder.Params().Set(
+      ref_kwargs['fflayer_start_tpl'] = gshard_builder.MoEBuilder.Params().Set(
           e_dim=num_experts,
           c_dim=per_expert_capacity_dim,
           num_devices=num_devices,
           num_groups=num_groups)
     if use_fflayer_end_moe:
-      ref_p.fflayer_end_tpl = gshard_builder.MoEBuilder.Params().Set(
+      ref_kwargs['fflayer_end_tpl'] = gshard_builder.MoEBuilder.Params().Set(
           e_dim=num_experts,
           c_dim=per_expert_capacity_dim,
           num_devices=num_devices,
           num_groups=num_groups)
+    ref_p = self._GetParams(**ref_kwargs)
 
     # Params setting MoEBuilder params via classmethod.
-    moe_p = self._GetParams()
+    moe_kwargs = dict()
     if use_fflayer_start_moe:
       # Set MoEBuilder params via classmethod.
-      moe_p.cls.SetMoEFFLayerStartParams(moe_p, num_devices, num_groups,
-                                         num_experts, per_expert_capacity_dim)
+      moe_kwargs['fflayer_start_tpl'] = conformer_layer.GShardMoELayerParams(
+          num_devices, num_groups, num_experts, per_expert_capacity_dim)
     if use_fflayer_end_moe:
-      moe_p.cls.SetMoEFFLayerEndParams(moe_p, num_devices, num_groups,
-                                       num_experts, per_expert_capacity_dim)
+      moe_kwargs['fflayer_end_tpl'] = conformer_layer.GShardMoELayerParams(
+          num_devices, num_groups, num_experts, per_expert_capacity_dim)
+    moe_p = self._GetParams(**moe_kwargs)
     # Verify layer params are equal in both cases.
     with self.subTest('testParamsParity'):
-      self.assertEqual(ref_p, moe_p)
+      self.assertCountEqual(ref_p.ToText().split('\n'),
+                            moe_p.ToText().split('\n'))
 
     # Test both initializations and verify moe sublayer.
     with self.subTest('testInit'):
@@ -280,13 +284,14 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
   )
   def testMoEFFLayerFProp(self, use_fflayer_start_moe, use_fflayer_end_moe,
                           expected_aux_loss):
-    p = self._GetParams()
+    kwargs = {}
     if use_fflayer_start_moe:
-      p.fflayer_start_tpl = gshard_builder.MoEBuilder.Params().Set(
+      kwargs['fflayer_start_tpl'] = gshard_builder.MoEBuilder.Params().Set(
           e_dim=2, c_dim=2, num_devices=2)
     if use_fflayer_end_moe:
-      p.fflayer_end_tpl = gshard_builder.MoEBuilder.Params().Set(
+      kwargs['fflayer_end_tpl'] = gshard_builder.MoEBuilder.Params().Set(
           e_dim=2, c_dim=2, num_devices=2)
+    p = self._GetParams(**kwargs)
     l = p.Instantiate()
     inputs, paddings = self._GetInputs()
     inputs = tf.convert_to_tensor(inputs)
@@ -421,11 +426,10 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
                         fflayer_hidden_dim=None,
                         fflayer_activation=None,
                         fflayer_residual_weight=0.5):
-
-    p = self._GetParams()
-    p.fflayer_hidden_dim = fflayer_hidden_dim
-    p.fflayer_activation = fflayer_activation
-    p.fflayer_residual_weight = fflayer_residual_weight
+    p = self._GetParams(
+        fflayer_hidden_dim=fflayer_hidden_dim,
+        fflayer_activation=fflayer_activation,
+        fflayer_residual_weight=fflayer_residual_weight)
     layer = p.Instantiate()
 
     start_fflayer = layer.fflayer_start
@@ -547,6 +551,9 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.assertTrue(
             issubclass(atten_cls, batch_major_attention.MultiHeadedAttention),
             msg=atten_cls)
+    elif param_name == 'fflayer_activation':
+      self.assertEqual(p.fflayer_start_tpl.activation, param_val)
+      self.assertEqual(p.fflayer_end_tpl.activation, param_val)
     else:
       self.assertEqual(p.Get(param_name), param_val)
 

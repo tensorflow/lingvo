@@ -220,6 +220,13 @@ class MoEBuilder(builder.Base):
              'Size of N when reshaping model dimension M to Nm')
     return p
 
+  @classmethod
+  def SetFPropDtype(cls, p, fprop_dtype):
+    p.fprop_dtype = fprop_dtype
+    if fprop_dtype == tf.bfloat16:
+      p.attention_logits_dtype = tf.float32
+    return p
+
   @property
   def _device_mesh(self):
     return None
