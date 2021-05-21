@@ -887,7 +887,8 @@ class BaseTask(base_layer.BaseLayer):
     self._eval_metrics[name] = (value, weight)
 
   def AddPerExampleTensor(self, name, value):
-    if name in self._per_example and not tf.executing_eagerly():
+    if name in self._per_example and not tf.executing_eagerly(
+    ) and not py_utils.IsEagerMode():
       raise ValueError('Metric %s has already been defined.' % name)
     self._per_example[name] = value
 

@@ -301,8 +301,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     Args:
       job_name: the name of the job on which the enqueue operations run.
     """
-    assert not self._tpu_queues, ('CreateTpuEnqueueOps should only be called '
-                                  'once.')
+    if not py_utils.IsEagerMode():
+      assert not self._tpu_queues, (
+          'CreateTpuEnqueueOps should only be called once.')
     self._tpu_queues = []
     self._per_host_batches = []
     self._per_host_emb_batches = []

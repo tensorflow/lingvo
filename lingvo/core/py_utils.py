@@ -643,12 +643,14 @@ def GetTpuDeviceAssignment(job=None):
   return _tpu_device_assignment_dict[job]
 
 
-# Whether it's running in eager mode.
+# Whether it's running in eager mode. This is different than
+# tf.executing_eagerly() since it'll return False inside a tf.function.
 _IS_EAGER_MODE = False
 
 
 def SetIsEagerMode():
   global _IS_EAGER_MODE
+  assert tf.executing_eagerly(), 'It must be in eager mode when setting this.'
   _IS_EAGER_MODE = True
 
 
