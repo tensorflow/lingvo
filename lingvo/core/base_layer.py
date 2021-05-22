@@ -812,15 +812,18 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
     self._private_vars[name] = var
 
-    if self.cluster.params.worker.gpus_per_replica > 0:
-      # On GPU (which always trains a single step per session.run()), reference
-      # a tensor in FProp to cache it on device and avoid extraneous sends from
-      # reading variables from ps multiple times.
-      with tf.device(var.device):
-        value = tf.identity(var)
-    else:
-      # Pass the resource variable directly into the training loop.
+    if py_utils.IsEagerMode():
+      # With eager trainer, always use the variable directly.
       value = var
+    else:
+      if self.cluster.params.worker.gpus_per_replica > 0:
+        # On GPU (which always trains a single step per session.run()),
+        # reference a tensor in FProp to cache it on device and avoid extraneous
+        # sends from reading variables from ps multiple times.
+        with tf.device(var.device):
+          value = tf.identity(var)
+      else:
+        value = var
 
     if meta.theta_fn is not None:
       self._private_theta_fn[name] = meta.theta_fn

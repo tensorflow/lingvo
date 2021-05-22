@@ -696,9 +696,9 @@ class DevBasedSchedule(BaseSchedule):
                             tf.maximum(p.min_factor, f * p.decay))
       # Update ref_step if we decayed.
       new_step = tf.where(tf.equal(new_factor, f), ref_step, last_step)
-      update_step = tf.assign(self.theta.ref_step, new_step)
+      update_step = tf.assign(self.vars.ref_step, new_step)
       with tf.control_dependencies([update_step]):
-        return tf.assign(self.theta.cur_factor, new_factor)
+        return tf.assign(self.vars.cur_factor, new_factor)
 
 
 class CosineSchedule(BaseSchedule):
