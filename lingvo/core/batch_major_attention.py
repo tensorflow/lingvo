@@ -3653,7 +3653,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
                  cached_states,
                  time_step,
                  use_short_seq_opt=False,
-                 per_step_padding=None):
+                 per_step_padding=None,
+                 segment_mask=None):
     """Compute the result and update cached states for the current step.
 
     This function is used by autoregressive decoding. This function knows the
@@ -3671,6 +3672,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         tensor, it represents current decode step for each sample.
       use_short_seq_opt: A bool, whether using short sequence optimization.
       per_step_padding: optional customized padding for this step - [B, 1, T].
+      segment_mask: optional segment_mask for this step - [B, 1, T].
+        segment_mask has already been converted to large negative number.
 
     Returns:
       cur_output: [B, 1, D]
@@ -3718,6 +3721,14 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # [b, 1, t]
       per_step_padding = tf.expand_dims(per_step_padding, 1)
     per_step_padding = py_utils.HasShape(per_step_padding, [b, 1, t])
+
+    if segment_mask is not None:
+      segment_mask = py_utils.HasShape(segment_mask, [b, 1, t])
+      segment_padding = tf.where(
+          tf.less(segment_mask, 0.0), tf.ones_like(segment_mask),
+          tf.zeros_like(segment_mask))
+      # Adjust per_step_padding to also take into account segment_padding.
+      per_step_padding = tf.minimum(per_step_padding + segment_padding, 1.0)
 
     # Layer normalization.
     if p.ln_tpl:
@@ -4177,7 +4188,9 @@ class TransformerLayer(base_layer.BaseLayer):
                  use_short_seq_opt=False,
                  per_step_padding=None,
                  *,
-                 compute_atten_probs=False):
+                 compute_atten_probs=False,
+                 segment_mask=None,
+                 aux_segment_mask=None):
     """Transformer decoder layer, extend one step in autoregressive decoding.
 
     query_vec and aux_* may have different batch sizes, e.g., during a beam
@@ -4206,6 +4219,10 @@ class TransformerLayer(base_layer.BaseLayer):
         [target_batch, 1, target_time].
       compute_atten_probs: A bool, whether attention probabilities should be
         computed. If false, returns None for atten_probs.
+      segment_mask: if not None, per step segment mask for this time step, of
+        shape [target_batch, 1, target_time].
+      aux_segment_mask: if not None, aux_segment_mask for this time step, of
+        shape [target_batch, 1, source_time]
 
     Returns:
       (cur_output, atten_probs, updated_states)
@@ -4221,8 +4238,14 @@ class TransformerLayer(base_layer.BaseLayer):
 
     # First the self-attention layer.
     atten_vec, updated_states = self.self_atten.ExtendStep(
-        theta.self_atten, query_vec, cached_states, time_step,
-        use_short_seq_opt, per_step_padding)
+        theta.self_atten,
+        query_vec,
+        cached_states,
+        time_step,
+        use_short_seq_opt,
+        per_step_padding,
+        segment_mask=segment_mask)
+
     atten_vec = py_utils.HasShape(atten_vec, [target_batch, 1, dim])
     cross_atten_probs = None
     if self.params.has_aux_atten:
@@ -4230,9 +4253,17 @@ class TransformerLayer(base_layer.BaseLayer):
       source_length = self._GetSourceLength(aux_vec)
       batch_multiplier = target_batch // source_batch
       # Next the cross-attention layer.
+      if aux_segment_mask is not None:
+        # change this into [b, 1, 1, src_len]
+        aux_segment_mask = tf.expand_dims(aux_segment_mask, 2)
       atten_vec = tf.reshape(atten_vec, [source_batch, -1, dim])
       atten_vec, aux_atten_probs = self.cross_atten.FProp(
-          theta.cross_atten, atten_vec, aux_vec, aux_paddings)
+          theta.cross_atten,
+          atten_vec,
+          aux_vec,
+          aux_paddings,
+          segment_mask=aux_segment_mask)
+
       atten_vec = tf.reshape(atten_vec, [target_batch, 1, -1])
       if compute_atten_probs:
         cross_atten_probs = py_utils.HasShape(
@@ -5591,6 +5622,7 @@ class Builder(builder.Base):
                     fn_flops=lambda x: 1)
 
   def _Glu(self, name):
+
     def _GLUFn(inputs):
       gated_inputs, act_inputs = tf.split(inputs, 2, axis=-1)
       return act_inputs * tf.sigmoid(gated_inputs)
