@@ -418,6 +418,170 @@ eos_id: Token id of the special end of sequence token.
 num_hyps_per_beam: Number of hyps per beam.
 )doc");
 
+REGISTER_OP("TopKFromBeamSearchOuts")
+    .Input("hyps: int32")             // 0
+    .Input("prev_hyps: int32")        // 1
+    .Input("done_hyps: bool")         // 2
+    .Input("cumulative_scores: T")    // 3
+    .Input("eos_scores: T")           // 4
+    .Input("scores: T")               // 5
+    .Input("atten_probs: T")          // 6
+    .Input("eos_atten_probs: T")      // 7
+    .Output("out_ids: int32")         // 0
+    .Output("out_seq_lens: int32")    // 1
+    .Output("out_scores: float32")    // 2
+    .Output("out_done_hyps: string")  // 3
+    .Output("topk_hyps: string")      // 4
+    .Attr("T: {float, bfloat16} = DT_FLOAT")
+    .Attr("num_hyps_per_beam: int")
+    .Attr("max_seq_length: int")
+    .Attr("eos_id: int = 2")
+    .Attr("length_normalization: float = 0.0")
+    .Attr("populate_done_hyps: bool = false")
+    .Attr("populate_topk_hyps: bool = false")
+    .Doc(R"doc(
+Compute tensors of ids, seq_len and scores from outputs of beam search steps.
+
+When coverage penalty is 0 (disabled), this op is able to combine the work of 3
+ops that are typically called consecutively together (HypsFromBeamSearchOuts,
+TopKTerminatedHyps, UnpackHyp) into one.
+
+Note that only length normalization is supported. Coverage penalty is not
+supported.
+
+When we have a dimension of size b * k (of all the hyps), there are two ways to
+order it. 'div' means for beam n, hyp j will have index (n * k + j). Conversely,
+j = index % k, n = index // k. 'mod' means for beam n, hyp j will have index
+(j * b + n). Conversely, j = index // b, n = index % b. All inputs on the
+(k * b) sized dimension is mod ordered. The outputs have different ordering as
+indicated below.
+
+Note that the inputs `scores`, `atten_probs`, and `eos_atten_probs` are only
+used to assemble the Hypothesis protos. So if both `populate_done_hyps` and
+`populate_topk_hyps` are false, these 3 inputs are unused and ignored.
+
+hyps: A tensor of shape [t, k * b] with ids of the token selected.
+prev_hyps: A tensor of shape [t, k * b] with index to the previous hyps which
+    was selected. prev_hyps[i, j] should be in the range [0, k * b) and we
+    should have prev_hyps[i, j] % b == j % b (i.e. they belong to the same
+    beam).
+done_hyps: A boolean tensor of shape [t, k * b] where value indicates if hyps
+    was terminated.
+cumulative_scores: A tensor of shape [t, k * b]. cumulative_scores[i, j] is the
+    cumulative score of the j-th hyp at the i-th decoding step. Note that EOS
+    tokens are tracked separately, hence cumulative_scores cover only
+    non-terminated hyps, i.e. the i-th step is never an EOS token.
+eos_scores: A tensor of shape [t, k * b]. eos_scores[i, j] is the local
+    score of the EOS token at the j-th hyp at the i-th decoding step.
+scores: A tensor of shape [t, k * b]. scores[i, j] is the local score of
+    the j-th hyp at the i-th decoding step.
+atten_probs:  A tensor of shape [t, k * b, s_len]. atten_probs[i, j, ...]
+    is the attention probs over the source words for the j-th hyp at the i-th
+    timestep. Only used to assemble `done_hyps` and `topk_hyps`.
+eos_atten_probs: A tensor of shape [t, k * b, s_len].
+    eos_atten_probs[i, j, ...] is the attention probs over the source words
+    for the j-th terminated hyp at the i-th timestep. Only used to assemble
+    `done_hyps` and `topk_hyps`.
+out_ids:
+    Output sequences, a matrix of shape (b * k, max_seq_length).
+    Sequences shorter than max_seq_length are padded with 0s. div ordered.
+out_seq_lens:
+    Length of each of the output sequence, a vector of size (b * k).
+    div ordered.
+out_scores:
+    Scores for each of the output sequence, a vector of (b * k). div ordered.
+out_done_hyps:
+    A tensor of shape [t, k * b] with terminated hyps. mod ordered.
+topk_hyps:
+    A string tensor of shape [b, k]. topk_hyps[i,] contains top k terminated
+    hyp for beam 'i', each hyp could be either an empty string or a serialized
+    `Hypothesis` proto.
+num_hyps_per_beam: Number of hyps per beam, i.e. the value of k. Required.
+max_seq_length: Max output sequence length. Required.
+eos_id: Token id of the special end of sequence token.
+length_normalization: The length normalization factor.
+populate_done_hyps: whether to populate `done_hyps` with serialized protos. When
+    False, the output `done_hyps` is just empty string with the shape
+    [t, b * k].
+populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
+    False, the output `topk_hyps` is just empty string with the shape [b, k].
+)doc")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      // Validate input tensor shapes.
+      if (c->Rank(c->input(0)) != 2) {
+        return errors::InvalidArgument(
+            "input tensor `hyps` must have rank 2, got shape: ",
+            c->DebugString(c->input(0)));
+      }
+      const auto t = c->Value(c->Dim(c->input(0), 0));
+      const auto b_times_k = c->Value(c->Dim(c->input(0), 1));
+      for (int i = 0; i < 5; ++i) {
+        if (c->Rank(c->input(i)) != 2 ||
+            c->Value(c->Dim(c->input(i), 0)) != t ||
+            c->Value(c->Dim(c->input(i), 1)) != b_times_k) {
+          return errors::InvalidArgument(
+              "input[", i, "] must have shape [", t, ", ", b_times_k,
+              "], got shape: ", c->DebugString(c->input(i)));
+        }
+      }
+      bool populate_done, populate_topk;
+      TF_RETURN_IF_ERROR(c->GetAttr("populate_done_hyps", &populate_done));
+      TF_RETURN_IF_ERROR(c->GetAttr("populate_topk_hyps", &populate_topk));
+      if (populate_done || populate_topk) {
+        if (c->Rank(c->input(5)) != 2 ||
+            c->Value(c->Dim(c->input(5), 0)) != t ||
+            c->Value(c->Dim(c->input(5), 1)) != b_times_k) {
+          return errors::InvalidArgument(
+              "input[5] `scores` must have shape [", t, ", ", b_times_k,
+              "], got shape: ", c->DebugString(c->input(5)));
+        }
+        for (int i = 6; i < 8; ++i) {
+          if (c->Rank(c->input(i)) != 3 ||
+              c->Value(c->Dim(c->input(i), 0)) != t ||
+              c->Value(c->Dim(c->input(i), 1)) != b_times_k) {
+            return errors::InvalidArgument(
+                "input[", i, "] must have shape [", t, ", ", b_times_k,
+                ", ?], got shape: ", c->DebugString(c->input(i)));
+          }
+        }
+        if (c->Value(c->Dim(c->input(6), 2)) !=
+            c->Value(c->Dim(c->input(7), 2))) {
+          return errors::InvalidArgument(
+              "input tensors `atten_probs` and `eos_atten_probs` must have the "
+              "same shape, got shapes: atten_probs.shape=",
+              c->DebugString(c->input(6)),
+              ", eos_atten_probs.shape=", c->DebugString(c->input(7)));
+        }
+      }
+
+      // Infer output tensor shapes.
+      int32 k;
+      TF_RETURN_IF_ERROR(c->GetAttr("num_hyps_per_beam", &k));
+      if (k <= 0) {
+        return errors::InvalidArgument("Requires num_hyps_per_beam > 0, got: ",
+                                       k);
+      }
+      int32 max_length;
+      TF_RETURN_IF_ERROR(c->GetAttr("max_seq_length", &max_length));
+      if (max_length <= 0) {
+        return errors::InvalidArgument("Requires max_seq_length > 0, got: ",
+                                       max_length);
+      }
+      if (b_times_k % k) {
+        return errors::InvalidArgument(
+            "num_hyps (b * k) does not divide num_hyps_per_beam (k):  "
+            "num_hyps=",
+            b_times_k, ", num_hyps_per_beam=", k);
+      }
+      const auto b = b_times_k / k;
+      c->set_output(0, c->Matrix(b_times_k, max_length));
+      c->set_output(1, c->Vector(b_times_k));
+      c->set_output(2, c->Vector(b_times_k));
+      c->set_output(3, c->Matrix(t, b_times_k));
+      c->set_output(4, c->Matrix(b, k));
+      return ::tensorflow::Status::OK();
+    });
+
 REGISTER_OP("CachedCall")
     .Output("output: T")
     .Attr("f: func")

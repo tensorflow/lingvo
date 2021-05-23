@@ -42,6 +42,7 @@ beam_search_step = gen_x_ops.beam_search_step_v2
 top_k_terminated_hyps = gen_x_ops.top_k_terminated_hyps
 unpack_hyp = gen_x_ops.unpack_hyp
 hyps_from_beam_search_outs = gen_x_ops.hyps_from_beam_search_outs
+top_k_from_beam_search_outs = gen_x_ops.top_k_from_beam_search_outs
 
 cached_call = gen_x_ops.cached_call
 

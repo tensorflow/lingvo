@@ -184,6 +184,8 @@ class TopK {
         insert_(epsilon_id),
         selected_(false) {}
 
+  int k() const { return k_; }
+
   using U = typename std::result_of<Extract(T)>::type;
 
   // Return an element that is less than or equal to the least element
@@ -208,10 +210,10 @@ class TopK {
   }
 
  private:
-  const int k_;
-  const Comp comp_;
-  const Extract extract_;
-  const Insert insert_;
+  int k_;
+  Comp comp_;
+  Extract extract_;
+  Insert insert_;
   bool selected_;  // Becomes true if k-th top element so far is known.
   std::vector<T> items_;
 

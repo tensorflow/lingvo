@@ -1243,5 +1243,219 @@ REGISTER_KERNEL_BUILDER(Name("HypsFromBeamSearchOuts")
                             .TypeConstraint<bfloat16>("T"),
                         HypsFromBeamSearchOuts<bfloat16>);
 
+struct DoneHypEntry {
+  // This entry corresponds to done_hyps[time_idx, hyp_idx].
+  // In range [0, max_seq_length).
+  int32 time_idx;
+  // In range [0, b * k).
+  int32 hyp_idx;
+  float normalized_score;
+};
+
+struct DoneHypEntryCompare {
+  bool operator()(const DoneHypEntry& x, const DoneHypEntry& y) const {
+    if (x.normalized_score > y.normalized_score) return true;
+    if (x.normalized_score < y.normalized_score) return false;
+    // Behavior mimics BetterTerminatedHyp: We prefer shorter hyps when all else
+    // being equal.
+    return x.time_idx < y.time_idx;
+  }
+};
+
+struct DoneHypEntryExtract {
+  float operator()(const DoneHypEntry& x) const { return x.normalized_score; }
+};
+
+using TopKDoneHyp =
+    TopK<DoneHypEntry, DoneHypEntryCompare, DoneHypEntryExtract>;
+
+struct PerBeamTopK {
+  mutex mu;
+  TopKDoneHyp top_k TF_GUARDED_BY(mu);
+
+  PerBeamTopK(PerBeamTopK&& other)
+      : top_k(other.top_k.k(), /*unused epsilon id*/ -1) {
+    mutex_lock l(other.mu);
+    top_k = std::move(other.top_k);
+  }
+
+  PerBeamTopK& operator=(PerBeamTopK&& other) {
+    if (this == &other) {
+      return *this;
+    }
+    if (this < &other) {
+      mutex_lock l1(mu);
+      mutex_lock l2(other.mu);
+      top_k = std::move(other.top_k);
+      return *this;
+    }
+    mutex_lock l1(other.mu);
+    mutex_lock l2(mu);
+    top_k = std::move(other.top_k);
+    return *this;
+  }
+
+  PerBeamTopK(int num_hyps_per_beam)
+      : top_k(num_hyps_per_beam, /*unused epsilon id*/ -1) {}
+};
+
+template <typename T>
+class TopKFromBeamSearchOutsOp : public OpKernel {
+ public:
+  explicit TopKFromBeamSearchOutsOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("num_hyps_per_beam", &num_hyps_per_beam_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("max_seq_length", &max_seq_length_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("eos_id", &eos_id_));
+    OP_REQUIRES_OK(
+        ctx, ctx->GetAttr("length_normalization", &length_normalization_));
+    OP_REQUIRES_OK(ctx,
+                   ctx->GetAttr("populate_done_hyps", &populate_done_hyps_));
+    OP_REQUIRES_OK(ctx,
+                   ctx->GetAttr("populate_topk_hyps", &populate_topk_hyps_));
+    OP_REQUIRES(
+        ctx, length_normalization_ >= 0.0,
+        errors::InvalidArgument("Requires length_normalization >= 0.0, got ",
+                                length_normalization_));
+  }
+
+  void Compute(OpKernelContext* ctx) override {
+    // Input tensor shapes are validated in SetShapeFn().
+    const Tensor& hyps = ctx->input(0);
+    const Tensor& prev_hyps = ctx->input(1);
+    const Tensor& done_hyps = ctx->input(2);
+    const Tensor& cumulative_scores = ctx->input(3);
+    const Tensor& eos_scores = ctx->input(4);
+
+    auto t_hyps = hyps.matrix<int>();
+    auto t_prev_hyps = prev_hyps.matrix<int>();
+    auto t_done_hyps = done_hyps.matrix<bool>();
+    auto t_cumulative_scores = cumulative_scores.matrix<T>();
+    auto t_eos_scores = eos_scores.matrix<T>();
+
+    const int seq_length = hyps.dim_size(0);
+    // b * k
+    const int num_hyps = hyps.dim_size(1);
+    const int num_beams = num_hyps / num_hyps_per_beam_;
+
+    std::vector<PerBeamTopK> topk_vec;
+    topk_vec.reserve(num_beams);
+    for (int i = 0; i < num_beams; ++i) {
+      topk_vec.emplace_back(num_hyps_per_beam_);
+    }
+    ctx->device()->tensorflow_cpu_worker_threads()->workers->ParallelFor(
+        num_hyps, /*cost_per_unit=*/seq_length << 2,
+        [&](int64 begin, int64 end) {
+          for (int j = begin; j < end; ++j) {
+            // Input is mod ordered.
+            const int beam_id = j % num_beams;
+            PerBeamTopK* per_beam_topk = &topk_vec[beam_id];
+            for (int i = 0; i < seq_length; ++i) {
+              // If the hyp is terminated, then compute its normalized score and
+              // insert into topk.
+              if (t_done_hyps(i, j)) {
+                auto score = t_eos_scores(i, j);
+                if (i > 0) {
+                  score += t_cumulative_scores(i - 1, j);
+                }
+                DoneHypEntry e = {
+                    .time_idx = i,
+                    .hyp_idx = j,
+                    .normalized_score = NormalizedScore(score, i + 1)};
+                mutex_lock l(per_beam_topk->mu);
+                per_beam_topk->top_k.Add(e);
+              }
+            }
+          }
+        });
+
+    // Now that we have top k hyps for each beam, we go back and assemble the
+    // actual sequences.
+    Tensor* out_ids;
+    OP_REQUIRES_OK(
+        ctx, ctx->allocate_output(0, TensorShape({num_hyps, max_seq_length_}),
+                                  &out_ids));
+    Tensor* out_seq_lens;
+    OP_REQUIRES_OK(
+        ctx, ctx->allocate_output(1, TensorShape({num_hyps}), &out_seq_lens));
+    Tensor* out_scores;
+    OP_REQUIRES_OK(
+        ctx, ctx->allocate_output(2, TensorShape({num_hyps}), &out_scores));
+    auto t_out_ids = out_ids->matrix<int32>();
+    auto t_out_seq_lens = out_seq_lens->vec<int32>();
+    auto t_out_scores = out_scores->vec<float>();
+    t_out_ids.setZero();
+    t_out_seq_lens.setZero();
+    t_out_scores.setZero();
+    ctx->device()->tensorflow_cpu_worker_threads()->workers->ParallelFor(
+        num_beams, /* cost_per_unit=*/4 * num_hyps_per_beam_ * max_seq_length_,
+        [&](int64 begin, int64 end) {
+          for (int beam_id = begin; beam_id < end; ++beam_id) {
+            mutex_lock l(topk_vec[beam_id].mu);
+            auto beam_topk = topk_vec[beam_id].top_k.Get();
+            std::sort(beam_topk.begin(), beam_topk.end(),
+                      DoneHypEntryCompare());
+            for (int hyp_id = 0; hyp_id < beam_topk.size(); ++hyp_id) {
+              const auto& entry = beam_topk[hyp_id];
+              // div ordering.
+              const int idx = beam_id * num_hyps_per_beam_ + hyp_id;
+              t_out_seq_lens(idx) = entry.time_idx + 1;
+              t_out_scores(idx) = entry.normalized_score;
+
+              // Walk through the token id matrix, and assemble the sequence of
+              // ids.
+              t_out_ids(idx, entry.time_idx) = eos_id_;
+              int prev_hyp_id = entry.hyp_idx;
+              for (int time_idx = entry.time_idx - 1; time_idx >= 0;
+                   --time_idx) {
+                // Sanity check: previous hyp should belong to the same beam.
+                DCHECK_EQ(prev_hyp_id % num_beams, beam_id);
+                t_out_ids(idx, time_idx) = t_hyps(time_idx, prev_hyp_id);
+                prev_hyp_id = t_prev_hyps(time_idx, prev_hyp_id);
+              }
+            }
+          }
+        });
+
+    Tensor* out_done_hyps;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(3, hyps.shape(), &out_done_hyps));
+    Tensor* out_topk_hyps;
+    OP_REQUIRES_OK(
+        ctx, ctx->allocate_output(4, TensorShape{num_beams, num_hyps_per_beam_},
+                                  &out_topk_hyps));
+    // TODO(b/188414736): populate the string outputs when enabled.
+    // const Tensor& scores = ctx->input(5);
+    // const Tensor& atten_probs = ctx->input(6);
+    // const Tensor& eos_atten_probs = ctx->input(7);
+    // auto t_scores = scores.matrix<T>();
+    // auto t_atten_probs = atten_probs.tensor<T, 3>();
+    // auto t_eos_atten_probs = eos_atten_probs.tensor<T, 3>();
+  }
+
+ private:
+  float NormalizedScore(float score, int length) {
+    const float length_norm = std::pow(length + 5.0, length_normalization_) /
+                              std::pow(5.0, length_normalization_);
+    return score / length_norm;
+  }
+
+  int32 num_hyps_per_beam_;
+  int32 max_seq_length_;
+  int32 eos_id_;
+  float length_normalization_;
+  bool populate_done_hyps_;
+  bool populate_topk_hyps_;
+
+  TF_DISALLOW_COPY_AND_ASSIGN(TopKFromBeamSearchOutsOp);
+};
+
+REGISTER_KERNEL_BUILDER(Name("TopKFromBeamSearchOuts")
+                            .Device(DEVICE_CPU)
+                            .TypeConstraint<float>("T"),
+                        TopKFromBeamSearchOutsOp<float>);
+REGISTER_KERNEL_BUILDER(Name("TopKFromBeamSearchOuts")
+                            .Device(DEVICE_CPU)
+                            .TypeConstraint<bfloat16>("T"),
+                        TopKFromBeamSearchOutsOp<bfloat16>);
+
 }  // namespace lingvo
 }  // namespace tensorflow
