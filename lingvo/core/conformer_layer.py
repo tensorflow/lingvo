@@ -477,9 +477,6 @@ class ConformerLayer(base_layer.BaseLayer):
         'supported.')
     p.Define('dropout_prob', None, 'Dropout prob of inner components.')
 
-    # lconv layer
-    p.Define('kernel_size', None, 'Kernel size of 1d lightweight conv.')
-
     # fflayer tpl
     p.Define(
         'fflayer_start_tpl',
@@ -562,7 +559,6 @@ class ConformerLayer(base_layer.BaseLayer):
 
     p = cls.Params().Set(
         input_dim=input_dim,
-        kernel_size=kernel_size,
         is_causal=is_causal,
         layer_order=layer_order,
         dropout_prob=dropout_prob)
@@ -618,6 +614,8 @@ class ConformerLayer(base_layer.BaseLayer):
     # Set the convolution module.
     if lconv_tpl is not None:
       p.lconv_tpl = lconv_tpl
+    if kernel_size:
+      p.lconv_tpl.kernel_size = kernel_size
     if conv_norm_layer_tpl is not None:
       p.lconv_tpl.conv_norm_layer_tpl = conv_norm_layer_tpl
     if fprop_dtype is not None:
@@ -742,7 +740,6 @@ class ConformerLayer(base_layer.BaseLayer):
     if self.has_lconv:
       lconv_p = p.lconv_tpl.Copy().Set(
           input_dim=p.input_dim,
-          kernel_size=p.kernel_size,
           is_causal=p.is_causal)
       self.CreateChild('lconv', lconv_p)
 
