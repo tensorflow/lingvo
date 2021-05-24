@@ -812,6 +812,12 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'dropout_tpl', layers.DropoutLayer.Params(),
         'Dropout params template. keep_prob will be reset to '
         '(1.0 - residual_dropout_prob).')
+    p.Define('add_skip_connection', True,
+             'If True, add skip_connection from input to output.')
+    p.Define(
+        'residual_weight', 1., 'Weight applied on residual connection.'
+        'Final output is residual_weight * residual_fn(x) + x.'
+        'Only effective when add_skip_connection is True.')
     p.Define(
         'residual_dropout_prob', 0.0,
         'Probability at which we apply dropout to the residual layers, '
@@ -820,6 +826,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'relu_dropout_prob', 0.0,
         'Probability at which we apply dropout to the hidden layer '
         'of feed-forward network.')
+    p.Define('pre_layer_norm', True, 'Pre or post layer norm')
+    p.Define('residual_droppath_prob', 0.0,
+             'Probability at which we drop the entire residual path.')
     p.Define('num_experts', 0, 'Total number of experts in this layer.')
     p.Define(
         'num_groups', 0,
@@ -949,6 +958,13 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     dropout_tpl.keep_prob = (1.0 - p.relu_dropout_prob)
     self.CreateChild('relu_dropout', dropout_tpl)
 
+    if p.residual_droppath_prob > 0:
+      assert p.add_skip_connection
+      droppath_p = StochasticResidualLayer.Params().Set(
+          name='residual_droppath',
+          survival_prob=1.0 - p.residual_droppath_prob)
+      self.CreateChild('residual_droppath', droppath_p)
+
   @property
   def output_dim(self):
     """Returns output dimension of the transformer layer."""
@@ -979,7 +995,10 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
     with tf.name_scope(p.name):
       inputs = self._CastToFPropDtype(inputs)
-      inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      if p.pre_layer_norm:
+        inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      else:
+        inputs_normalized = inputs
       inputs_normalized = py_utils.HasRank(inputs_normalized, 3)
       assert inputs_normalized.shape.is_fully_defined()
       bs, s_len, m_dim = py_utils.GetShape(inputs_normalized)
@@ -1077,7 +1096,18 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       # Residual dropout.
       after_residual = self.residual_dropout.FProp(theta.residual_dropout,
                                                    combined_output)
-      out = inputs + after_residual
+      if p.add_skip_connection:
+        if p.residual_droppath_prob:
+          out = self.residual_droppath.FProp(
+              theta.residual_droppath,
+              inputs,
+              after_residual,
+          )
+        else:
+          out = inputs + after_residual * self.params.residual_weight
+
+      if not p.pre_layer_norm:
+        out = self.layer_norm.FProp(theta.layer_norm, out)
 
       if len(orig_shape) == 4:
         out = tf.reshape(out, orig_shape)
