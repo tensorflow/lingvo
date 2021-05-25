@@ -30,10 +30,15 @@ class DummyModel(base_model.BaseTask):
     with tf.name_scope('inference'):
       feed1 = tf.placeholder(name='feed1_node', dtype=tf.float32, shape=[1])
       fetch1 = tf.identity(feed1, name='fetch1_node')
+      feed2 = tf.placeholder(name='feed2_node', dtype=tf.float32, shape=[2])
+      fetch2 = tf.identity(feed2, name='fetch2_node')
       inference_graph = inference_graph_pb2.InferenceGraph()
       subgraph = inference_graph.subgraphs['default']
       subgraph.feeds['feed1'] = feed1.name
       subgraph.fetches['fetch1'] = fetch1.name
+      subgraph = inference_graph.subgraphs['subgraph2']
+      subgraph.feeds['feed1'] = feed2.name
+      subgraph.fetches['fetch1'] = fetch2.name
       return inference_graph
 
 
@@ -48,15 +53,22 @@ class PredictorTest(test_utils.TestCase):
   def testPredictorFeedShapes(self):
     pred = predictor.Predictor(self._testInferenceGraph())
     self.assertEqual([1], pred.feed_shapes.feed1)
+    self.assertEqual([2], pred.subgraph_feed_shapes('subgraph2').feed1)
 
   def testPredictorFetchShapes(self):
     pred = predictor.Predictor(self._testInferenceGraph())
     self.assertEqual([1], pred.fetch_shapes.fetch1)
+    self.assertEqual([2], pred.subgraph_fetch_shapes('subgraph2').fetch1)
 
   def testPredictor(self):
     pred = predictor.Predictor(self._testInferenceGraph())
     fetch1 = pred.Run('fetch1', feed1=[12345])
     self.assertEqual(12345, fetch1)
+
+  def testPredictorSubgraph(self):
+    pred = predictor.Predictor(self._testInferenceGraph())
+    fetch1 = pred.Run('fetch1', feed1=[12345, 23456], subgraph_name='subgraph2')
+    self.assertAllEqual([12345, 23456], fetch1)
 
   def testMissingFeedRaisesInvalidArgumentError(self):
     pred = predictor.Predictor(self._testInferenceGraph())

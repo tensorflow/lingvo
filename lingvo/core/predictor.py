@@ -34,7 +34,7 @@ from lingvo.core import py_utils
 from google.protobuf import text_format
 
 
-def LoadInferenceGraph(path, clear_device_placement=False):
+def LoadInferenceGraph(path, clear_device_placement=False):  # pylint: disable=invalid-name
   """Parse the given path as an InferenceGraph proto.
 
   Args:
@@ -74,7 +74,7 @@ class Predictor:
 
     Args:
       inference_graph: A saved InferenceGraph proto.
-      subgraph_name: The subgraph to use for prediction.
+      subgraph_name: The default subgraph to use for Run().
       checkpoint: An optional checkpoint to load.
       device_type: Device type string. Either "cpu", "gpu", or "tpu".
       tf_master: The tf_master.
@@ -90,6 +90,7 @@ class Predictor:
       inference_graph = LoadInferenceGraph(inference_graph,
                                            clear_device_placement)
     self._inference_graph = inference_graph
+    self._default_subgraph_name = subgraph_name
     self._checkpoint = checkpoint
     self._device_type = device_type
     self._tf_master = tf_master
@@ -114,8 +115,8 @@ class Predictor:
     if inference_graph.subgraphs:
       if subgraph_name not in inference_graph.subgraphs:
         raise ValueError(
-            "Subgraph %s not defined. Valid subgraphs: %s" %
-            (subgraph_name, list(inference_graph.subgraphs.keys())))
+            f"Subgraph {subgraph_name} not defined. Valid subgraphs: "
+            f"{sorted(list(inference_graph.subgraphs.keys()))}")
       subgraph = inference_graph.subgraphs[subgraph_name]
       self._fetches = subgraph.fetches
       self._feeds = subgraph.feeds
@@ -126,7 +127,7 @@ class Predictor:
     # Lock for creating new sessions.
     self._sess_lock = threading.Lock()
     self._cur_sess_id = 0
-    self._CreateNewSession()
+    self._create_new_session()
 
   @property
   def fetch_keys(self):
@@ -137,21 +138,62 @@ class Predictor:
     return sorted(list(self._feeds.keys()))
 
   @property
-  def feed_shapes(self):
-    # Conversion from dict to NestedMap required.
-    return py_utils.Transform(
-        lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
-        py_utils.NestedMap(self._feeds))
-
-  @property
   def fetch_shapes(self):
     # Conversion from dict to NestedMap required.
     return py_utils.Transform(
         lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
         py_utils.NestedMap(self._fetches))
 
+  @property
+  def feed_shapes(self):
+    # Conversion from dict to NestedMap required.
+    return py_utils.Transform(
+        lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
+        py_utils.NestedMap(self._feeds))
+
+  def _get_subgraph(self, subgraph_name):
+    if not self._inference_graph.subgraphs:
+      raise ValueError("This inference graph does not have subgraphs.")
+    if subgraph_name not in self._inference_graph.subgraphs:
+      raise ValueError(
+          f"Subgraph {subgraph_name} not defined. Valid subgraphs: "
+          f"{sorted(list(self._inference_graph.subgraphs.keys()))}.")
+    return self._inference_graph.subgraphs[subgraph_name]
+
+  def _get_subgraph_fetches(self, subgraph_name):
+    if subgraph_name == self._default_subgraph_name:
+      return self._fetches
+    return self._get_subgraph(subgraph_name).fetches
+
+  def _get_subgraph_feeds(self, subgraph_name):
+    if subgraph_name == self._default_subgraph_name:
+      return self._feeds
+    return self._get_subgraph(subgraph_name).feeds
+
+  def subgraph_fetch_keys(self, subgraph_name):
+    if subgraph_name == self._default_subgraph_name:
+      return self.fetch_keys
+    return self._get_subgraph_fetches(subgraph_name).keys()
+
+  def subgraph_feed_keys(self, subgraph_name):
+    if subgraph_name == self._default_subgraph_name:
+      return self.feed_keys
+    return self._get_subgraph_feeds(subgraph_name).keys()
+
+  def subgraph_fetch_shapes(self, subgraph_name):
+    # Conversion from dict to NestedMap required.
+    return py_utils.Transform(
+        lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
+        py_utils.NestedMap(self._get_subgraph_fetches(subgraph_name)))
+
+  def subgraph_feed_shapes(self, subgraph_name):
+    # Conversion from dict to NestedMap required.
+    return py_utils.Transform(
+        lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
+        py_utils.NestedMap(self._get_subgraph_feeds(subgraph_name)))
+
   @py_utils.RetryOnTransientTfError()
-  def _CreateNewSession(self):
+  def _create_new_session(self):
     """Updates self._sess with a new session."""
     config = self._session_config
     if not config:
@@ -180,7 +222,7 @@ class Predictor:
     tf.logging.info("Created new predictor session.")
     self._sess = sess
 
-  def _MaybeCreateNewSession(self, sess_id):
+  def _maybe_create_new_session(self, sess_id):
     """Create a new session if sess_id is the current session.
 
     Args:
@@ -188,12 +230,12 @@ class Predictor:
     """
     with self._sess_lock:
       if sess_id == self._cur_sess_id:
-        self._CreateNewSession()
+        self._create_new_session()
         self._cur_sess_id += 1
-        tf.logging.info("Current session id {}.".format(self._cur_sess_id))
+        tf.logging.info(f"Current session id {self._cur_sess_id}.")
 
   @py_utils.RetryOnTransientTfError()
-  def _RunWithValidSession(self, fn, *args, **kwargs):
+  def _run_with_valid_session(self, fn, *args, **kwargs):
     """Ensures `fn` is called while self._sess is a valid session."""
     sess_id = self._cur_sess_id
     try:
@@ -202,10 +244,10 @@ class Predictor:
       # self._sess is invalid, most likely due to the worker being preempted.
       # Make sure a new session is created before re-raising the exception and
       # triggering the py_utils.Retry loop.
-      self._MaybeCreateNewSession(sess_id)
+      self._maybe_create_new_session(sess_id)
       raise
 
-  def Load(self, checkpoint):
+  def Load(self, checkpoint):  # pylint: disable=invalid-name
     """Loads parameters from a checkpoint if self._sess is a valid session.
 
     Args:
@@ -221,7 +263,7 @@ class Predictor:
         # self._sess is invalid, most likely due to the worker being preempted.
         # Make sure a new session is created before re-raising the exception and
         # triggering the py_utils.Retry loop.
-        self._MaybeCreateNewSession(sess_id)
+        self._maybe_create_new_session(sess_id)
         raise
       self._checkpoint = checkpoint
 
@@ -231,7 +273,8 @@ class Predictor:
           session_run_options=None,
           run_metadata=None,
           time_session_run=False,
-          **kwargs):
+          subgraph_name=None,
+          **kwargs):  # pylint: disable=invalid-name
     """Runs predictor.
 
     Args:
@@ -243,6 +286,7 @@ class Predictor:
       run_metadata: Optional tf.RunMetadata() to use in the session.
       time_session_run: Optional bool, if True, additionally return the
         execution time of session.run. Defaults to False.
+      subgraph_name: Optional string of the subgraph to use.
       **kwargs: a dict of inputs to feed.
 
     Returns:
@@ -254,34 +298,40 @@ class Predictor:
       KeyError: a feed specified in kwargs is invalid, or a fetch in fetch_keys
         is invalid and validate_fetches is True.
     """
+    subgraph_name = subgraph_name or self._default_subgraph_name
+
     single_fetch = False
     if not isinstance(fetch_keys, (list, type(dict().keys()))):
       single_fetch = True
       fetch_keys = [fetch_keys]
 
+    valid_fetch_keys = self.subgraph_fetch_keys(subgraph_name)
     if validate_fetches:
-      for x in fetch_keys:
-        if x not in self._fetches:
+      for k in fetch_keys:
+        if k not in valid_fetch_keys:
           raise KeyError(
-              "%s is not in the list of available fetches. Available keys: %s" %
-              (x, list(sorted(self._fetches.keys()))))
-    valid_fetch_idxs, valid_fetches = zip(*[(i, self._fetches[k])
+              f"{k} is not in the list of available fetches. Available keys: "
+              f"{sorted(list(valid_fetch_keys))}.")
+    subgraph_fetches = self._get_subgraph_fetches(subgraph_name)
+    valid_fetch_idxs, valid_fetches = zip(*[(i, subgraph_fetches[k])
                                             for i, k in enumerate(fetch_keys)
-                                            if k in self._fetches.keys()])
+                                            if k in valid_fetch_keys])
 
+    valid_feed_keys = self.subgraph_feed_keys(subgraph_name)
     for k in kwargs:
-      if k not in self._feeds:
+      if k not in valid_feed_keys:
         raise KeyError(
-            "%s is not in the list of available feeds. Available keys: %s" %
-            (k, list(sorted(self._feeds.keys()))))
-    feeds = {self._feeds[k]: v for k, v in kwargs.items()}
+            f"{k} is not in the list of available feeds. Available keys: "
+            f"{sorted(list(valid_feed_keys))}.")
+    subgraph_feeds = self._get_subgraph_feeds(subgraph_name)
+    feeds = {subgraph_feeds[k]: v for k, v in kwargs.items()}
 
     run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
     if session_run_options:
       run_options = session_run_options
 
     start = time.time()
-    fetched_results = self._RunWithValidSession(
+    fetched_results = self._run_with_valid_session(
         tf.Session.run,
         valid_fetches,
         feed_dict=feeds,
