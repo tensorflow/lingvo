@@ -69,7 +69,8 @@ class Predictor:
                device_type="gpu",
                tf_master="",
                session_config=None,
-               clear_device_placement=False):
+               clear_device_placement=False,
+               load_graph_def_from_inference_graph=True):
     """Constructor.
 
     Args:
@@ -82,6 +83,9 @@ class Predictor:
         py_utils.SessionConfig() is used.
       clear_device_placement: If set, clears device field of loaded inference
         graph.
+      load_graph_def_from_inference_graph: Whether to load a graph def.
+        If False, assumes the names in the inference graph correspond to tensors
+        in the current default graph.
     """
     assert device_type in ["cpu", "gpu", "tpu"]
     subgraph_name = subgraph_name or "default"
@@ -96,21 +100,26 @@ class Predictor:
     self._tf_master = tf_master
     self._session_config = session_config
 
-    self._graph = tf.Graph()
-    with self._graph.as_default():
-      tf.logging.info(
-          "Loading inference graph for prediction subgraph_name={}.".format(
-              subgraph_name))
-      with tf.device("/%s:0" % "cpu" if device_type == "tpu" else device_type):
-        tf.import_graph_def(inference_graph.graph_def, name="")
-      if device_type == "tpu":
-        # If no tpu init op exists, create it here.
-        try:
-          self._graph.get_operation_by_name("tpu_init_op")
-        except KeyError:
-          tf.group(tf.tpu.initialize_system(), name="tpu_init_op")
+    if load_graph_def_from_inference_graph:
+      self._graph = tf.Graph()
+      with self._graph.as_default():
+        tf.logging.info(
+            "Loading inference graph for prediction subgraph_name={}.".format(
+                subgraph_name))
+        with tf.device("/%s:0" %
+                       "cpu" if device_type == "tpu" else device_type):
+          tf.import_graph_def(inference_graph.graph_def, name="")
+    else:
+      self._graph = tf.get_default_graph()
 
-      self._graph.finalize()
+    if device_type == "tpu":
+      # If no tpu init op exists, create it here.
+      try:
+        self._graph.get_operation_by_name("tpu_init_op")
+      except KeyError:
+        tf.group(tf.tpu.initialize_system(), name="tpu_init_op")
+
+    self._graph.finalize()
 
     if inference_graph.subgraphs:
       if subgraph_name not in inference_graph.subgraphs:

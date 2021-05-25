@@ -70,6 +70,15 @@ class PredictorTest(test_utils.TestCase):
     fetch1 = pred.Run('fetch1', feed1=[12345, 23456], subgraph_name='subgraph2')
     self.assertAllEqual([12345, 23456], fetch1)
 
+  def testPredictorNoLoadGraphDefFromInferenceGraph(self):
+    p = base_model.SingleTaskModel.Params(DummyModel.Params().Set(name='test'))
+    p.input = base_input_generator.BaseInputGenerator.Params().Set(name='test')
+    pred = predictor.Predictor(
+        p.Instantiate().GetTask().Inference(),
+        load_graph_def_from_inference_graph=False)
+    fetch1 = pred.Run('fetch1', feed1=[12345])
+    self.assertEqual(12345, fetch1)
+
   def testMissingFeedRaisesInvalidArgumentError(self):
     pred = predictor.Predictor(self._testInferenceGraph())
     with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'feed1'):
