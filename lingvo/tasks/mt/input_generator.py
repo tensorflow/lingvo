@@ -432,15 +432,16 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
       If this value is too small, we generate packed batches that contain
       too many padding that could have been used to pack more examples.
-      If this value is too large, we use more memory and randomly discard
+      If this value is too large, we use more host memory and randomly discard
       examples that could not fit.
 
-      One can look at the num_samples_in_batch graph to determine if its
-      value is too small. For example, with an effective scaled batch size of
-      1024, suppose we set p.packing_factor=3.0, and observe that
-      num_samples_in_batch is saturated at 3072(=1024x3), this means 3.0 is
-      likely too small. If we instead observe that num_samples_in_batch
-      fluctuates around 2500, this means 3.0 is larger than needed.
+      One can look at the 'examples/src_packed_token_ratio' (or
+      'examples/tgt_packed_token_ratio') graph to determine if
+      its value is too small. For example, with p.packing_factor=3.5, if we
+      observe that 'examples/src_packed_token_ratio' is saturated at 1.0, this
+      means 3.5 is likely too small. If we instead observe that
+      'examples/src_packed_token_ratio' fluctuates around 0.5, this means 3.5 is
+      larger than needed.
 
       We believe that there can be a slight bias against longer sequences
       when packing is enabled. The remedy is either use larger effective

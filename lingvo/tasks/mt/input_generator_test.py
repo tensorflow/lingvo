@@ -313,7 +313,12 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
             ],
         ]))
 
-  def testTextPackedInputBatchSize(self):
+  @parameterized.named_parameters(
+      ('no_per_host_infeed_no_packing', False, None),
+      ('per_host_infeed_no_packing', True, None),
+      ('no_per_host_infeed_with_packing', False, 3.5),
+      ('per_host_infeed_with_packing', True, 3.5))
+  def testTextPackedInputBatchSize(self, use_per_host_infeed, packing_factor):
     p = cluster_factory.Current().params.Copy()
     p.job = 'trainer'
     p.worker.tpus_per_replica = 8
@@ -323,7 +328,7 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
 
     with cluster, mock.patch('lingvo.core.py_utils.use_tpu', return_value=True):
       p = input_generator.TextPackedInput.Params()
-      p.use_per_host_infeed = True
+      p.use_per_host_infeed = use_per_host_infeed
       p.file_random_seed = 0
       p.file_pattern = 'tfrecord:' + test_helper.test_src_dir_path(
           'tasks/mt/testdata/en_fr.tfrecord')
@@ -333,21 +338,39 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
       p.source_max_length = 32
       p.target_max_length = 32
       p.bucket_batch_limit = [128]
+      p.packing_factor = packing_factor
       with self.session() as sess:
         inp = p.Instantiate()
         # GlobalBatchSize is batch_size (128) * num_splits_per_client (4).
         # num_splits_per_client is 4, because num_splits_per_replica is 4.
         # num_splits_per_replica is 4 because that's tpus_per_replica
         # divided by devices_per_split.
-        self.assertEqual(512, inp.GlobalBatchSize())
-        # GlobalBatchSize (512) / num_tpu_hosts (16)
-        self.assertEqual(32, inp.InfeedBatchSize())
+        expected_global_batch_size = (
+            p.bucket_batch_limit[0] // cluster.params.worker.devices_per_split *
+            cluster.params.worker.tpus_per_replica)
+        if p.packing_factor is not None:
+          expected_global_batch_size = np.math.floor(
+              expected_global_batch_size * p.packing_factor)
+
+        expected_infeed_batch_size = expected_global_batch_size
+        if use_per_host_infeed:
+          expected_infeed_batch_size = (
+              expected_global_batch_size // cluster.params.worker.num_tpu_hosts)
+
+        expected_packed_infeed_batch_size = expected_infeed_batch_size
+        if p.packing_factor is not None:
+          expected_packed_infeed_batch_size = np.math.floor(
+              expected_infeed_batch_size / p.packing_factor)
+
+        self.assertEqual(expected_global_batch_size, inp.GlobalBatchSize())
+        self.assertEqual(expected_infeed_batch_size, inp.InfeedBatchSize())
 
         batch_tensor = inp.GetPreprocessedInputBatch()
         for k, x in batch_tensor.FlattenItems():
           self.assertTrue(x.shape.is_fully_defined(), k)
         batch = sess.run(batch_tensor)
-        self.assertEqual(batch.src.ids.shape, (32, 32))
+        self.assertEqual(batch.src.ids.shape,
+                         (expected_packed_infeed_batch_size, 32))
 
   def testTextPackedInputTextWpm(self):
     p = input_generator.TextPackedInput.Params()
