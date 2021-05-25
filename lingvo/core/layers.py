@@ -3652,6 +3652,8 @@ class SharedSoftmaxLayer(base_layer.BaseLayer):
       assert self.softmax.params.input_dim > 0
       embs_result *= self.softmax.params.input_dim**0.5
 
+    embs_result = gshard_utils.MeshSplit(embs_result, p.device_mesh,
+                                         p.activation_split_dims_mapping)
     return embs_result
 
 
