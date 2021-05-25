@@ -40,6 +40,7 @@ class ClusterTest(test_utils.TestCase):
           v.device,
           cluster.MakeDeviceString(
               job_name='/job:localhost',
+              replica_id=0,
               task_id=0,
               device_name='CPU',
               device_id=0))
@@ -47,6 +48,7 @@ class ClusterTest(test_utils.TestCase):
         sum_all.device,
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='CPU',
             device_id=0))
@@ -72,6 +74,7 @@ class ClusterTest(test_utils.TestCase):
           v.device,
           cluster.MakeDeviceString(
               job_name='/job:localhost',
+              replica_id=0,
               task_id=0,
               device_name='CPU',
               device_id=0))
@@ -79,6 +82,7 @@ class ClusterTest(test_utils.TestCase):
         sum_all.device,
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='CPU',
             device_id=0))
@@ -102,13 +106,18 @@ class ClusterTest(test_utils.TestCase):
           v.device,
           cluster.MakeDeviceString(
               job_name='/job:trainer',
+              replica_id=0,
               task_id=0,
               device_name='CPU',
               device_id=0))
     self.assertEqual(
         sum_all.device,
         cluster.MakeDeviceString(
-            job_name='/job:trainer', task_id=0, device_name='CPU', device_id=0))
+            job_name='/job:trainer',
+            replica_id=0,
+            task_id=0,
+            device_name='CPU',
+            device_id=0))
 
   def testNoPSWithGPUs(self):
     p = cluster_factory.Cluster.Params()
@@ -132,6 +141,7 @@ class ClusterTest(test_utils.TestCase):
           v.device,
           cluster.MakeDeviceString(
               job_name='/job:trainer',
+              replica_id=0,
               task_id=0,
               device_name='GPU',
               device_id=i % 4))
@@ -139,6 +149,7 @@ class ClusterTest(test_utils.TestCase):
           sum_all.device,
           cluster.MakeDeviceString(
               job_name='/job:trainer',
+              replica_id=0,
               task_id=0,
               device_name='GPU',
               device_id=0))
@@ -161,12 +172,19 @@ class ClusterTest(test_utils.TestCase):
       self.assertEqual(
           v.device,
           cluster.MakeDeviceString(
-              job_name='/job:ps', task_id=i % 4, device_name='CPU',
+              job_name='/job:ps',
+              replica_id=0,
+              task_id=i % 4,
+              device_name='CPU',
               device_id=0))
     self.assertEqual(
         sum_all.device,
         cluster.MakeDeviceString(
-            job_name='/job:trainer', task_id=0, device_name='CPU', device_id=0))
+            job_name='/job:trainer',
+            replica_id=0,
+            task_id=0,
+            device_name='CPU',
+            device_id=0))
 
   def testPSWithGPUs(self):
     p = cluster_factory.Cluster.Params()
@@ -188,13 +206,18 @@ class ClusterTest(test_utils.TestCase):
           v.device,
           cluster.MakeDeviceString(
               job_name='/job:ps',
+              replica_id=0,
               task_id=(i / 2) % 4,
               device_name='GPU',
               device_id=i % 2))
     self.assertEqual(
         sum_all.device,
         cluster.MakeDeviceString(
-            job_name='/job:trainer', task_id=0, device_name='CPU', device_id=0))
+            job_name='/job:trainer',
+            replica_id=0,
+            task_id=0,
+            device_name='CPU',
+            device_id=0))
 
   def testPSRandomSize(self):
     p = cluster_factory.Cluster.Params()
@@ -232,7 +255,11 @@ class ClusterTest(test_utils.TestCase):
     self.assertEqual(
         sum_all.device,
         cluster.MakeDeviceString(
-            job_name='/job:trainer', task_id=0, device_name='CPU', device_id=0))
+            job_name='/job:trainer',
+            replica_id=0,
+            task_id=0,
+            device_name='CPU',
+            device_id=0))
 
   def testDeviceListOneRepliaCpu(self):
     p = cluster_factory.Cluster.Params()
@@ -244,11 +271,13 @@ class ClusterTest(test_utils.TestCase):
     expected_cpu_devices = [[
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='CPU',
             device_id=0),
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='CPU',
             device_id=1),
@@ -266,11 +295,13 @@ class ClusterTest(test_utils.TestCase):
     expected_gpu_devices = [[
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='GPU',
             device_id=0),
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='GPU',
             device_id=1),
@@ -289,11 +320,13 @@ class ClusterTest(test_utils.TestCase):
     expected_gpu_devices = [[
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=1,
             device_name='GPU',
             device_id=0),
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=1,
             device_name='GPU',
             device_id=1),
@@ -323,11 +356,13 @@ class ClusterTest(test_utils.TestCase):
     expected_gpu_devices = [[
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='GPU',
             device_id=0),
         cluster.MakeDeviceString(
             job_name='/job:localhost',
+            replica_id=0,
             task_id=0,
             device_name='GPU',
             device_id=1),
@@ -335,11 +370,13 @@ class ClusterTest(test_utils.TestCase):
                             [
                                 cluster.MakeDeviceString(
                                     job_name='/job:localhost',
+                                    replica_id=0,
                                     task_id=1,
                                     device_name='GPU',
                                     device_id=0),
                                 cluster.MakeDeviceString(
                                     job_name='/job:localhost',
+                                    replica_id=0,
                                     task_id=1,
                                     device_name='GPU',
                                     device_id=1),
@@ -357,7 +394,11 @@ class ClusterTest(test_utils.TestCase):
     c = cluster_factory.Cluster(p)
     input_device = c.input_device
     expected_device = cluster.MakeDeviceString(
-        job_name='/job:input', task_id=0, device_name='CPU', device_id=0)
+        job_name='/job:input',
+        replica_id=0,
+        task_id=0,
+        device_name='CPU',
+        device_id=0)
     self.assertEqual(input_device, expected_device)
 
   def testModelSplit(self):
@@ -389,7 +430,11 @@ class ClusterTest(test_utils.TestCase):
       with cluster_factory.SetModelSplit(1) as c:
         d = c.WorkerDeviceInModelSplit(1)
         expected_device = cluster.MakeDeviceString(
-            job_name='/job:trainer', task_id=0, device_name='GPU', device_id=3)
+            job_name='/job:trainer',
+            replica_id=0,
+            task_id=0,
+            device_name='GPU',
+            device_id=3)
     self.assertEqual(expected_device, d)
 
   def testWorkerDeviceInModelSplit(self):
@@ -405,7 +450,11 @@ class ClusterTest(test_utils.TestCase):
       with cluster_factory.SetModelSplit(1) as c:
         d = c.WorkerDeviceInModelSplit(1)
         expected_device = cluster.MakeDeviceString(
-            job_name='/job:trainer', task_id=3, device_name='GPU', device_id=3)
+            job_name='/job:trainer',
+            replica_id=0,
+            task_id=3,
+            device_name='GPU',
+            device_id=3)
     self.assertEqual(expected_device, d)
 
   def testWorkerClusterDef(self):

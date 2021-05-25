@@ -49,9 +49,9 @@ def GetInfeedContext():
           InfeedContext(infeed_host_index=0, num_infeed_hosts=1))
 
 
-def MakeDeviceString(job_name, task_id, device_name, device_id):
-  return '%s/replica:0/task:%d/device:%s:%d' % (job_name, task_id, device_name,
-                                                device_id)
+def MakeDeviceString(job_name, replica_id, task_id, device_name, device_id):
+  return '%s/replica:%d/task:%d/device:%s:%d' % (job_name, replica_id, task_id,
+                                                 device_name, device_id)
 
 
 _uuid = None
@@ -243,7 +243,13 @@ class _Cluster:
         tf.logging.info('ListDevices: InitDevices was not called.')
       for i in range(replicas):
         for j in range(devices_per_replica):
-          ret[i, j] = MakeDeviceString(job_spec.name, i, device_type, j)
+          if self.job == 'evaler' or self.job == 'decoder':
+            # For multi-task models, evaler and decoder actually have multiple
+            # replicas if we specify --model_task_names=['task_a','task_b',
+            # ...].
+            ret[i, j] = MakeDeviceString(job_spec.name, i, 0, device_type, j)
+          else:
+            ret[i, j] = MakeDeviceString(job_spec.name, 0, i, device_type, j)
     tf.logging.info(f'ListDevices({job_spec.name}): {ret}')
     return ret
 
