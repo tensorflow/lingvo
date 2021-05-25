@@ -567,13 +567,16 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
         return errors::InvalidArgument("Requires max_seq_length > 0, got: ",
                                        max_length);
       }
-      if (b_times_k % k) {
-        return errors::InvalidArgument(
-            "num_hyps (b * k) does not divide num_hyps_per_beam (k):  "
-            "num_hyps=",
-            b_times_k, ", num_hyps_per_beam=", k);
+      shape_inference::DimensionOrConstant b = c->UnknownDim();
+      if (b_times_k > 0) {
+        b = b_times_k / k;
+        if (b_times_k % k) {
+          return errors::InvalidArgument(
+              "num_hyps (b * k) does not divide num_hyps_per_beam (k):  "
+              "num_hyps=",
+              b_times_k, ", num_hyps_per_beam=", k);
+        }
       }
-      const auto b = b_times_k / k;
       c->set_output(0, c->Matrix(b_times_k, max_length));
       c->set_output(1, c->Vector(b_times_k));
       c->set_output(2, c->Vector(b_times_k));
