@@ -51,7 +51,7 @@ struct Hyp {
 struct HigherScore {
   bool operator()(const Hyp& x, const Hyp& y) const {
     // We only compare hyps belonging to the same beams.
-    CHECK_EQ(x.beam_id, y.beam_id);
+    DCHECK_EQ(x.beam_id, y.beam_id);
     if (x.global_score > y.global_score) return true;
     if (x.global_score < y.global_score) return false;
     if (x.word_id < y.word_id) return true;
@@ -73,7 +73,7 @@ struct HigherScoreWithEos {
 
   bool operator()(const Hyp& x, const Hyp& y) const {
     // We only compare hyps belonging to the same beams.
-    CHECK_EQ(x.beam_id, y.beam_id);
+    DCHECK_EQ(x.beam_id, y.beam_id);
     // Note that we revert to HigherScore's behavior when _both_ paths contain
     // eos_id_ as the word_id.
     if (!(x.word_id == eos_id_ && y.word_id == eos_id_)) {
@@ -92,7 +92,7 @@ struct HigherScoreWithEos {
 struct BetterTerminatedHyp {
   bool operator()(const Hypothesis& x, const Hypothesis& y) const {
     // We only compare hyps belonging to the same beams.
-    CHECK_EQ(x.beam_id(), y.beam_id());
+    DCHECK_EQ(x.beam_id(), y.beam_id());
     if (x.normalized_score() > y.normalized_score()) return true;
     if (x.normalized_score() < y.normalized_score()) return false;
     return x.ids_size() < y.ids_size();
