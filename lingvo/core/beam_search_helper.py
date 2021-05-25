@@ -59,8 +59,8 @@ from tensorflow.python.ops import inplace_ops
 BeamSearchDecodeOutput = collections.namedtuple(
     'BeamSearchDecodeOutput',
     [
-        'done_hyps', 'topk_hyps', 'topk_ids', 'topk_lens', 'topk_scores',
-        'topk_decoded', 'other_states'
+        'topk_hyps', 'topk_ids', 'topk_lens', 'topk_scores', 'topk_decoded',
+        'other_states'
     ],
 )
 # Make the last attribute default to None.
@@ -547,9 +547,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
     # [num_beams, num_hyps_per_beam].
     topk_scores = tf.reshape(topk_scores, tf.shape(topk_hyps))
 
-    return BeamSearchDecodeOutput(final_done_hyps, topk_hyps, topk_ids,
-                                  topk_lens, topk_scores, None,
-                                  final_other_states)
+    return BeamSearchDecodeOutput(topk_hyps, topk_ids, topk_lens, topk_scores,
+                                  None, final_other_states)
 
 
 def _GetShapes(tensors, none_shapes=False):

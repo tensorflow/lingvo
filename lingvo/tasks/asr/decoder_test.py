@@ -509,6 +509,7 @@ class DecoderTest(test_utils.TestCase):
       tf.random.set_seed(837274904)
       np.random.seed(837575)
       p.beam_search.num_hyps_per_beam = 4
+      p.beam_search.length_normalization = 10.
       p.dtype = tf.float32
       p.target_seq_len = 5
 
@@ -524,20 +525,15 @@ class DecoderTest(test_utils.TestCase):
 
       encoder_outputs = py_utils.NestedMap(
           encoded=src_enc, padding=src_enc_padding)
-      done_hyps = dec.BeamSearchDecode(encoder_outputs).done_hyps
+      topk_hyps = dec.BeamSearchDecode(encoder_outputs).topk_hyps
       self.evaluate(tf.global_variables_initializer())
 
       softmax_wts = self.evaluate(dec.vars.softmax)
       print('softmax wts = ', softmax_wts)
 
-      done_hyps_serialized = self.evaluate([done_hyps])[0]
+      topk_hyps_serialized = self.evaluate([topk_hyps])[0]
       hyp = Hypothesis()
-      print('done hyps shape = ', done_hyps_serialized.shape)
-      for i in range(5):
-        for j in range(8):
-          print(i, j, len(done_hyps_serialized[i, j]))
-      hyp.ParseFromString(done_hyps_serialized[2, 5])
-      print('hyp = ', hyp)
+      hyp.ParseFromString(topk_hyps_serialized[1, 2])
       return hyp
 
   def _VerifyHypothesesMatch(self, hyp1, hyp2):
@@ -546,6 +542,7 @@ class DecoderTest(test_utils.TestCase):
     self.assertEqual(hyp1.beam_id, hyp2.beam_id)
     self.assertEqual(list(hyp1.ids), list(hyp2.ids))
     self.assertAllClose(hyp1.scores, hyp2.scores)
+    self.assertAllClose(hyp1.normalized_score, hyp2.normalized_score)
     self.assertEqual(len(hyp1.atten_vecs), len(hyp2.atten_vecs))
     for av1, av2 in zip(hyp1.atten_vecs, hyp2.atten_vecs):
       self.assertAllClose(av1.prob, av2.prob)
@@ -568,6 +565,7 @@ class DecoderTest(test_utils.TestCase):
       scores: -2.021608
       scores: -2.000098
       scores: -2.036338
+      normalized_score: -0.0550976
       atten_vecs {
         prob: 0.330158
         prob: 0.342596

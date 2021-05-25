@@ -210,7 +210,7 @@ class MergeBeamSearchOutputsTest(test_utils.TestCase):
       topk_lens_1 = [[3, 3, 2], [3, 3, 0]]
       topk_hyps_1 = [['one', 'three', 'five'], ['minus two', 'minus one', '']]
       topk_1 = beam_search_helper.BeamSearchDecodeOutput(
-          None, tf.constant(topk_hyps_1),
+          tf.constant(topk_hyps_1),
           tf.reshape(tf.constant(topk_ids_1), [6, -1]),
           tf.reshape(tf.constant(topk_lens_1), [-1]),
           tf.reshape(tf.constant(topk_scores_1), [-1]), None, None)
@@ -220,13 +220,12 @@ class MergeBeamSearchOutputsTest(test_utils.TestCase):
       topk_lens_2 = [[3, 2], [3, 0]]
       topk_hyps_2 = [['two', 'four'], ['minus three', '']]
       topk_2 = beam_search_helper.BeamSearchDecodeOutput(
-          None, tf.constant(topk_hyps_2),
+          tf.constant(topk_hyps_2),
           tf.reshape(tf.constant(topk_ids_2), [4, -1]),
           tf.reshape(tf.constant(topk_lens_2), [-1]),
           tf.reshape(tf.constant(topk_scores_2), [-1]), None, None)
 
       topk = beam_search_helper.MergeBeamSearchOutputs(3, [topk_1, topk_2])
-      self.assertIsNone(topk.done_hyps)
       self.assertIsNone(topk.topk_decoded)
       self.assertAllEqual([5., 4., 3., -1., -2., -3.], topk.topk_scores.eval())
       self.assertAllEqual([2, 2, 3, 3, 3, 3], topk.topk_lens.eval())

@@ -62,6 +62,8 @@ guarantees regarding backwards compatibility.**
 *   **General**
     *   ops.beam_search_step now takes and returns an additional arg
         `beam_done`.
+    *   The namedtuple beam_search_helper.BeamSearchDecodeOutput now removes the
+        field `done_hyps`.
 
 #### 0.9.0
 

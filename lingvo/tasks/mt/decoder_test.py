@@ -300,9 +300,6 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       actual_decode = self.evaluate(decode)
 
     self.assertTupleEqual(
-        (src_time, src_batch * p.beam_search.num_hyps_per_beam),
-        actual_decode.done_hyps.shape)
-    self.assertTupleEqual(
         (src_batch, p.beam_search.num_hyps_per_beam),
         actual_decode.topk_hyps.shape)
     self.assertTupleEqual(
@@ -343,8 +340,6 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       actual_decode = self.evaluate(decode)
 
     num_hyps = src_batch * p.beam_search.num_hyps_per_beam
-    self.assertTupleEqual((p.target_seq_len, num_hyps),
-                          actual_decode.done_hyps.shape)
     self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
                           actual_decode.topk_hyps.shape)
     self.assertTupleEqual((num_hyps, p.target_seq_len),
@@ -394,8 +389,6 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       actual_decode = self.evaluate(decode)
 
     num_hyps = src_batch * p.beam_search.num_hyps_per_beam
-    self.assertTupleEqual((p.target_seq_len, num_hyps),
-                          actual_decode.done_hyps.shape)
     self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
                           actual_decode.topk_hyps.shape)
     self.assertTupleEqual((num_hyps, p.target_seq_len),
@@ -443,9 +436,6 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       actual_decode = self.evaluate(decode)
 
-    self.assertTupleEqual(
-        (src_time, src_batch * p.beam_search.num_hyps_per_beam),
-        actual_decode.done_hyps.shape)
     self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
                           actual_decode.topk_hyps.shape)
     self.assertTupleEqual(
@@ -484,9 +474,6 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       actual_decode_feeding_att_context = self.evaluate(decode)
 
-    self.assertTupleEqual(
-        (src_time, src_batch * p.beam_search.num_hyps_per_beam),
-        actual_decode_feeding_att_context.done_hyps.shape)
     self.assertTupleEqual(
         (src_batch, p.beam_search.num_hyps_per_beam),
         actual_decode_feeding_att_context.topk_hyps.shape)
@@ -1270,9 +1257,6 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       actual_decode = self.evaluate(decode)
 
     self.assertTupleEqual(
-        (src_time, src_batch * p.beam_search.num_hyps_per_beam),
-        actual_decode.done_hyps.shape)
-    self.assertTupleEqual(
         (src_batch, p.beam_search.num_hyps_per_beam),
         actual_decode.topk_hyps.shape)
     self.assertTupleEqual(
@@ -1565,8 +1549,6 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       source_batch = 4
       source_time = 5
       num_hyps_per_beam = 2
-      self.assertTupleEqual((source_time, source_batch * num_hyps_per_beam),
-                            actual_decode.done_hyps.shape)
       self.assertTupleEqual((source_batch, num_hyps_per_beam),
                             actual_decode.topk_hyps.shape)
       self.assertTupleEqual((source_batch * num_hyps_per_beam, source_time),
