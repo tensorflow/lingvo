@@ -1309,8 +1309,6 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
     OP_REQUIRES_OK(
         ctx, ctx->GetAttr("length_normalization", &length_normalization_));
     OP_REQUIRES_OK(ctx,
-                   ctx->GetAttr("populate_done_hyps", &populate_done_hyps_));
-    OP_REQUIRES_OK(ctx,
                    ctx->GetAttr("populate_topk_hyps", &populate_topk_hyps_));
     OP_REQUIRES(
         ctx, length_normalization_ >= 0.0,
@@ -1380,12 +1378,19 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
     Tensor* out_scores;
     OP_REQUIRES_OK(
         ctx, ctx->allocate_output(2, TensorShape({num_hyps}), &out_scores));
+    Tensor* out_topk_hyps;
+    OP_REQUIRES_OK(
+        ctx, ctx->allocate_output(3, TensorShape{num_beams, num_hyps_per_beam_},
+                                  &out_topk_hyps));
+
     auto t_out_ids = out_ids->matrix<int32>();
     auto t_out_seq_lens = out_seq_lens->vec<int32>();
     auto t_out_scores = out_scores->vec<float>();
+    auto t_out_topk_hyps = out_topk_hyps->matrix<tstring>();
     t_out_ids.setZero();
     t_out_seq_lens.setZero();
     t_out_scores.setZero();
+
     ctx->device()->tensorflow_cpu_worker_threads()->workers->ParallelFor(
         num_beams, /* cost_per_unit=*/4 * num_hyps_per_beam_ * max_seq_length_,
         [&](int64 begin, int64 end) {
@@ -1412,37 +1417,71 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
                 t_out_ids(idx, time_idx) = t_hyps(time_idx, prev_hyp_id);
                 prev_hyp_id = t_prev_hyps(time_idx, prev_hyp_id);
               }
+
+              if (populate_topk_hyps_) {
+                t_out_topk_hyps(beam_id, hyp_id) =
+                    GetHypProto(ctx, entry, beam_id);
+              }
             }
           }
         });
-
-    Tensor* out_done_hyps;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(3, hyps.shape(), &out_done_hyps));
-    Tensor* out_topk_hyps;
-    OP_REQUIRES_OK(
-        ctx, ctx->allocate_output(4, TensorShape{num_beams, num_hyps_per_beam_},
-                                  &out_topk_hyps));
-    // TODO(b/188414736): populate the string outputs when enabled.
-    // const Tensor& scores = ctx->input(5);
-    // const Tensor& atten_probs = ctx->input(6);
-    // const Tensor& eos_atten_probs = ctx->input(7);
-    // auto t_scores = scores.matrix<T>();
-    // auto t_atten_probs = atten_probs.tensor<T, 3>();
-    // auto t_eos_atten_probs = eos_atten_probs.tensor<T, 3>();
   }
 
  private:
-  float NormalizedScore(float score, int length) {
+  float NormalizedScore(float score, int length) const {
     const float length_norm = std::pow(length + 5.0, length_normalization_) /
                               std::pow(5.0, length_normalization_);
     return score / length_norm;
+  }
+
+  string GetHypProto(OpKernelContext* ctx, const DoneHypEntry& entry,
+                     int beam_id) const {
+    const Tensor& hyps = ctx->input(0);
+    const Tensor& prev_hyps = ctx->input(1);
+    const Tensor& eos_scores = ctx->input(4);
+    const Tensor& scores = ctx->input(5);
+    const Tensor& atten_probs = ctx->input(6);
+    const Tensor& eos_atten_probs = ctx->input(7);
+
+    auto t_hyps = hyps.matrix<int>();
+    auto t_prev_hyps = prev_hyps.matrix<int>();
+    auto t_eos_scores = eos_scores.matrix<T>();
+    auto t_scores = scores.matrix<T>();
+    auto t_atten_probs = atten_probs.tensor<T, 3>();
+    auto t_eos_atten_probs = eos_atten_probs.tensor<T, 3>();
+
+    Hypothesis hyp_proto;
+    hyp_proto.set_beam_id(beam_id);
+    hyp_proto.set_normalized_score(entry.normalized_score);
+    for (int time_idx = 0; time_idx <= entry.time_idx; ++time_idx) {
+      hyp_proto.add_ids(0);
+      hyp_proto.add_scores(0.);
+      hyp_proto.add_atten_vecs();
+    }
+    hyp_proto.set_ids(entry.time_idx, eos_id_);
+    hyp_proto.set_scores(entry.time_idx,
+                         t_eos_scores(entry.time_idx, entry.hyp_idx));
+    auto* atten_vecs = hyp_proto.mutable_atten_vecs(entry.time_idx);
+    for (int d = 0; d < eos_atten_probs.dim_size(2); ++d) {
+      atten_vecs->add_prob(t_eos_atten_probs(entry.time_idx, entry.hyp_idx, d));
+    }
+    int prev_hyp_id = entry.hyp_idx;
+    for (int time_idx = entry.time_idx - 1; time_idx >= 0; --time_idx) {
+      hyp_proto.set_ids(time_idx, t_hyps(time_idx, prev_hyp_id));
+      hyp_proto.set_scores(time_idx, t_scores(time_idx, prev_hyp_id));
+      atten_vecs = hyp_proto.mutable_atten_vecs(time_idx);
+      for (int d = 0; d < atten_probs.dim_size(2); ++d) {
+        atten_vecs->add_prob(t_atten_probs(time_idx, prev_hyp_id, d));
+      }
+      prev_hyp_id = t_prev_hyps(time_idx, prev_hyp_id);
+    }
+    return hyp_proto.SerializeAsString();
   }
 
   int32 num_hyps_per_beam_;
   int32 max_seq_length_;
   int32 eos_id_;
   float length_normalization_;
-  bool populate_done_hyps_;
   bool populate_topk_hyps_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(TopKFromBeamSearchOutsOp);

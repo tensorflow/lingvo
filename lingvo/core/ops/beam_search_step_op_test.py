@@ -879,6 +879,20 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
 
 class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
 
+  def _SameHyp(self, hyp1_pb, hyp2_pb):
+    hyp1 = hyps_pb2.Hypothesis()
+    hyp1.ParseFromString(hyp1_pb)
+    hyp2 = hyps_pb2.Hypothesis()
+    hyp2.ParseFromString(hyp2_pb)
+
+    self.assertEqual(hyp1.beam_id, hyp2.beam_id)
+    self.assertEqual(hyp1.ids, hyp2.ids)
+    self.assertNear(hyp1.normalized_score, hyp2.normalized_score, 1e-6)
+    self.assertAllClose(hyp1.scores, hyp2.scores)
+    self.assertEqual(len(hyp1.atten_vecs), len(hyp2.atten_vecs))
+    for av1, av2 in zip(hyp1.atten_vecs, hyp2.atten_vecs):
+      self.assertAllClose(av1.prob, av2.prob)
+
   def testTopKFromBeamSearchOut(self):
 
     with self.session(use_gpu=False) as sess:
@@ -922,8 +936,7 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(outs[0].shape, [hyp_size, seq_len])
       self.assertAllEqual(outs[1].shape, [hyp_size])
       self.assertAllEqual(outs[2].shape, [hyp_size])
-      self.assertAllEqual(outs[3].shape, [seq_len, hyp_size])
-      self.assertAllEqual(outs[4].shape, [num_beams, num_hyps_per_beam])
+      self.assertAllEqual(outs[3].shape, [num_beams, num_hyps_per_beam])
 
       # For beam 0, the highest scores are:
       # [0, 0] (from eos_scores), [1, 4], [0, 2] (from cumulative_scores)
@@ -966,13 +979,13 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(outs[1], expected_lengths)
       self.assertAllClose(outs[2], expected_normalized_scores)
 
-  @parameterized.parameters(0., .5, 1.)
-  def testTopKEquivalent(self, length_normalization):
+  @parameterized.parameters((0., False), (.5, False), (0.5, True), (1., True))
+  def testTopKEquivalent(self, length_normalization, populate_hyps):
     """Tests that top_k_from_beam_search_outs is indeed equivalent."""
     with self.session(use_gpu=False) as sess:
       hyp_size = 32
       num_beams = 8
-      num_hyps_per_beam = hyp_size / num_beams
+      num_hyps_per_beam = hyp_size // num_beams
       seq_len = 10
 
       hyps = np.random.randint(3, 100, size=[seq_len, hyp_size])
@@ -982,19 +995,37 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
       scores = np.random.uniform(-0.5, 1, size=[seq_len, hyp_size])
       cumulative_scores = np.cumsum(scores, axis=0)
       eos_scores = np.random.uniform(-0.5, 1, size=[seq_len, hyp_size])
-      atten_probs = np.zeros([seq_len, hyp_size, seq_len])
-      results = ops.top_k_from_beam_search_outs(
-          hyps,
-          prev_hyps,
-          done_hyps,
-          cumulative_scores,
-          eos_scores,
-          0,  # unused scores
-          0,  # unused atten_probs
-          0,  # unused eos_atten_probs
-          num_hyps_per_beam=num_hyps_per_beam,
-          max_seq_length=seq_len,
-          length_normalization=length_normalization)
+      atten_probs = np.random.uniform(0, 1, size=[seq_len, hyp_size, seq_len])
+      eos_atten_probs = np.random.uniform(
+          0, 1, size=[seq_len, hyp_size, seq_len])
+      if not populate_hyps:
+        results = ops.top_k_from_beam_search_outs(
+            hyps,
+            prev_hyps,
+            done_hyps,
+            cumulative_scores,
+            eos_scores,
+            0,  # unused scores
+            0,  # unused atten_probs
+            0,  # unused eos_atten_probs
+            num_hyps_per_beam=num_hyps_per_beam,
+            max_seq_length=seq_len,
+            length_normalization=length_normalization)
+      else:
+        results = ops.top_k_from_beam_search_outs(
+            hyps,
+            prev_hyps,
+            done_hyps,
+            cumulative_scores,
+            eos_scores,
+            scores,
+            atten_probs,
+            eos_atten_probs,
+            num_hyps_per_beam=num_hyps_per_beam,
+            max_seq_length=seq_len,
+            length_normalization=length_normalization,
+            populate_topk_hyps=True)
+
       outs = sess.run(results)
 
       final_done_hyps = ops.hyps_from_beam_search_outs(
@@ -1004,7 +1035,7 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
           scores,
           atten_probs,
           eos_scores,
-          atten_probs,
+          eos_atten_probs,
           eos_id=2,
           num_hyps_per_beam=num_hyps_per_beam,
       )
@@ -1019,12 +1050,18 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
           target_seq_length_ratio=1.0)
       topk_ids, topk_lens, topk_scores = ops.unpack_hyp(
           topk_hyps, max_seq_length=seq_len)
-      topk_ids, topk_lens, topk_scores = sess.run(
-          [topk_ids, topk_lens, topk_scores])
+      topk_hyps, topk_ids, topk_lens, topk_scores = sess.run(
+          [topk_hyps, topk_ids, topk_lens, topk_scores])
 
     self.assertAllEqual(outs[0], topk_ids)
     self.assertAllEqual(outs[1], topk_lens)
     self.assertAllClose(outs[2], topk_scores)
+    if populate_hyps:
+      self.assertAllEqual(outs[3].shape, topk_hyps.shape)
+      self.assertAllEqual(outs[3].shape, [num_beams, num_hyps_per_beam])
+      for i in range(num_beams):
+        for j in range(num_hyps_per_beam):
+          self._SameHyp(outs[3][i, j], topk_hyps[i, j])
 
 
 if __name__ == '__main__':

@@ -419,25 +419,23 @@ num_hyps_per_beam: Number of hyps per beam.
 )doc");
 
 REGISTER_OP("TopKFromBeamSearchOuts")
-    .Input("hyps: int32")             // 0
-    .Input("prev_hyps: int32")        // 1
-    .Input("done_hyps: bool")         // 2
-    .Input("cumulative_scores: T")    // 3
-    .Input("eos_scores: T")           // 4
-    .Input("scores: T")               // 5
-    .Input("atten_probs: T")          // 6
-    .Input("eos_atten_probs: T")      // 7
-    .Output("out_ids: int32")         // 0
-    .Output("out_seq_lens: int32")    // 1
-    .Output("out_scores: float32")    // 2
-    .Output("out_done_hyps: string")  // 3
-    .Output("topk_hyps: string")      // 4
+    .Input("hyps: int32")           // 0
+    .Input("prev_hyps: int32")      // 1
+    .Input("done_hyps: bool")       // 2
+    .Input("cumulative_scores: T")  // 3
+    .Input("eos_scores: T")         // 4
+    .Input("scores: T")             // 5
+    .Input("atten_probs: T")        // 6
+    .Input("eos_atten_probs: T")    // 7
+    .Output("out_ids: int32")       // 0
+    .Output("out_seq_lens: int32")  // 1
+    .Output("out_scores: float32")  // 2
+    .Output("topk_hyps: string")    // 3
     .Attr("T: {float, bfloat16} = DT_FLOAT")
     .Attr("num_hyps_per_beam: int")
     .Attr("max_seq_length: int")
     .Attr("eos_id: int = 2")
     .Attr("length_normalization: float = 0.0")
-    .Attr("populate_done_hyps: bool = false")
     .Attr("populate_topk_hyps: bool = false")
     .Doc(R"doc(
 Compute tensors of ids, seq_len and scores from outputs of beam search steps.
@@ -457,8 +455,8 @@ j = index % k, n = index // k. 'mod' means for beam n, hyp j will have index
 indicated below.
 
 Note that the inputs `scores`, `atten_probs`, and `eos_atten_probs` are only
-used to assemble the Hypothesis protos. So if both `populate_done_hyps` and
-`populate_topk_hyps` are false, these 3 inputs are unused and ignored.
+used to assemble the Hypothesis protos. So if `populate_topk_hyps` is false,
+these 3 inputs are unused and ignored.
 
 hyps: A tensor of shape [t, k * b] with ids of the token selected.
 prev_hyps: A tensor of shape [t, k * b] with index to the previous hyps which
@@ -490,19 +488,15 @@ out_seq_lens:
     div ordered.
 out_scores:
     Scores for each of the output sequence, a vector of (b * k). div ordered.
-out_done_hyps:
-    A tensor of shape [t, k * b] with terminated hyps. mod ordered.
 topk_hyps:
     A string tensor of shape [b, k]. topk_hyps[i,] contains top k terminated
     hyp for beam 'i', each hyp could be either an empty string or a serialized
-    `Hypothesis` proto.
+    `Hypothesis` proto. When `populate_topk_hyps` is False, all strings are
+    empty.
 num_hyps_per_beam: Number of hyps per beam, i.e. the value of k. Required.
 max_seq_length: Max output sequence length. Required.
 eos_id: Token id of the special end of sequence token.
 length_normalization: The length normalization factor.
-populate_done_hyps: whether to populate `done_hyps` with serialized protos. When
-    False, the output `done_hyps` is just empty string with the shape
-    [t, b * k].
 populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
     False, the output `topk_hyps` is just empty string with the shape [b, k].
 )doc")
@@ -524,10 +518,9 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
               "], got shape: ", c->DebugString(c->input(i)));
         }
       }
-      bool populate_done, populate_topk;
-      TF_RETURN_IF_ERROR(c->GetAttr("populate_done_hyps", &populate_done));
+      bool populate_topk;
       TF_RETURN_IF_ERROR(c->GetAttr("populate_topk_hyps", &populate_topk));
-      if (populate_done || populate_topk) {
+      if (populate_topk) {
         if (c->Rank(c->input(5)) != 2 ||
             c->Value(c->Dim(c->input(5), 0)) != t ||
             c->Value(c->Dim(c->input(5), 1)) != b_times_k) {
@@ -580,8 +573,7 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
       c->set_output(0, c->Matrix(b_times_k, max_length));
       c->set_output(1, c->Vector(b_times_k));
       c->set_output(2, c->Vector(b_times_k));
-      c->set_output(3, c->Matrix(t, b_times_k));
-      c->set_output(4, c->Matrix(b, k));
+      c->set_output(3, c->Matrix(b, k));
       return ::tensorflow::Status::OK();
     });
 
