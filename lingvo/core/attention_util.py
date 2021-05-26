@@ -18,6 +18,7 @@
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
+from lingvo.core import quant_utils
 from lingvo.core import summary_utils
 
 
@@ -186,63 +187,6 @@ def RelShift(x):
   return x
 
 
-def RelPositionBias(content, abs_pos_emb, skip_term_b=False):
-  """Compute relative position bias.
-
-  This is a subroutine used by variants of self-attentions with relative
-  positional embedding.
-
-  B: batch size
-  T: sequence length
-  N: num of attention heads.
-  H: per-head attention dimension.
-
-  output[b][n][i][j] = content[b][i][n] x abs_pos_emb[i-j+T-1][n]
-
-  Notice padding is supposed to be masked by the caller of this function.
-
-  Args:
-    tensors of the following shapes:
-    content:         [N, H] if skip_term_b else [B, T, N, H]
-    abs_pos_emb:     [2T - 1, N, H], the absolute positional embedding.
-      abs_pos_emb[i] is the emb of relative distance i - (T-1).
-    skip_term_b:     If to skip term_b in section 3.3 equation.
-
-  Returns:
-    The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].
-  """
-
-  if not skip_term_b:
-    b, t, n, h = py_utils.GetShape(content)
-    l = 2 * t - 1
-    abs_pos_emb = py_utils.HasShape(abs_pos_emb, [l, n, h])
-  else:
-    n, h = py_utils.GetShape(content)
-    l = py_utils.GetShape(abs_pos_emb)[0]
-    t = (l + 1) // 2
-
-  if not skip_term_b:
-    # [B, N, T, L=2T-1]
-    term_bd = tf.einsum('BTNH,LNH->BNTL', content, abs_pos_emb)
-    term_bd = tf.reshape(term_bd, [b, n, t * l], name='flatten')
-    # [B, N, T * (L + 1)].
-    term_bd = tf.pad(term_bd, ((0, 0), (0, 0), (0, t)))
-    # [B, N, T, L + 1].
-    term_bd = tf.reshape(term_bd, [b, n, t, l + 1], name='restore')
-    return term_bd[:, :, :, t - 1::-1]
-  else:
-    # [N, L=2T-1]
-    term_d = tf.einsum('NH,LNH->NL', content, abs_pos_emb)
-    # [N, T, L]
-    term_d = tf.tile(tf.expand_dims(term_d, axis=1), [1, t, 1], name='tile')
-    term_d = tf.reshape(term_d, [n, t * l])
-    # [N, T * (L + 1)].
-    term_d = tf.pad(term_d, ((0, 0), (0, t)))
-    # [N, T, L + 1].
-    term_d = tf.reshape(term_d, [n, t, l + 1], name='restore')
-    return term_d[:, :, t - 1::-1]
-
-
 def AttenLogits(query, key):
   """Computes attention logits.
 
@@ -269,121 +213,276 @@ def AttenContext(probs, value):
   return tf.einsum('BNTS,BSNH->BTNH', probs, value)
 
 
-def _AttenLogitsXL(query,
+class PositionalAttenLogits(quant_utils.QuantizableLayer):
+  """Implementation of the positional attention logit computation from ...
+
+  - 'Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context'
+    https://arxiv.org/pdf/1901.02860.pdf section 3.3
+  - 'Self-Attention with Relative Position Representations'
+    https://arxiv.org/pdf/1803.02155.pdf section 3
+  """
+
+  def RelPositionBias(self, content, abs_pos_emb, skip_term_b=False):
+    """Compute relative position bias.
+
+    This is a subroutine used by variants of self-attentions with relative
+    positional embedding.
+
+    output[b][n][i][j] = content[b][i][n] x abs_pos_emb[i-j+T-1][n]
+
+    Padding should be masked by the caller of this function.
+
+    B: batch size
+    T: sequence length
+    N: num of attention heads.
+    H: per-head attention dimension.
+
+    Args:
+      tensors of the following shapes:
+      content:         [N, H] if skip_term_b else [B, T, N, H]
+      abs_pos_emb:     [2T - 1, N, H], the absolute positional embedding.
+        abs_pos_emb[i] is the emb of relative distance i - (T-1).
+      skip_term_b:     If to skip term_b in section 3.3 equation.
+
+    Returns:
+      The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].
+    """
+    if not skip_term_b:
+      b, t, n, h = py_utils.GetShape(content)
+      l = 2 * t - 1
+      abs_pos_emb = py_utils.HasShape(abs_pos_emb, [l, n, h])
+    else:
+      n, h = py_utils.GetShape(content)
+      l = py_utils.GetShape(abs_pos_emb)[0]
+      t = (l + 1) // 2
+
+    if not skip_term_b:
+      # [B, N, T, L=2T-1]
+      content, abs_pos_emb = self.ToAqtActActInputs(content, abs_pos_emb)
+      term_bd = tf.einsum('BTNH,LNH->BNTL', content, abs_pos_emb)
+      term_bd = self.FromAqtActActMatmul(term_bd)
+
+      term_bd = tf.reshape(term_bd, [b, n, t * l], name='flatten')
+      # [B, N, T * (L + 1)].
+      term_bd = tf.pad(term_bd, ((0, 0), (0, 0), (0, t)))
+      # [B, N, T, L + 1].
+      term_bd = tf.reshape(term_bd, [b, n, t, l + 1], name='restore')
+      return term_bd[:, :, :, t - 1::-1]
+    else:
+      # [N, L=2T-1]
+      content, abs_pos_emb = self.ToAqtActActInputs(content, abs_pos_emb)
+      term_d = tf.einsum('NH,LNH->NL', content, abs_pos_emb)
+      term_d = self.FromAqtActActMatmul(term_d)
+
+      # [N, T, L]
+      term_d = tf.tile(tf.expand_dims(term_d, axis=1), [1, t, 1], name='tile')
+      term_d = tf.reshape(term_d, [n, t * l])
+      # [N, T * (L + 1)].
+      term_d = tf.pad(term_d, ((0, 0), (0, t)))
+      # [N, T, L + 1].
+      term_d = tf.reshape(term_d, [n, t, l + 1], name='restore')
+      return term_d[:, :, t - 1::-1]
+
+  def _ValidateBiases(self, content_bias, positional_bias, n, h):
+    if content_bias is not None:
+      content_bias = py_utils.HasShape(content_bias, [n, h])
+    else:
+      content_bias = tf.constant(0, dtype=py_utils.FPropDtype(self.params))
+    if positional_bias is not None:
+      positional_bias = py_utils.HasShape(positional_bias, [n, h])
+    else:
+      positional_bias = tf.constant(0, dtype=py_utils.FPropDtype(self.params))
+    return content_bias, positional_bias
+
+  def _AttenLogits(self,
+                   query,
                    key,
                    abs_pos_emb,
                    content_bias=None,
                    positional_bias=None,
                    skip_term_b=False):
-  """Attention logits from ...
+    # pyformat: disable  (b/189357810)
+    """Attention logits from TransformerXL and Self Attention RPE.
 
-  Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of
-  self attention with relative position embedding.
+    Padding should be masked by the caller of this function.
 
-  Notice padding is supposed to be masked by the caller of this function.
+    B: batch size
+    T: sequence length
+    N: num of attention heads.
+    H: per-head attention dimension.
 
-  B: batch size
-  T: sequence length
-  N: num of attention heads.
-  H: per-head attention dimension.
+    Args:
+      tensors of the following shapes:
+      query:             [B, T, N, H]
+      key:               [B, T, N, H]
+      abs_pos_emb:     [2T - 1, N, H]. The sinusoid positional embedding from
+        'Attention Is All You Need' (https://arxiv.org/abs/1706.03762).
+        abs_pos_emb[i] is the emb of relative distance i - (T-1).
+      content_bias:    [N, H] or None
+      positional_bias: [N, H] or None
+      skip_term_b:     If to skip term_b in section 3.3 equation.
 
-  Args:
-    tensors of the following shapes:
-    query:           [B, T, N, H]
-    key:             [B, T, N, H]
-    abs_pos_emb:     [2T - 1, N, H]. The sinusoid positional embedding from
-    https://arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative
-    distance i - (T-1).
-    content_bias:    [N, H] or None
-    positional_bias: [N, H] or None
-    skip_term_b:     If to skip term_b in section 3.3 equation.
+    Returns:
+      The attention logits tensor. [B, N, T, T]
+    """
+    # pyformat: enable
+    b, t, n, h = py_utils.GetShape(query)
+    key = py_utils.HasShape(key, [b, t, n, h])
+    content_bias, positional_bias = self._ValidateBiases(
+        content_bias, positional_bias, n, h)
 
-  Returns:
-    The attention logits tensor. [B, N, T, T]
-  """
-  b, t, n, h = py_utils.GetShape(query)
+    # [B, N, T, S=T]
+    with tf.name_scope('term_ac'):
+      content = query + content_bias
+      content, key = self.ToAqtActActInputs(content, key)
+      term_ac = tf.einsum('BTNH,BSNH->BNTS', content, key)
+      term_ac = self.FromAqtActActMatmul(term_ac)
+    with tf.name_scope('term_bd'):
+      if skip_term_b:
+        content = positional_bias
+      else:
+        content = query + positional_bias
+      term_bd = self.RelPositionBias(content, abs_pos_emb, skip_term_b)
+    return term_ac + term_bd
 
-  key = py_utils.HasShape(key, [b, t, n, h])
-  if content_bias is not None:
-    content_bias = py_utils.HasShape(content_bias, [n, h])
-  else:
-    content_bias = 0
-  if positional_bias is not None:
-    positional_bias = py_utils.HasShape(positional_bias, [n, h])
-  else:
-    positional_bias = 0
+  def AttenLogitsXL(self, query, key, abs_pos_emb, content_bias,
+                    positional_bias, skip_term_b):
+    # pyformat: disable  (b/189357810)
+    """Attention logits from Transformer-XL.
 
-  # [B, N, T, S=T]
-  with tf.name_scope('term_ac'):
-    term_ac = tf.einsum('BTNH,BSNH->BNTS', query + content_bias, key)
-  with tf.name_scope('term_bd'):
+    Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of
+    self attention with relative position embedding.
+
+    Padding should be masked by the caller of this function.
+
+    B: batch size
+    T: sequence length
+    N: num of attention heads.
+    H: per-head attention dimension.
+
+    Args:
+      tensors of the following shapes:
+      query:             [B, T, N, H]
+      key:               [B, T, N, H]
+      abs_pos_emb:     [2T - 1, N, H]. The sinusoid positional embedding from
+        'Attention Is All You Need' (https://arxiv.org/abs/1706.03762).
+        abs_pos_emb[i] is the emb of relative distance i - (T-1).
+      content_bias:    [N, H] or None
+      positional_bias: [N, H] or None
+      skip_term_b:     If to skip term_b in section 3.3 equation.
+
+    Returns:
+      The attention logits tensor. [B, N, T, T]
+    """
+    # pyformat: enable
+    return self._AttenLogits(query, key, abs_pos_emb, content_bias,
+                             positional_bias, skip_term_b)
+
+  def AttenLogitsRPE(self, query, key, abs_pos_emb):
+    """Attention logits for Relative Position Representations.
+
+    https://arxiv.org/pdf/1803.02155.pdf with trainable rel position emb.
+
+    Padding should be masked by the caller of this function.
+
+    B: batch size
+    T: sequence length
+    N: num of attention heads.
+    H: per-head attention dimension.
+
+    Args:
+      tensors of the following shapes:
+      query:           [B, T, N, H]
+      key:             [B, T, N, H]
+      abs_pos_emb:   [2T - 1, N, H]. The trainable embdding. abs_pos_emb[i] is
+        the emb of relative distance i - (T-1).
+
+    Returns:
+      The attention logits tensor. [B, N, T, T]
+    """
+    return self._AttenLogits(query, key, abs_pos_emb)
+
+  def AttenLogitsXLOneStep(self, query, key, abs_pos_emb, content_bias,
+                           positional_bias, skip_term_b):
+    """Transformer-XL attention logits for one single target (query) step.
+
+    B: batch size
+    S: sequence length
+    N: num of attention heads.
+    H: per-head attention dimension.
+
+    Args:
+      query:          [B, N, H].
+      key:         [S, B, N, H] or [S, B, N*H/128, 128].
+      abs_pos_emb: [B, S, N, H] or [S, N, H]
+      content_bias:      [N, H] or None
+      positional_bias:   [N, H] or None
+      skip_term_b: If to skip term_b in section 3.3 equation of the
+        TransformerXL paper.
+
+    Returns:
+      A Tensor of shape [S, B, N]
+    """
+    s, b, _, _ = py_utils.GetShape(key, 4)
+    _, n, h = py_utils.GetShape(query, 3)
+    key = tf.reshape(key, [s, b, n, h])
+    content_bias, positional_bias = self._ValidateBiases(
+        content_bias, positional_bias, n, h)
+
+    # Term a and c.
+    content = query + content_bias
+    content, key = self.ToAqtActActInputs(content, key)
+    term_ac = tf.einsum('BNH,SBNH->SBN', content, key)
+    term_ac = self.FromAqtActActMatmul(term_ac)
+
+    # Term b an d.
+    synced_time_step = abs_pos_emb.shape.ndims == 3
     if skip_term_b:
       content = positional_bias
     else:
       content = query + positional_bias
-    term_bd = RelPositionBias(content, abs_pos_emb, skip_term_b)
-  return term_ac + term_bd
+    content, abs_pos_emb = self.ToAqtActActInputs(content, abs_pos_emb)
+    if not skip_term_b:
+      if synced_time_step:
+        term_bd = tf.einsum('BNH,SNH->SBN', content, abs_pos_emb)
+      else:
+        term_bd = tf.einsum('BNH,BSNH->SBN', content, abs_pos_emb)
+    else:
+      if synced_time_step:
+        term_bd = tf.einsum('NH,SNH->SN', content, abs_pos_emb)
+      else:
+        term_bd = tf.einsum('NH,BSNH->SBN', content, abs_pos_emb)
+    term_bd = self.FromAqtActActMatmul(term_bd)
+    # Reshape the output after dequantizing.
+    if skip_term_b and synced_time_step:
+      term_bd = tf.expand_dims(term_bd, 1)
 
+    return term_ac + term_bd
 
-def AttenLogitsTransformerXL(query,
-                             key,
-                             abs_pos_emb,
-                             content_bias,
-                             positional_bias,
-                             skip_term_b=False):
-  """Attention logits from ...
+  def AttenLogitsRPEOneStep(self, query, key, abs_pos_emb):
+    """RPE attention logits for one single target (query) step.
 
-  Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of
-  self attention with relative position embedding.
+    B: batch size
+    S: sequence length
+    N: num of attention heads.
+    H: per-head attention dimension.
 
-  Notice padding is supposed to be masked by the caller of this function.
+    Args:
+      query:          [B, N, H].
+      key:         [S, B, N, H] or [S, B, N*H/128, 128].
+      abs_pos_emb: [S, 1, N, H]
 
-  B: batch size
-  T: sequence length
-  N: num of attention heads.
-  H: per-head attention dimension.
+    Returns:
+      A Tensor of shape [S, B, N]
+    """
+    s, b, _, _ = py_utils.GetShape(key, 4)
+    _, n, h = py_utils.GetShape(query, 3)
+    key = tf.reshape(key, [s, b, n, h])
 
-  Args:
-    tensors of the following shapes:
-    query:           [B, T, N, H]
-    key:             [B, T, N, H]
-    abs_pos_emb:     [2T - 1, N, H]. The sinusoid positional embedding from
-    https://arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative
-    distance i - (T-1).
-    content_bias:    [N, H]
-    positional_bias: [N, H]
-    skip_term_b:     If to skip term_b in section 3.3 equation.
-
-  Returns:
-    The attention logits tensor. [B, N, T, T]
-  """
-  return _AttenLogitsXL(query, key, abs_pos_emb, content_bias, positional_bias,
-                        skip_term_b)
-
-
-def AttenLogitsRPE(query, key, abs_pos_emb):
-  """Attention logits from ...
-
-  https://arxiv.org/pdf/1803.02155.pdf with trainable rel position emb.
-
-  Notice padding is supposed to be masked by the caller of this function.
-
-  B: batch size
-  T: sequence length
-  N: num of attention heads.
-  H: per-head attention dimension.
-
-  Args:
-    tensors of the following shapes:
-    query:           [B, T, N, H]
-    key:             [B, T, N, H]
-    abs_pos_emb:     [2T - 1, N, H]. The trainable embdding. abs_pos_emb[i] is
-      the emb of relative distance i - (T-1).
-
-  Returns:
-    The attention logits tensor. [B, N, T, T]
-  """
-  return _AttenLogitsXL(query, key, abs_pos_emb)
+    key_emb = key + abs_pos_emb
+    query, key_emb = self.ToAqtActActInputs(query, key_emb)
+    logits = tf.einsum('BNH,SBNH->SBN', query, key_emb)
+    return self.FromAqtActActMatmul(logits)
 
 
 class KMeansClusteringForAtten(base_layer.BaseLayer):
@@ -591,7 +690,7 @@ def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
   We require that 'sparsity_indices' does not contain duplicates (except for -1
   to indicate paddings), but we do not require 'sparsity_indices' to be sorted.
 
-  Note that this implementation is flexible and geneic but is not optimized for
+  Note that this implementation is flexible and generic but is not optimized for
   time or space complexity. Please consider grouping queries that attend to the
   same subset of values first for efficiency.
 

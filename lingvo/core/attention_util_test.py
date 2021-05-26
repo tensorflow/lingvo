@@ -38,9 +38,12 @@ class RelPositionBiasTest(test_utils.TestCase, parameterized.TestCase):
           tf.range(t * (2 * t - 1), dtype=tf.float32), [2 * t - 1, 1, t])
       tf.logging.info('content=%s abs_pos_emb=%s', content.eval(),
                       abs_pos_emb.eval())
-      self.assertAllClose([[[[6., 3., 0.], [10., 7., 4.], [14., 11., 8.]]]],
-                          attention_util.RelPositionBias(content,
-                                                         abs_pos_emb).eval())
+      p = attention_util.PositionalAttenLogits.Params().Set(name='rel_pos_bias')
+      pos_atten_logits = p.Instantiate()
+      self.assertAllClose(
+          [[[[6., 3., 0.], [10., 7., 4.], [14., 11., 8.]]]],
+          pos_atten_logits.RelPositionBias(content, abs_pos_emb).eval(),
+      )
 
 
 def OracleAttentionLogits(query,
@@ -104,10 +107,11 @@ class TransformerXLRelativeAttentionTest(test_utils.TestCase,
      positional_bias) = self._GetTestInputs()
     expected = OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
                                      positional_bias, skip_term_b)
-    actual_t = attention_util.AttenLogitsTransformerXL(query, key, abs_pos_emb,
-                                                       content_bias,
-                                                       positional_bias,
-                                                       skip_term_b)
+    p = attention_util.PositionalAttenLogits.Params().Set(name='transformer_xl')
+    pos_atten_logits = p.Instantiate()
+    actual_t = pos_atten_logits.AttenLogitsXL(query, key, abs_pos_emb,
+                                              content_bias, positional_bias,
+                                              skip_term_b)
     with self.session() as sess:
       actual = sess.run(actual_t)
     self.assertAllClose(expected, actual)
@@ -115,7 +119,9 @@ class TransformerXLRelativeAttentionTest(test_utils.TestCase,
   def testRPE(self):
     (query, key, abs_pos_emb, _, _) = self._GetTestInputs()
     expected = OracleAttentionLogits(query, key, abs_pos_emb, None, None)
-    actual_t = attention_util.AttenLogitsRPE(query, key, abs_pos_emb)
+    p = attention_util.PositionalAttenLogits.Params().Set(name='rpe')
+    pos_atten_logits = p.Instantiate()
+    actual_t = pos_atten_logits.AttenLogitsRPE(query, key, abs_pos_emb)
     with self.session() as sess:
       actual = sess.run(actual_t)
     self.assertAllClose(expected, actual)

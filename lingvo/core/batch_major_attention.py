@@ -1151,6 +1151,9 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
              'Dimension of relative positional embedding.')
     p.Define('skip_term_b', False,
              'If True, skip term_b in the paper section 3.3.')
+    p.Define('pos_atten_logits_tpl',
+             attention_util.PositionalAttenLogits.Params(),
+             'Params for the positional attention logits.')
     return p
 
   def __init__(self, params):
@@ -1161,7 +1164,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     assert not params.packed_input, 'Packed input not implemented yet.'
 
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
-      raise ValueError('Invalide rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
+      raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
         embedding_dim=params.rel_pos_emb_dim)
@@ -1175,6 +1178,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
         dim_per_head=dim_per_head,
         use_bias=False)
     self.CreateChild('pos_proj', pos_proj_tpl)
+    self.CreateChild('pos_atten_logits', params.pos_atten_logits_tpl)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -1210,9 +1214,14 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     # [2T - 1, N, H]
     sin_emb = tf.squeeze(sin_emb, 0)
 
-    logits = attention_util.AttenLogitsTransformerXL(query, key, sin_emb,
-                                                     theta.u, theta.v,
-                                                     self.params.skip_term_b)
+    logits = self.pos_atten_logits.AttenLogitsXL(
+        query,
+        key,
+        abs_pos_emb=sin_emb,
+        content_bias=theta.u,
+        positional_bias=theta.v,
+        skip_term_b=self.params.skip_term_b)
+
     return logits
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
@@ -1233,41 +1242,36 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     p = self.params
     synced_time_step = (time_step.shape.ndims == 0)
     s, b, _, _ = py_utils.GetShape(key, 4)
-    n = p.num_heads
-    h = p.hidden_dim // n
 
     # Transformer_XL relative attention.
     if time_step is None:
       raise ValueError('`time_step` can not be None when using relative '
                        'position encoding in attention.')
-    # term a and c.
-    logits = tf.einsum('BNH,SBNH->SBN', query + theta.u,
-                       tf.reshape(key, [s, b, n, h]))
+
     if synced_time_step:
+      # [1, s]
       position = tf.expand_dims(time_step - tf.range(s), 0)
     else:
       # [b, s]
       position = (
           tf.expand_dims(time_step, -1) -
           tf.tile(tf.expand_dims(tf.range(s), 0), [b, 1]))
-    # [b, s, emb_dim]
+    # [1 or b, s, emb_dim]
     sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, position)
-    # [b, s, n, h]
+    # [1 or b, s, n, h]
     sin_emb = self.pos_proj.FProp(theta.pos_proj, sin_emb)
     if synced_time_step:
       # [s, n, h]
       sin_emb = tf.squeeze(sin_emb, 0)
-      # term b an d.
-      if not p.skip_term_b:
-        logits += tf.einsum('BNH,SNH->SBN', query + theta.v, sin_emb)
-      else:
-        logits += tf.expand_dims(tf.einsum('NH,SNH->SN', theta.v, sin_emb), 1)
-    else:
-      # term b an d.
-      if not p.skip_term_b:
-        logits += tf.einsum('BNH,BSNH->SBN', query + theta.v, sin_emb)
-      else:
-        logits += tf.einsum('NH,BSNH->SBN', theta.v, sin_emb)
+
+    logits = self.pos_atten_logits.AttenLogitsXLOneStep(
+        query,
+        key,
+        abs_pos_emb=sin_emb,
+        content_bias=theta.u,
+        positional_bias=theta.v,
+        skip_term_b=p.skip_term_b)
+
     return logits
 
   def ExtendStep(self,
@@ -1306,6 +1310,9 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
         'use_global_emb', True,
         'If using global relative positional embedding. Only effective if '
         '`rel_pos_emb_tpl` is not None.')
+    p.Define('pos_atten_logits_tpl',
+             attention_util.PositionalAttenLogits.Params(),
+             'Params for the positional attention logits.')
     return p
 
   def __init__(self, params):
@@ -1344,6 +1351,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
       self.CreateChild('value_emb', rel_pos_emb_tpl)
       if pos_proj_tpl is not None:
         self.CreateChild('value_pos_proj', pos_proj_tpl)
+    self.CreateChild('pos_atten_logits', params.pos_atten_logits_tpl)
 
   def _CreateChildrenVariables(self):
     with tf.variable_scope(
@@ -1410,7 +1418,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     else:
       abs_emb = tf.reshape(abs_emb, [2 * t - 1, n, h])
 
-    return attention_util.AttenLogitsRPE(query, key, abs_emb)
+    return self.pos_atten_logits.AttenLogitsRPE(query, key, abs_emb)
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.
@@ -1425,7 +1433,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     Returns:
       A Tensor of shape [S, B, N]
     """
-    s, b, _, _ = py_utils.GetShape(key, 4)
+    s, _, _, _ = py_utils.GetShape(key, 4)
     _, n, h = py_utils.GetShape(query, 3)
 
     # Transformer_XL relative attention.
@@ -1436,16 +1444,16 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     # [1, S]
     rel_dists = tf.expand_dims(time_step - tf.range(s), 0)
     # [1, S, rel_pos_emb_dim]
-    pos_emb = self.key_emb.FPropDefaultTheta(rel_dists)
+    abs_emb = self.key_emb.FPropDefaultTheta(rel_dists)
     if hasattr(self, 'key_pos_proj'):
       # [1, S, N, H]
-      pos_emb = self.key_pos_proj.FProp(theta.key_pos_proj, pos_emb)
+      abs_emb = self.key_pos_proj.FProp(theta.key_pos_proj, abs_emb)
       # [S, 1, N, H]
-      pos_emb = tf.transpose(pos_emb, [1, 0, 2, 3])
+      abs_emb = tf.transpose(abs_emb, [1, 0, 2, 3])
     else:
-      pos_emb = tf.reshape(pos_emb, [s, 1, n, h])
-    return tf.einsum('BNH,SBNH->SBN', query,
-                     tf.reshape(key, [s, b, n, h]) + pos_emb)
+      abs_emb = tf.reshape(abs_emb, [s, 1, n, h])
+
+    return self.pos_atten_logits.AttenLogitsRPEOneStep(query, key, abs_emb)
 
   def _AttenContext(self, theta, probs, value):
     # TODO(jamesqin): optimize it.
@@ -4439,7 +4447,9 @@ def ClearRelativeAttentionInTransformerLayer(transformer_params):
     raise ValueError('Unsupported attention params: %s' % attention_tpl.cls)
 
   new_attention_tpl = hyperparams.CopyFieldsTo(
-      attention_tpl, new_attention_tpl, skip=['rel_pos_emb_dim', 'skip_term_b'])
+      attention_tpl,
+      new_attention_tpl,
+      skip=['rel_pos_emb_dim', 'skip_term_b', 'pos_atten_logits_tpl'])
   trans_params_copy.tr_self_atten_tpl.atten_tpl = new_attention_tpl
   return trans_params_copy
 
