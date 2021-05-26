@@ -173,16 +173,19 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   """A layer that implements pipelining across stages.
 
   It creates a loop over microbatches around a loop-body layer. The loop body
-  has a leading num_stages dimension in the input/output data (required) and
+  has a leading num_stages dimension in the input/output data (provided by the
+  user, or created by this layer when Params().num_microbatches is provided) and
   weights (to achieve real pipeline parallelism). This leading dimension can
-  be added in 2 ways:
+  be added in 3 ways:
 
   1) Defined manually in the wrapped layer Params().stage_parallel_body.
 
-  2) Automatically vectorized via tf.vectorized_map(). In this case, use
-  Params().single_stage_body instead to define a single stage. This may fail if
-  some ops or control flow patterns are not supported by tf.vectorized_map(),
-  and use the first option in that case.
+  2) Automatically vectorized via tf.vectorized_map() (or manual-auto sharding
+  conversion) and VariableShapePrefixContext(). In this case, use
+  Params().single_stage_body instead to define a single stage. Without
+  Params().shard_stages_1d, This may fail if some ops or control flow patterns
+  are not supported by tf.vectorized_map(); with Params().shard_stages_1d, it
+  instead uses manual-auto sharding conversion and supports all computations.
 
   It can run on a single core, or sharded using GShard annotations. If the stage
   dimension is sharded, GShard will produce a cross-core pipelining pattern.
@@ -226,6 +229,16 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         'single_stage_body', None,
         'The param for a single stage, which will be automatically vectorized '
         'into a stage-parallel computation.')
+    p.Define(
+        'num_microbatches', None,
+        'If not None, the input is not yet microbatched, and will be reshaped '
+        'to [num_microbatches, microbatch_size] here.')
+    p.Define(
+        'shard_stages_1d', False,
+        'If True, 1D sharding annotation on num_stages devices will be added, '
+        'and the implementation will not use vectorized_map (to avoid its '
+        'limitations), but uses conversion between manual and auto sharding '
+        'modes. Set to False for sharding on multiple dimensions.')
     return p
 
   def __init__(self, params):
@@ -247,6 +260,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     else:
       super()._CreateChildrenVariables()
 
+    if p.shard_stages_1d:
+
+      def _SplitVar(v):
+        return gshard_utils.Split(v, 0, p.num_stages, use_sharding_op=False)
+
+      tf.nest.map_structure(_SplitVar, self.vars)
+
   def BodyFProp(self, theta, *args):
     p = self.params
     if p.stage_parallel_body is not None:
@@ -255,13 +275,60 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     def _SingleStageFProp(x):
       return self.body.FProp(x.theta, *x.args)
 
-    return tf.vectorized_map(
-        _SingleStageFProp,
-        py_utils.NestedMap(theta=theta, args=args),
-        fallback_to_while_loop=False)
+    theta_args = py_utils.NestedMap(theta=theta, args=args)
+
+    if p.shard_stages_1d:
+
+      def _ToManual(x):
+        sharding = xla_sharding.Sharding.split(x, 0, p.num_stages)
+        to_manual = xla_sharding.auto_to_manual_spmd_partition(
+            x, sharding.proto.SerializeToString())
+        return tf.squeeze(to_manual, 0)
+
+      one_stage_theta_args = tf.nest.map_structure(_ToManual, theta_args)
+      one_stage_outputs = _SingleStageFProp(one_stage_theta_args)
+
+      def _ToAuto(x):
+        full_shape = [p.num_stages] + x.shape
+        sharding = xla_sharding.Sharding.split(
+            None, 0, p.num_stages, input_shape=full_shape)
+        x = tf.expand_dims(x, 0)
+        return xla_sharding.manual_to_auto_spmd_partition(
+            x, sharding.proto.SerializeToString(), full_shape=full_shape)
+
+      return tf.nest.map_structure(_ToAuto, one_stage_outputs)
+
+    else:
+      # TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped
+      # auto-manual sharding conversion when it is available.
+      return tf.vectorized_map(
+          _SingleStageFProp, theta_args, fallback_to_while_loop=False)
 
   def FProp(self, theta, *args):
     p = self.params
+
+    if p.num_microbatches is not None:
+
+      def _ToMicrobatches(x):
+        assert x.shape[0] % p.num_microbatches == 0
+        # We first put p.num_microbatches in the inner dimension then transpose
+        # it. This allows the sharding on the batch (if any) to be propagated
+        # to the microbatch dimension. We cannot shard the num_microbatches
+        # dimension, since it's indexed by the loop iteration.
+        reshaped = tf.reshape(
+            x, [x.shape[0] // p.num_microbatches, p.num_microbatches] +
+            x.shape[1:])
+        return tf.transpose(reshaped,
+                            [1, 0] + list(range(2, len(reshaped.shape))))
+
+      args = tf.nest.map_structure(_ToMicrobatches, args)
+
+    if p.shard_stages_1d:
+
+      def _SplitStages(x):
+        return gshard_utils.Split(x, 0, p.num_stages, use_sharding_op=True)
+
+      theta = tf.nest.map_structure(_SplitStages, theta)
 
     # Adds a `stages` dimension after the leading num_microbatches to the inputs
     # which will be sharded. Also pad the leading num_microbatches dimension by
@@ -282,6 +349,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       padded = tf.pad(with_new_dim, padding)
       assert len(padded.shape) == len(inp.shape) + 1
       assert padded.shape[1] == p.num_stages
+      if p.shard_stages_1d:
+        padded = gshard_utils.Split(
+            padded, 1, p.num_stages, use_sharding_op=True)
       return padded
 
     padded_inputs = tf.nest.map_structure(_PadInput, args)
@@ -365,6 +435,14 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       output_tensors = tf.nest.map_structure(_ExtractLastStage,
                                              _StateToArgs(accum, padded_shapes))
+      if p.num_microbatches is not None:
+
+        def _ToBatches(x):
+          transposed = tf.transpose(x, [1, 0] + list(range(2, len(x.shape))))
+          return tf.reshape(transposed,
+                            [p.num_microbatches * x.shape[1]] + x.shape[2:])
+
+        output_tensors = tf.nest.map_structure(_ToBatches, output_tensors)
       return output_tensors[0] if len(args) == 1 else tuple(output_tensors)
 
 
