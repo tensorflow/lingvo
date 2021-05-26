@@ -444,10 +444,14 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
       larger than needed.
 
       We believe that there can be a slight bias against longer sequences
-      when packing is enabled. The remedy is either use larger effective
-      batch size, or use a larger-than-optimal packing factor when effective
-      batch size is smaller. For example, p.packing_factor = 8 seems to work
-      reasonably well in practice.
+      (meaning longer sequences have a slightly higher probability of being
+      dropped) when packing factor is too large to have to drop data. The
+      remedy is either use larger effective batch size, or use a conservative
+      packing factor to not drop data.
+
+      Note that the metric 'num_samples_in_batch' is a static value for
+      max global number of samples, while 'exmples/num_packed_examples'
+      is the actual number of samples per batch.
 
     * p.source_max_length and p.target_max_length control both the shape of
       the generated input batch (how long each row is) and the filtering
