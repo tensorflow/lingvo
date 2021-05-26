@@ -82,9 +82,14 @@ class _ModelRegistryHelper:
   @classmethod
   def _GetSourceInfo(cls, src_cls):
     """Gets a source info string given a source class."""
-    return '%s@%s:%d' % (cls._ModelParamsClassKey(src_cls),
-                         inspect.getsourcefile(src_cls),
-                         inspect.getsourcelines(src_cls)[-1])
+    info_str = '%s@%s' % (cls._ModelParamsClassKey(src_cls),
+                          inspect.getsourcefile(src_cls))
+    try:
+      return f'{info_str}:{inspect.getsourcelines(src_cls)[-1]}'
+    except OSError:
+      # The class definition is not found in the source file, as it might be
+      # dynamically created. We omit the line number in this case.
+      return info_str
 
   @classmethod
   def _RegisterModel(cls, wrapper_cls, src_cls):
