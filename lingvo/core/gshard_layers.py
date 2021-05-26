@@ -239,6 +239,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         'and the implementation will not use vectorized_map (to avoid its '
         'limitations), but uses conversion between manual and auto sharding '
         'modes. Set to False for sharding on multiple dimensions.')
+    p.Define(
+        'per_stage_vars', False,
+        'Use separate variables for each stage. With single_stage_body only.')
     return p
 
   def __init__(self, params):
@@ -247,23 +250,66 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     assert p.name
     if p.stage_parallel_body is not None:
       assert p.single_stage_body is None
+      assert not p.per_stage_vars
       self.CreateChild('body', p.stage_parallel_body)
     else:
       assert p.single_stage_body is not None
-      self.CreateChild('body', p.single_stage_body)
+      if p.per_stage_vars:
+        for i in range(p.num_stages):
+          self.CreateChild('body_iter_%05d' % i, p.single_stage_body)
+      else:
+        self.CreateChild('body', p.single_stage_body)
+
+  def _FindPerStageVarShardingDim(self, shape):
+    """Finds a sharding dimension for per-stage variables before stacking.
+
+    Find a dimension to split variables. Per-stage variables do not have the
+    leading stage dimension before stacking.
+
+    Args:
+      shape: list of integers of the single-stage variable shape.
+
+    Returns:
+      An index of the found sharding dimension, or -1 if not found.
+    """
+    p = self.params
+    assert p.per_stage_vars and p.shard_stages_1d
+    split_dim = -1
+    min_padding = p.num_stages
+    for i in range(len(shape)):
+      padding = (p.num_stages - shape[i] % p.num_stages) % p.num_stages
+      if padding < min_padding:
+        min_padding = padding
+        if padding <= p.num_stages // 2:
+          split_dim = i
+    return split_dim
 
   def _CreateChildrenVariables(self):
     p = self.params
-    if p.stage_parallel_body is None:
-      with py_utils.VariableShapePrefixContext(p.num_stages):
-        self.children.body.InstantiateVariables()
-    else:
-      super()._CreateChildrenVariables()
+    with tf.variable_scope(self.params.name):
+      if p.stage_parallel_body is None:
+        if p.per_stage_vars:
+          for i in range(p.num_stages):
+            with tf.variable_scope('iter_%05d' % i):
+              self.children['body_iter_%05d' % i].InstantiateVariables()
+        else:
+          with py_utils.VariableShapePrefixContext(p.num_stages):
+            self.children.body.InstantiateVariables()
+      else:
+        super()._CreateChildrenVariables()
 
     if p.shard_stages_1d:
 
       def _SplitVar(v):
-        return gshard_utils.Split(v, 0, p.num_stages, use_sharding_op=False)
+        if p.per_stage_vars:
+          split_dim = self._FindPerStageVarShardingDim(v.shape)
+        else:
+          split_dim = 0
+        if split_dim < 0:
+          return v
+        else:
+          return gshard_utils.Split(
+              v, split_dim, p.num_stages, use_sharding_op=False)
 
       tf.nest.map_structure(_SplitVar, self.vars)
 
@@ -273,7 +319,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       return self.body.FProp(theta, *args)
 
     def _SingleStageFProp(x):
-      return self.body.FProp(x.theta, *x.args)
+      if p.per_stage_vars:
+        return self.body_iter_00000.FProp(x.theta, *x.args)
+      else:
+        return self.body.FProp(x.theta, *x.args)
 
     theta_args = py_utils.NestedMap(theta=theta, args=args)
 
@@ -307,6 +356,30 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   def FProp(self, theta, *args):
     p = self.params
 
+    if p.per_stage_vars:
+      all_iters = [theta['body_iter_%05d' % i] for i in range(p.num_stages)]
+      theta_body = tf.nest.map_structure(lambda *t: tf.stack(list(t)),
+                                         *all_iters)
+
+      def _PassthroughVarSharding(x):
+        split_dim = self._FindPerStageVarShardingDim(x.shape[1:])
+        if split_dim < 0:
+          x = xla_sharding.replicate(x, use_sharding_op=True)
+        else:
+          # The stacked theta has a leading dim, so we use split_dim + 1.
+          x = gshard_utils.Split(
+              x, split_dim + 1, p.num_stages, use_sharding_op=True)
+        return x
+
+      if p.shard_stages_1d:
+        # Pass through the per-stage variables' sharding to the stacked theta.
+        # Later, this will be resharded on the leading stage dim. This explicit
+        # resharding makes sure that resharding happens after the concat, and
+        # concat partitioning is trivial on the pass-through dim.
+        theta_body = tf.nest.map_structure(_PassthroughVarSharding, theta_body)
+    else:
+      theta_body = theta.body
+
     if p.num_microbatches is not None:
 
       def _ToMicrobatches(x):
@@ -328,7 +401,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       def _SplitStages(x):
         return gshard_utils.Split(x, 0, p.num_stages, use_sharding_op=True)
 
-      theta = tf.nest.map_structure(_SplitStages, theta)
+      theta_body = tf.nest.map_structure(_SplitStages, theta_body)
 
     # Adds a `stages` dimension after the leading num_microbatches to the inputs
     # which will be sharded. Also pad the leading num_microbatches dimension by
@@ -423,7 +496,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       state0 = tf.nest.map_structure(_CreateInitState, inputs_nmap)
       # Runs body.FProp k times using Recurrent where k = dim 0 of inputs_nmap.
       accum, _ = recurrent.Recurrent(
-          theta=theta.body,
+          theta=theta_body,
           state0=state0,
           inputs=inputs_nmap,
           cell_fn=_CellFn,
