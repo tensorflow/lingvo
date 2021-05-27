@@ -812,7 +812,8 @@ class TrainerTpu(base_runner.BaseRunner):
             example_rate=example_rate,
             tpu_train_op_secs=tpu_train_op_secs,
             checkpoint_write_secs=checkpoint_write_secs,
-            total_train_steps_secs=train_steps_secs)
+            total_train_steps_secs=train_steps_secs,
+            **{k: v[0] for k, v in eval_metrics.items()})
 
 
 class Evaler(base_runner.BaseRunner):
