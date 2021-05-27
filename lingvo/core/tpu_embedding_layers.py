@@ -33,6 +33,22 @@ def _ShouldUseTpu(p):
   return not p.is_inference and py_utils.use_tpu()
 
 
+def _RemovePrivateVar(layer, var_name):
+  """Remove a variable by name from `layer`.
+
+  This is usually used to avoid copying the variable to TPU, for example, by the
+  tf.cast when accessing layer.theta.
+
+  Args:
+    layer: The layer to remove the variable from.
+    var_name: The name of the variable to remove.
+  """
+  # pylint: disable=protected-access
+  del layer._private_vars[var_name]
+  del layer._private_theta[var_name]
+  # pylint: enable=protected-access
+
+
 class TpuEmbeddingCollection:
   """Manage various TPU embedding related ops and tensors."""
 
@@ -59,9 +75,10 @@ class TpuEmbeddingCollection:
     # The TPUEmbedding configuration.
     self._tpu_embedding = None
 
-    # Ops to load/retrieve embedding tables to/from HBM.
-    self._load_ops_list = []
-    self._retrieve_ops_list = []
+    # Maps table name to the list of ops that loads/retrieves embedding tables
+    # to/from TPU.
+    self._load_ops_map = py_utils.NestedMap()
+    self._retrieve_ops_map = py_utils.NestedMap()
 
     # Maps task name to the (feature_name -> activation_tensor) dict for the
     # corresponding task.
@@ -79,13 +96,7 @@ class TpuEmbeddingCollection:
   def AddTableVariables(self, table_name, var_list):
     """Add TPU embedding table variable list to the collection."""
     if table_name in self._table_vars:
-      existing_var_list = self._table_vars[table_name]
-      if var_list != existing_var_list:
-        raise ValueError(
-            f'Table {table_name} with a different variable list already '
-            f'exists. Existing variable list: {existing_var_list}, '
-            f'variable list being added: {var_list}')
-      return
+      raise ValueError(f'Variables for table {table_name} already exist.')
     self._table_vars[table_name] = var_list
 
   @property
@@ -99,21 +110,24 @@ class TpuEmbeddingCollection:
 
   @tpu_embedding.setter
   def tpu_embedding(self, tpu_embedding):
+    if self._tpu_embedding is not None:
+      raise ValueError('TPUEmbedding already set before.')
     self._tpu_embedding = tpu_embedding
 
-  def AddLoadOps(self, load_ops):
-    self._load_ops_list.append(load_ops)
+  def AddLoadRetrieveOps(self, table_name, load_ops, retrieve_ops):
+    if table_name in self._load_ops_map:
+      raise ValueError(f'Load ops for table {table_name} already exist.')
+    assert table_name not in self._retrieve_ops_map
+    self._load_ops_map[table_name] = load_ops
+    self._retrieve_ops_map[table_name] = retrieve_ops
 
   @property
   def load_ops(self):
-    return self._load_ops_list
-
-  def AddRetrieveOps(self, retrieve_ops):
-    self._retrieve_ops_list.append(retrieve_ops)
+    return self._load_ops_map
 
   @property
   def retrieve_ops(self):
-    return self._retrieve_ops_list
+    return self._retrieve_ops_map
 
   def AddActivations(self, task, activations):
     if task in self._activations_by_task:
@@ -186,7 +200,7 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
     return NotImplementedError()
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
-    """Create slot variables and infeed/retrieval ops.
+    """Create slot variables and load/retrieve ops.
 
     Args:
       table_vars: A list of all embedding table shard variables.
@@ -196,7 +210,7 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
       List of load ops
       List of retrieve ops
     """
-    return NotImplementedError()
+    raise NotImplementedError()
 
 
 class TPUEmbeddingSGDOptimizer(_TPUEmbeddingOptimizer):
@@ -300,12 +314,9 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
 
         # Only the Trainer needs these ops.
         if py_utils.use_tpu():
-          # Remove the slot vars from the variable list to void copying them
-          # to TPU (by the tf.cast in tpu_embedding_table.theta).
-          # pylint: disable=protected-access
-          del tpu_embedding_table._private_vars[var_name]
-          del tpu_embedding_table._private_theta[var_name]
-          # pylint: enable=protected-access
+          # Remove the slot vars from the variable list to avoid them being
+          # copied to TPU.
+          _RemovePrivateVar(tpu_embedding_table, var_name)
 
           # TPU Embedding load/retrieve ops need to be in the outer graph scope.
           with tf.init_scope():
@@ -412,31 +423,33 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         optimization_parameters=self.optimizer.CreateOptimizerParameters(
             p.learning_rate))
 
-    self._load_op_list = []
-    self._retrieve_op_list = []
-
   def _CreateLayerVariables(self):
     p = self.params
-    w_pc = py_utils.WeightParams(
-        shape=[self._ids_per_shard, p.embedding_dim],
-        init=p.params_init,
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
 
-    embedding_table_vars = []
-    for i in range(p.num_tpu_hosts):
-      device_name = self.GetDeviceName(i)
-      with tf.device(device_name), py_utils.outside_all_rewrites():
-        var_name = self.GetVariableName(i)
-        self.CreateVariable(var_name, w_pc)
-        embedding_var = self.vars[var_name]
-        embedding_table_vars.append(embedding_var)
-        # Remove from _private_vars / _private_thetas to be added later as wm.
-        del self._private_vars[var_name]
-        del self._private_theta[var_name]
+    # Reuse the singleton table variables if they were created before.
+    all_table_vars = self._tpu_embedding_collection.table_variables
+    if self.table_name in all_table_vars:
+      embedding_table_vars = all_table_vars[self.table_name]
+    else:
+      w_pc = py_utils.WeightParams(
+          shape=[self._ids_per_shard, p.embedding_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
 
-    self._tpu_embedding_collection.AddTableVariables(self.table_name,
-                                                     embedding_table_vars)
+      embedding_table_vars = []
+      for i in range(p.num_tpu_hosts):
+        device_name = self.GetDeviceName(i)
+        with tf.device(device_name), py_utils.outside_all_rewrites():
+          var_name = self.GetVariableName(i)
+          self.CreateVariable(var_name, w_pc)
+          embedding_var = self.vars[var_name]
+          embedding_table_vars.append(embedding_var)
+          # Remove from _private_vars / _private_thetas to be added later as wm.
+          _RemovePrivateVar(self, var_name)
+
+      self._tpu_embedding_collection.AddTableVariables(self.table_name,
+                                                       embedding_table_vars)
 
     if not _ShouldUseTpu(p):
       # We don't want to add this for TrainerTpu, otherwise the identity
@@ -445,10 +458,21 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       self._private_vars['wm'] = embedding_table_vars
       self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
 
-    # Only trainer and controller need slot variables and load/retrieve ops.
-    if not self.do_eval and not p.is_inference:
-      self._load_op_list, self._retrieve_op_list = (
-          self.optimizer.CreateSlotVariablesAndOps(embedding_table_vars, self))
+    # If slot variables and load/retrieve ops were created before, maybe by a
+    # different program or task, don't create it again.
+    # Note that there should be only one copy of slot variables and
+    # load/retrieve ops in the graph and they're shared by different
+    # tasks/programs.
+    all_load_ops = self._tpu_embedding_collection.load_ops
+    if self.table_name not in all_load_ops:
+      assert self.table_name not in self._tpu_embedding_collection.retrieve_ops
+      # Only trainer and controller (for checkpointing) need slot variables.
+      # Only trainer needs load/retrieve ops.
+      if not self.do_eval and not p.is_inference:
+        load_ops, retrieve_ops = self.optimizer.CreateSlotVariablesAndOps(
+            embedding_table_vars, self)
+        self._tpu_embedding_collection.AddLoadRetrieveOps(
+            self.table_name, load_ops, retrieve_ops)
 
   # Return device to place sharded variables on.
   def GetDeviceName(self, host_id):
@@ -469,14 +493,6 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
   @property
   def table_name(self):
     return self._table_name
-
-  @property
-  def retrieve_op_list(self):
-    return self._retrieve_op_list
-
-  @property
-  def load_op_list(self):
-    return self._load_op_list
 
   @property
   def input_keys(self):
@@ -729,9 +745,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     super()._CreateLayerVariables()
     p = self.params
 
-    load_op_list = []
-    retrieve_op_list = []
-
     # At the feature level, track which are associated
     # with "sequence embeddings".
     self._sequence_features = {}
@@ -744,8 +757,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       feature_to_config_dict = {}
       for table in self.tables:
         table_to_config_dict[table.table_name] = table.table_config
-        load_op_list += table.load_op_list
-        retrieve_op_list += table.retrieve_op_list
         for feature in table.input_keys:
           if table.max_sequence_length > 0:
             self._sequence_features[feature] = True
@@ -759,10 +770,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         tf.logging.info('TPUEmbedding API singleton already exists, reusing')
         self._tpu_embedding = tpu_embedding
       else:
-        tf.logging.info('adding load and retrieve ops to collection.')
-        self._tpu_embedding_collection.AddLoadOps(load_op_list)
-        self._tpu_embedding_collection.AddRetrieveOps(retrieve_op_list)
-
         mode = tpu_embedding_lib.TRAINING
         device_config = tpu_embedding_lib.DeviceConfig(
             num_cores=num_cores,
