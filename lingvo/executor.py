@@ -37,6 +37,14 @@ tf.flags.DEFINE_bool(
 FLAGS = tf.flags.FLAGS
 
 
+def UnsetUnusedTrainParams(task_params):
+  # Remove misleading train params
+  task_params.train.tpu_steps_per_loop = None
+  if 'task' in task_params:
+    task_params.task.train.tpu_steps_per_loop = None
+  return task_params
+
+
 def GetExecutorParams(model_name, cluster_params, model_registry):
   """Get the params needed to instantiate the Executor.
 
@@ -57,6 +65,9 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
     ps_cfg = model_registry.GetProgramSchedule(model_name)
     train_cfg = model_registry.GetParams(model_name, 'Train')
     train_cfg.cluster = cluster_params
+
+    # Remove misleading train params
+    train_cfg = UnsetUnusedTrainParams(train_cfg)
 
     if issubclass(train_cfg.cls, base_model.MultiTaskModel):
       multi_task_train_cfg = train_cfg
@@ -96,6 +107,8 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
           eval_task_params.name = (
               k + '_' + eval_dataset_name + '_executor_eval_task')
           eval_task_params.cluster = multi_task_eval_cfg.cluster
+          eval_task_params = UnsetUnusedTrainParams(eval_task_params)
+
           program_schedule_params.task_dict[
               eval_dataset_name] = eval_task_params
         ps_params_dict[k] = program_schedule_params
@@ -105,8 +118,9 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
       for eval_dataset_name in program_schedule_params.dataset_names:
         task_eval_params = model_registry.GetParams(model_name,
                                                     eval_dataset_name)
-        task_eval_params.cluster = train_cfg.cluster
+        task_eval_params = UnsetUnusedTrainParams(task_eval_params)
         program_schedule_params.task_dict[eval_dataset_name] = task_eval_params
+
       ps_params_dict[''] = program_schedule_params
 
   return ps_params_dict, train_cfg

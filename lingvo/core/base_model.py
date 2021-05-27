@@ -108,8 +108,10 @@ class BaseTask(base_layer.BaseLayer):
         'start_up_delay_steps', 200, 'i-th replica starts training after '
         'i*(i+1)/2*start_up_delay_steps steps')
     tp.Define('max_steps', 4 * 10**6, 'Maximum number of training steps.')
-    tp.Define('tpu_steps_per_loop', 1000, 'The number of training steps per '
-              'training loop for TPUs.')
+    tp.Define(
+        'tpu_steps_per_loop', 1000, 'The number of training steps per '
+        'training loop for TPUs. Note that this is not used by '
+        'ExecutorTpu, which relies on ProgramSchedule.')
     tp.Define(
         'tpu_device_order_mode', None,
         'A device_assignment_lib.DeviceOrderMode enum that determines whether '
