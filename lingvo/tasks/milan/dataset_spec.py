@@ -61,7 +61,7 @@ class DatasetSpec(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def Read(self,
            split: str,
-           batch_size: int = None,
+           batch_size: Optional[int] = None,
            **kwargs) -> tf.data.Dataset:
     """Reads the specified split of the dataset as a `tf.data.Dataset`."""
     pass
@@ -133,9 +133,9 @@ class FileBasedDatasetSpec(DatasetSpec):
 
   def Read(self,
            split: str,
-           batch_size: int = None,
+           batch_size: Optional[int] = None,
            input_filepattern=None,
-           shuffle_buffer_size: int = None,
+           shuffle_buffer_size: Optional[int] = None,
            num_examples: int = -1,
            num_epochs: int = -1,
            read_parallelism: int = 16) -> tf.data.Dataset:

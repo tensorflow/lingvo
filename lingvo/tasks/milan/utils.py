@@ -18,7 +18,7 @@
 import collections
 import copy
 
-from typing import List
+from typing import List, Optional
 
 from absl import logging
 from lingvo import compat as tf
@@ -32,7 +32,7 @@ def BatchMajorToTimeMajor(tensor):
   return tf.transpose(tensor, perm=perm)
 
 
-def MakeFnLayer(fn, name: str = None):
+def MakeFnLayer(fn, name: Optional[str] = None):
   """Decorator that wraps a python function as a lingvo `FnLayer`.
 
   Example::
