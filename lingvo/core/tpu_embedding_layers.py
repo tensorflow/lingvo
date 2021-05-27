@@ -630,6 +630,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
     p.Define('tables', None, 'TPUEmbeddingTables')
     p.Define('pipeline_execution_with_tensor_core', False,
              'Set to True to be faster. See tpu_embedding.py for details.')
@@ -665,8 +666,16 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.gradient_multiplier_schedule
     assert p.partition_strategy in ['mod', 'div']
 
-    num_tpu_hosts = p.tables[0].num_tpu_hosts
-    assert all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
+    if p.num_tpu_hosts > 0:
+      for table_params in p.tables:
+        num_tpu_hosts = table_params.num_tpu_hosts
+        if num_tpu_hosts > 0 and num_tpu_hosts != p.num_tpu_hosts:
+          raise ValueError(
+              f'num_tpu_hosts mismatch: {num_tpu_hosts} vs {p.num_tpu_hosts}')
+        table_params.num_tpu_hosts = p.num_tpu_hosts
+    else:
+      num_tpu_hosts = p.tables[0].num_tpu_hosts
+      assert all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
 
     # Stop if a table has no optimizer parameters and the layer also has no
     # optimizer parameters
