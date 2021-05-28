@@ -125,7 +125,7 @@ class Predictor:
       if subgraph_name not in inference_graph.subgraphs:
         raise ValueError(
             f"Subgraph {subgraph_name} not defined. Valid subgraphs: "
-            f"{sorted(list(inference_graph.subgraphs.keys()))}")
+            f"{self.subgraphs}")
       subgraph = inference_graph.subgraphs[subgraph_name]
       self._fetches = subgraph.fetches
       self._feeds = subgraph.feeds
@@ -160,13 +160,17 @@ class Predictor:
         lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
         py_utils.NestedMap(self._feeds))
 
+  @property
+  def subgraphs(self):
+    return sorted(list(self._inference_graph.subgraphs.keys()))
+
   def _get_subgraph(self, subgraph_name):
     if not self._inference_graph.subgraphs:
       raise ValueError("This inference graph does not have subgraphs.")
     if subgraph_name not in self._inference_graph.subgraphs:
       raise ValueError(
           f"Subgraph {subgraph_name} not defined. Valid subgraphs: "
-          f"{sorted(list(self._inference_graph.subgraphs.keys()))}.")
+          f"{self.subgraphs}.")
     return self._inference_graph.subgraphs[subgraph_name]
 
   def _get_subgraph_fetches(self, subgraph_name):
@@ -182,12 +186,12 @@ class Predictor:
   def subgraph_fetch_keys(self, subgraph_name):
     if subgraph_name == self._default_subgraph_name:
       return self.fetch_keys
-    return self._get_subgraph_fetches(subgraph_name).keys()
+    return sorted(list(self._get_subgraph_fetches(subgraph_name).keys()))
 
   def subgraph_feed_keys(self, subgraph_name):
     if subgraph_name == self._default_subgraph_name:
       return self.feed_keys
-    return self._get_subgraph_feeds(subgraph_name).keys()
+    return sorted(list(self._get_subgraph_feeds(subgraph_name).keys()))
 
   def subgraph_fetch_shapes(self, subgraph_name):
     # Conversion from dict to NestedMap required.
@@ -320,7 +324,7 @@ class Predictor:
         if k not in valid_fetch_keys:
           raise KeyError(
               f"{k} is not in the list of available fetches. Available keys: "
-              f"{sorted(list(valid_fetch_keys))}.")
+              f"{valid_fetch_keys}.")
     subgraph_fetches = self._get_subgraph_fetches(subgraph_name)
     valid_fetch_idxs, valid_fetches = zip(*[(i, subgraph_fetches[k])
                                             for i, k in enumerate(fetch_keys)
@@ -331,7 +335,7 @@ class Predictor:
       if k not in valid_feed_keys:
         raise KeyError(
             f"{k} is not in the list of available feeds. Available keys: "
-            f"{sorted(list(valid_feed_keys))}.")
+            f"{valid_feed_keys}.")
     subgraph_feeds = self._get_subgraph_feeds(subgraph_name)
     feeds = {subgraph_feeds[k]: v for k, v in kwargs.items()}
 
