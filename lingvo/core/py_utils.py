@@ -294,8 +294,9 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
   caller_more_vars = []
   if caller.code_context:
     # Rough and likely to fail. But better than nothing.
-    caller_var = re.compile(r'Debug\((.*?)(\)|,).*$').search(
-        caller.code_context[0]).groups()[0]
+    match = re.compile(r'Debug\((.*?)(\)|,).*$').search(caller.code_context[0])
+    if match:
+      caller_var = match.groups()[0]
     if more:
       more_vars = re.compile(r'more=\[(.*?)\].*$').search(
           caller.code_context[0]).groups()[0]
