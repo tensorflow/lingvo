@@ -505,8 +505,8 @@ class BaseTask(base_layer.BaseLayer):
         index.
     """
     p = self.params
-    with tf.name_scope('fprop'), tf.name_scope(p.name), py_utils.TaskCallScope(
-        p.name):
+    with tf.name_scope('fprop'), tf.name_scope(
+        p.name), py_utils.TaskCallScope(self):
       with py_utils.GlobalStepContext(self._global_step_var):
         # Always reset step seed at the start of a new global_step.
         py_utils.ResetStepSeed()
@@ -687,10 +687,10 @@ class BaseTask(base_layer.BaseLayer):
 
     # If we are using Tpu Embeddings, generate the monolithic send gradient op.
     tpu_embedding_collection = tpu_embedding_layers.TpuEmbeddingCollection.Get()
-    tpu_embedding_activations = tpu_embedding_collection.activations_by_task
-    if p.name in tpu_embedding_activations:
+    tpu_embedding_activations_dict = tpu_embedding_collection.GetActivations(
+        py_utils.TaskCallScopeName(self))
+    if tpu_embedding_activations_dict:
       # Lookup the per-task activations.
-      tpu_embedding_activations_dict = tpu_embedding_activations[p.name]
       send_gradient_op, emb_metrics = py_utils.ComputeTpuEmbeddingGradients(
           p.name, self.loss, tpu_embedding_activations_dict,
           tpu_embedding_collection)
@@ -1165,7 +1165,6 @@ class SingleTaskModel(SingleTaskBase):
     p.train.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
 
     super().__init__(p)
-
     self.CreateChild('_task', self.params.task)
 
   def _CreateChildrenVariables(self):

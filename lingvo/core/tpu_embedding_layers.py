@@ -129,17 +129,19 @@ class TpuEmbeddingCollection:
   def retrieve_ops(self):
     return self._retrieve_ops_map
 
-  def AddActivations(self, task, activations):
-    if task in self._activations_by_task:
-      existing_activations = self._activations_by_task[task]
-      raise ValueError(f'Activations for task {task} already exists. '
-                       f'Existing activations: {existing_activations}, '
-                       f'activations being added: {activations}')
-    self._activations_by_task[task] = activations
+  def AddActivations(self, task_call_scope, activations):
+    if task_call_scope in self._activations_by_task:
+      existing_activations = self._activations_by_task[task_call_scope]
+      raise ValueError(
+          f'Activations for task {task_call_scope} already exists. '
+          f'Existing activations: {existing_activations}, '
+          f'activations being added: {activations}')
+    self._activations_by_task[task_call_scope] = activations
 
-  @property
-  def activations_by_task(self):
-    return self._activations_by_task
+  def GetActivations(self, task_call_scope):
+    if task_call_scope in self._activations_by_task:
+      return self._activations_by_task[task_call_scope]
+    return None
 
   def AddSummaryTensor(self, name, value, weight=1.0):
     self._summary_tensors.append((name, value, tf.convert_to_tensor(weight)))
@@ -801,8 +803,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
   def _TpuEmbLookup(self) -> Dict[str, tf.Tensor]:
     """TPU Embedding lookup."""
     activations = self._tpu_embedding.get_activations()
-    task = py_utils.GetTaskCallScope()
-    self._tpu_embedding_collection.AddActivations(task, activations)
+    task_call_scope = py_utils.GetTaskCallScope()
+    self._tpu_embedding_collection.AddActivations(task_call_scope, activations)
 
     ret = py_utils.NestedMap()
     for k, v in activations.items():

@@ -1227,9 +1227,14 @@ _VARIABLE_RENAME_RULES = ThreadLocalStack()
 _TASK_CALL_SCOPE = ThreadLocalStack()
 
 
+def TaskCallScopeName(task):
+  """Get a unique string identifying a task."""
+  return f'{task.params.name}_{id(task)}'
+
+
 @contextlib.contextmanager
-def TaskCallScope(task_name):
-  _TASK_CALL_SCOPE.stack.append(task_name)
+def TaskCallScope(task):
+  _TASK_CALL_SCOPE.stack.append(TaskCallScopeName(task))
   try:
     yield
   finally:
