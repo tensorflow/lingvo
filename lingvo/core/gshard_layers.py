@@ -242,6 +242,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     p.Define(
         'per_stage_vars', False,
         'Use separate variables for each stage. With single_stage_body only.')
+    p.Define('unrolled_in_eval', True, 'Unroll the stages during eval.')
     return p
 
   def __init__(self, params):
@@ -353,8 +354,32 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       return tf.vectorized_map(
           _SingleStageFProp, theta_args, fallback_to_while_loop=False)
 
+  @property
+  def _body(self):
+    """A child layer to be used as the loop body."""
+    p = self.params
+    if p.per_stage_vars:
+      return self.body_iter_00000
+    else:
+      return self.body
+
+  def _unrolled_fprop(self, theta, *args):
+    p = self.params
+    fprop_inputs = args
+    with tf.name_scope(p.name):
+      for layer_idx in range(p.num_stages):
+        layer_theta = theta['body_iter_%05d' % layer_idx]
+        fprop_outputs = self._body.FProp(layer_theta, *fprop_inputs)
+        fprop_outputs = _ToTuple(fprop_outputs)
+        assert len(fprop_outputs) == len(fprop_inputs)
+        fprop_inputs = fprop_outputs
+      return fprop_outputs[0] if len(fprop_outputs) == 1 else fprop_outputs
+
   def FProp(self, theta, *args):
     p = self.params
+
+    if self.do_eval and p.unrolled_in_eval:
+      return self._unrolled_fprop(theta, *args)
 
     if p.per_stage_vars:
       all_iters = [theta['body_iter_%05d' % i] for i in range(p.num_stages)]
@@ -383,14 +408,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     if p.num_microbatches is not None:
 
       def _ToMicrobatches(x):
-        assert x.shape[0] % p.num_microbatches == 0
+        x_shape = py_utils.GetShape(x)
+        assert x_shape[0] % p.num_microbatches == 0
         # We first put p.num_microbatches in the inner dimension then transpose
         # it. This allows the sharding on the batch (if any) to be propagated
         # to the microbatch dimension. We cannot shard the num_microbatches
         # dimension, since it's indexed by the loop iteration.
         reshaped = tf.reshape(
-            x, [x.shape[0] // p.num_microbatches, p.num_microbatches] +
-            x.shape[1:])
+            x, [x_shape[0] // p.num_microbatches, p.num_microbatches] +
+            x_shape[1:])
         return tf.transpose(reshaped,
                             [1, 0] + list(range(2, len(reshaped.shape))))
 
@@ -490,7 +516,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       inputs_nmap = _ArgsToState(padded_inputs)
 
       def _CreateInitState(inp):
-        return tf.zeros(inp.shape[1:], dtype=inp.dtype)
+        return tf.zeros(py_utils.GetShape(inp)[1:], dtype=inp.dtype)
 
       # Add FProp arg list to state0.
       state0 = tf.nest.map_structure(_CreateInitState, inputs_nmap)
@@ -511,9 +537,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       if p.num_microbatches is not None:
 
         def _ToBatches(x):
-          transposed = tf.transpose(x, [1, 0] + list(range(2, len(x.shape))))
+          x_shape = py_utils.GetShape(x)
+          transposed = tf.transpose(x, [1, 0] + list(range(2, len(x_shape))))
           return tf.reshape(transposed,
-                            [p.num_microbatches * x.shape[1]] + x.shape[2:])
+                            [p.num_microbatches * x_shape[1]] + x_shape[2:])
 
         output_tensors = tf.nest.map_structure(_ToBatches, output_tensors)
       return output_tensors[0] if len(args) == 1 else tuple(output_tensors)
