@@ -23,7 +23,7 @@ E.g.::
     state = step.ZeroState(
         step.theta, prepared_inputs, batch_size)
     for t in range(T):
-      step_inputs = input_batch.Transform(lambda x: x[:, i, ...])
+      step_inputs = input_batch.Transform(lambda x: x[:, t, ...])
       step_outputs, state = step.FProp(
           step.theta, prepared_inputs, step_inputs, state)
       (processing step_outputs...)
