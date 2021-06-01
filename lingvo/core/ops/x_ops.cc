@@ -419,23 +419,23 @@ num_hyps_per_beam: Number of hyps per beam.
 )doc");
 
 REGISTER_OP("TopKFromBeamSearchOuts")
-    .Input("hyps: int32")           // 0
-    .Input("prev_hyps: int32")      // 1
-    .Input("done_hyps: bool")       // 2
-    .Input("cumulative_scores: T")  // 3
-    .Input("eos_scores: T")         // 4
-    .Input("scores: T")             // 5
-    .Input("atten_probs: T")        // 6
-    .Input("eos_atten_probs: T")    // 7
-    .Output("out_ids: int32")       // 0
-    .Output("out_seq_lens: int32")  // 1
-    .Output("out_scores: float32")  // 2
-    .Output("topk_hyps: string")    // 3
+    .Input("hyps: int32")                    // 0
+    .Input("prev_hyps: int32")               // 1
+    .Input("done_hyps: bool")                // 2
+    .Input("cumulative_scores: T")           // 3
+    .Input("eos_scores: T")                  // 4
+    .Input("scores: T")                      // 5
+    .Input("atten_probs: T")                 // 6
+    .Input("eos_atten_probs: T")             // 7
+    .Input("length_normalization: float32")  // 8
+    .Output("out_ids: int32")                // 0
+    .Output("out_seq_lens: int32")           // 1
+    .Output("out_scores: float32")           // 2
+    .Output("topk_hyps: string")             // 3
     .Attr("T: {float, bfloat16} = DT_FLOAT")
     .Attr("num_hyps_per_beam: int")
     .Attr("max_seq_length: int")
     .Attr("eos_id: int = 2")
-    .Attr("length_normalization: float = 0.0")
     .Attr("populate_topk_hyps: bool = false")
     .Doc(R"doc(
 Compute tensors of ids, seq_len and scores from outputs of beam search steps.
@@ -480,6 +480,7 @@ eos_atten_probs: A tensor of shape [t, k * b, s_len].
     eos_atten_probs[i, j, ...] is the attention probs over the source words
     for the j-th terminated hyp at the i-th timestep. Only used to assemble
     `done_hyps` and `topk_hyps`.
+length_normalization: The length normalization factor.
 out_ids:
     Output sequences, a matrix of shape (b * k, max_seq_length).
     Sequences shorter than max_seq_length are padded with 0s. div ordered.
@@ -496,7 +497,6 @@ topk_hyps:
 num_hyps_per_beam: Number of hyps per beam, i.e. the value of k. Required.
 max_seq_length: Max output sequence length. Required.
 eos_id: Token id of the special end of sequence token.
-length_normalization: The length normalization factor.
 populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
     False, the output `topk_hyps` is just empty string with the shape [b, k].
 )doc")
@@ -545,6 +545,11 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
               c->DebugString(c->input(6)),
               ", eos_atten_probs.shape=", c->DebugString(c->input(7)));
         }
+      }
+      if (c->Rank(c->input(8)) != 0) {
+        return errors::InvalidArgument(
+            "input tensor `length_normalization` must have rank 0, got shape: ",
+            c->DebugString(c->input(8)));
       }
 
       // Infer output tensor shapes.

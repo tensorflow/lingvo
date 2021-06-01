@@ -930,6 +930,7 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
           0,  # unused scores
           0,  # unused atten_probs
           0,  # unused eos_atten_probs
+          length_normalization=0.0,
           num_hyps_per_beam=num_hyps_per_beam,
           max_seq_length=seq_len)
       outs = sess.run(results)
@@ -962,9 +963,9 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
           0,  # unused scores
           0,  # unused atten_probs
           0,  # unused eos_atten_probs
+          length_normalization=0.5,
           num_hyps_per_beam=num_hyps_per_beam,
-          max_seq_length=seq_len,
-          length_normalization=0.5)
+          max_seq_length=seq_len)
       outs = sess.run(results)
 
       def normalize(score, length):
@@ -1008,9 +1009,9 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
             0,  # unused scores
             0,  # unused atten_probs
             0,  # unused eos_atten_probs
+            length_normalization=length_normalization,
             num_hyps_per_beam=num_hyps_per_beam,
-            max_seq_length=seq_len,
-            length_normalization=length_normalization)
+            max_seq_length=seq_len)
       else:
         results = ops.top_k_from_beam_search_outs(
             hyps,
@@ -1021,9 +1022,9 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
             scores,
             atten_probs,
             eos_atten_probs,
+            length_normalization=length_normalization,
             num_hyps_per_beam=num_hyps_per_beam,
             max_seq_length=seq_len,
-            length_normalization=length_normalization,
             populate_topk_hyps=True)
 
       outs = sess.run(results)

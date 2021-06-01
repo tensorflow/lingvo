@@ -1306,18 +1306,18 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num_hyps_per_beam", &num_hyps_per_beam_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("max_seq_length", &max_seq_length_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("eos_id", &eos_id_));
-    OP_REQUIRES_OK(
-        ctx, ctx->GetAttr("length_normalization", &length_normalization_));
     OP_REQUIRES_OK(ctx,
                    ctx->GetAttr("populate_topk_hyps", &populate_topk_hyps_));
-    OP_REQUIRES(
-        ctx, length_normalization_ >= 0.0,
-        errors::InvalidArgument("Requires length_normalization >= 0.0, got ",
-                                length_normalization_));
   }
 
   void Compute(OpKernelContext* ctx) override {
     // Input tensor shapes are validated in SetShapeFn().
+    const float length_normalization = ctx->input(8).scalar<float>()();
+    OP_REQUIRES(
+        ctx, length_normalization >= 0.0,
+        errors::InvalidArgument("Requires length_normalization >= 0.0, got ",
+                                length_normalization));
+
     const Tensor& hyps = ctx->input(0);
     const Tensor& prev_hyps = ctx->input(1);
     const Tensor& done_hyps = ctx->input(2);
@@ -1355,10 +1355,10 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
                 if (i > 0) {
                   score += t_cumulative_scores(i - 1, j);
                 }
-                DoneHypEntry e = {
-                    .time_idx = i,
-                    .hyp_idx = j,
-                    .normalized_score = NormalizedScore(score, i + 1)};
+                DoneHypEntry e = {.time_idx = i,
+                                  .hyp_idx = j,
+                                  .normalized_score = NormalizedScore(
+                                      score, i + 1, length_normalization)};
                 mutex_lock l(per_beam_topk->mu);
                 per_beam_topk->top_k.Add(e);
               }
@@ -1428,9 +1428,10 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
   }
 
  private:
-  float NormalizedScore(float score, int length) const {
-    const float length_norm = std::pow(length + 5.0, length_normalization_) /
-                              std::pow(5.0, length_normalization_);
+  float NormalizedScore(float score, int length,
+                        float length_normalization) const {
+    const float length_norm = std::pow(length + 5.0, length_normalization) /
+                              std::pow(5.0, length_normalization);
     return score / length_norm;
   }
 
@@ -1481,7 +1482,6 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
   int32 num_hyps_per_beam_;
   int32 max_seq_length_;
   int32 eos_id_;
-  float length_normalization_;
   bool populate_topk_hyps_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(TopKFromBeamSearchOutsOp);
