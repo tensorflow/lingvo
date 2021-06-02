@@ -1320,14 +1320,13 @@ class RunnerManager:
     Returns:
       A list of `.BaseRunner`, one per job in `jobs`.
     """
-
     runners = []
+    is_training = 'trainer' in jobs or 'trainer_client' in jobs
     for j in jobs:
       tf_master = FLAGS.tf_master
       # Ensure that decoder or evaler threads do not clobber variables being
       # updated by trainer by forcing them to use independent sessions.
-      if ('trainer' in jobs and
-          (j.startswith('decoder') or j.startswith('evaler'))):
+      if (is_training and (j.startswith('decoder') or j.startswith('evaler'))):
         tf_master = ''
 
       runner = self._CreateRunner(j, FLAGS.model_task_name, logdir, tf_master,
