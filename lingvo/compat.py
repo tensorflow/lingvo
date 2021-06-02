@@ -301,6 +301,7 @@ Dimension = tf1.Dimension
 disable_eager_execution = tf1.disable_eager_execution
 div = tf1.div
 enable_eager_execution = tf1.enable_eager_execution
+executing_eagerly_outside_functions = tf1.executing_eagerly_outside_functions
 floor_div = tf1.floor_div
 get_collection = tf1.get_collection
 get_collection_ref = tf1.get_collection_ref
