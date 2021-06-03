@@ -276,12 +276,12 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     p = self.params
     assert p.per_stage_vars and p.shard_stages_1d
     split_dim = -1
-    min_padding = p.num_stages
+    min_padding_ratio = 1.0
     for i in range(len(shape)):
       padding = (p.num_stages - shape[i] % p.num_stages) % p.num_stages
-      if padding < min_padding:
-        min_padding = padding
-        if padding <= p.num_stages // 2:
+      if padding < min_padding_ratio * shape[i]:
+        min_padding_ratio = padding / shape[i]
+        if padding <= shape[i] // 2:
           split_dim = i
     return split_dim
 
