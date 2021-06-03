@@ -1128,8 +1128,12 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     train_dataset_name: Name of the training dataset, eg: 'Train'
     train_steps_per_loop: Number of steps to execute the training program.
     eval_dataset_names: List of eval dataset_name strings, eg: ['Train'].
-    eval_steps_per_loop: Number of steps to execute the eval program.
-    decode_steps_per_loop: Number of steps to execute the decode program.
+    eval_steps_per_loop: Number of steps to execute the eval program. Can be a
+      single value or a list of values corresponding to the entries in
+      eval_dataset_names.
+    decode_steps_per_loop: Number of steps to execute the decode program. Can be
+      a single value or a list of values corresponding to the entries in
+      eval_dataset_names.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
     train_program_cls: The class to use for training programs.  Defaults
@@ -1150,23 +1154,38 @@ def SimpleProgramScheduleForTask(train_dataset_name,
 
   program_schedule_params.dataset_names = []
 
-  for dataset_name in eval_dataset_names:
+  if isinstance(eval_steps_per_loop, list):
+    if len(eval_steps_per_loop) != len(eval_dataset_names):
+      raise ValueError('eval_step_per_loop doesn\'t match the size of '
+                       f'eval_dataset_names: {len(eval_steps_per_loop)} vs '
+                       f'{len(eval_dataset_names)}.')
+  else:
+    eval_steps_per_loop = [eval_steps_per_loop] * len(eval_dataset_names)
+  if isinstance(decode_steps_per_loop, list):
+    if len(decode_steps_per_loop) != len(eval_dataset_names):
+      raise ValueError('decode_steps_per_loop doesn\'t match the size of '
+                       f'eval_dataset_names: {len(decode_steps_per_loop)} vs '
+                       f'{len(eval_dataset_names)}.')
+  else:
+    decode_steps_per_loop = [decode_steps_per_loop] * len(eval_dataset_names)
+
+  for idx, dataset_name in enumerate(eval_dataset_names):
     program_schedule_params.dataset_names.append(dataset_name)
-    if eval_steps_per_loop > 0:
+    if eval_steps_per_loop[idx] > 0:
       eval_program_params = eval_program_cls.Params()
       eval_program_params.name = 'eval_tpu'
       # TODO(blee): This should be derived from the Dataset size.
-      eval_program_params.steps_per_loop = eval_steps_per_loop
+      eval_program_params.steps_per_loop = eval_steps_per_loop[idx]
       eval_program_params.dataset_name = dataset_name
       program_schedule_params.eval_programs.append(eval_program_params)
 
-    if decode_steps_per_loop > 0:
+    if decode_steps_per_loop[idx] > 0:
       decoder = (
           ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
       decode_program_params = decoder.Params()
       decode_program_params.name = 'decode_tpu'
       # TODO(blee): This should be derived from the Dataset size.
-      decode_program_params.steps_per_loop = decode_steps_per_loop
+      decode_program_params.steps_per_loop = decode_steps_per_loop[idx]
       decode_program_params.dataset_name = dataset_name
       program_schedule_params.eval_programs.append(decode_program_params)
 
