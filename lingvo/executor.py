@@ -376,7 +376,8 @@ class ExecutorTpu(base_runner.BaseRunner):
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
 
-        if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave():
+        if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave(
+            global_step):
 
           def RunSave(sess, global_step):
             # Run TPU embedding retrieve ops.

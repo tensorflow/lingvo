@@ -332,7 +332,7 @@ class Controller(base_runner.BaseRunner):
 
         if self._checkpoint_in_controller:
           # Checkpoint if it's time.
-          self.checkpointer.MaybeSave(sess, self._model.global_step)
+          self.checkpointer.MaybeSave(sess, global_step)
 
         # Summary.
         if self._summary_op is not None and global_step >= next_summary_step:
@@ -800,8 +800,7 @@ class TrainerTpu(base_runner.BaseRunner):
         checkpoint_write_secs = 0.0
         if FLAGS.checkpoint_in_trainer_tpu:
           checkpoint_write_start = time.perf_counter()
-          checkpoint_saved = self.checkpointer.MaybeSave(
-              sess, self._model.global_step)
+          checkpoint_saved = self.checkpointer.MaybeSave(sess, global_step)
           if checkpoint_saved:
             checkpoint_write_secs = time.perf_counter() - checkpoint_write_start
         train_steps_secs = time.perf_counter() - train_steps_start

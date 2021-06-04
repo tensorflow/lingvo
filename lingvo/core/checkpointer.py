@@ -73,6 +73,8 @@ class Checkpointer:
 
     self._next_checkpoint_seconds = 0
     self._save_interval_seconds = self._train_params.save_interval_seconds
+    self._save_interval_steps = self._train_params.save_interval_steps
+    self._prev_ckpt_step = None
     self._saver = self._GetSaver()
 
     self._uninitialized_vars = tf.report_uninitialized_variables(
@@ -134,12 +136,20 @@ class Checkpointer:
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
     assert not uninitialized_var_names, uninitialized_var_names
 
-  def ShouldSave(self):
-    """Returns if it's time to save a checkpoint."""
-    now = time.time()
-    if now >= self._next_checkpoint_seconds:
+  def ShouldSave(self, gsteps):
+    """Returns True if a checkpoint should be saved."""
+    if self._prev_ckpt_step is None:
+      # Always save the first checkpoint.
       return True
-    return False
+    elif self._prev_ckpt_step == gsteps:
+      # Don't rewrite the same checkpoint.
+      return False
+    elif self._save_interval_steps is not None:
+      # Use save_interval_steps if it is specified by the user.
+      return gsteps - self._prev_ckpt_step >= self._save_interval_steps
+    else:
+      # Use save_interval_seconds otherwise.
+      return time.time() >= self._next_checkpoint_seconds
 
   def MaybeSave(self, sess, gsteps):
     """If it's time to save, save the checkpoint.
@@ -150,9 +160,8 @@ class Checkpointer:
     Returns:
       Whether a checkpoint was saved.
     """
-    if self.ShouldSave():
+    if self.ShouldSave(gsteps):
       self.Save(sess, gsteps)
-      self._UpdateNextSaveTime()
       return True
     return False
 
@@ -166,6 +175,7 @@ class Checkpointer:
     tf.logging.info('Save checkpoint')
     path = self._saver.save(sess, self._save_path, gsteps)
     tf.logging.info('Save checkpoint done: %s', path)
+    self._prev_ckpt_step = gsteps
     self._UpdateNextSaveTime()
 
   def _UpdateNextSaveTime(self):
@@ -177,6 +187,7 @@ class Checkpointer:
     path = tf.train.latest_checkpoint(self._train_dir)
     if path:
       self.RestoreFromPath(sess, path)
+      self._prev_ckpt_step = int(path.split('-')[-1])  # path=.../ckpt-step
       return path
     return None
 

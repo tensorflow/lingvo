@@ -171,6 +171,10 @@ class BaseTask(base_layer.BaseLayer):
         ' This flag should be set for unit-test only.')
     tp.Define('save_interval_seconds', 60 * 10,
               'Generates a checkpoint roughly once every this many seconds.')
+    tp.Define(
+        'save_interval_steps', None,
+        'Generates a checkpoint roughly once every this many training '
+        'steps. Supersedes save_interval_seconds if not None.')
     tp.Define('save_max_to_keep', 100,
               'Maximum number of recent checkpoints to keep.')
     tp.Define('save_keep_checkpoint_every_n_hours', 0.5,
@@ -991,6 +995,10 @@ class BaseModel(base_layer.BaseLayer):
         ' This flag should be set for unit-test only.')
     tp.Define('save_interval_seconds', 60 * 10,
               'Generates a checkpoint roughly once every this many seconds.')
+    tp.Define(
+        'save_interval_steps', None,
+        'Generates a checkpoint roughly once every this many training '
+        'steps. Supersedes save_interval_seconds if not None.')
     tp.Define('save_max_to_keep', 100,
               'Maximum number of recent checkpoints to keep.')
     tp.Define('save_keep_checkpoint_every_n_hours', 0.5,
@@ -1140,6 +1148,7 @@ class SingleTaskModel(SingleTaskBase):
       tp.early_stop = p.task.train.early_stop
       tp.enqueue_max_steps = p.task.train.enqueue_max_steps
       tp.save_interval_seconds = p.task.train.save_interval_seconds
+      tp.save_interval_steps = p.task.train.save_interval_steps
       tp.save_max_to_keep = p.task.train.save_max_to_keep
       tp.save_keep_checkpoint_every_n_hours = (
           p.task.train.save_keep_checkpoint_every_n_hours)
