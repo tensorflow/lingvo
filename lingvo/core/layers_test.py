@@ -2015,7 +2015,8 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
                            use_einsum=True,
                            block_dim=0,
                            input_dtype=tf.float32,
-                           fprop_dtype=None):
+                           fprop_dtype=None,
+                           w_dtype=None):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True):
@@ -2040,6 +2041,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.block_dim = block_dim
       params.use_blocked_matmul = True if block_dim > 0 else False
       params.fprop_dtype = fprop_dtype
+      params.w_dtype = w_dtype
 
       if quantized:
         cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
@@ -2068,7 +2070,11 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       return self.evaluate(output)
 
-  def testProjectionLayerFProp(self):
+  @parameterized.named_parameters(
+      ('w_type_default', None, 1e-06),
+      ('w_type_float16', tf.float16, 1e-03),
+  )
+  def testProjectionLayerFProp(self, w_dtype, atol):
     # pylint: disable=bad-whitespace
     # pyformat: disable
     expected_output = [
@@ -2084,12 +2090,14 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     # pylint: enable=bad-whitespace
     for reshape_to_2d in (False, True):
       actual = self._evalProjectionLayer(
-          reshape_to_2d=reshape_to_2d, expect_bn_fold_weights=False)
+          reshape_to_2d=reshape_to_2d,
+          expect_bn_fold_weights=False,
+          w_dtype=w_dtype)
       if reshape_to_2d:
         expected_output = np.reshape(np.array(expected_output), (-1, 2))
       tf.logging.info('expected = %s', expected_output)
       tf.logging.info('actual = %s', np.array_repr(actual))
-      self.assertAllClose(expected_output, actual)
+      self.assertAllClose(expected_output, actual, atol=atol)
 
   def testProjectionLayerFPropWithBias(self):
     # pylint: disable=bad-whitespace
@@ -2236,6 +2244,38 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
+
+  def testProjectionLayerBackPropWDTypeFloat16(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ProjectionLayer.Params()
+      params.name = 'proj'
+      params.dtype = tf.float64
+      params.input_dim = 3
+      params.output_dim = 2
+      params.batch_norm = False
+      params.params_init = py_utils.WeightInit.Constant(0.00443641)
+      params.w_dtype = tf.float16
+
+      proj_layer = layers.ProjectionLayer(params)
+      in_padding1 = tf.zeros([2, 4, 1], dtype=tf.float64)
+      inputs1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float64)
+      output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
+      loss = tf.reduce_sum(output1)
+
+      all_vars = tf.trainable_variables()
+      self.assertLen(all_vars, 1)
+
+      grads = tf.gradients(loss, all_vars)
+      self.evaluate(tf.global_variables_initializer())
+      sym_grads = [self.evaluate(sg) for sg in grads]
+
+      expected_grads = [[2.1999533, 2.1999533], [4.08647324, 4.08647324],
+                        [0.76935822, 0.76935822]]
+
+      self.assertAllClose(sym_grads[0], expected_grads, rtol=1e-03, atol=1e-03)
 
   def testProjectionLayerFPropQuantizedWithUnfusedActivation(self):
     # pylint: disable=bad-whitespace
