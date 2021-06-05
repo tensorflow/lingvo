@@ -30,10 +30,3 @@ class ThreadLocalDict(threading.local):
   def __init__(self):
     super().__init__()
     self.dict = {}
-
-
-class ThreadLocalValue(threading.local):
-
-  def __init__(self, v):
-    super().__init__()
-    self.value = v

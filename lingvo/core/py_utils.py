@@ -82,7 +82,6 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 ThreadLocalStack = thread_local_utils.ThreadLocalStack
 ThreadLocalDict = thread_local_utils.ThreadLocalDict
-ThreadLocalValue = thread_local_utils.ThreadLocalValue
 NestedMap = nested_map.NestedMap
 
 
@@ -1348,8 +1347,6 @@ _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
 
 _VARIABLE_SHAPE_PREFIXES = ThreadLocalStack()
 
-_VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS = ThreadLocalValue(0)
-
 
 def GetVarLeadingDimsAsCombinedLayers(var):
   """Gets the number of leading dimensions of `var` marked as combined layers.
@@ -1375,32 +1372,24 @@ def GetVarLeadingDimsAsCombinedLayers(var):
 
 
 @contextlib.contextmanager
-def VariableShapePrefixContext(shape_prefix, combined_layers=True):
+def VariableShapePrefixContext(shape_prefix):
   """Add a shape prefix to variable created by CreateVariable().
+
+  This new dimension will be marked as combined-layers. See also comments for
+  GetVarLeadingDimsAsCombinedLayers().
 
   Args:
     shape_prefix: a positive integer of shape prefix.
-    combined_layers: whether the prefix dimensions represent stacked variables
-      that combine multiple layers. See also the comment for
-      GetVarLeadingDimsAsCombinedLayers().
 
   Yields:
     None.
   """
   assert shape_prefix > 0, ('%s' % shape_prefix)
-  if (_VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value != len(
-      _VARIABLE_SHAPE_PREFIXES.stack) and combined_layers):
-    raise ValueError('Cannot add combined-layers shape dimension after '
-                     'non-combined-layer dimensions')
   _VARIABLE_SHAPE_PREFIXES.stack.append(shape_prefix)
-  if combined_layers:
-    _VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value += 1
   try:
     yield
   finally:
     _VARIABLE_SHAPE_PREFIXES.stack.pop()
-    if combined_layers:
-      _VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value -= 1
 
 
 def GetVariableShapePrefixes():
@@ -1410,7 +1399,7 @@ def GetVariableShapePrefixes():
 
 def GetVariableNumLeadingDimsForCombinedLayersContext():
   """Return the number of leading combined-layers dims for CreateVariable()."""
-  return _VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value
+  return len(_VARIABLE_SHAPE_PREFIXES.stack)
 
 
 def GetFanInFanOut(shape, prefix_dims_to_skip):
