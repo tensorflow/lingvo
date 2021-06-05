@@ -49,6 +49,7 @@ import numpy as np
 import six
 
 # pylint: disable=g-direct-tensorflow-import
+from tensorflow.core.framework import attr_value_pb2
 from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import func_graph
@@ -81,6 +82,7 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 ThreadLocalStack = thread_local_utils.ThreadLocalStack
 ThreadLocalDict = thread_local_utils.ThreadLocalDict
+ThreadLocalValue = thread_local_utils.ThreadLocalValue
 NestedMap = nested_map.NestedMap
 
 
@@ -1346,23 +1348,59 @@ _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
 
 _VARIABLE_SHAPE_PREFIXES = ThreadLocalStack()
 
+_VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS = ThreadLocalValue(0)
+
+
+def GetVarLeadingDimsAsCombinedLayers(var):
+  """Gets the number of leading dimensions of `var` marked as combined layers.
+
+  Such dimensions represent variables from different layers stacked together,
+  e.g., in RepeatLayer, and optimizers (which have shape-dependant behaviors)
+  can adjust its behavior based on this information to match the behavior for
+  separate layer variables.
+
+  Args:
+    var: A variable.
+
+  Returns:
+    An integer representing the number of leading dimensions.
+  """
+  try:
+    return var.op.get_attr('_num_leading_dims_for_combined_layers')
+  except ValueError:
+    return 0
+  except AttributeError:
+    # AttributeError: 'DistributedVarOp' object has no attribute 'get_attr'.
+    return 0
+
 
 @contextlib.contextmanager
-def VariableShapePrefixContext(shape_prefix):
+def VariableShapePrefixContext(shape_prefix, combined_layers=True):
   """Add a shape prefix to variable created by CreateVariable().
 
   Args:
     shape_prefix: a positive integer of shape prefix.
+    combined_layers: whether the prefix dimensions represent stacked variables
+      that combine multiple layers. See also the comment for
+      GetVarLeadingDimsAsCombinedLayers().
 
   Yields:
     None.
   """
   assert shape_prefix > 0, ('%s' % shape_prefix)
+  if (_VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value != len(
+      _VARIABLE_SHAPE_PREFIXES.stack) and combined_layers):
+    raise ValueError('Cannot add combined-layers shape dimension after '
+                     'non-combined-layer dimensions')
   _VARIABLE_SHAPE_PREFIXES.stack.append(shape_prefix)
+  if combined_layers:
+    _VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value += 1
   try:
     yield
   finally:
     _VARIABLE_SHAPE_PREFIXES.stack.pop()
+    if combined_layers:
+      _VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value -= 1
 
 
 def GetVariableShapePrefixes():
@@ -1370,21 +1408,30 @@ def GetVariableShapePrefixes():
   return _VARIABLE_SHAPE_PREFIXES.stack
 
 
-def GetFanInFanOut(shape):
+def GetVariableNumLeadingDimsForCombinedLayersContext():
+  """Return the number of leading combined-layers dims for CreateVariable()."""
+  return _VARIABLE_NUM_LEADING_DIMS_FOR_COMBINED_LAYERS.value
+
+
+def GetFanInFanOut(shape, prefix_dims_to_skip):
   """Returns (fan_in, fan_out) of a weight variable of the give shape."""
   if not shape:
     return None, None
-  if len(shape) < 1:
+  if len(shape) < prefix_dims_to_skip:
+    raise ValueError(f'Variable shape is {shape} but prefix_dims_to_skip is '
+                     f'{prefix_dims_to_skip}, larger than the shape rank.')
+  adjusted_shape = shape[prefix_dims_to_skip:]
+  if len(adjusted_shape) < 1:
     return 1, 1
-  elif len(shape) == 1:
+  elif len(adjusted_shape) == 1:
     # Following _compute_fans() from TF's init_ops.py.
-    return shape[0], shape[0]
+    return adjusted_shape[0], adjusted_shape[0]
   else:
     receptive_field_size = 1
-    for s in shape[:-2]:
+    for s in adjusted_shape[:-2]:
       receptive_field_size *= s
-    fan_in = shape[-2] * receptive_field_size
-    fan_out = shape[-1] * receptive_field_size
+    fan_in = adjusted_shape[-2] * receptive_field_size
+    fan_out = adjusted_shape[-1] * receptive_field_size
     return fan_in, fan_out
 
 
@@ -1678,6 +1725,12 @@ def _CreateVariableStateful(name,
             synchronization=synchronization,
             aggregation=aggregation)
 
+  combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
+  if combined_layers_dims > 0:
+    # pylint: disable=protected-access
+    var.op._set_attr('_num_leading_dims_for_combined_layers',
+                     attr_value_pb2.AttrValue(i=combined_layers_dims))
+
   # Shard the variable according to the sharding spec.
   tensor_split_dims_mapping = p.tensor_split_dims_mapping
   if tensor_split_dims_mapping is not None:
@@ -1793,6 +1846,12 @@ def _CreateVariableStateless(name,
         synchronization=synchronization,
         aggregation=aggregation)
 
+  combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
+  if combined_layers_dims > 0:
+    # pylint: disable=protected-access
+    var.op._set_attr('_num_leading_dims_for_combined_layers',
+                     attr_value_pb2.AttrValue(i=combined_layers_dims))
+
   # Shard the variable according to the sharding spec.
   tensor_split_dims_mapping = p.tensor_split_dims_mapping
   if tensor_split_dims_mapping is not None:
@@ -1806,13 +1865,14 @@ def _CreateVariableStateless(name,
 
 def _RandomXavierUniformInitializer(method, scale, seed):
   """Creates a random Xavier uniform initializer."""
+  combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
 
   def XavierUniform(shape, dtype, partition_info):
     """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
     del partition_info  # Unused.
     if not shape:
       raise ValueError('\'shape\' must not be \'None\' or 0 for XavierUniform')
-    fan_in, fan_out = GetFanInFanOut(shape)
+    fan_in, fan_out = GetFanInFanOut(shape, combined_layers_dims)
     if method == 'xavier':
       limit = math.sqrt(6. / (fan_in + fan_out))
     elif method == 'geo_mean_xavier':
@@ -1835,16 +1895,18 @@ def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
           'Make sure that it is intended.', name, shape, method, dim0)
     scale *= 1.0 / math.sqrt(dim0)
 
+  combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
+
   if method in ['gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanin']:
-    fan_in, _ = GetFanInFanOut(shape)
+    fan_in, _ = GetFanInFanOut(shape, combined_layers_dims)
     if fan_in is not None:
       scale *= 1.0 / math.sqrt(fan_in)
   if method in ['gaussian_sqrt_fanout', 'truncated_gaussian_sqrt_fanout']:
-    _, fan_out = GetFanInFanOut(shape)
+    _, fan_out = GetFanInFanOut(shape, combined_layers_dims)
     if fan_out is not None:
       scale *= 1.0 / math.sqrt(fan_out)
   if method in ['gaussian_sqrt_fanavg']:
-    fan_in, fan_out = GetFanInFanOut(shape)
+    fan_in, fan_out = GetFanInFanOut(shape, combined_layers_dims)
     if fan_in is not None and fan_out is not None:
       scale *= math.sqrt(2.0 / (fan_in + fan_out))
 
@@ -1890,7 +1952,7 @@ def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
       if not shape:
         raise ValueError(
             '\'shape\' must not be \'None\' or 0 for XavierUniform')
-      fan_in, fan_out = GetFanInFanOut(shape)
+      fan_in, fan_out = GetFanInFanOut(shape, combined_layers_dims)
       if method == 'xavier':
         limit = math.sqrt(6. / (fan_in + fan_out))
       elif method == 'geo_mean_xavier':
@@ -2011,6 +2073,8 @@ def _DeterministicRandomVarianceScalingInitializer(scale, mode, distribution,
   }:
     raise ValueError('Invalid `distribution` argument:', distribution)
 
+  combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
+
   def DeterministicVarianceScaling(shape, dtype, partition_info):
     # This is originally from TensorFlow: python/ops/init_ops.py
     scale_shape = shape
@@ -2022,7 +2086,7 @@ def _DeterministicRandomVarianceScalingInitializer(scale, mode, distribution,
     if isinstance(scale_shape, (list, tuple)) and not scale_shape:
       fan_in, fan_out = 1, 1
     else:
-      fan_in, fan_out = GetFanInFanOut(scale_shape)
+      fan_in, fan_out = GetFanInFanOut(scale_shape, combined_layers_dims)
     if mode == 'fan_in':
       scale_inner = scale / max(1., fan_in)
     elif mode == 'fan_out':
@@ -2049,13 +2113,14 @@ def _DeterministicRandomVarianceScalingInitializer(scale, mode, distribution,
 
 def _DeterministicRandomXavierUniformInitializer(method, scale, seed):
   """Creates a variance scaling initializer."""
+  combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
 
   def XavierUniform(shape, dtype, partition_info):
     """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
     del partition_info  # Unused.
     if not shape:
       raise ValueError('\'shape\' must not be \'None\' or 0 for XavierUniform')
-    fan_in, fan_out = GetFanInFanOut(shape)
+    fan_in, fan_out = GetFanInFanOut(shape, combined_layers_dims)
     if method == 'xavier':
       limit = math.sqrt(6. / (fan_in + fan_out))
     elif method == 'geo_mean_xavier':
@@ -2079,16 +2144,18 @@ def _CreateVarInitStateless(name, method, shape, dim0, seed, scale, init_dtype):
           'Make sure that it is intended.', name, shape, method, dim0)
     scale *= 1.0 / math.sqrt(dim0)
 
+  combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
+
   if method in ['gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanin']:
-    fan_in, _ = GetFanInFanOut(shape)
+    fan_in, _ = GetFanInFanOut(shape, combined_layers_dims)
     if fan_in is not None:
       scale *= 1.0 / math.sqrt(fan_in)
   if method in ['gaussian_sqrt_fanout', 'truncated_gaussian_sqrt_fanout']:
-    _, fan_out = GetFanInFanOut(shape)
+    _, fan_out = GetFanInFanOut(shape, combined_layers_dims)
     if fan_out is not None:
       scale *= 1.0 / math.sqrt(fan_out)
   if method in ['gaussian_sqrt_fanavg']:
-    fan_in, fan_out = GetFanInFanOut(shape)
+    fan_in, fan_out = GetFanInFanOut(shape, combined_layers_dims)
     if fan_in is not None and fan_out is not None:
       scale *= math.sqrt(2.0 / (fan_in + fan_out))
 

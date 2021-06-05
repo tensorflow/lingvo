@@ -437,10 +437,11 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       shape = [3, 2]
       pc = py_utils.WeightParams(
           shape=shape, init=py_utils.WeightInit.Constant(0.0), dtype=tf.float32)
-      with py_utils.VariableShapePrefixContext(5):
-        with py_utils.VariableShapePrefixContext(4):
+      with py_utils.VariableShapePrefixContext(5, combined_layers=True):
+        with py_utils.VariableShapePrefixContext(4, combined_layers=False):
           var = py_utils.CreateVariable('var', pc)
       self.assertEqual([5, 4, 3, 2], var.shape.as_list())
+      self.assertEqual(1, py_utils.GetVarLeadingDimsAsCombinedLayers(var))
 
   def testGeoMeanXavier(self):
     with self.session(use_gpu=False):
