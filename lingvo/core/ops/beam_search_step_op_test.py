@@ -879,6 +879,71 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
 
 class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
 
+  def testHypsFromBeamSearchOut(self):
+    with self.session(use_gpu=False) as sess:
+      hyp_size = 4
+      num_beams = 2
+      num_hyps_per_beam = hyp_size / num_beams
+      src_seq_len = 2
+      tgt_seq_len = 3
+      hyps = [
+          [3, 4, 5, 6],
+          [7, 8, 9, 10],
+          [0, 0, 0, 0],  # unused row
+      ]
+      prev_hyps = [
+          [4, 4, 4, 4],  # unused row
+          [2, 3, 0, 1],
+          [4, 4, 4, 4],  # unused row
+      ]
+      done_hyps = tf.ones([tgt_seq_len, hyp_size], dtype=tf.bool)
+      scores = tf.zeros([tgt_seq_len, hyp_size], dtype=tf.float32)
+      eos_scores = tf.zeros([tgt_seq_len, hyp_size], dtype=tf.float32)
+      # hyp ids:      0,          1          2           3
+      # step=0: [[ 0.,  1.], [ 2.,  3.], [ 4.,  5.], [ 6.,  7.]]
+      # step=1: [[ 8.,  9.], [10., 11.], [12., 13.], [14., 15.]]
+      atten_probs = np.reshape(
+          np.arange(tgt_seq_len * hyp_size * src_seq_len, dtype=np.float32),
+          [tgt_seq_len, hyp_size, src_seq_len])
+      eos_atten_probs = tf.ones([tgt_seq_len, hyp_size, src_seq_len],
+                                dtype=tf.float32)
+      final_done_hyps = ops.hyps_from_beam_search_outs(
+          hyps,
+          prev_hyps,
+          done_hyps,
+          scores,
+          atten_probs,
+          eos_scores,
+          eos_atten_probs,
+          eos_id=2,
+          num_hyps_per_beam=num_hyps_per_beam,
+          fix_hyp_atten_vecs=True)
+      final_done_hyps = sess.run(final_done_hyps)
+    self.assertAllEqual(final_done_hyps.shape, [tgt_seq_len, hyp_size])
+    # Focusing on hyps of length 3:
+    # hyp 0: last step EOS, step 1 hyp 0, step 0 hyp 2 (prev_hyps[1, 0]=2).
+    #        The output seq is [5, 7, 2].
+    # hyp 1: step 1 hyp 1, step 0 hyp 3, outputs [6, 8, 2].
+    # hyp 2: step 1 hyp 2, step 0 hyp 0, outputs [3, 9, 2].
+    # hyp 3: step 1 hyp 3, step 0 hyp 1, outputs [4, 10, 2].
+    expected_hyp_ids = [[5, 7, 2], [6, 8, 2], [3, 9, 2], [4, 10, 2]]
+    expected_atten_probs = np.array(
+        [
+            [[4, 5], [8, 9], [1, 1]],
+            [[6, 7], [10, 11], [1, 1]],
+            [[0, 1], [12, 13], [1, 1]],
+            [[2, 3], [14, 15], [1, 1]],
+        ],
+        dtype=np.float32,
+    )
+    for hyp_id in range(hyp_size):
+      hyp = hyps_pb2.Hypothesis()
+      hyp.ParseFromString(final_done_hyps[2, hyp_id])
+      self.assertAllEqual(hyp.ids, expected_hyp_ids[hyp_id])
+      for j in range(tgt_seq_len):
+        self.assertAllClose(hyp.atten_vecs[j].prob,
+                            expected_atten_probs[hyp_id][j])
+
   def _SameHyp(self, hyp1_pb, hyp2_pb):
     hyp1 = hyps_pb2.Hypothesis()
     hyp1.ParseFromString(hyp1_pb)

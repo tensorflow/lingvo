@@ -395,6 +395,7 @@ REGISTER_OP("HypsFromBeamSearchOuts")
     .Attr("T: {float, bfloat16} = DT_FLOAT")
     .Attr("eos_id: int")
     .Attr("num_hyps_per_beam: int")
+    .Attr("fix_hyp_atten_vecs: bool = false")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(0));
       return ::tensorflow::Status::OK();
@@ -421,6 +422,8 @@ eos_atten_probs: A tensor of shape [t, k * b, s_len].
 out_hyps: A tensor of shape [t, k * b] with terminated hyps.
 eos_id: Token id of the special end of sequence token.
 num_hyps_per_beam: Number of hyps per beam.
+fix_hyp_atten_vecs: Whether to fix an issue and output correct `att_vecs` fields
+    in the output protos.
 )doc");
 
 REGISTER_OP("TopKFromBeamSearchOuts")

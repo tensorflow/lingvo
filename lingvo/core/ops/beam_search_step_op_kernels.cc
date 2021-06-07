@@ -1088,6 +1088,8 @@ class HypsFromBeamSearchOuts : public OpKernel {
   explicit HypsFromBeamSearchOuts(OpKernelConstruction* ctx) : OpKernel(ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("eos_id", &eos_id_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num_hyps_per_beam", &num_hyps_per_beam_));
+    OP_REQUIRES_OK(ctx,
+                   ctx->GetAttr("fix_hyp_atten_vecs", &fix_hyp_atten_vecs_));
   }
 
   void Compute(OpKernelContext* ctx) override {
@@ -1230,11 +1232,13 @@ class HypsFromBeamSearchOuts : public OpKernel {
                   auto* att_vec = terminated_hyps.add_atten_vecs();
                   for (int d = 0; d < atten_probs.dim_size(2); ++d) {
                     if (l == 0) {
-                      att_vec->add_prob(
-                          float(t_eos_atten_probs(cur_step, hyp_ids[l], d)));
+                      att_vec->add_prob(static_cast<float>(
+                          t_eos_atten_probs(cur_step, hyp_ids[0], d)));
                     } else {
-                      att_vec->add_prob(
-                          float(t_atten_probs(cur_step, hyp_ids[l], d)));
+                      const auto hyp_ids_index =
+                          fix_hyp_atten_vecs_ ? (l - 1) : l;
+                      att_vec->add_prob(static_cast<float>(
+                          t_atten_probs(cur_step, hyp_ids[hyp_ids_index], d)));
                     }
                   }
                 }
@@ -1248,6 +1252,7 @@ class HypsFromBeamSearchOuts : public OpKernel {
  private:
   int32 eos_id_ = 0;
   int32 num_hyps_per_beam_ = 0;
+  bool fix_hyp_atten_vecs_ = false;
 };
 
 REGISTER_KERNEL_BUILDER(Name("HypsFromBeamSearchOuts")
