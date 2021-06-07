@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for beam_search_helper."""
 
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import beam_search_helper
 from lingvo.core import py_utils
@@ -22,7 +23,10 @@ from lingvo.core import test_utils
 import numpy as np
 
 
-def GetBeamSearchHelperResults(sess, num_hyps_per_beam, pass_seq_lengths=False):
+def GetBeamSearchHelperResults(sess,
+                               num_hyps_per_beam,
+                               pass_seq_lengths=False,
+                               force_eos_in_top_k=False):
   np.random.seed(9384758)
   tf.random.set_seed(8274758)
   vocab_size = 12
@@ -31,7 +35,7 @@ def GetBeamSearchHelperResults(sess, num_hyps_per_beam, pass_seq_lengths=False):
   src_batch_size = 2
   tgt_batch_size = src_batch_size * num_hyps_per_beam
   p = beam_search_helper.BeamSearchHelper.Params().Set(
-      name='bsh', target_seq_len=tgt_len)
+      name='bsh', target_seq_len=tgt_len, force_eos_in_top_k=force_eos_in_top_k)
   bs_helper = p.Instantiate()
 
   def InitBeamSearchState(unused_theta, unused_encoder_outputs,
@@ -79,7 +83,7 @@ def GetBeamSearchHelperResults(sess, num_hyps_per_beam, pass_seq_lengths=False):
   return topk_ids, topk_lens, topk_scores
 
 
-class BeamSearchHelperTest(test_utils.TestCase):
+class BeamSearchHelperTest(test_utils.TestCase, parameterized.TestCase):
 
   # TODO(yonghui): Add more thorough tests.
   def testBeamSearchHelper(self):
@@ -95,8 +99,8 @@ class BeamSearchHelperTest(test_utils.TestCase):
       expected_topk_lens = [5, 4, 4, 7, 6, 6]
       expected_topk_scores = [[8.27340603, 6.26949024, 5.59490776],
                               [9.74691486, 8.46679497, 7.14809656]]
-      self.assertEqual(expected_topk_ids, topk_ids.tolist())
-      self.assertEqual(expected_topk_lens, topk_lens.tolist())
+      self.assertAllEqual(expected_topk_ids, topk_ids.tolist())
+      self.assertAllEqual(expected_topk_lens, topk_lens.tolist())
       self.assertAllClose(expected_topk_scores, topk_scores)
 
   def testBeamSearchHelperHypsOne(self):
@@ -109,8 +113,8 @@ class BeamSearchHelperTest(test_utils.TestCase):
       expected_topk_ids = [[9, 2, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]]
       expected_topk_lens = [2, 0]
       expected_topk_scores = [[3.778749], [0.0]]
-      self.assertEqual(expected_topk_ids, topk_ids.tolist())
-      self.assertEqual(expected_topk_lens, topk_lens.tolist())
+      self.assertAllEqual(expected_topk_ids, topk_ids.tolist())
+      self.assertAllEqual(expected_topk_lens, topk_lens.tolist())
       self.assertAllClose(expected_topk_scores, topk_scores)
 
   def testBeamSearchHelperWithSeqLengths(self):
@@ -126,9 +130,93 @@ class BeamSearchHelperTest(test_utils.TestCase):
       expected_topk_lens = [5, 4, 4, 7, 6, 6]
       expected_topk_scores = [[8.27340603, 6.26949024, 5.59490776],
                               [9.74691486, 8.46679497, 7.14809656]]
-      self.assertEqual(expected_topk_ids, topk_ids.tolist())
-      self.assertEqual(expected_topk_lens, topk_lens.tolist())
+      self.assertAllEqual(expected_topk_ids, topk_ids.tolist())
+      self.assertAllEqual(expected_topk_lens, topk_lens.tolist())
       self.assertAllClose(expected_topk_scores, topk_scores)
+
+  def testBeamSearchHelperForceEos(self):
+    with self.session(use_gpu=False) as sess:
+      topk_ids, topk_lens, topk_scores = GetBeamSearchHelperResults(
+          sess, num_hyps_per_beam=3, force_eos_in_top_k=True)
+      print(np.array_repr(topk_ids))
+      print(np.array_repr(topk_lens))
+      print(np.array_repr(topk_scores))
+      expected_topk_ids = [
+          [4, 3, 11, 6, 9, 3, 2],
+          [4, 3, 11, 6, 9, 7, 2],
+          [4, 3, 4, 1, 4, 1, 2],
+          [6, 0, 4, 6, 6, 11, 2],
+          [6, 0, 4, 6, 3, 3, 2],
+          [6, 0, 4, 6, 1, 2, 0],
+      ]
+      expected_topk_lens = [7, 7, 7, 7, 7, 6]
+      expected_topk_scores = [[10.576365, 9.345996, 9.125197],
+                              [9.746915, 8.905771, 8.466795]]
+      self.assertAllEqual(expected_topk_ids, topk_ids.tolist())
+      self.assertAllEqual(expected_topk_lens, topk_lens.tolist())
+      self.assertAllClose(expected_topk_scores, topk_scores)
+
+  @parameterized.named_parameters(
+      ('eos_valid_in_topk', 100.0, True),
+      ('eos_valid_not_in_topk', 100.0, False),
+      ('eos_not_valid_in_topk', 0.5, True),
+      ('eos_not_valid_not_in_topk', 0.5, False),
+  )
+  def testBeamSearchForceEosInTopK(self, valid_eos_max_logit_delta,
+                                   force_eos_in_top_k):
+    with self.session() as sess:
+      vocab_size = 300
+      tgt_len = 100
+      num_hyps_per_beam = 3
+      src_batch_size = 2
+      tgt_batch_size = src_batch_size * num_hyps_per_beam
+      p = beam_search_helper.BeamSearchHelper.Params().Set(
+          name='bsh',
+          target_seq_len=tgt_len,
+          num_hyps_per_beam=num_hyps_per_beam,
+          beam_size=100000.0,  # Beam search until the end.
+          valid_eos_max_logit_delta=valid_eos_max_logit_delta,
+          force_eos_in_top_k=force_eos_in_top_k,
+      )
+      bs_helper = p.Instantiate()
+
+      def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
+                                 unused_num_hyps_per_beam):
+        return py_utils.NestedMap(
+            log_probs=tf.zeros([tgt_batch_size, vocab_size]),
+            atten_probs=tf.zeros([tgt_batch_size, 0])), py_utils.NestedMap()
+
+      def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                    unused_step_ids, states,
+                                    unused_num_hyps_per_beam):
+        # Same probs for each id.
+        logits = tf.zeros([tgt_batch_size, vocab_size])
+        # Except eos is slightly lower prob.
+        logits = logits - 1.0 * tf.expand_dims(
+            tf.one_hot(p.target_eos_id, vocab_size), 0)
+        return py_utils.NestedMap(
+            atten_probs=tf.zeros([tgt_batch_size, 0]), log_probs=logits), states
+
+      def PostBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                     unused_new_step_ids, states):
+        return states
+
+      encoder_outputs = py_utils.NestedMap(
+          seq_lengths=tf.zeros([src_batch_size], dtype=tf.int32))
+      theta = py_utils.NestedMap()
+
+      beam_search_output = bs_helper.BeamSearchDecode(
+          theta,
+          encoder_outputs,
+          init_beam_search_state=InitBeamSearchCallBack,
+          pre_beam_search_step_callback=PreBeamSearchStepCallback,
+          post_beam_search_step_callback=PostBeamSearchStepCallback)
+
+      topk_lens = sess.run(beam_search_output.topk_lens)
+      if not force_eos_in_top_k or valid_eos_max_logit_delta < 1.0:
+        self.assertAllEqual(topk_lens, np.zeros_like(topk_lens))
+      else:
+        self.assertAllGreater(topk_lens, 0)
 
   def testCustomStepIds(self):
     with self.session(use_gpu=False):
@@ -195,8 +283,8 @@ class BeamSearchHelperTest(test_utils.TestCase):
       expected_topk_lens = [5, 4, 4, 7, 6, 6]
       expected_topk_scores = [[8.27340603, 6.26949024, 5.59490776],
                               [9.74691486, 8.46679497, 7.14809656]]
-      self.assertEqual(expected_topk_ids, topk_ids.tolist())
-      self.assertEqual(expected_topk_lens, topk_lens.tolist())
+      self.assertAllEqual(expected_topk_ids, topk_ids.tolist())
+      self.assertAllEqual(expected_topk_lens, topk_lens.tolist())
       self.assertAllClose(expected_topk_scores, topk_scores)
 
 
@@ -298,9 +386,9 @@ class GreedySearchHelperTest(test_utils.TestCase):
       expected_hyp_ids = [[2, 2, 6, 7, 1, 9, 4], [3, 9, 3, 9, 6, 5, 10]]
       expected_hyp_lens = [1, 7]
       expected_done_hyps = [True, False]
-      self.assertEqual(expected_hyp_ids, final_hyp_ids.tolist())
-      self.assertEqual(expected_hyp_lens, final_hyp_lens.tolist())
-      self.assertEqual(expected_done_hyps, final_done_hyps.tolist())
+      self.assertAllEqual(expected_hyp_ids, final_hyp_ids.tolist())
+      self.assertAllEqual(expected_hyp_lens, final_hyp_lens.tolist())
+      self.assertAllEqual(expected_done_hyps, final_done_hyps.tolist())
 
 
 if __name__ == '__main__':

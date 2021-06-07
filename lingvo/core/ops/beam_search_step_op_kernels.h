@@ -235,7 +235,7 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
                  const float local_eos_threshold, bool is_first_step,
                  bool is_last_decoder_step, const Tensor& is_last_chunk,
                  bool merge_paths, bool allow_empty_terminated_hyp,
-                 const std::vector<bool>& skip_beam,
+                 bool force_eos_in_top_k, const std::vector<bool>& skip_beam,
                  std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
                  std::vector<Hyp>* eos_hyps,
                  std::vector<int32>* terminal_symbols);

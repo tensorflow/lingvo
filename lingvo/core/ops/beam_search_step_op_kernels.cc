@@ -110,7 +110,7 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
                  const float local_eos_threshold, bool is_first_step,
                  bool is_last_decoder_step, const Tensor& is_last_chunk,
                  bool merge_paths, bool allow_empty_terminated_hyp,
-                 const std::vector<bool>& skip_beam,
+                 bool force_eos_in_top_k, const std::vector<bool>& skip_beam,
                  // Note that this is functionally a bool, however
                  // vector<bool> is not safe to parallel write into
                  // since it's underlying storage is at the byte-level.
@@ -155,7 +155,7 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
           }
           // +1 to make sure that at least top-k hypotheses survive even with
           // the special treatment for eos.  +2 if we are also using eoc.
-          const int topk_size = eoc_id >= 0 ? k + 2 : k + 1;
+          const int topk_size = k + 1 + static_cast<int>(eoc_id >= 0);
           TopK<Hyp, HigherScoreWithEos, ExtractGlobalScore,
                InsertHypWithEpsilonDedupe>
               topk(topk_size, epsilon_id_for_path_merging, eos_id,
@@ -198,11 +198,23 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
             }
           }
 
-          auto entries = topk.Get();
+          std::vector<Hyp> entries = topk.Get();
           DCHECK(!entries.empty())
               << "No entries in TopK. This typically "
               << "happens if your model is producing NaNs in the output.";
           std::sort(entries.begin(), entries.end(), HigherScore());
+          if (force_eos_in_top_k) {
+            if (std::find_if(entries.begin(), entries.end(),
+                             [=](const Hyp& hyp) {
+                               return hyp.word_id == eos_id;
+                             }) == entries.end()) {
+              entries.pop_back();
+              const float eos_score = scores_matrix(hyp_id, eos_id);
+              entries.push_back({hyps[hyp_id].beam_id, hyp_id, eos_id,
+                                 eos_score, current_global_score + eos_score,
+                                 hyps[hyp_id].prev_labels});
+            }
+          }
           const float eos_score_threshold =
               entries[0].global_score - valid_eos_max_logit_delta;
           VLOG(3) << "Best_score=" << entries[0].global_score
@@ -293,6 +305,8 @@ class BeamSearchStepOp : public OpKernel {
     if (op_version == 2) {
       OP_REQUIRES_OK(ctx,
                      ctx->GetAttr("beam_independence", &beam_independence_));
+      OP_REQUIRES_OK(ctx,
+                     ctx->GetAttr("force_eos_in_top_k", &force_eos_in_top_k_));
     }
 
     DCHECK_GE(eos_id_, 0);
@@ -632,8 +646,9 @@ class BeamSearchStepOp : public OpKernel {
                 /*eos_id=*/eos_id_, /*eoc_id=*/eoc_id_, num_beams,
                 valid_eos_max_logit_delta_, local_eos_threshold_,
                 /*is_first_step=*/t == 0, is_last_decoder_step, is_last_chunk,
-                merge_paths_, allow_empty_terminated_hyp_, skip_beam,
-                &eos_in_topk, &top_k_hyps, &eos_hyps, &terminal_symbols);
+                merge_paths_, allow_empty_terminated_hyp_, force_eos_in_top_k_,
+                skip_beam, &eos_in_topk, &top_k_hyps, &eos_hyps,
+                &terminal_symbols);
 
     Tensor* out_done_hyps = nullptr;
     OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 7, 5, &out_done_hyps));
@@ -822,6 +837,7 @@ class BeamSearchStepOp : public OpKernel {
   bool allow_empty_terminated_hyp_ = true;
   bool ensure_full_beam_ = false;
   bool force_eos_in_last_step_ = false;
+  bool force_eos_in_top_k_ = false;
 
   // Whether each beam terminates independently. Only supported when op_version
   // is 2.

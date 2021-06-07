@@ -178,6 +178,7 @@ REGISTER_OP("BeamSearchStepV2")
     .Attr("allow_empty_terminated_hyp: bool = true")
     .Attr("ensure_full_beam: bool = false")
     .Attr("force_eos_in_last_step: bool = false")
+    .Attr("force_eos_in_top_k: bool = false")
     .Attr("beam_independence: bool = false")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(2));
@@ -297,6 +298,10 @@ force_eos_in_last_step: If true, then if decode does not terminate even after
     hypotheses (with a valid eos symbol in the end) are returned. all_done
     is set to true for these partials. If false, which is the default behavior,
     empty hypothesis are returned and all_done is set to false at termination.
+force_eos_in_top_k: Whether to always consider the eos token to be among the top
+    k tokens for every step. When False, hyps can only terminate if the eos
+    token is part of the top k. Note that valid_eos_max_logit_delta and
+    local_eos_threshold always apply regardless of this.
 beam_independence: When enabled, this step will become a no-op for beam_id if
     and only if in_beam_done[beam_id] == True.
 )doc");

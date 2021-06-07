@@ -239,6 +239,12 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'For all active hyps that are still on the beam after target_seq_len '
         'steps, return partial hyps with EOS set as the last token.')
     p.Define(
+        'force_eos_in_top_k', False,
+        'Whether to always consider the eos token to be among the top k tokens '
+        'for every step. When False, hyps can only terminate if the eos token '
+        'is part of the top k. Note that p.valid_eos_max_logit_delta and '
+        'p.local_eos_threshold always apply regardless of this.')
+    p.Define(
         'batch_major_state', True, 'If True, we use batch as the major '
         'dimension of the hyp states. Otherwise, timing becomes the major '
         'dimension, and the gathers are performed along the second-to-major '
@@ -355,6 +361,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
          allow_empty_terminated_hyp=p.allow_empty_terminated_hyp,
          ensure_full_beam=p.ensure_full_beam,
          force_eos_in_last_step=p.force_eos_in_last_step,
+         force_eos_in_top_k=p.force_eos_in_top_k,
          local_eos_threshold=p.local_eos_threshold,
          beam_independence=p.terminate_beams_independently)
 
