@@ -321,14 +321,18 @@ class Decoder(base_runner.BaseRunner):
       else:
         path = None
         while True:
-          path = self._FindNewCheckpoint(path, sess)
-          if not path or self.DecodeCheckpoint(sess, path):
+          path = self._FindNewCheckpoint(sess, path)
+          if path is not None:
+            self.DecodeCheckpoint(sess, path)
+            if self._ShouldStop(sess):
+              break
+          else:
             break
 
     # Maybe decode the last checkpoint if we are not given a specific
     # checkpoint to decode.
     if self._decode_path is None:
-      self.DecodeLatestCheckpoint(path)
+      self.DecodeLatestCheckpoint(last_path=path)
 
     if self._should_report_metrics:
       tf.logging.info('Reporting trial done.')
@@ -357,7 +361,8 @@ class Decoder(base_runner.BaseRunner):
     p = self._task.params
     ckpt_id_from_file = self.GetCkptIdFromFile(checkpoint_path)
     if ckpt_id_from_file < p.eval.start_decoder_after:
-      return False
+      return
+
     samples_per_summary = p.eval.decoder_samples_per_summary
     if samples_per_summary is None:
       samples_per_summary = p.eval.samples_per_summary

@@ -322,7 +322,7 @@ class Controller(base_runner.BaseRunner):
           self.checkpointer.RestoreIfNeeded(sess)
 
         global_step = sess.run(self._model.global_step)
-        if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
+        if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if self._checkpoint_in_controller:
             self.checkpointer.Save(sess, global_step)
@@ -888,18 +888,22 @@ class Evaler(base_runner.BaseRunner):
       self._task.input.Initialize(sess)
 
       if self._eval_path:
-        self._EvalOnce(self._eval_path, sess)
+        self._EvalOnce(sess, self._eval_path)
       else:
         path = None
         while True:
-          path = self._FindNewCheckpoint(path, sess)
-          if not path or self._EvalOnce(path, sess):
+          path = self._FindNewCheckpoint(sess, path)
+          if path is not None:
+            self._EvalOnce(sess, path)
+            if self._ShouldStop(sess):
+              break
+          else:
             break
 
     # Maybe evaluate the last checkpoint if we are not given a specific
     # checkpoint to evaluate.
     if self._eval_path is None:
-      self.EvalLatestCheckpoint(path)
+      self.EvalLatestCheckpoint(last_path=path)
 
     if self._should_report_metrics:
       tf.logging.info('Reporting trial done.')
@@ -923,7 +927,7 @@ class Evaler(base_runner.BaseRunner):
         tf.logging.info('Latest checkpoint was already evaluated.')
         return
 
-      self._EvalOnce(path, sess)
+      self._EvalOnce(sess, path)
 
   def EvalCheckpoint(self, ckpt_id):
     with tf.container(self._container_id), self._GetSession() as sess:
@@ -933,7 +937,7 @@ class Evaler(base_runner.BaseRunner):
       sess.run(self._initialize_local_vars)
       self._task.input.Initialize(sess)
       path = '{}/ckpt-{:08d}'.format(self._train_dir, ckpt_id)
-      self._EvalOnce(path, sess)
+      self._EvalOnce(sess, path)
 
   def _RemoveScalarSummaries(self, summaries):
     proto = summary_pb2.Summary()
@@ -943,15 +947,12 @@ class Evaler(base_runner.BaseRunner):
         del proto.value[i]
     return proto.SerializeToString()
 
-  def _EvalOnce(self, path, sess):
+  def _EvalOnce(self, sess, path):
     """Runs evaluation for a batch of samples.
 
     Args:
-      path: checkpoint path.
       sess: the tf Session.
-
-    Returns:
-      should_stop.
+      path: checkpoint path.
     """
 
     if not FLAGS.evaler_in_same_address_as_controller:
@@ -965,7 +966,7 @@ class Evaler(base_runner.BaseRunner):
     # Check after how many steps checkpoint got saved.
     # And decide whether to run an evaluation.
     if global_step < self._task.params.eval.start_eval_after:
-      return False
+      return
 
     if self._task.params.input.resettable:
       tf.logging.info('Resetting input_generator.')
@@ -1034,13 +1035,9 @@ class Evaler(base_runner.BaseRunner):
           self._task.input.merged_input_data_summary_op)
       self._WriteInputDataStatSummaries(input_stats_summary_str, global_step)
 
-    should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:
       tf.logging.info('Reporting eval measure for step %d.' % global_step)
-      trial_should_stop = self._trial.ReportEvalMeasure(global_step,
-                                                        metrics_dict, path)
-      should_stop = should_stop or trial_should_stop
-    return should_stop
+      self._trial.ReportEvalMeasure(global_step, metrics_dict, path)
 
 
 Decoder = trainer_impl.Decoder

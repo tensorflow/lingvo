@@ -130,8 +130,11 @@ class BaseRunner:
           os.path.join(self._logdir, jobname), metric_name, global_step,
           metric_value)
 
-  def _ShouldStop(self, sess, step):
+  def _ShouldStop(self, sess, step=None):
     """Check if the runner should stop."""
+    if step is None:
+      step = sess.run(py_utils.GetGlobalStep())
+
     if step >= self.params.train.max_steps:
       tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
                       self.params.train.max_steps)
@@ -144,6 +147,10 @@ class BaseRunner:
 
     if self._early_stop and self._early_stop.Stop(sess):
       tf.logging.info('ShouldStop: Early stopping.')
+      return True
+
+    if self._trial.ShouldStop():
+      tf.logging.info('ShouldStop: Trial finished.')
       return True
 
     return False
@@ -190,9 +197,9 @@ class BaseRunner:
 
   @py_utils.Retry(
       initial_delay_sec=1, delay_growth_factor=1.5, max_delay_sec=300)
-  def _FindNewCheckpoint(self, prev_path, sess):
+  def _FindNewCheckpoint(self, sess, prev_path):
     """Returns the path to a new checkpoint, or raises RuntimeError."""
-    if self._trial.ShouldStop() or self._ShouldStop(sess, 0):
+    if self._ShouldStop(sess, 0):
       return None
     path = tf.train.latest_checkpoint(self._train_dir)
     if not path:
