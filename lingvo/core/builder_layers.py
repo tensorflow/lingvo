@@ -1363,3 +1363,26 @@ class PrintShapeLayer(base_layer.BaseLayer):
   def FPropMeta(cls, p, *args):
     py_utils.CheckShapes(args)
     return py_utils.NestedMap(flops=0, out_shapes=args)
+
+
+class ReshapeLayer(base_layer.BaseLayer):
+  """Reshape the inputs to the specified shape."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('shape', None, 'The output shape.')
+    return p
+
+  def FProp(self, theta, inp):
+    """Reshape the inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values.
+      inp: A tensor or `.NestedMap` object containing inputs to reshape.
+
+    Returns:
+      A tensor or `.NestedMap` with the same structure as the input.
+    """
+    p = self.params
+    return tf.nest.map_structure(lambda t: tf.reshape(t, p.shape), inp)

@@ -348,3 +348,8 @@ class Base:
     return layers.Conv2DLayerNoPadding.Params().Set(
         name=name, filter_shape=filter_shape, filter_stride=filter_stride,
         fprop_dtype=self.params.fprop_dtype)
+
+  def _Reshape(self, name, shape):
+    """Reshape inputs to the shape provided."""
+    return builder_layers.ReshapeLayer.Params().Set(name=name,
+                                                    shape=shape)

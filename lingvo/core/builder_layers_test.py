@@ -705,6 +705,19 @@ class BuilderLayerTest(test_utils.TestCase):
       x_val, y_val = self.evaluate([x, y])
     self.assertEqual(x_val, y_val)
 
+  def testReshapeLayer(self):
+    g = tf.Graph()
+    with g.as_default():
+      p = layers.ReshapeLayer.Params().Set(name='test', shape=[-1, 2, 1])
+      l = p.Instantiate()
+      x = tf.constant([[1.0, 2.0], [3.0, 2.0]])
+      y = l.FPropDefaultTheta(x)
+
+    with self.session(graph=g):
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllEqual(self.evaluate(tf.shape(x)), [2, 2])
+      self.assertAllEqual(self.evaluate(tf.shape(y)), [2, 2, 1])
+
 
 if __name__ == '__main__':
   tf.test.main()
