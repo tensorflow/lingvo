@@ -146,6 +146,30 @@ class F1Metric(BaseMetric):
       return 0.0
 
 
+class MCCMetric(F1Metric):
+  """Class to compute Matthews correlation coefficient metric."""
+
+  def __init__(self):
+    super().__init__()
+    self._true_neg = 0.0
+
+  def UpdateTrueNegative(self, count=1.0):
+    self._true_neg += count
+
+  @property
+  def value(self):
+    tp = self._true_pos
+    tn = self._true_neg
+    fp = self._false_pos
+    fn = self._false_neg
+
+    denominator = (tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)
+    if denominator > 0.0:
+      return (tp * tn - fp * fn) / denominator**0.5
+    else:
+      return 0.0
+
+
 class CorpusBleuMetric(BaseMetric):
   """Metric class to compute the corpus-level BLEU score."""
 

@@ -60,6 +60,22 @@ class MetricsTest(test_utils.TestCase):
                                            simple_value=expected_f1)]),
         m.Summary(name))
 
+  def testMCCMetric(self):
+    m = metrics.MCCMetric()
+    m.UpdateTruePositive(count=2.0)
+    m.UpdateTrueNegative(count=2.0)
+    m.UpdateFalsePositive()
+    m.UpdateFalseNegative()
+
+    expected_mcc = 1 / 3
+    self.assertAlmostEqual(expected_mcc, m.value)
+
+    name = 'my_mcc_metric'
+    self.assertEqual(
+        tf.Summary(
+            value=[tf.Summary.Value(tag=name, simple_value=expected_mcc)]),
+        m.Summary(name))
+
   def testCorpusBleuMetric(self):
     m = metrics.CorpusBleuMetric()
     m.Update('a b c d', 'a b c d')
