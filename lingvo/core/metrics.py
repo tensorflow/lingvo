@@ -296,6 +296,20 @@ class TpuEvalMetrics:
     for k, v in zip(sorted(self._metrics.keys()), self._Zip(values)):
       self._metrics[k] = v
 
+  def ToAverageMetrics(self):
+    """Wrap the final metric values into AverageMetric objects.
+
+    Returns:
+      A dict that maps metric names to AverageMetric objects.
+    """
+    ret = {}
+    for name, (value, weight) in self._metrics.items():
+      avg_metric = AverageMetric()
+      avg_metric.total_weight = weight
+      avg_metric.total_value = weight * value
+      ret[name] = avg_metric
+    return ret
+
 
 class AUCMetric(BaseMetric):
   """Class to compute the AUC score for binary classification."""

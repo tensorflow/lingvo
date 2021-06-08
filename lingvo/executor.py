@@ -275,6 +275,12 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     tf.logging.info('num_programs: %d', len(self._programs))
 
+    # When running in a vizier trainer, the executor reports infeasiable runs
+    # in case of errors. The programs report metrics and normal completions.
+    for program in self._programs:
+      if program._should_report_metrics:
+        self._should_report_metrics = True
+
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):

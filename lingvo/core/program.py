@@ -121,6 +121,30 @@ class BaseProgram:
     self._compile_op = None
     self._status_msg_fn = None
 
+    self._InitializeVizier()
+
+  def _InitializeVizier(self):
+    """Checks if this program should report metrics to vizier."""
+    p = self.params
+    self._should_report_metrics = False
+
+    reporting_job = self._task_params.cluster.reporting_job
+    job_split = self._task_params.cluster.reporting_job.split('/')
+
+    if len(job_split) != 2:
+      # The default setting for reporting job is 'evaler'. This is not valid
+      # for use with program. We only warn only since we may not be in a vizier
+      # setting.
+      tf.logging.info('reporting_job should be of the form '
+                      'program_name/dataset_name with exactly one / '
+                      f'instead got {reporting_job}')
+      return
+
+    vizier_program_name, vizier_dataset_name = job_split
+    if p.name == vizier_program_name and p.dataset_name == vizier_dataset_name:
+      tf.logging.info(f'Adding reporting for {reporting_job}')
+      self._should_report_metrics = True
+
   @property
   def _summary_writer(self):
     """Returns the FileWriter object to use for summaries."""
@@ -189,6 +213,29 @@ class BaseProgram:
     except Exception as e:
       tf.logging.info('_InfeedLoop exception %r %s', e, e)
       raise
+
+  def _ReportVizierMetrics(self, global_step, metrics_dict):
+    """Report metrics to vizier service.
+
+    Args:
+      global_step: Int.
+      metrics_dict: A dict of metric name -> metric values.
+
+    Returns:
+      vizier_early_stop: Boolean, indicates if early stopping has bee requested
+        by vizier.
+    """
+    p = self.params
+    if self._should_report_metrics:
+      tf.logging.info(f'Reporting Vizier metrics for {p.name}/{p.dataset_name}')
+      vizier_early_stop = self._trial.ReportEvalMeasure(global_step,
+                                                        metrics_dict, '')
+      if global_step >= self._task_params.train.max_steps or vizier_early_stop:
+        self._trial.ReportDone()
+
+    else:
+      vizier_early_stop = False
+    return vizier_early_stop
 
   def BuildTpuSubgraph(self):
     """Sub classes should construct a model/graph to be executed by Run.
@@ -490,7 +537,9 @@ class TrainProgram(BaseProgram):
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
 
-    return self._ShouldStop(task_global_step)
+    vizier_early_stop = self._ReportVizierMetrics(
+        global_step, self._eval_metrics.ToAverageMetrics())
+    return self._ShouldStop(task_global_step) or vizier_early_stop
 
   def _ShouldStop(self, task_global_step):
     """Simpler version of _ShouldStop without early stopping."""
@@ -590,7 +639,8 @@ class EvalProgram(BaseProgram):
     self.SetStatusMessage('Executing eval program at step %d %s' %
                           (global_step, ','.join(status_strs)))
     self._summary_writer.flush()
-    return False
+    return self._ReportVizierMetrics(global_step,
+                                     self._eval_metrics.ToAverageMetrics())
 
 
 def _FetchDecodeOut(sess, decode_tensors, cpu_passthrough_tensors):
@@ -700,7 +750,8 @@ class DecodeProgram(BaseProgram):
     decode_finalize_args = base_model.DecodeFinalizeArgs(
         decode_out_path=decode_out_path, decode_out=buffered_decode_out)
     self._task.DecodeFinalize(decode_finalize_args)
-    return False
+
+    return self._ReportVizierMetrics(global_step, dec_metrics)
 
 
 class ExperimentalDecodeProgram(DecodeProgram):
@@ -818,7 +869,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
 
-    return False
+    return self._ReportVizierMetrics(global_step, dec_metrics)
 
 
 class MLPerfTrainDecodeProgram(BaseProgram):
@@ -857,6 +908,10 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     self._run_stop = None
     self._train_pool = multiprocessing.dummy.Pool(1)
     self._warmup_seconds = 60
+
+  def _InitializeVizier(self):
+    """We never use vizier with MLPerfPrograms."""
+    self._should_report_metrics = False
 
   def BuildTpuSubgraph(self):
     p = self.params
@@ -1008,7 +1063,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
           'eval_accuracy', mlperf_metric_value, metadata={'epoch_num': epoch})
       if mlperf_metric_value > self._ml_perf.decoder_metric_success_threshold:
         tf.logging.info('ml_perf_final_threshold: %f exceeded',
-                             self._ml_perf.decoder_metric_success_threshold)
+                        self._ml_perf.decoder_metric_success_threshold)
         if not self._run_stop:
           self._run_stop = mlp_log.mlperf_print(
               'run_stop', None, metadata={'status': 'success'})
