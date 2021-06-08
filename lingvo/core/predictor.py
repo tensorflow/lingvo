@@ -117,7 +117,8 @@ class Predictor:
       try:
         self._graph.get_operation_by_name("tpu_init_op")
       except KeyError:
-        tf.group(tf.tpu.initialize_system(), name="tpu_init_op")
+        with self._graph.as_default():
+          tf.group(tf.tpu.initialize_system(), name="tpu_init_op")
 
     self._graph.finalize()
 
