@@ -959,6 +959,7 @@ class TopKTerminatedHypsOp : public OpKernel {
         }
       }
     }
+
     // Coverage is capped at 0.5 so that so long as a word is
     // reasonably covered, it is not penalized anymore.
     Tensor penalty(DT_FLOAT, {});
@@ -968,7 +969,9 @@ class TopKTerminatedHypsOp : public OpKernel {
             .cwiseMin(0.5f)
             .log()
             .sum().eval();
-    const float coverage_penalty = penalty.scalar<float>()();
+    const float coverage_penalty = target_seq_length_ratio_ *
+                                   coverage_penalty_ *
+                                   penalty.scalar<float>()();
     const float length_norm = std::pow(length + 5.0, length_normalization_) /
                               std::pow(5.0, length_normalization_);
 
@@ -976,10 +979,7 @@ class TopKTerminatedHypsOp : public OpKernel {
     for (const auto& score : hypothesis.scores()) {
       global_score += score;
     }
-    const float normalized_score =
-        global_score / length_norm +
-        (target_seq_length_ratio_ * coverage_penalty_ * coverage_penalty);
-    return normalized_score;
+    return global_score / length_norm + coverage_penalty;
   }
 
   void Compute(OpKernelContext* ctx) override {
@@ -1327,17 +1327,22 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num_hyps_per_beam", &num_hyps_per_beam_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("max_seq_length", &max_seq_length_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("eos_id", &eos_id_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("target_seq_length_ratio",
+                                     &target_seq_length_ratio_));
+    DCHECK_GE(target_seq_length_ratio_, 0.0);
     OP_REQUIRES_OK(ctx,
                    ctx->GetAttr("populate_topk_hyps", &populate_topk_hyps_));
   }
 
   void Compute(OpKernelContext* ctx) override {
     // Input tensor shapes are validated in SetShapeFn().
-    const float length_normalization = ctx->input(8).scalar<float>()();
+    const float length_normalization = ctx->input(9).scalar<float>()();
+    const float coverage_penalty = ctx->input(10).scalar<float>()();
     OP_REQUIRES(
-        ctx, length_normalization >= 0.0,
-        errors::InvalidArgument("Requires length_normalization >= 0.0, got ",
-                                length_normalization));
+        ctx, length_normalization >= 0.0 && coverage_penalty >= 0.0,
+        errors::InvalidArgument("Requires non-negative length_normalization "
+                                "and coverage_penalty, got: ",
+                                length_normalization, ", ", coverage_penalty));
 
     const Tensor& hyps = ctx->input(0);
     const Tensor& prev_hyps = ctx->input(1);
@@ -1355,6 +1360,27 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
     // b * k
     const int num_hyps = hyps.dim_size(1);
     const int num_beams = num_hyps / num_hyps_per_beam_;
+
+    if (coverage_penalty > 0.0) {
+      const Tensor& cumu_atten = ctx->input(8);
+      OP_REQUIRES(ctx,
+                  cumu_atten.dims() == 3 &&
+                      cumu_atten.dim_size(0) == seq_length &&
+                      cumu_atten.dim_size(1) == num_hyps,
+                  errors::InvalidArgument(
+                      "input tensor `cumulative_atten_probs` must have shape [",
+                      seq_length, ", ", num_hyps,
+                      ", ?], got shape: ", cumu_atten.shape()));
+      if (populate_topk_hyps_) {
+        OP_REQUIRES(
+            ctx, cumu_atten.dim_size(2) == ctx->input(6).dim_size(2),
+            errors::InvalidArgument(
+                "input tensors `atten_probs` and `cumulative_atten_probs` must "
+                "have the same shape, got shapes: atten_probs.shape=",
+                ctx->input(6).shape(),
+                ", cumulative_atten_probs.shape=", cumu_atten.shape()));
+      }
+    }
 
     std::vector<PerBeamTopK> topk_vec;
     topk_vec.reserve(num_beams);
@@ -1379,7 +1405,9 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
                 DoneHypEntry e = {.time_idx = i,
                                   .hyp_idx = j,
                                   .normalized_score = NormalizedScore(
-                                      score, i + 1, length_normalization)};
+                                      ctx, score, i, j, length_normalization,
+                                      coverage_penalty)};
+
                 mutex_lock l(per_beam_topk->mu);
                 per_beam_topk->top_k.Add(e);
               }
@@ -1449,11 +1477,36 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
   }
 
  private:
-  float NormalizedScore(float score, int length,
-                        float length_normalization) const {
+  float NormalizedScore(OpKernelContext* ctx, float score, int time_index,
+                        int hyp_index, float length_normalization,
+                        float coverage_penalty_coef) const {
+    const float length = time_index + 1;
     const float length_norm = std::pow(length + 5.0, length_normalization) /
                               std::pow(5.0, length_normalization);
-    return score / length_norm;
+    float coverage_penalty = 0.0f;
+    if (coverage_penalty_coef > 0.0f) {
+      const auto& cumulative_atten_probs = ctx->input(8).tensor<T, 3>();
+      using Index = typename Eigen::Tensor<T, 3>::Index;
+      Eigen::array<Index, 3> offsets = {time_index, hyp_index, 0};
+      Eigen::array<Index, 3> extents = {1, 1,
+                                        cumulative_atten_probs.dimension(2)};
+      const auto& cumulative_atten_prob_vec =
+          cumulative_atten_probs.slice(offsets, extents);
+      // Coverage is capped at 0.5 so that so long as a word is
+      // reasonably covered, it is not penalized anymore.
+      Tensor penalty(DT_FLOAT, {});
+      penalty.scalar<float>() =
+          (cumulative_atten_prob_vec / static_cast<T>(target_seq_length_ratio_))
+              .cwiseMax(static_cast<T>(0.001f))
+              .cwiseMin(static_cast<T>(0.5f))
+              .log()
+              .sum()
+              .template cast<float>()
+              .eval();
+      coverage_penalty = target_seq_length_ratio_ * coverage_penalty_coef *
+                         penalty.scalar<float>()();
+    }
+    return score / length_norm + coverage_penalty;
   }
 
   string GetHypProto(OpKernelContext* ctx, const DoneHypEntry& entry,
@@ -1503,6 +1556,7 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
   int32 num_hyps_per_beam_;
   int32 max_seq_length_;
   int32 eos_id_;
+  float target_seq_length_ratio_;
   bool populate_topk_hyps_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(TopKFromBeamSearchOutsOp);
