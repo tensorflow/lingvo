@@ -368,7 +368,14 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     fprop_inputs = args
     with tf.name_scope(p.name):
       for layer_idx in range(p.num_stages):
-        layer_theta = theta['body_iter_%05d' % layer_idx]
+        if p.per_stage_vars:
+          layer_theta = theta['body_iter_%05d' % layer_idx]
+        else:
+
+          def _Slice(t, idx=layer_idx):
+            return t[idx]
+
+          layer_theta = tf.nest.map_structure(_Slice, theta.body)
         fprop_outputs = self._body.FProp(layer_theta, *fprop_inputs)
         fprop_outputs = _ToTuple(fprop_outputs)
         assert len(fprop_outputs) == len(fprop_inputs)
