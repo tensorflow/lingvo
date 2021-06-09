@@ -648,7 +648,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
 
   Let ri_shape = [H, W] of the corresponding range image.
 
-  - For every short range laser (params.cbr_laser_names):
+  - For every side laser (params.side_laser_names):
       For every return (params.returns):
         $LASERNAME_RETURN:
           .xyz - tf.float32 of ri_shape + [3]
@@ -664,7 +664,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
 
       $LASERNAME_extrinsics: tf.float32 [4, 4] extrinsics matrix.
 
-  - For every longer range laser (params.gbr_laser_names):
+  - For every top laser (params.top_laser_names):
       For every return (params.returns):
           .xyz: tf.float32 of ri_shape + [3]
           .features: tf.float32 of ri_shape + [4]
@@ -706,26 +706,26 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
   def Params(cls):
     p = super().Params()
     p.Define(
-        'cbr_laser_names', ['SIDE_LEFT', 'FRONT', 'REAR', 'SIDE_RIGHT'],
-        'The names of the CBR sensors from which range images '
+        'side_laser_names', ['SIDE_LEFT', 'FRONT', 'REAR', 'SIDE_RIGHT'],
+        'The names of the side sensors from which range images '
         'will be extracted.')
-    p.Define('cbr_ri_shape', [200, 600, 4], 'Shape of each CBR range image.')
+    p.Define('side_ri_shape', [200, 600, 4], 'Shape of each side range image.')
     p.Define(
-        'gbr_laser_names', ['TOP'],
-        'The names of the GBR sensors from which range images '
+        'top_laser_names', ['TOP'],
+        'The names of the top sensors from which range images '
         'will be extracted.')
     p.Define(
         'returns', ['ri1', 'ri2'],
         'The names of the laser returns to export.  E.g., ri1 is '
         'the first return, ri2 is the second return.')
-    p.Define('gbr_ri_shape', [64, 2650, 4], 'Shape of each GBR range image.')
+    p.Define('top_ri_shape', [64, 2650, 4], 'Shape of each top range image.')
     return p
 
   def FeatureMap(self):
     """Return a dictionary from tf.Example feature names to Features."""
     p = self.params
     feature_map = {}
-    for laser in p.cbr_laser_names + p.gbr_laser_names:
+    for laser in p.top_laser_names + p.side_laser_names:
       feature_map['%s_beam_inclinations' % laser] = (
           tf.io.VarLenFeature(dtype=tf.float32))
       feature_map['%s_beam_inclination_min' % laser] = (
@@ -734,7 +734,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
           tf.io.VarLenFeature(dtype=tf.float32))
       feature_map['%s_extrinsics' %
                   laser] = tf.io.VarLenFeature(dtype=tf.float32)
-      if laser in p.gbr_laser_names:
+      if laser in p.top_laser_names:
         feature_map['%s_pose' % laser] = tf.io.VarLenFeature(dtype=tf.float32)
 
       for returns in p.returns:
@@ -750,7 +750,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
     ri_outputs = {}
     outputs = {}
     frame_pose = tf.reshape(_Dense(features['pose']), [4, 4])
-    for laser in p.cbr_laser_names + p.gbr_laser_names:
+    for laser in p.top_laser_names + p.side_laser_names:
       # Extract range images.
       for returns in p.returns:
         ri_shape = tf.reshape(
@@ -759,7 +759,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
             _Dense(features['%s_%s' % (laser, returns)]), ri_shape)
 
         shape_to_check = (
-            p.cbr_ri_shape if laser in p.cbr_laser_names else p.gbr_ri_shape)
+            p.side_ri_shape if laser in p.side_laser_names else p.top_ri_shape)
         range_image = py_utils.HasShape(range_image, shape_to_check)
 
         ri_outputs['%s_%s' % (laser, returns)] = range_image
@@ -768,8 +768,8 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
       outputs['%s_extrinsics' % laser] = tf.reshape(
           _Dense(features['%s_extrinsics' % laser]), [4, 4])
 
-    # CBRs have uniform inclination
-    for laser in p.cbr_laser_names:
+    # Sensors with uniform inclination
+    for laser in p.side_laser_names:
       beam_inclination_min = tf.reshape(
           _Dense(features['%s_beam_inclination_min' % laser]), [])
       beam_inclination_max = tf.reshape(
@@ -777,22 +777,22 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
       outputs['%s_beam_inclinations' % laser] = tf.stack(
           [beam_inclination_min, beam_inclination_max], axis=0)
 
-    # GBRs have non-uniform inclinations defined by 64 floats.
-    for laser in p.gbr_laser_names:
+    # Sensors with non-uniform inclination.
+    for laser in p.top_laser_names:
       outputs['%s_beam_inclinations' % laser] = tf.reshape(
           _Dense(features['%s_beam_inclinations' % laser]), [64])
 
     # Embed xyz onto each range image pixel.
-    for laser in p.cbr_laser_names + p.gbr_laser_names:
+    for laser in p.top_laser_names + p.side_laser_names:
       extrinsics = outputs['%s_extrinsics' % laser]
       inclinations = outputs['%s_beam_inclinations' % laser]
-      if laser in p.cbr_laser_names:
-        ri_shape = p.cbr_ri_shape
+      if laser in p.side_laser_names:
+        ri_shape = p.side_ri_shape
 
         # Convert from 2-tuple range inclination to the full range
         # via linear interpolation.
         #
-        # CBR lasers currently are always uniform inclinations specified by a
+        # side lasers currently are always uniform inclinations specified by a
         # length 2 vector.
         height = ri_shape[0]
         min_inclination = inclinations[0]
@@ -803,13 +803,13 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         # interpolate from min to max inclination.
         inclinations = (ratio * diff) + min_inclination
       else:
-        ri_shape = p.gbr_ri_shape
+        ri_shape = p.top_ri_shape
 
       pixel_pose = None
-      if laser in p.gbr_laser_names:
+      if laser in p.top_laser_names:
         pixel_pose = tf.reshape(
             _Dense(features['%s_pose' % laser]),
-            shape=p.gbr_ri_shape[0:2] + [4, 4])
+            shape=p.top_ri_shape[0:2] + [4, 4])
         outputs['%s_pose' % laser] = pixel_pose
 
       for returns in p.returns:
@@ -848,7 +848,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
        extrinsics: [4, 4] float matrix representing transformation matrix to
          world coordinates.
        inclinations: [V] beam inclinations vector.
-       pixel_pose: [64, 2650, 4, 4] tensor representing per pixel pose of GBR.
+       pixel_pose: [64, 2650, 4, 4] tensor representing per pixel pose of top.
        frame_pose: [4, 4] matrix representing vehicle to world transformation.
 
     Returns:
@@ -908,7 +908,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
 
     lidar_image_points = py_utils.HasShape(lidar_image_points,
                                            [height, width, 3])
-    # GBR uses per pixel pose.
+    # TOP uses per pixel pose.
     if pixel_pose is not None:
       pixel_pose_rotation = pixel_pose[..., 0:3, 0:3]
       pixel_pose_translation = pixel_pose[..., 0:3, 3]
@@ -934,30 +934,31 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
     """Shape of BBoxes."""
     p = self.params
     shapes = {}
-    for laser in p.cbr_laser_names:
-      cbr_shape = p.cbr_ri_shape[:-1]
+    for laser in p.side_laser_names:
+      side_shape = p.side_ri_shape[:-1]
       for returns in p.returns:
         shape_dict = py_utils.NestedMap({
-            'xyz': tf.TensorShape(cbr_shape + [3]),
-            'features': tf.TensorShape(cbr_shape + [4]),
-            'mask': tf.TensorShape(cbr_shape),
+            'xyz': tf.TensorShape(side_shape + [3]),
+            'features': tf.TensorShape(side_shape + [4]),
+            'mask': tf.TensorShape(side_shape),
         })
         shapes['%s_%s' % (laser, returns)] = shape_dict
 
       shapes['%s_extrinsics' % laser] = tf.TensorShape([4, 4])
       shapes['%s_beam_inclinations' % laser] = tf.TensorShape([2])
-    for laser in p.gbr_laser_names:
-      gbr_shape = p.gbr_ri_shape[:-1]
+
+    for laser in p.top_laser_names:
+      top_shape = p.top_ri_shape[:-1]
       for returns in p.returns:
         shape_dict = py_utils.NestedMap({
-            'xyz': tf.TensorShape(gbr_shape + [3]),
-            'features': tf.TensorShape(gbr_shape + [4]),
-            'mask': tf.TensorShape(gbr_shape),
+            'xyz': tf.TensorShape(top_shape + [3]),
+            'features': tf.TensorShape(top_shape + [4]),
+            'mask': tf.TensorShape(top_shape),
         })
         shapes['%s_%s' % (laser, returns)] = shape_dict
       shapes['%s_extrinsics' % laser] = tf.TensorShape([4, 4])
       shapes['%s_beam_inclinations' % laser] = tf.TensorShape([64])
-      shapes['%s_pose' % laser] = tf.TensorShape(gbr_shape + [4, 4])
+      shapes['%s_pose' % laser] = tf.TensorShape(top_shape + [4, 4])
 
     return py_utils.NestedMap(shapes)
 
@@ -965,7 +966,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
     """Dtypes of BBoxes."""
     p = self.params
     dtypes = {}
-    for laser in p.cbr_laser_names + p.gbr_laser_names:
+    for laser in p.side_laser_names + p.top_laser_names:
       for returns in p.returns:
         dtype_dict = py_utils.NestedMap({
             'xyz': tf.float32,
@@ -975,7 +976,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         dtypes['%s_%s' % (laser, returns)] = dtype_dict
       dtypes['%s_extrinsics' % laser] = tf.float32
       dtypes['%s_beam_inclinations' % laser] = tf.float32
-    for laser in p.gbr_laser_names:
+    for laser in p.top_laser_names:
       dtypes['%s_pose' % laser] = tf.float32
     return py_utils.NestedMap(dtypes)
 
