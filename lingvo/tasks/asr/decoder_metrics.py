@@ -20,7 +20,7 @@ from lingvo.core import base_layer
 from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.asr import decoder_utils
-
+import numpy as np
 
 # hyps: [num_beams, num_hyps_per_beam] of serialized Hypothesis protos.
 # ids: [num_beams * num_hyps_per_beam, max_target_length].
@@ -149,6 +149,10 @@ class DecoderMetrics(base_layer.BaseLayer):
     norm_wer_errors, norm_wer_words = self.ComputeNormalizedWER(
         filtered_hyps, filtered_refs, num_hyps_per_beam)
 
+    if 'example_weights' in input_batch:
+      example_weights = input_batch.example_weights
+    else:
+      example_weights = tf.ones([tgt_batch], tf.float32)
     ret_dict = {
         'target_ids': tgt.ids,
         'target_labels': tgt.labels,
@@ -161,6 +165,7 @@ class DecoderMetrics(base_layer.BaseLayer):
         'topk_scores': topk.scores,
         'norm_wer_errors': norm_wer_errors,
         'norm_wer_words': norm_wer_words,
+        'example_weights': example_weights
     }
 
     if not py_utils.use_tpu() and 'sample_ids' in input_batch:
@@ -204,13 +209,17 @@ class DecoderMetrics(base_layer.BaseLayer):
     target_paddings = dec_out_dict['target_paddings']
     topk_ids = dec_out_dict['topk_ids']
     topk_lens = dec_out_dict['topk_lens']
+    if 'example_weights' in dec_out_dict:
+      example_weights = dec_out_dict['example_weights']
+    else:
+      example_weights = np.ones([len(transcripts)], np.float32)
     assert len(transcripts) == len(target_labels)
     assert len(transcripts) == len(target_paddings)
     assert len(transcripts) == len(topk_decoded)
     assert len(norm_wer_errors) == len(transcripts)
     assert len(norm_wer_words) == len(transcripts)
 
-    num_samples_in_batch = len(transcripts)
+    num_samples_in_batch = example_weights.sum()
     dec_metrics_dict['num_samples_in_batch'].Update(num_samples_in_batch)
 
     def GetRefIds(ref_ids, ref_paddinds):
@@ -221,8 +230,8 @@ class DecoderMetrics(base_layer.BaseLayer):
           return_ids.append(ref_ids[i])
       return return_ids
 
-    total_norm_wer_errs = norm_wer_errors[:, 0].sum()
-    total_norm_wer_words = norm_wer_words[:, 0].sum()
+    total_norm_wer_errs = (norm_wer_errors[:, 0] * example_weights).sum()
+    total_norm_wer_words = (norm_wer_words[:, 0] * example_weights).sum()
 
     dec_metrics_dict['norm_wer'].Update(
         total_norm_wer_errs / total_norm_wer_words, total_norm_wer_words)

@@ -205,6 +205,7 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
+        # Implicit numpy dependency.
     ],
 )
 
