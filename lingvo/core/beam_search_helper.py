@@ -77,7 +77,106 @@ POSSIBLY_TIME_MAJOR_STATE_KEYS = [
 ]
 
 
-class BeamSearchHelper(base_layer.BaseLayer):
+class BeamSearchSharedParams(base_layer.BaseLayer):
+  """Class defining common beam search params."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('num_hyps_per_beam', 8,
+             'Num of hyps to keep per beam during decoding.')
+    p.Define(
+        'target_seq_length_ratio', 1.0,
+        'Ratio of the average target sequence length over the average '
+        'source sequence length. Affects coverage penalty.')
+    p.Define(
+        'length_normalization', 0.0,
+        'Beam search length normalization factor, typically in [0, 1]. '
+        'This is the exponent on (len+5)/5 used to normalize '
+        'global score. The larger this value is, the more likely '
+        'longer sequences are produced. This value is alpha '
+        'in https://arxiv.org/abs/1609.08144, equation 14.')
+    p.Define(
+        'coverage_penalty', 0.0,
+        'Beam search coverage penalty. This value is beta in '
+        'https://arxiv.org/abs/1609.08144, equation 14. The higher this '
+        'value is, the more heavily low coverage is penalized.')
+    p.Define(
+        'valid_eos_max_logit_delta', 5.0,
+        'During beam search, allow </s> to terminate a hyp only if its '
+        'logit is no more than than this value away from the logit of the '
+        'best candidate. The larger this value is, the easier hyps can '
+        'terminate, and the more likely shorter sequences are produced.')
+    p.Define(
+        'local_eos_threshold', -100.0,
+        'During beam search, allow </s> to terminate a hyp if the local score '
+        'for </s> is greater than local_eos_threshold.')
+    p.Define(
+        'beam_size', 3.0,
+        'The maximum difference between best hyp and the worst in a beam.'
+        ' This allows to prune our search when none of the active hyp is'
+        ' close enough to the current best.')
+    p.Define('target_sos_id', 1, 'Id of the start of sentence token.')
+    p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
+    p.Define(
+        'target_eoc_id', -1,
+        'Id of the end of chunk token. Used by neural transducer only.'
+        ' Set this id to a non-negative value only for NT.')
+    p.Define(
+        'target_seq_len', 0, 'Maximum allowed target seq length. Note '
+        'that decoding terminates if an end of sentence token '
+        'is not emitted after target_seq_len decode steps.')
+    p.Define(
+        'merge_paths', False, 'If true, hyps which are identical when '
+        'epsilons are removed will be combined into a single hyp.  The '
+        'probability for that combined hyp will be the sum of the '
+        'probabilities of the component hyps.  This can only be applied '
+        'for epsilon-emitting models (RNN-T and NT).')
+    p.Define(
+        'force_eos_in_top_k', False,
+        'Whether to always consider the eos token to be among the top k tokens '
+        'for every step. When False, hyps can only terminate if the eos token '
+        'is part of the top k. Note that p.valid_eos_max_logit_delta and '
+        'p.local_eos_threshold always apply regardless of this.')
+    p.Define(
+        'batch_major_state', True, 'If True, we use batch as the major '
+        'dimension of the hyp states. Otherwise, timing becomes the major '
+        'dimension, and the gathers are performed along the second-to-major '
+        'dimension.')
+    p.Define(
+        'batch_major_compute', False, 'If True, the target batch dimension '
+        'is organized as num_beams by num_hyps_per_beam during the '
+        'ExtendStep computation and the cache is stored following this order. '
+        'So the topk indices into the cache for ReOrderHyps needs to be '
+        'reordered before usage. Otherwise, the indices will be directly used '
+        'without extra transformation. '
+        'Setting batch_major_compute=True does not change the ordering of '
+        'ids and logits of beam search callbacks. '
+        'The target_batch dim for those tensors will remain num_hyps_per_beam '
+        '* num_beams.')
+    p.Define(
+        'short_seq_limit', 0,
+        'An integer, the sequence length limit for using early stop '
+        'method in attention layer (batch-major implementation). The sequence '
+        'is always treated as the default long sequence for decoding when the '
+        'limit is set to 0. For typical mt transformer config '
+        '(batch 16, sequence length 150), the break even point is around 40 '
+        'on TPU V3, and 50 on TPU V2. This may slightly change for '
+        'different batch size and sequence length, which requires more '
+        'experiments to set the value.')
+    p.Define(
+        'terminate_beams_independently', False,
+        'Whether each beam in the same batch can independently terminate. '
+        'This controls whether the search termination criteria set by params '
+        'like `p.beam_size` or `p.ensure_full_beam` are applied collectively '
+        'to all beams, or individually to each beam. When False, all beams '
+        'continue the search until each and every beam meets the termination '
+        'criteria. When True, each beam individually, independent of each '
+        'other, decides whether to terminate the search.')
+    return p
+
+
+class BeamSearchHelper(BeamSearchSharedParams):
   """Helper class for performing beam search.
 
   The user of this helper class needs to implement three callbacks.
@@ -177,46 +276,6 @@ class BeamSearchHelper(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('num_hyps_per_beam', 8,
-             'Num of hyps to keep per beam during decoding.')
-    p.Define(
-        'target_seq_length_ratio', 1.0,
-        'Ratio of the average target sequence length over the average '
-        'source sequence length.')
-    p.Define(
-        'length_normalization', 0.0,
-        'Beam search length normalization factor, typically in [0, 1]. '
-        'This is the exponent on (len+5)/5 used to normalize '
-        'global score. The larger this value is, the more likely '
-        'longer sequences are produced.')
-    p.Define('coverage_penalty', 0.0, 'Beam search coverage penalty.')
-    p.Define(
-        'valid_eos_max_logit_delta', 5.0,
-        'During beam search, allow </s> to terminate a hyp only if its '
-        'logit is no more than than this value away from the logit of the '
-        'best candidate. The larger this value is, the easier hyps can '
-        'terminate, and the more likely shorter sequences are produced.')
-    p.Define(
-        'beam_size', 3.0,
-        'The maximum difference between best hyp and the worst in a beam.'
-        ' This allows to prune our search when none of the active hyp is'
-        ' close enough to the current best.')
-    p.Define('target_sos_id', 1, 'Id of the start of sentence token.')
-    p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
-    p.Define(
-        'target_eoc_id', -1,
-        'Id of the end of chunk token. Used by neural transducer only.'
-        ' Set this id to a non-negative value only for NT.')
-    p.Define(
-        'target_seq_len', 0, 'Maximum allowed target seq length. Note '
-        'that decoding terminates if an end of sentence token '
-        'is not emitted after target_seq_len decode steps.')
-    p.Define(
-        'merge_paths', False, 'If true, hyps which are identical when '
-        'epsilons are removed will be combined into a single hyp.  The '
-        'probability for that combined hyp will be the sum of the '
-        'probabilities of the component hyps.  This can only be applied '
-        'for epsilon-emitting models (RNN-T and NT).')
     p.Define(
         'allow_empty_terminated_hyp', True, 'Whether it is okay to consider a '
         'hyp that consists only of epsilons as terminated.  By default this '
@@ -238,51 +297,6 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'force_eos_in_last_step', False,
         'For all active hyps that are still on the beam after target_seq_len '
         'steps, return partial hyps with EOS set as the last token.')
-    p.Define(
-        'force_eos_in_top_k', False,
-        'Whether to always consider the eos token to be among the top k tokens '
-        'for every step. When False, hyps can only terminate if the eos token '
-        'is part of the top k. Note that p.valid_eos_max_logit_delta and '
-        'p.local_eos_threshold always apply regardless of this.')
-    p.Define(
-        'batch_major_state', True, 'If True, we use batch as the major '
-        'dimension of the hyp states. Otherwise, timing becomes the major '
-        'dimension, and the gathers are performed along the second-to-major '
-        'dimension.')
-    p.Define(
-        'batch_major_compute', False, 'If True, the target batch dimension '
-        'is organized as num_beams by num_hyps_per_beam during the '
-        'ExtendStep computation and the cache is stored following this order. '
-        'So the topk indices into the cache for ReOrderHyps needs to be '
-        'reordered before usage. Otherwise, the indices will be directly used '
-        'without extra transformation. '
-        'Setting batch_major_compute=True does not change the ordering of '
-        'ids and logits of beam search callbacks. '
-        'The target_batch dim for those tensors will remain num_hyps_per_beam '
-        '* num_beams.')
-    p.Define(
-        'short_seq_limit', 0,
-        'An integer, the sequence length limit for using early stop '
-        'method in attention layer (batch-major implementation). The sequence '
-        'is always treated as the default long sequence for decoding when the '
-        'limit is set to 0. For typical mt transformer config '
-        '(batch 16, sequence length 150), the break even point is around 40 '
-        'on TPU V3, and 50 on TPU V2. This may slightly change for '
-        'different batch size and sequence length, which requires more '
-        'experiments to set the value.')
-    p.Define(
-        'local_eos_threshold', -100.0,
-        'During beam search, allow </s> to terminate a hyp if the local score '
-        'for </s> is greater than local_eos_threshold.')
-    p.Define(
-        'terminate_beams_independently', False,
-        'Whether each beam in the same batch can independently terminate. '
-        'This controls whether the search termination criteria set by params '
-        'like `p.beam_size` or `p.ensure_full_beam` are applied collectively '
-        'to all beams, or individually to each beam. When False, all beams '
-        'continue the search until each and every beam meets the termination '
-        'criteria. When True, each beam individually, independent of each '
-        'other, decides whether to terminate the search.')
     p.name = 'beam_search'
     return p
 
