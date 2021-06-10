@@ -3490,7 +3490,8 @@ def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
   tf.add_to_collection(BATCH_NORM_UPDATES, bn_update)
   if not tf.executing_eagerly_outside_functions():
     bn_update_dict = _get_batch_norm_updates_dict()
-    assert bn_update.name not in bn_update_dict
+    if bn_update.name in bn_update_dict:
+      raise ValueError(f'BN update {bn_update.name} already exists.')
     bn_update_dict[bn_update.name] = (batch_norm_var, batch_norm_stats)
   return bn_update
 
