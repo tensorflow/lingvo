@@ -1111,9 +1111,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     with tf.name_scope(p.name):
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       if paddings is None:
-        paddings = tf.zeros(
-            tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
-            dtype=inputs.dtype)
+        shape = tf.convert_to_tensor(py_utils.GetShape(inputs)[:-1], tf.int32)
+        paddings = tf.zeros(tf.concat([shape, [1]], axis=0), dtype=inputs.dtype)
       w, b = self._GetWeights(theta, inputs, paddings)
       if pruning_utils.ApplyCompression(p):
         if p.pruning_hparams_dict[
