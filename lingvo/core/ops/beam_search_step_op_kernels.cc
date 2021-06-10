@@ -773,22 +773,21 @@ class BeamSearchStepOp : public OpKernel {
         // num_hyps_per_beam for this beam, this beam is done.
         int num_done_hyps = 0;
         for (int hyp_id = 0; hyp_id < num_hyps_per_beam_; ++hyp_id) {
-          for (int time_step = 0; time_step < t; ++time_step) {
+          for (int time_step = 0; time_step <= t; ++time_step) {
             int index = beam_id * num_hyps_per_beam_ + hyp_id;
             if (!t_out_done_hyps(time_step, index).empty()) {
               ++num_done_hyps;
             }
           }
         }
-        t_beam_done(beam_id) =
-            t_beam_done(beam_id) || (num_done_hyps == num_hyps_per_beam_);
-        if (!t_beam_done(beam_id)) {
+        if (num_done_hyps < num_hyps_per_beam_) {
           if (op_version == 1) {
             t_all_done() = false;
             return;
           }
           // If we are not done for this beam_id, we can move on to update next
           // beam_id without checking 'beam_size' based test below,
+          t_beam_done(beam_id) = false;
           continue;
         }
       }

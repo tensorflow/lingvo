@@ -746,7 +746,49 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
     # </s> criteria we we require to have two done hyps before stopping,
     # regardless of beam size.
     all_done = self._testBeamSearchStoppingHelper(
-        0.1, False, 0.01, use_v2=use_v2)
+        0.1, False, -0.05, use_v2=use_v2)
+    self.assertFalse(all_done)
+
+  @parameterized.parameters(False, True)
+  def test_ensure_full_beam_more_strict(self, ensure_full_beam):
+    hyp_size = 2
+    num_beams = 1
+    seq_len = 4
+    probs = [
+        np.log([[0.1, 0.1, 0.8], [0.1, 0.1, 0.8]]),
+        np.log([[0.1, 0.1, 0.8], [0.9, 0.05, 0.05]]),
+    ]
+    common_args = dict(
+        hyp_size=hyp_size,
+        num_beams=num_beams,
+        seq_len=seq_len,
+        init_best_score=_MIN_SCORE,
+        probs=probs,
+        init_atten_probs=tf.zeros([hyp_size, 0]),
+        atten_probs=np.zeros([seq_len, hyp_size, 0]),
+        ensure_full_beam=ensure_full_beam,
+        use_v2=True,
+    )
+
+    # After two steps, we found 2 terminated hyps.
+    # Regardless of p.ensure_full_beam, we are not done because beam_size is
+    # large.
+    results = self._runBeamSearchOpHelper(
+        beam_size=3.0, local_eos_threshold=-1.0, **common_args)
+    all_done = results[7]
+    self.assertAllEqual([all_done], results[8])
+    self.assertFalse(all_done)
+
+    # With a smaller beam_size, we are done.
+    results = self._runBeamSearchOpHelper(
+        beam_size=0.1, local_eos_threshold=-1.0, **common_args)
+    all_done = results[7]
+    self.assertTrue(all_done)
+
+    # If we found 3 terminated hyps, we are similarly not done.
+    results = self._runBeamSearchOpHelper(
+        beam_size=3.0, local_eos_threshold=-100.0, **common_args)
+    all_done = results[7]
     self.assertFalse(all_done)
 
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):

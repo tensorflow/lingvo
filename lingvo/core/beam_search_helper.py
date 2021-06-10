@@ -286,7 +286,7 @@ class BeamSearchHelper(BeamSearchSharedParams):
         'empty, so this flag has no effect for non-epsilon-emitting models.')
     p.Define(
         'ensure_full_beam', False, 'If True, we will not terminate the search '
-        'until both of these conditions are satisfied: we have found '
+        'until both of these conditions are satisfied: we have found at least '
         'num_hyps_per_beam terminated hyps AND no active hyps have a score '
         'within beam_size of the best terminated hyp.  If False, only the '
         'second condition must be satisfied.  Note that in either case, we can '
