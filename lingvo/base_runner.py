@@ -197,16 +197,17 @@ class BaseRunner:
 
   @py_utils.Retry(
       initial_delay_sec=1, delay_growth_factor=1.5, max_delay_sec=300)
-  def _FindNewCheckpoint(self, sess, prev_path):
+  def _FindNewCheckpoint(self, sess, processed_ckpts):
     """Returns the path to a new checkpoint, or raises RuntimeError."""
-    if self._ShouldStop(sess, 0):
+    if self._ShouldStop(sess, step=0):
+      # Check for early stopping or trail early stopping.
       return None
     path = tf.train.latest_checkpoint(self._train_dir)
     if not path:
       msg = 'No check point is found in %s' % self._train_dir
       tf.logging.info('%s: %s', self._job_name, msg)
       raise RuntimeError(msg)
-    if path == prev_path:
+    if path in processed_ckpts:
       msg = 'No new check point is found: %s' % path
       tf.logging.info('%s: %s', self._job_name, msg)
       raise RuntimeError(msg)
@@ -517,3 +518,111 @@ class BaseRunner:
   def _ExportMetrics(self, **kwargs):
     """Exports metrics externally."""
     pass
+
+  def _TrainerFinished(self, sess):
+    """Infer if training finished using the latest training checkpoint."""
+    latest_ckpt_path = tf.train.latest_checkpoint(self._train_dir)
+    if latest_ckpt_path is None:
+      return self._ShouldStop(sess, step=0)
+    latest_ckpt = tf.train.load_checkpoint(latest_ckpt_path)
+    return self._ShouldStop(sess, step=latest_ckpt.get_tensor('global_step'))
+
+  def _GetProcessedCheckpoints(self, runner_dir):
+    """Returns the set of checkpoints previously processed by this runner."""
+    # Set up (or reload) a file storing the list of previously processed
+    # checkpoints. This caching allows jobs to run on VMs which may be
+    # interrupted without duplicating work.
+    processed_ckpts_path = os.path.join(runner_dir, 'processed_ckpts.txt')
+    if not os.path.exists(processed_ckpts_path):
+      with open(processed_ckpts_path, 'w') as f:
+        f.write('')
+    with open(processed_ckpts_path, 'r') as f:
+      processed_ckpts = set(line.strip() for line in f.readlines())
+    return processed_ckpts
+
+  def _UpdateProcessedCheckpoints(self, runner_dir, ckpt_path):
+    """Denotes 'ckpt_path' as having been processed by this runner."""
+    processed_ckpts_path = os.path.join(runner_dir, 'processed_ckpts.txt')
+    with open(processed_ckpts_path, 'a') as f:
+      f.write(ckpt_path + '\n')
+
+  def _RunOnLatestCheckpoints(self, sess, runner_fn, runner_dir):
+    """Executes 'runner_fn' on the latest checkpoints produced by the Trainer.
+
+    Args:
+      sess: the session to compute the metrics in.
+      runner_fn: a callable taking a session and a checkpoint path to apply to
+        checkpoints saved by the Trainer.
+      runner_dir: the log directory for this runner.
+    """
+    # Check if the trainer finished before this job (re)started. global_step
+    # will be 0 in this process until a checkpoint is restored, so we infer the
+    # trainer global_step from the step of its latest checkpoint.
+    trainer_finished_at_job_start = self._TrainerFinished(sess)
+    processed_ckpts = self._GetProcessedCheckpoints(runner_dir)
+    if (trainer_finished_at_job_start and
+        tf.train.latest_checkpoint(self._train_dir) in processed_ckpts):
+      raise ValueError(
+          'Training has finished and the final checkpoint has already been '
+          'evaluated. Specify a new eval/decode directory, or set '
+          'p.eval.load_checkpoint_from to the final checkpoint to reanalyze it.'
+      )
+
+    # Process the latest checkpoints produced by the Trainer until the
+    # checkpoint for the final training step has been processed. If training
+    # has already finished then only the last checkpoint will be processed.
+    while True:
+      ckpt_path = self._FindNewCheckpoint(sess, processed_ckpts)
+      if ckpt_path is None:
+        # Could potentially be None in the case of early stopping.
+        break
+
+      runner_fn(sess, ckpt_path)
+      self._UpdateProcessedCheckpoints(runner_dir, ckpt_path)
+      processed_ckpts.add(ckpt_path)
+      if self._ShouldStop(sess):
+        break
+
+  def _RunOnAllCheckpoints(self, sess, runner_fn, runner_dir):
+    """Executes 'runner_fn' on all checkpoints produced by the Trainer.
+
+    Args:
+      sess: the session to compute the metrics in.
+      runner_fn: a callable taking a session and a checkpoint path to apply to
+        checkpoints saved by the Trainer.
+      runner_dir: the log directory for this runner.
+    """
+    # Check if the trainer finished before this job (re)started. global_step
+    # will be 0 in this process until a checkpoint is restored, so we infer the
+    # trainer global_step from the step of its latest checkpoint.
+    trainer_finished_at_job_start = self._TrainerFinished(sess)
+    processed_ckpts = self._GetProcessedCheckpoints(runner_dir)
+
+    while True:
+      # Checkpoints may be deleted while runner_fn is running, so we fetch the
+      # checkpoint state every loop.
+      ckpts = tf.train.get_checkpoint_state(
+          self._train_dir).all_model_checkpoint_paths
+      unprocessed_ckpts = set(ckpts).difference(processed_ckpts)
+
+      if unprocessed_ckpts:
+        # Process the checkpoints sequentially.
+        ckpt_path = sorted(unprocessed_ckpts)[0]
+        try:
+          runner_fn(sess, ckpt_path)
+          self._UpdateProcessedCheckpoints(runner_dir, ckpt_path)
+          processed_ckpts.add(ckpt_path)
+        except tf.errors.NotFoundError as e:
+          # Though it should be exceedingly rare in realistic cases, it's
+          # technically possible for the checkpoint in ckpt_path to be deleted
+          # by Trainer.checkpointer during the set and sort operations above.
+          tf.logging.warning(
+              'Ignorring NotFoundError resulting from rare race '
+              'condition:\n%s', e)
+      elif trainer_finished_at_job_start or self._ShouldStop(sess):
+        # Exit if all checkpoints have been processed and training is done.
+        break
+      else:
+        # Check for new checkpoints every 10 seconds if none are found. Spends
+        # 1s worth of CPU cycles every ~3hrs looking for new checkpoints.
+        time.sleep(10)
