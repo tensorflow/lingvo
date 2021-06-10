@@ -448,12 +448,12 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     """Constructs a _MultiHeadedAttention object."""
     super().__init__(params)
     p = self.params
-    assert p.input_dim, 'input_dim is {}'.format(p.input_dim)
-    assert p.hidden_dim, 'hidden_dim is {}'.format(p.hidden_dim)
+    assert p.input_dim, f'input_dim is {p.input_dim}'
+    assert p.hidden_dim, f'hidden_dim is {p.hidden_dim}'
+    assert p.num_heads > 0, f'num_heads is {p.num_heads}'
     # if proj_tpl does not have dim_per_head set, set it
     if p.proj_tpl.dim_per_head == 0:
-      dim_per_head = p.dim_per_head or p.hidden_dim // p.num_heads
-      p.proj_tpl.dim_per_head = dim_per_head
+      p.proj_tpl.dim_per_head = self.dim_per_head
 
     if p.device_mesh is not None:
       assert p.weight_split_dims_mapping is not None
@@ -501,6 +501,12 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             use_bias=p.use_bias,
             device_mesh=p.device_mesh,
             weight_split_dims_mapping=p.weight_split_dims_mapping))
+
+  @property
+  def dim_per_head(self):
+    """Returns the dimension per attention head."""
+    p = self.params
+    return p.dim_per_head or p.hidden_dim // p.num_heads
 
   def _CapLogits(self, logits):
     """When enabled, cap logits by p.atten_logit_cap with tanh."""
@@ -915,12 +921,21 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     return encoded, atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
+    """Initializes the decoding states.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      target_batch_size: The target batch size B.
+      target_max_length: The target maximum length T.
+
+    Returns:
+      key:   [T, B, N, H].
+      value: [T, B, N, H].
+    """
     p = self.params
     num_heads = p.num_heads
-    atten_dim = p.hidden_dim
-    if not atten_dim:
-      atten_dim = p.input_dim
-    dim_per_head = atten_dim // num_heads
+    dim_per_head = self.dim_per_head
     # empty() is not supported for bfloat16 on CPU.
     dtype = py_utils.FPropDtype(p)
     if dtype == tf.bfloat16 and not py_utils.use_tpu():

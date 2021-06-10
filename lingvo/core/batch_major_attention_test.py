@@ -665,10 +665,11 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
                           actual_ctx_vec.eval()[-1][:3])
 
   @parameterized.named_parameters(
-      ('Short', 0.0, True), ('Long', 0.0, False), ('ShortSmallCap', 1.0, True),
-      ('LongSmallCap', 1.0, False), ('ShortCap', 5.0, True),
-      ('LongCap', 5.0, False))
-  def testExtendStep(self, cap, short_seq):
+      ('Short', 0.0, True, None), ('Long', 0.0, False, None),
+      ('ShortSmallCap', 1.0, True, None), ('LongSmallCap', 1.0, False, None),
+      ('ShortCap', 5.0, True, None), ('LongCap', 5.0, False, None),
+      ('ExplicitDimPerHead', 0.0, False, 4))
+  def testExtendStep(self, cap, short_seq, explicit_dim_per_head):
     num_heads, input_dim, hidden_dim, batch, seqlen = 2, 4, 4, 6, 6
     with self.session(use_gpu=True) as sess:
       tf.random.set_seed(12345)
@@ -680,6 +681,8 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
           input_dim=input_dim,
           hidden_dim=hidden_dim,
           atten_logit_cap=cap)
+      if explicit_dim_per_head:
+        p.dim_per_head = explicit_dim_per_head
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
       tf.global_variables_initializer().run()
