@@ -1108,7 +1108,8 @@ class MultiHeadedFavorAttention(MultiHeadedAttention):
       atten_probs: None for FAVOR attention.
     """
     # TODO(kchoro): Add segment_mask support when FAVOR mechanism is applied
-    # and per_step_padding (causal FAVOR).
+    # and use causal FAVOR from favor_attention library when per_step_padding is
+    # not None.
     p = self.params
     assert p.device_mesh is None, 'GShard mesh splits not supported.'
     assert not p.packed_input, 'Packed input not supported.'
