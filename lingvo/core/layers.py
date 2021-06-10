@@ -1600,6 +1600,7 @@ class StackingOverTime(base_layer.BaseLayer):
     assert p.right_context >= 0
     assert p.stride >= 1
     assert p.padding_reduce_option in ('reduce_min', 'reduce_max')
+    self.SetVariableFree()
 
   @classmethod
   def WindowSize(cls, p):
