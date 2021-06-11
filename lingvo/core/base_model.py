@@ -266,12 +266,6 @@ class BaseTask(base_layer.BaseLayer):
               'Start evaluation after specified number of steps.')
     ep.Define('start_decoder_after', 0,
               'Only decode checkpoints after this step.')
-    ep.Define(
-        'eval_all_checkpoints', False,
-        'Compute evaluation metrics for every checkpoint saved by the Trainer.')
-    ep.Define(
-        'decode_all_checkpoints', False,
-        'Compute decoder metrics for every checkpoint saved by the Trainer.')
     return p
 
   @classmethod
