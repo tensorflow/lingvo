@@ -774,7 +774,7 @@ class BeamSearchStepOp : public OpKernel {
         int num_done_hyps = 0;
         for (int hyp_id = 0; hyp_id < num_hyps_per_beam_; ++hyp_id) {
           for (int time_step = 0; time_step <= t; ++time_step) {
-            int index = beam_id * num_hyps_per_beam_ + hyp_id;
+            int index = hyp_id * num_beams + beam_id;
             if (!t_out_done_hyps(time_step, index).empty()) {
               ++num_done_hyps;
             }

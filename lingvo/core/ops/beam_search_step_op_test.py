@@ -791,6 +791,36 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
     all_done = results[7]
     self.assertFalse(all_done)
 
+  def test_ensure_full_beam_two_beams(self):
+    hyp_size = 4
+    num_beams = 2
+    seq_len = 3
+    # Beam 0: only has found 1 terminated hyp at step 0.
+    # Beam 1: plenty of terminated hyps.
+    probs = [
+        np.log([[0.1, 0.1, 0.8], [0.1, 0.1, 0.8], [0.1, 0.1, 0.8],
+                [0.1, 0.1, 0.8]]),
+        np.log([[0.1, 0.1, 0.1], [0.1, 0.1, 0.8], [0.1, 0.1, 0.1],
+                [0.1, 0.1, 0.8]]),
+    ]
+
+    # After two steps, with strict beam_size, both beams would have been done,
+    # except that ensure_full_beam kicks in, so beam 0 is not yet done.
+    results = self._runBeamSearchOpHelper(
+        hyp_size=hyp_size,
+        num_beams=num_beams,
+        seq_len=seq_len,
+        init_best_score=_MIN_SCORE,
+        probs=probs,
+        init_atten_probs=tf.zeros([hyp_size, 0]),
+        atten_probs=np.zeros([seq_len, hyp_size, 0]),
+        ensure_full_beam=True,
+        use_v2=True,
+        beam_size=2.0,
+        local_eos_threshold=-1.0)
+    beam_done = results[8]
+    self.assertAllEqual([False, True], beam_done)
+
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):
     hyp1 = hyps_pb2.Hypothesis()
     text_format.Parse(expected_hyp_str, hyp1)
