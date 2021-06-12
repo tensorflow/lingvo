@@ -1542,7 +1542,11 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     return input_batch
 
 
-def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
+def DefineTFDataInput(name,
+                      func,
+                      ignore_args=None,
+                      map_args=None,
+                      base_class=BaseInputGenerator):
   """Defines a new InputGenerator class from given tf.data pipeline.
 
   This function allows users to utilize existing tf.data pipelines which are
@@ -1606,6 +1610,7 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
       that the `Params().layer_param` field will be mapped to the parameter
       `func_param` of `func`. `func_param` won't be added into `Params().args`
       to avoid duplicated definitions about the same parameters.
+    base_class: A class name to inherit from, default is BaseInputGenerator.
 
   Returns:
     A new InputGenerator class that invokes `func` internally. The `Params()`
@@ -1618,7 +1623,7 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
   map_args = dict(map_args if map_args is not None else {})
 
   # Defines the class first as it will be required to call `super()`.
-  generated_cls = type(name, (BaseInputGenerator,), {})
+  generated_cls = type(name, (base_class,), {})
 
   @classmethod
   def _Params(cls):
