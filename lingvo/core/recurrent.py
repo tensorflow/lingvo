@@ -243,7 +243,21 @@ def _EmptyLike(nmap):
     A `.NestedMap` of tensors. Each tensor has the same shape and dtype as
     its corresponding tensor in nmap. And each tensor is initialized.
   """
-  return nmap.Transform(lambda x: tf.EmptyLike(x, init=True))
+
+  def _Create(x):
+    if x.dtype == tf.resource:
+      # If x is a resource tensor (scalar shape for variables), tf.EmptyLike
+      # will create a resource tensor as well, which cannot be directly computed
+      # on. So we need to get the data shape and type.
+      shape_type = tf.ops.get_resource_handle_data(x).shape_and_type
+      assert len(shape_type) == 1
+      return tf.Empty(
+          tf.TensorShape(shape_type[0].shape),
+          tf.as_dtype(shape_type[0].dtype),
+          init=True)
+    return tf.EmptyLike(x, init=True)
+
+  return nmap.Transform(_Create)
 
 
 def _Add(nmap_x, nmap_y):
@@ -278,7 +292,8 @@ class _Recurrent:
                cell_type=None,
                accumulator_layer=None,
                implicit_captures=None,
-               unused_acc_state=None):
+               unused_acc_state=None,
+               backward_cleanup=None):
     """RNN helper class.
 
     Args:
@@ -307,6 +322,10 @@ class _Recurrent:
         And we reduce_sum each timestep's new state into a scalar. Note, this
         feature should be used with StackedRecurrent where we send out the new
         state to the other devices.
+      backward_cleanup: An optional callback function (no argument) to be
+        invoked after the backward pass. It returns a list of ops, which will
+        run as control dependencies of d(inputs) on the backward path. Could be
+        used to clean up side effects during recompute.
     """
     self._theta = theta
     self._state = state0
@@ -322,6 +341,7 @@ class _Recurrent:
     self._accumulator_layer = accumulator_layer
     self._implicit_captures = implicit_captures
     self._unused_acc_state = unused_acc_state
+    self._backward_cleanup = backward_cleanup
 
     # NOTE: TF Function (Fwd, Bak, ForwardLoopBody, BackwardLoopBody,
     # Forward and Backward defined below) simply takes a list of
@@ -573,13 +593,22 @@ class _Recurrent:
         # Match the shape of gradient of the init_state.
         d_state0 = self._state.Transform(tf.zeros_like)
 
+      d_inputs = run.d_inputs
+
+      if self._backward_cleanup is not None:
+        with tf.control_dependencies(d_inputs.Flatten()):
+          control_before = tf.no_op()
+        with tf.control_dependencies([control_before]):
+          with tf.control_dependencies(self._backward_cleanup()):
+            d_inputs = d_inputs.Transform(tf.identity)
+
       # The `extra` input in the Forward function is actually an output of the
       # function. It was supplied as an input only to create acc_extras with
       # proper shape, so its gradients should be zero.
       return py_utils.NestedMap(
           d_theta=run.d_theta,
           d_state0=d_state0,
-          d_inputs=run.d_inputs,
+          d_inputs=d_inputs,
           d_extras=_EmptyLike(self._extras)), run.d_captured
 
     # Forward arguments.
@@ -681,7 +710,7 @@ def _ReflectOnCellFn(cell_fn,
   captured_inputs = list(Fwd.captured_inputs)
   if captured_inputs:
     if allowed_tensor_captures:
-      allowed_tensor_names = [x.name for x in allowed_tensor_captures]
+      allowed_tensor_names = set([x.name for x in allowed_tensor_captures])
       for c in captured_inputs:
         if c.name not in allowed_tensor_names:
           raise ValueError('Recurrent cell_fn implicitly captured tensor: %r '
@@ -954,7 +983,8 @@ def Recurrent(theta,
               check_stateful_ops=False,
               accumulator_layer=None,
               allow_implicit_capture=False,
-              allowed_tensor_captures=None):
+              allowed_tensor_captures=None,
+              backward_cleanup=None):
   """Compute a recurrent neural net.
 
   Roughly, `Recurrent()` computes the following::
@@ -1010,6 +1040,9 @@ def Recurrent(theta,
       tensors. Only allowed if an explicit `cell_grad` is not given.
     allowed_tensor_captures: A list of tensors that may be captured. If
       specified, overrides allow_implicit_capture.
+    backward_cleanup: A callback function (no argument) to be invoked after the
+      backward pass, which returns a list of control dependencies. Could be used
+      to clean up side effects during recompute.
 
   Returns:
     `accumulate_state` and the final state.
@@ -1045,20 +1078,18 @@ def Recurrent(theta,
                                               allow_implicit_capture,
                                               allowed_tensor_captures)
 
-  with tf.name_scope('recurrent_cellfn_extras'):
-    # Derives 'extras' so that we can allocate extras' accumulator.
-    # Not a real call to cell_fn, so make sure it doesn't affect step_seed.
-    step_seed = py_utils.GetStepSeed()
-    # Make sure not to modify the original state0.
-    _, actual_extras = cell_fn(theta, state0.DeepCopy(), _Index(inputs, 0))
-    py_utils.ResetStepSeed(step_seed)
   if extras is None:
+    with tf.name_scope('recurrent_cellfn_extras'):
+      # Derives 'extras' so that we can allocate extras' accumulator.
+      # Not a real call to cell_fn, so make sure it doesn't affect step_seed.
+      step_seed = py_utils.GetStepSeed()
+      _, actual_extras = cell_fn(theta, state0.DeepCopy(), _Index(inputs, 0))
+      py_utils.ResetStepSeed(step_seed)
     extras = actual_extras.Transform(tf.zeros_like)
   else:
     if not extras:
       # Forces the extras to be an empty map if an empty 'extras' is provided.
       extras = py_utils.NestedMap()
-    py_utils.AssertIsCompatible(extras, actual_extras)
 
   # Enable accumulators. Note that this must happen prior to the initial
   # _AugmentState() below or it will initialize with defaults.
@@ -1075,7 +1106,8 @@ def Recurrent(theta,
       inputs=inputs,
       extras=extras,
       accumulator_layer=accumulator_layer,
-      implicit_captures=implicit_captures).Compute()
+      implicit_captures=implicit_captures,
+      backward_cleanup=backward_cleanup).Compute()
 
   # TODO(b/129159299): The ResetStepSeed below is needed to work around this
   # bug, which is a problem with global tensors being shared by different

@@ -1545,6 +1545,7 @@ py_library(
         ":py_utils",
         ":sendrecv",
         ":symbolic",
+        ":thread_local_utils",
         "//lingvo:compat",
     ],
 )
@@ -2096,6 +2097,7 @@ py_library(
         ":py_utils",
         ":recurrent",
         ":tpu_summary",
+        ":var_tmp_wrappers",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
@@ -2461,5 +2463,26 @@ py_library(
         ":py_utils",
         ":thread_local_utils",
         "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "var_tmp_wrappers",
+    srcs = ["var_tmp_wrappers.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "var_tmp_wrappers_test",
+    srcs = ["var_tmp_wrappers_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":var_tmp_wrappers",
+        "//lingvo:compat",
+        "//lingvo/core:test_utils",
     ],
 )

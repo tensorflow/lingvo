@@ -362,6 +362,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
                      self.__class__.__name__, str(params))
     # Vars created by this layer.
     self._private_vars = py_utils.NestedMap()
+    # Utility for TransformVarsTempContext() to restore self._private_vars.
+    self._private_vars_transform_restore_stack = []
     # Theta derived from this layer's vars.
     self._private_theta = py_utils.NestedMap()
     # A simple transformation before used by the forward computation. Its
@@ -569,6 +571,41 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     for k in self._private_vars.keys():
       ret[k] = self._private_vars[k]
     return ret
+
+  def _TransformVarsInternal(self, fn):
+    """Internal: replaces each variable v in self._private_vars with fn(v).
+
+    Also recursively invokes _TransformVarsInternal() on self._private_children.
+
+    Args:
+      fn: A function that takes a variable and returns a variable or a wrapper
+        of the variable.
+    """
+    self._private_vars_transform_restore_stack.append(self._private_vars)
+    self._private_vars = self._private_vars.Transform(fn)
+    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
+      raise ValueError(
+          'Cannot access vars for layer %s before they have been created.' %
+          self.params.cls)
+    tf.nest.map_structure(
+        lambda c: c._TransformVarsInternal(fn),  # pylint: disable=protected-access
+        self._private_children)
+
+  def _UndoTransformVarsInternal(self):
+    """Internal. Undoes _TransformVarsInternal()."""
+    self._private_vars = self._private_vars_transform_restore_stack.pop()
+    tf.nest.map_structure(
+        lambda c: c._UndoTransformVarsInternal(),  # pylint: disable=protected-access
+        self._private_children)
+
+  @contextlib.contextmanager
+  def TransformVarsTempContext(self, fn):
+    """Enters a context that temporarily transforms each variable v to fn(v)."""
+    self._TransformVarsInternal(fn)
+    try:
+      yield
+    finally:
+      self._UndoTransformVarsInternal()
 
   @property
   def theta(self):

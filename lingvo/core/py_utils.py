@@ -3483,9 +3483,8 @@ def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
       has_nan_or_inf = tf.reduce_any(
           tf.math.logical_or(
               tf.math.is_nan(update_delta), tf.math.is_inf(update_delta)))
-      update_delta = tf.cond(has_nan_or_inf,
-                             lambda: tf.zeros_like(update_delta),
-                             lambda: update_delta)
+      update_delta = tf.where(has_nan_or_inf, tf.zeros_like(update_delta),
+                              update_delta)
       bn_update = tf.assign_sub(batch_norm_var, update_delta, name=scope)
   tf.add_to_collection(BATCH_NORM_UPDATES, bn_update)
   if not tf.executing_eagerly_outside_functions():

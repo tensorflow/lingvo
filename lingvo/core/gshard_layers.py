@@ -22,6 +22,7 @@ from lingvo.core import gshard_utils
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import tpu_summary
+from lingvo.core import var_tmp_wrappers
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.tf2xla.python import xla
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
@@ -176,7 +177,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   has a leading num_stages dimension in the input/output data (provided by the
   user, or created by this layer when Params().num_microbatches is provided) and
   weights (to achieve real pipeline parallelism). This leading dimension can
-  be added in 3 ways:
+  be added in different ways:
 
   1) Defined manually in the wrapped layer Params().stage_parallel_body.
 
@@ -186,6 +187,34 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   Params().shard_stages_1d, This may fail if some ops or control flow patterns
   are not supported by tf.vectorized_map(); with Params().shard_stages_1d, it
   instead uses manual-auto sharding conversion and supports all computations.
+
+  Supported features in different configurations:
+    1) stage_parallel_body:
+    Non-trainable variables are supported. This is not compatible with regular
+    existing layers, and mostly used for testing purpose.
+
+    2) single_stage_body + per_stage_vars=False + shard_stages_1d=True:
+    Non-trainable variables are supported. Sharding is added automatically.
+    Use this option when only pipelining is needed; the implementation is
+    reliable, because it does not depend on tf.vectorized_map.
+
+    3) single_stage_body + per_stage_vars=False + shard_stages_1d=False:
+    tf.vectorized_map will be used. Non-trainable variables are not supported.
+    Use this option when sharding on multiple dimensions (more than pipelining
+    stages) is needed.
+
+    4) single_stage_body + per_stage_vars=True + shard_stages_1d=True:
+    Non-trainable variables are not supported. Per-stage variables are defined
+    separately. Sharding is applied differently to per-layer variables and the
+    stacked variable for all stages, so it has resharding cost. If per-layer
+    vars are not a hard requirement 2) is a better option.
+
+    5) single_stage_body + per_stage_vars=True + shard_stages_1d=False:
+    Non-trainable variables are not supported. Similar to 4), but sharding is
+    provided by the user, which means the user can shard more than one
+    dimensions, but also needs to take care of different shardings on per-stage
+    variables and stacked variables. If per-layer vars are not a hard
+    requirement 3) is a better option.
 
   It can run on a single core, or sharded using GShard annotations. If the stage
   dimension is sharded, GShard will produce a cross-core pipelining pattern.
@@ -260,6 +289,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           self.CreateChild('body_iter_%05d' % i, p.single_stage_body)
       else:
         self.CreateChild('body', p.single_stage_body)
+    self._non_trainable_vars = []
 
   def _FindPerStageVarShardingDim(self, shape):
     """Finds a sharding dimension for per-stage variables before stacking.
@@ -314,16 +344,47 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       tf.nest.map_structure(_SplitVar, self.vars)
 
+    def _AddToNonTrainable(v):
+      if not v.trainable:
+        tf.logging.info('Non-trainable var in pipelined layer: %s', v.name)
+        self._non_trainable_vars.append(v)
+
+    tf.nest.map_structure(_AddToNonTrainable, self.vars)
+
+    if self._non_trainable_vars and not p.stage_parallel_body and (
+        not p.shard_stages_1d or p.per_stage_vars):
+      raise NotImplementedError(
+          'When using single_stage_body, non-trainable vars are only supported '
+          'when per_stage_vars=False and shard_stages_1d=True.')
+
   def BodyFProp(self, theta, *args):
     p = self.params
-    if p.stage_parallel_body is not None:
-      return self.body.FProp(theta, *args)
+    wrappers = []
 
-    def _SingleStageFProp(x):
-      if p.per_stage_vars:
-        return self.body_iter_00000.FProp(x.theta, *x.args)
-      else:
-        return self.body.FProp(x.theta, *x.args)
+    # Wrap non-trainable vars with VarWrapperTrackAssign to track control
+    # dependencies.
+    def _WrapWithTracking(v):
+      if v.trainable:
+        return v
+      wrapper = var_tmp_wrappers.VarWrapperTrackAssign(v)
+      wrappers.append(wrapper)
+      return wrapper
+
+    def _BodyFProp(x):
+      with self.TransformVarsTempContext(_WrapWithTracking):
+        if p.per_stage_vars:
+          outs = self.body_iter_00000.FProp(x.theta, *x.args)
+        else:
+          outs = self.body.FProp(x.theta, *x.args)
+        if not wrappers:
+          return outs, tf.zeros([], dtype=tf.int32)
+        with tf.control_dependencies(
+            [w.control_after_assigns() for w in wrappers]):
+          control_out = tf.zeros([], dtype=tf.int32)
+        return outs, control_out
+
+    if p.stage_parallel_body is not None:
+      return _BodyFProp(theta, *args)
 
     theta_args = py_utils.NestedMap(theta=theta, args=args)
 
@@ -336,7 +397,16 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return tf.squeeze(to_manual, 0)
 
       one_stage_theta_args = tf.nest.map_structure(_ToManual, theta_args)
-      one_stage_outputs = _SingleStageFProp(one_stage_theta_args)
+
+      # Wrap non-trainable vars with StackedVarWrapperWithManualSharding, in
+      # case they are accessed directly in FProp (e.g., batch norm vars).
+      def _WrapWithManual(v):
+        if v.trainable:
+          return v
+        return var_tmp_wrappers.StackedVarWrapperWithManualSharding(v)
+
+      with self.TransformVarsTempContext(_WrapWithManual):
+        one_stage_outputs, control_out = _BodyFProp(one_stage_theta_args)
 
       def _ToAuto(x):
         full_shape = [p.num_stages] + x.shape
@@ -346,13 +416,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return xla_sharding.manual_to_auto_spmd_partition(
             x, sharding.proto.SerializeToString(), full_shape=full_shape)
 
-      return tf.nest.map_structure(_ToAuto, one_stage_outputs)
+      return tf.nest.map_structure(_ToAuto, one_stage_outputs), control_out
 
     else:
       # TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped
       # auto-manual sharding conversion when it is available.
       return tf.vectorized_map(
-          _SingleStageFProp, theta_args, fallback_to_while_loop=False)
+          _BodyFProp, theta_args, fallback_to_while_loop=False)
 
   @property
   def _body(self):
@@ -412,7 +482,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     else:
       theta_body = theta.body
 
-    if p.num_microbatches is not None:
+    if p.num_microbatches is None:
+      num_microbatches = py_utils.Flatten(args)[0].get_shape().as_list()[0]
+    else:
+      num_microbatches = p.num_microbatches
 
       def _ToMicrobatches(x):
         x_shape = py_utils.GetShape(x)
@@ -508,15 +581,49 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
             tf.cast(inp, shifted_state.dtype), shifted_state)
 
       selected_inputs = tf.nest.map_structure(
-          _SelectInput, _StateToArgs(state0, state_shapes),
+          _SelectInput, _StateToArgs(state0.args, state_shapes),
           _StateToArgs(inputs, state_shapes))
+
+      # Restore non-trainable vars to state0, because it can be called in the
+      # backward pass.
+      assigns = tf.nest.map_structure(lambda v, s: v.assign(s),
+                                      self._non_trainable_vars,
+                                      state0.non_trainable_vars)
       # Runs the actual body's FProp
-      fprop_outputs = self.BodyFProp(theta, *selected_inputs)
+      if assigns:
+        # Group the dependencies int to a single no_op to avoid quadratic number
+        # of control edges.
+        with tf.control_dependencies(assigns):
+          ctrl_before = tf.no_op()
+        with tf.control_dependencies([ctrl_before]):
+          fprop_outputs, ctrl = self.BodyFProp(theta, *selected_inputs)
+      else:
+        fprop_outputs, ctrl = self.BodyFProp(theta, *selected_inputs)
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(selected_inputs)
 
       # Passes fprop outputs to the next layer through state.
-      state1 = _ArgsToState(fprop_outputs)
+      state1 = py_utils.NestedMap(
+          args=_ArgsToState(fprop_outputs),
+          iteration=state0.iteration + tf.constant(1, dtype=tf.int32))
+
+      # Pass state0.non_trainable_vars or updated values depending on whether
+      # it is a bubble iteration.
+      def _NextIterNonTrainableVar(v, v0):
+        mb_id = state0.iteration - tf.range(p.num_stages)
+        valid_iter = tf.logical_and(
+            tf.less(mb_id, num_microbatches), tf.greater_equal(mb_id, 0))
+        with tf.control_dependencies([ctrl]):
+          v1 = tf.identity(v)
+        return tf.where(
+            tf.broadcast_to(
+                tf.reshape(valid_iter,
+                           [p.num_stages] + [1] * (len(v.shape) - 1)), v.shape),
+            v1, v0)
+
+      state1.non_trainable_vars = tf.nest.map_structure(
+          _NextIterNonTrainableVar, self._non_trainable_vars,
+          state0.non_trainable_vars)
       return state1, py_utils.NestedMap()
 
     with tf.name_scope(p.name):
@@ -526,21 +633,44 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return tf.zeros(py_utils.GetShape(inp)[1:], dtype=inp.dtype)
 
       # Add FProp arg list to state0.
-      state0 = tf.nest.map_structure(_CreateInitState, inputs_nmap)
+      state0 = py_utils.NestedMap(
+          args=tf.nest.map_structure(_CreateInitState, inputs_nmap),
+          iteration=tf.constant(0, dtype=tf.int32),
+          non_trainable_vars=tf.nest.map_structure(tf.identity,
+                                                   self._non_trainable_vars))
+      final_non_trainable_var_values = None
+
+      def _RestoreVarsToFinal():
+        assert final_non_trainable_var_values is not None
+        assigns = tf.nest.map_structure(lambda v, x: v.assign(x),
+                                        self._non_trainable_vars,
+                                        final_non_trainable_var_values)
+        with tf.control_dependencies(assigns):
+          return [tf.no_op()]
+
       # Runs body.FProp k times using Recurrent where k = dim 0 of inputs_nmap.
-      accum, _ = recurrent.Recurrent(
+      accum, outputs = recurrent.Recurrent(
           theta=theta_body,
           state0=state0,
           inputs=inputs_nmap,
           cell_fn=_CellFn,
-          allow_implicit_capture=p.allow_implicit_capture)
+          extras={},
+          allow_implicit_capture=p.allow_implicit_capture,
+          allowed_tensor_captures=self._non_trainable_vars,
+          backward_cleanup=(_RestoreVarsToFinal
+                            if self._non_trainable_vars else None))
 
       # Retrieves fprop outputs.
       def _ExtractLastStage(outp):
         return outp[p.num_stages - 1:, -1, ...]
 
-      output_tensors = tf.nest.map_structure(_ExtractLastStage,
-                                             _StateToArgs(accum, padded_shapes))
+      final_non_trainable_var_values = outputs.non_trainable_vars
+      output_tensors = tf.nest.map_structure(
+          _ExtractLastStage, _StateToArgs(accum.args, padded_shapes))
+      if self._non_trainable_vars:
+        with tf.control_dependencies(_RestoreVarsToFinal()):
+          output_tensors = tf.nest.map_structure(tf.identity, output_tensors)
+
       if p.num_microbatches is not None:
 
         def _ToBatches(x):
