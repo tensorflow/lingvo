@@ -5048,6 +5048,35 @@ class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
       with self.assertRaisesRegex(ValueError, 'does not support center=false'):
         layer_norm.FPropDefaultTheta(inputs)
 
+  @parameterized.named_parameters(('_3D', 3), ('_4D', 4))
+  def testReshapedLayerNorm(self, rank):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.ReshapedLayerNorm.Params()
+      p.name = 'reshaped_layer_norm'
+      p.random_seed = 123
+      p.device_mesh = np.reshape(np.arange(4), [2, 2])
+      p.input_dim = 6
+      if rank == 3:
+        dims = [p.input_dim]
+      else:
+        self.assertEqual(rank, 4)
+        dims = [2, p.input_dim // 2]
+      l = p.Instantiate()
+      shape = [2, 4] + dims
+      npy_input = np.random.normal(1.0, 0.5, shape).astype(np.float32)
+      inputs = tf.constant(npy_input, dtype=tf.float32)
+      output = l.FPropDefaultTheta(inputs)
+
+      self.evaluate(tf.global_variables_initializer())
+      output = self.evaluate(output)
+
+      self.assertEqual(npy_input.shape, output.shape)
+      # Mean should be zero and variance should be close to one.
+      self.assertNear(0.0, output.sum(), 1e-5)
+      self.assertNear(1.0, np.var(output), 1e-4)
+
   def testLayerNormBProp(self):
     with self.session(use_gpu=True) as sess:
       tf.random.set_seed(398847392)

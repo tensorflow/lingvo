@@ -77,6 +77,34 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  @parameterized.named_parameters(('_3D', 3), ('_4D', 4))
+  def testReshapedTransformerFeedForwardLayer(self, rank):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      input_dim = 6
+      if rank == 3:
+        dims = [input_dim]
+      else:
+        self.assertEqual(rank, 4)
+        dims = [2, input_dim // 2]
+      shape = [5, 2] + dims
+      inputs = tf.random.normal(shape, seed=948387483)
+      paddings = tf.zeros([5, 2])
+
+      p = layers_with_attention.ReshapedTransformerFeedForwardLayer.Params()
+      p.name = 'reshaped_transformer_fflayer'
+      p.input_dim = input_dim
+      p.hidden_dim = 7
+      p.fflayer_tpl.weight_split_dims_mapping_list = [[-1, -1], [-1, -1]]
+      p.fflayer_tpl.activation_split_dims_mapping_list = [[-1, -1], [-1, -1]]
+      p.device_mesh = np.reshape(np.arange(4), [2, 2])
+      l = p.Instantiate()
+
+      outputs = l.FPropDefaultTheta(inputs, paddings)
+      self.evaluate(tf.global_variables_initializer())
+      outputs = self.evaluate(outputs)
+      self.assertAllClose(outputs.shape, inputs.shape)
+
   def testHybridFeedforwardLayer(self):
     with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)

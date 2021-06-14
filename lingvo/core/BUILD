@@ -1893,6 +1893,7 @@ py_library(
     srcs = ["layers_with_attention.py"],
     srcs_version = "PY3",
     deps = [
+        ":activations",
         ":attention",
         ":base_layer",
         ":gshard_builder",
@@ -1901,7 +1902,6 @@ py_library(
         ":hyperparams",
         ":layers",
         ":py_utils",
-        ":summary_utils",
         ":symbolic",
         "//lingvo:compat",
     ],
@@ -1912,14 +1912,16 @@ py_test(
     size = "large",
     srcs = ["layers_with_attention_test.py"],
     python_version = "PY3",
+    shard_count = 3,
     srcs_version = "PY3",
     deps = [
-        ":attention",
         ":gshard_builder",
         ":layers",
         ":layers_with_attention",
         ":py_utils",
+        ":symbolic",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

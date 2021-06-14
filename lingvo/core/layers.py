@@ -4248,14 +4248,21 @@ class ReshapedLayerNorm(LayerNorm):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      inputs: A tensor of shape [..., dim_reshape_segments, hidden_dim //
-        dim_reshape_segments].
+      inputs: A 4D tensor of shape [a, b, dim_reshape_segments, hidden_dim //
+        dim_reshape_segments]. If a 3D tensor [time, batch, dim], the input
+        (resp. output) rank is first augmented (resp. reduced) by splitting
+        the last dimension according to the device_mesh (resp. merging the
+        last two dimensions).
 
     Returns:
       tensor of the same shape with inputs.
     """
     p = self.params
     with tf.name_scope(p.name):
+      inputs_shape = py_utils.GetShape(inputs)
+      do_reshape = len(inputs_shape) == 3
+      if do_reshape:
+        inputs = gshard_utils.ReshapeDim(inputs, 2, p.device_mesh.shape[1])
       inputs = self._CastToFPropDtype(inputs)
 
       cur_scale, cur_bias = self._GetScaleAndBias(theta)
@@ -4277,7 +4284,11 @@ class ReshapedLayerNorm(LayerNorm):
       inputs_norm = tf.cast(
           (inputs - mean) * tf.math.rsqrt(variance + p.epsilon),
           dtype=scale.dtype)
-      return inputs_norm * scale + cur_bias
+      output = inputs_norm * scale + cur_bias
+      if do_reshape:
+        shape = inputs_shape[:2] + [-1]
+        output = tf.reshape(output, shape)
+      return output
 
 
 class CategoricalLayerNorm(LayerNorm):

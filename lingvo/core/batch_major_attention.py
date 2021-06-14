@@ -1065,6 +1065,66 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     return py_utils.NestedMap(flops=flops, out_shapes=(args[0], (b, n, t, s)))
 
 
+# TODO(shibow/wangtao) remove this after b/174094694 is done.
+class ReshapedMultiHeadedAttention(MultiHeadedAttention):
+  """MultiHeadedAttention with model dim D reshaped as Md."""
+
+  def ExtendStep(self,
+                 theta,
+                 query_vec,
+                 cached_states,
+                 paddings,
+                 segment_mask,
+                 per_step_padding,
+                 time_step,
+                 use_short_seq_opt=False):
+    """Computes the value vector given the query of the current step.
+
+    This function is used by autoregressive decoding.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec:        [B, 1, D].
+      cached_states: A `.NestedMap` object containing tensors which are the
+        results of previous attentions, used for fast decoding. key   - [T, B,
+        N, H]. value - [T, B, N, H].
+      paddings:         [B, T], or None if there is no padding.
+      segment_mask:     [B, 1, T, S] or None.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, 1, T] if
+        not None.
+      time_step: A scalar or tensor with [B], current decode step, 0-based. if
+        it's a scalar, all the time step are the same decode step. if it's a
+        tensor, it represents current decode step for each sample.
+      use_short_seq_opt: A bool, whether using short sequence optimization.
+
+    Returns:
+      encoded:           [B, 1, D].
+      updated_key_vec:   [T, B, N, H].
+      updated_value_vec: [T, B, N, H].
+
+    Raises:
+      ValueError: If value projection is disabled.
+    """
+    p = self.params
+    with tf.name_scope(p.name):
+      query_vec = gshard_utils.ReshapeDim(query_vec, 2, p.device_mesh.shape[1])
+      encoded, updated_states = super().ExtendStep(
+          theta,
+          query_vec,
+          cached_states,
+          paddings,
+          segment_mask,
+          per_step_padding,
+          time_step,
+          use_short_seq_opt=use_short_seq_opt)
+      encoded_shape = py_utils.GetShape(encoded, 2)
+      shape = encoded_shape + [-1]
+      encoded = tf.reshape(encoded, shape)
+      return encoded, updated_states
+
+
 class MultiHeadedFavorAttention(MultiHeadedAttention):
   """Performer multiheaded attention."""
 
@@ -3985,6 +4045,7 @@ class TransformerLayer(base_layer.BaseLayer):
     old_tr_fflayer_p = params.tr_fflayer_tpl
     old_tr_fflayer_ln_p = params.tr_fflayer_tpl.ln_tpl
     old_tr_atten_ln_p = params.tr_atten_tpl.ln_tpl
+    old_tr_atten_atten_p = params.tr_atten_tpl.atten_tpl
     old_tr_atten_atten_proj_p = params.tr_atten_tpl.atten_tpl.proj_tpl
 
     params.tr_fflayer_tpl = (
@@ -3994,6 +4055,8 @@ class TransformerLayer(base_layer.BaseLayer):
     _CopyParams(old_tr_fflayer_ln_p, params.tr_fflayer_tpl.ln_tpl)
     params.tr_atten_tpl.ln_tpl = layers.ReshapedLayerNorm.Params()
     _CopyParams(old_tr_atten_ln_p, params.tr_atten_tpl.ln_tpl)
+    params.tr_atten_tpl.atten_tpl = ReshapedMultiHeadedAttention.Params()
+    _CopyParams(old_tr_atten_atten_p, params.tr_atten_tpl.atten_tpl)
     params.tr_atten_tpl.atten_tpl.proj_tpl = (
         ReshapedMultiHeadedProjectionLayer.Params())
     _CopyParams(old_tr_atten_atten_proj_p,

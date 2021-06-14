@@ -2850,6 +2850,63 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       reshaped_ctx = np.reshape(reshaped_ctx, (2, 5, 4))
       self.assertAllClose(actual_ctx, reshaped_ctx)
 
+  def testReshapedTransformerLayerDecodeNoCrossAttention(self):
+    np.random.seed(6348575)
+    dtype = tf.float32
+    b_size = 2
+    input_dim = 4
+    seq_len = 3
+    query_vec = np.random.rand(b_size, seq_len, input_dim)
+    paddings = tf.zeros(shape=[b_size, seq_len], dtype=dtype)
+    segment_mask = tf.constant(
+        [[0, -1e30, -1e30], [-1e30, 0, -1e30], [0, -1e30, 0]], dtype=dtype)
+    segment_mask = tf.tile(segment_mask[tf.newaxis, tf.newaxis, :, :],
+                           [b_size, 1, 1, 1])
+
+    with self.session(use_gpu=True) as sess:
+      p = attention.TransformerLayer.Params()
+      p.name = 'reshaped_transformer_layer'
+      p.input_dim = input_dim
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_heads = 2
+      p.mask_self_atten = True
+      p.packed_input = True
+      p.has_aux_atten = False
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      attention.TransformerLayer.SetReshapedLayers(p)
+      p.device_mesh = np.reshape(np.arange(4), [2, 2])
+      attention.TransformerLayer.SetCanonicalShardingParams(p, reshape_dim=True)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(
+          l.theta,
+          tf.reshape(query_vec, [b_size, seq_len, 2, 2]),
+          paddings,
+          None,
+          None,
+          segment_mask=segment_mask)
+      ctx_vec = tf.reshape(ctx_vec, [b_size, seq_len, input_dim])
+
+      cached_states = l.InitStates(l.theta, b_size, seq_len)
+      extend_step_outs = []
+      for t in range(seq_len):
+        out_t, _, cached_states = l.ExtendStep(
+            l.theta,
+            query_vec[:, t:t + 1, :],
+            None,
+            None,
+            cached_states,
+            t,
+            segment_mask=segment_mask[:, :, t, :])
+        extend_step_outs.append(out_t[:, 0, :])
+
+      decoder_out = tf.stack(extend_step_outs, axis=1)
+
+      tf.global_variables_initializer().run()
+      fprop_out_v, decoder_out_v = sess.run([ctx_vec, decoder_out])
+      tf.logging.info(np.array_repr(fprop_out_v))
+      tf.logging.info(np.array_repr(decoder_out_v))
+      self.assertAllClose(fprop_out_v, decoder_out_v)
+
   @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
   def testMultiSourceTransformerLayerFPropWithCrossAttention(self, multiplier):
     with self.session(use_gpu=True) as sess:

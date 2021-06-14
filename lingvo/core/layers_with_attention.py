@@ -1138,6 +1138,9 @@ class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       inputs: [time, batch, dim_reshape_segments, dim // dim_reshape_segments].
+        If a 3D tensor [time, batch, dim], the input (resp. output) rank is
+        first augmented (resp. reduced) by splitting the last dimension
+        according to the device_mesh (resp. merging the last two dimensions).
       paddings: [time, batch].
 
     Returns:
@@ -1145,6 +1148,10 @@ class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
     """
     p = self.params
     with tf.name_scope(p.name):
+      inputs_shape = py_utils.GetShape(inputs)
+      do_reshape = len(inputs_shape) == 3
+      if do_reshape:
+        inputs = gshard_utils.ReshapeDim(inputs, 2, p.device_mesh.shape[1])
       inputs = self._CastToFPropDtype(inputs)
       if self.params.pre_layer_norm:
         inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
@@ -1192,6 +1199,9 @@ class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
         h = inputs + h * self.params.residual_weight
       if not self.params.pre_layer_norm:
         h = self.layer_norm.FProp(theta.layer_norm, h)
+      if do_reshape:
+        shape = py_utils.GetShape(h, 2) + [-1]
+        h = tf.reshape(h, shape)
       return h
 
 
