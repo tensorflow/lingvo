@@ -318,21 +318,13 @@ class Decoder(base_runner.BaseRunner):
 
       if self._decode_path:
         self.DecodeCheckpoint(sess, self._decode_path)
+        self._UpdateProcessedCheckpoints(self._decoder_dir, self._decode_path)
+      elif self._task.params.eval.decode_all_checkpoints:
+        self._RunOnAllCheckpoints(sess, self.DecodeCheckpoint,
+                                  self._decoder_dir)
       else:
-        path = None
-        while True:
-          path = self._FindNewCheckpoint(sess, path)
-          if path is not None:
-            self.DecodeCheckpoint(sess, path)
-            if self._ShouldStop(sess):
-              break
-          else:
-            break
-
-    # Maybe decode the last checkpoint if we are not given a specific
-    # checkpoint to decode.
-    if self._decode_path is None:
-      self.DecodeLatestCheckpoint(last_path=path)
+        self._RunOnLatestCheckpoints(sess, self.DecodeCheckpoint,
+                                     self._decoder_dir)
 
     if self._should_report_metrics:
       tf.logging.info('Reporting trial done.')
@@ -468,14 +460,9 @@ class Decoder(base_runner.BaseRunner):
         decode_out_path=decode_out_path, decode_out=buffered_decode_out)
     self._task.DecodeFinalize(decode_finalize_args)
 
-    should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:
       tf.logging.info('Reporting eval measure for step %d.' % global_step)
-      trial_should_stop = self._trial.ReportEvalMeasure(global_step,
-                                                        dec_metrics,
-                                                        checkpoint_path)
-      should_stop = should_stop or trial_should_stop
-    return should_stop
+      self._trial.ReportEvalMeasure(global_step, dec_metrics, checkpoint_path)
 
   def DecodeLatestCheckpoint(self, last_path=None):
     """Runs decoder on the latest checkpoint."""

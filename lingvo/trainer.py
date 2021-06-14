@@ -500,7 +500,7 @@ class TrainerTpu(base_runner.BaseRunner):
           # step finishes. This allows us to run certain computation that
           # acts on the variable between tpu_train_loop iterations and
           # amortizing the cost of the operations. Alternative of running
-          # tpu.outside_compilation & using tf.cond is expenseive.
+          # tpu.outside_compilation & using tf.cond is expensive.
           with tf.control_dependencies(train_loop_op):
             self._model.ConstructPostTrainingLoop(outfeed_dequeue_op)
             with tf.control_dependencies([self._task.post_training_loop_op]):
@@ -889,21 +889,11 @@ class Evaler(base_runner.BaseRunner):
 
       if self._eval_path:
         self._EvalOnce(sess, self._eval_path)
+        self._UpdateProcessedCheckpoints(self._eval_dir, self._eval_path)
+      elif self._task.params.eval.eval_all_checkpoints:
+        self._RunOnAllCheckpoints(sess, self._EvalOnce, self._eval_dir)
       else:
-        path = None
-        while True:
-          path = self._FindNewCheckpoint(sess, path)
-          if path is not None:
-            self._EvalOnce(sess, path)
-            if self._ShouldStop(sess):
-              break
-          else:
-            break
-
-    # Maybe evaluate the last checkpoint if we are not given a specific
-    # checkpoint to evaluate.
-    if self._eval_path is None:
-      self.EvalLatestCheckpoint(last_path=path)
+        self._RunOnLatestCheckpoints(sess, self._EvalOnce, self._eval_dir)
 
     if self._should_report_metrics:
       tf.logging.info('Reporting trial done.')
@@ -1079,7 +1069,7 @@ class RunnerManager:
     self._model_name = model
 
   def MaybeLaunchTensorFlow(self):
-    """Starts TF machinary in this process."""
+    """Starts TF machinery in this process."""
     if FLAGS.run_locally or FLAGS.tpu:
       return
 

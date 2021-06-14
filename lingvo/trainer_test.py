@@ -16,8 +16,11 @@
 """Tests for trainer."""
 
 import os
+import pathlib
 import random
 import re
+import shutil
+import unittest
 
 from absl.testing import flagsaver
 from absl.testing import parameterized
@@ -189,48 +192,83 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'decoder_test' + str(random.random()))
     FLAGS.logdir = logdir
+    dec_dir = os.path.join(logdir, 'decoder_dev')
     cfg = self._GetSimpleTestConfig()
-
     runner_manager = trainer.RunnerManager(cfg.name)
+    runner_manager.StartRunners([
+        self._CreateController(cfg),
+        self._CreateTrainer(cfg),
+    ])
 
-    runner_manager.StartRunners(
-        [self._CreateController(cfg),
-         self._CreateTrainer(cfg)])
-    runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
+    # Test decoding with default settings.
+    with self.subTest(name='DefaultDecoder'):
+      runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
+      dec_files = tf.io.gfile.glob(os.path.join(dec_dir, '*'))
+      self.assertTrue(self._HasFile(dec_files, 'params.txt'))
+      self.assertTrue(self._HasFile(dec_files, 'decoder_dev.pbtxt'))
+      self.assertTrue(self._HasFile(dec_files, 'tfevents'))
+      self.assertTrue(self._HasFile(dec_files, 'processed_ckpts.txt'))
+      # Only the score for the 2-step checkpoint should be present.
+      self.assertFalse(self._HasFile(dec_files, 'score-00000000.txt'))
+      self.assertTrue(self._HasFile(dec_files, 'score-00000002.txt'))
+      self.assertTrue(
+          self._HasLine(
+              self._GetMatchedFileName(dec_files, 'score'), 'examples/sec'))
 
-    dec_files = tf.io.gfile.glob(logdir + '/decoder_dev/*')
-    self.assertTrue(self._HasFile(dec_files, 'params.txt'))
-    self.assertTrue(self._HasFile(dec_files, 'decoder_dev.pbtxt'))
-    self.assertTrue(self._HasFile(dec_files, 'tfevents'))
-    # Only the score for the 2-step checkpoint should be present.
-    self.assertTrue(
-        tf.io.gfile.exists(
-            os.path.join(logdir, 'decoder_dev/score-00000002.txt')))
-    self.assertFalse(
-        tf.io.gfile.exists(
-            os.path.join(logdir, 'decoder_dev/score-00000000.txt')))
-    self.assertTrue(
-        self._HasLine(
-            self._GetMatchedFileName(dec_files, 'score'), 'examples/sec'))
+    # Test that checkpoints are not reevaluated when a job is interrupted.
+    score_2_path = os.path.join(dec_dir, 'score-00000002.txt')
+    score_2_mod_time = pathlib.Path(score_2_path).stat().st_mtime
+    with self.subTest(name='DefaultDecoderNoOp'):
+      cfg = self._GetSimpleTestConfig()
+      # base_runner uses os._exit to forcibly terminate the program after
+      # encountering the ValueError we expect this to raise. Since it uses
+      # os._exit instead of sys.exit, we cannot use
+      # self.assertRaises(SystemExit) to prevent this termination. Instead, we
+      # use a mock function to indirectly test that the ValueError is raised.
+      # pylint: disable=protected-access
+      _os_exit = os._exit  # pylint: disable=invalid-name
+      os._exit = unittest.mock.MagicMock()
+      runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
+      self.assertTrue(os._exit.called)
+      os._exit = _os_exit
+      # pylint: enable=protected-access
 
-    # Test customization of an eval checkpoint.  Create a new logdir / decoder
-    # but point the eval checkpoint to the 0th checkpoint of the most
-    # recent experiment.
-    new_logdir = os.path.join(tf.test.get_temp_dir(),
-                              'decoder_test' + str(random.random()))
-    FLAGS.logdir = new_logdir
-    cfg = self._GetSimpleTestConfig()
-    cfg.task.eval.load_checkpoint_from = os.path.join(logdir,
-                                                      'train/ckpt-00000000')
+      dec_files = tf.io.gfile.glob(os.path.join(dec_dir, '*'))
+      self.assertFalse(self._HasFile(dec_files, 'score-00000000.txt'))
+      self.assertEqual(score_2_mod_time,
+                       pathlib.Path(score_2_path).stat().st_mtime)
 
-    runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
-    # Only the score for the 0th checkpoint should be present.
-    self.assertTrue(
-        tf.io.gfile.exists(
-            os.path.join(new_logdir, 'decoder_dev/score-00000000.txt')))
-    self.assertFalse(
-        tf.io.gfile.exists(
-            os.path.join(new_logdir, 'decoder_dev/score-00000002.txt')))
+    # Test decoding a specific checkpoint.
+    with self.subTest(name='LoadCheckpointFrom'):
+      cfg = self._GetSimpleTestConfig()
+      cfg.task.eval.load_checkpoint_from = os.path.join(logdir,
+                                                        'train/ckpt-00000000')
+      runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
+      dec_files = tf.io.gfile.glob(os.path.join(dec_dir, '*'))
+
+      # Scores for both checkpoints should be present...
+      self.assertTrue(self._HasFile(dec_files, 'score-00000000.txt'))
+      self.assertTrue(self._HasFile(dec_files, 'score-00000002.txt'))
+      # ... but only the score for the 0-step checkpoint should be modified.
+      self.assertEqual(score_2_mod_time,
+                       pathlib.Path(score_2_path).stat().st_mtime)
+
+    # Reset the decoder's cached state and test decoding all checkpoints.
+    shutil.rmtree(dec_dir)
+    with self.subTest(name='DecodeAllCheckpoints'):
+      cfg = self._GetSimpleTestConfig()
+      cfg.task.eval.decode_all_checkpoints = True
+      runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
+      dec_files = tf.io.gfile.glob(os.path.join(dec_dir, '*'))
+      self.assertTrue(self._HasFile(dec_files, 'score-00000000.txt'))
+      self.assertTrue(self._HasFile(dec_files, 'score-00000002.txt'))
+
+    # Test that decode_all_checkpoints on an already decoded dir is a no-op.
+    score_2_mod_time = pathlib.Path(score_2_path).stat().st_mtime
+    with self.subTest(name='DecodeAllCheckpointsNoOp'):
+      runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
+      self.assertEqual(score_2_mod_time,
+                       pathlib.Path(score_2_path).stat().st_mtime)
 
   @flagsaver.flagsaver
   def testWriteInferenceGraph(self):
