@@ -346,6 +346,118 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
     return load_op_list, retrieve_op_list
 
 
+class TPUEmbeddingAdamOptimizer(_TPUEmbeddingOptimizer):
+  """Adam optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'clip_gradient_min', None,
+        'Controls clipping of the gradient. The minimum value to clip by.')
+    p.Define('clip_gradient_max', None, 'The max value to clip by.')
+    p.Define(
+        'sum_inside_sqrt', True, 'When this is true, the Adam update'
+        'formula is changed from m / (sqrt(v) + epsilon) to m / '
+        'sqrt(v + epsilon**2). This option improves the performance of'
+        'TPU training and is not expected to harm model quality.')
+    p.Define('lazy_adam', True, 'Use lazy Adam instead of Adam. Lazy Adam'
+             'trains faster.')
+    p.Define('beta1', 0.9, 'The exponential decay rate for the 1st moment'
+             'estimates')
+    p.Define('beta2', 0.999, 'The exponential decay rate for the 2nd moment'
+             'estimates')
+    p.Define('epsilon', 1e-08, 'A small constant for numerical stability')
+    p.Define(
+        'use_gradient_accumulation', True, 'Setting this to False makes'
+        'embedding gradients calculation less accurate but faster')
+
+    return p
+
+  def CreateOptimizerParameters(self, learning_rate):
+    p = self.params
+    return tpu_embedding_lib.AdamParameters(
+        learning_rate=learning_rate,
+        beta1=p.beta1,
+        beta2=p.beta2,
+        epsilon=p.epsilon,
+        lazy_adam=p.lazy_adam,
+        sum_inside_sqrt=p.sum_inside_sqrt,
+        use_gradient_accumulation=p.use_gradient_accumulation,
+        clip_weight_min=p.clip_weight_min,
+        clip_weight_max=p.clip_weight_max,
+        weight_decay_factor=p.weight_decay_factor,
+        multiply_weight_decay_factor_by_learning_rate=p
+        .multiply_weight_decay_factor_by_learning_rate,
+        clip_gradient_min=p.clip_gradient_min,
+        clip_gradient_max=p.clip_gradient_max)
+
+  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+    p = self.params
+
+    load_op_list = []
+    retrieve_op_list = []
+
+    num_tpu_hosts = tpu_embedding_table.params.num_tpu_hosts
+    table_name = tpu_embedding_table.table_name
+    slot_var_collections = [tpu_embedding_table.__class__.__name__ + '_vars']
+
+    for host_id, table_var in zip(range(num_tpu_hosts), table_vars):
+      # The slot vars should be on the same device as the table var.
+      device_name = tpu_embedding_table.GetDeviceName(host_id)
+      with tf.device(device_name), py_utils.outside_all_rewrites():
+        m_adam = py_utils.WeightParams(
+            shape=table_var.shape.as_list(),
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=slot_var_collections)
+        var_name_m = tpu_embedding_table.GetVariableName(host_id) + '/Adam/m'
+        tpu_embedding_table.CreateVariable(var_name_m, m_adam, trainable=False)
+        m_var = tpu_embedding_table.vars[var_name_m]
+
+        v_adam = py_utils.WeightParams(
+            shape=table_var.shape.as_list(),
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=slot_var_collections)
+        var_name_v = tpu_embedding_table.GetVariableName(host_id) + '/Adam/v'
+        tpu_embedding_table.CreateVariable(var_name_v, v_adam, trainable=False)
+        v_var = tpu_embedding_table.vars[var_name_v]
+
+        # Only the Trainer needs these ops.
+        if py_utils.use_tpu():
+          # Remove the slot vars from the variable list to avoid them being
+          # copied to TPU.
+          _RemovePrivateVar(tpu_embedding_table, var_name_m)
+          _RemovePrivateVar(tpu_embedding_table, var_name_v)
+
+          # TPU Embedding load/retrieve ops need to be in the outer graph scope.
+          with tf.init_scope():
+            tf.logging.info('creating load and retrieve ops.')
+            load_parameters_op = (
+                tpu_embedding_lib.tpu_ops.load_tpu_embedding_adam_parameters(
+                    parameters=table_var,
+                    momenta=m_var,
+                    velocities=v_var,
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            load_op_list.append(load_parameters_op)
+
+            retrieved_table, retrieved_m, retrieved_v = (
+                tpu_embedding_lib.tpu_ops
+                .retrieve_tpu_embedding_adam_parameters(
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
+                tf.assign(table_var, retrieved_table),
+                tf.assign(m_var, retrieved_m), tf.assign(v_var, retrieved_v))
+            retrieve_op_list.append(retrieve_parameters_op)
+
+    return load_op_list, retrieve_op_list
+
+
 class TPUEmbeddingTable(base_layer.BaseLayer):
   """An embedding table controlled by TPUEmbeddingLayer.
 
