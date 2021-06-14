@@ -2484,6 +2484,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     ], ids)
     flat_ids = tf.reshape(ids, [-1])
     wm = self.QWeight(theta.wm)
+    # TODO(shivaniagrawal): Determine if quantizing flat_ids would be useful.
     wm = self.ToAqtWeight('emb_aqt', wm, feature_axis=-1)
     if self.apply_compression:
       embs_result = pruning_utils.PruningOp.GetEmbeddingLookupResult(
