@@ -203,7 +203,8 @@ class BaseProgram:
 
   def _InfeedLoop(self, sess):
     """Infeed loop for input generator for batched data and input data stats."""
-    tf.logging.info('_InfeedLoop start')
+    tf.logging.info(f'_InfeedLoop start {self._program_name} '
+                    f'on dataset {self.params.dataset_name}')
     try:
       for i in range(self._steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
@@ -636,8 +637,9 @@ class EvalProgram(BaseProgram):
       self._SummarizeValue(global_step, key, val)
       tf.logging.info((global_step, key, val))
       status_strs.append('%s=%s' % (key, val))
-    self.SetStatusMessage('Executing eval program at step %d %s' %
-                          (global_step, ','.join(status_strs)))
+    self.SetStatusMessage(
+        f'Executing eval program on dataset {self.params.dataset_name} '
+        f"at step {global_step}\n{','.join(status_strs)}")
     self._summary_writer.flush()
     return self._ReportVizierMetrics(global_step,
                                      self._eval_metrics.ToAverageMetrics())
@@ -708,7 +710,9 @@ class DecodeProgram(BaseProgram):
 
   def Run(self, sess):
     global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage('Executing decode program at step %d' % global_step)
+    self.SetStatusMessage(
+        f'Executing decode program on dataset {self.params.dataset_name} '
+        f'at step {global_step}')
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     dec_metrics = self._task.CreateDecoderMetrics()
@@ -847,7 +851,9 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
   def Run(self, sess):
     global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage('Executing decode program at step %d' % global_step)
+    self.SetStatusMessage(
+        f'Executing decode program on dataset {self.params.dataset_name} '
+        f'at step {global_step}')
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     decode_future = self._infeed_pool.apply_async(
