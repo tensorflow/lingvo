@@ -4,19 +4,12 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-filegroup(
-    name = "param_files",
-    srcs = glob(
-        include = [
-            "*.py",
-        ],
-    ),
-)
-
 py_library(
     name = "params",
     srcs = [
-        ":param_files",
+        "params.py",
+        "wmt14_en_de.py",
+        "wmtm16_en_de.py",
     ],
     srcs_version = "PY3",
     tags = ["keep_dep"],

@@ -6,19 +6,11 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-filegroup(
-    name = "param_files",
-    srcs = glob(
-        include = [
-            "*.py",
-        ],
-    ),
-)
-
 py_library(
     name = "params",
     srcs = [
-        ":param_files",
+        "librispeech.py",
+        "params.py",
     ],
     data = ["//lingvo/tasks/asr:wpm_files"],
     srcs_version = "PY3",

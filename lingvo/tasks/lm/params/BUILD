@@ -4,19 +4,12 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-filegroup(
-    name = "param_files",
-    srcs = glob(
-        include = [
-            "*.py",
-        ],
-    ),
-)
-
 py_library(
     name = "params",
     srcs = [
-        ":param_files",
+        "one_billion_wds.py",
+        "params.py",
+        "synthetic_packed_input.py",
     ],
     srcs_version = "PY3",
     deps = [

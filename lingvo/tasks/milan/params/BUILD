@@ -7,22 +7,17 @@ package(
 
 licenses(["notice"])
 
-filegroup(
-    name = "param_files",
-    srcs = glob(
-        ["*.py"],
-        exclude = ["*_test.py"],
-    ),
-)
-
 pytype_strict_library(
     name = "params",
     srcs = [
-        ":param_files",
+        "cxc.py",
+        "dual_encoder_recipe.py",
+        "params.py",
     ],
     srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
+        ":generic_datasets",
         # Implicit attr dependency.
         "//lingvo:compat",
         "//lingvo:model_registry",
