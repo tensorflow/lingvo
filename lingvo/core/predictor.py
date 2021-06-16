@@ -131,6 +131,9 @@ class Predictor:
       self._fetches = subgraph.fetches
       self._feeds = subgraph.feeds
     else:
+      if "fetches" not in inference_graph or "feeds" not in inference_graph:
+        raise ValueError("Graph does not contain feeds or fetches. Inference "
+                         "graph is probably empty!")
       self._fetches = inference_graph.fetches
       self._feeds = inference_graph.feeds
 
