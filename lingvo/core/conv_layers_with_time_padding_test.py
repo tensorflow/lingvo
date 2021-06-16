@@ -20,6 +20,7 @@ from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import conv_layers_with_time_padding as conv_layers
 from lingvo.core import py_utils
+from lingvo.core import stream_step_test_base
 from lingvo.core import test_utils
 from lingvo.core import tshape
 import numpy as np
@@ -631,8 +632,29 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
 
 
-class CausalDepthwiseConv2DLayerStreamStepTest(parameterized.TestCase,
-                                               test_utils.TestCase):
+class CausalDepthwiseConv2DLayerStreamStepTest(
+    stream_step_test_base.StreamStepTestBase):
+
+  @property
+  def input_rank(self):
+    return 4
+
+  def _GetParams(self, **kwargs):
+    channel = kwargs['input_dim']
+    channel_multiplier = kwargs['channel_multiplier']
+    kernel = kwargs['kernel']
+    p = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
+        name='conv',
+        filter_stride=[1, 1],
+        filter_shape=[kernel, 1, channel, channel_multiplier],
+        params_init=py_utils.WeightInit.Gaussian(0.1))
+    return p
+
+  def _FProp(self, layer, inputs, paddings):
+    return layer.FProp(layer.theta, inputs, paddings)
+
+  def _GetFPropOutput(self, fprop_out):
+    return fprop_out[0]
 
   @parameterized.named_parameters(
       ('Basic',),
@@ -641,57 +663,10 @@ class CausalDepthwiseConv2DLayerStreamStepTest(parameterized.TestCase,
       ('SkipNormS4', True, 4),
   )
   def testCommon(self, testonly_skip_norm_layers=False, stride=1):
+    kwargs = dict(input_dim=3, kernel=5, stride=stride, channel_multiplier=1)
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestHelper(testonly_skip_norm_layers, stride)
-
-  def _TestHelper(self, test_only_skip_norm_layers, stride):
-    batch_size, max_seqlen, channel = 2, 32, 3
-    kernel, channel_multiplier = 5, 1
-    params = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
-        name='conv',
-        filter_stride=[1, 1],
-        filter_shape=[kernel, 1, channel, channel_multiplier],
-        params_init=py_utils.WeightInit.Gaussian(0.1))
-
-    conv_layer = params.Instantiate()
-    init_op = tf.global_variables_initializer()
-
-    np.random.seed(None)
-    inputs = np.random.normal(
-        0.5, 1, [batch_size, max_seqlen, 1, channel]).astype(np.float32)
-    print(f'np.sum(inputs): {np.sum(inputs)}')
-    inputs = tf.convert_to_tensor(inputs)
-
-    seqlen = np.random.randint(
-        low=1, high=max_seqlen + 1, size=(batch_size,), dtype=np.int32)
-    print(repr(seqlen))
-    seqlen = tf.convert_to_tensor(seqlen)
-    input_padding = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-    base_outputs, _ = conv_layer.FProp(conv_layer.theta, inputs, input_padding)
-    base_outputs *= tf.reshape(1. - input_padding,
-                               [batch_size, max_seqlen, 1, 1])
-
-    outputs = []
-    state = conv_layer.zero_state(batch_size)
-    assert max_seqlen % stride == 0
-    for i in range(0, max_seqlen // stride):
-      output, _, state = conv_layer.StreamStep(
-          conv_layer.theta, inputs[:, stride * i:stride * (i + 1), :, :],
-          input_padding[:, stride * i:stride * (i + 1)], state)
-      outputs.append(output)
-    # [b, t, 1, c * channel_multiplier]
-    outputs = tf.concat(outputs, axis=1)
-    outputs *= tf.reshape(1. - input_padding, [batch_size, max_seqlen, 1, 1])
-
-    with self.session(use_gpu=True) as sess:
-      sess.run(init_op)
-      expected, actual = sess.run([base_outputs, outputs])
-      print(repr(expected))
-      print(repr(actual))
-      print(f'np.sum(np.abs(ref_val)): {np.sum(np.abs(expected))}')
-      print(f'np.sum(np.abs(new_val)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual)
+      self._TestStreamStepHelper(**kwargs)
 
   @parameterized.named_parameters(
       ('Basic',),
@@ -769,8 +744,27 @@ class CausalDepthwiseConv2DLayerStreamStepTest(parameterized.TestCase,
       self.assertAllClose(expected, actual)
 
 
-class CausalConv2DLayerStreamStepTest(parameterized.TestCase,
-                                      test_utils.TestCase):
+class CausalConv2DLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
+
+  @property
+  def input_rank(self):
+    return 4
+
+  def _GetParams(self, **kwargs):
+    channel = kwargs['input_dim']
+    kernel = kwargs['kernel']
+    p = conv_layers.CausalConv2DLayerWithPadding.Params().Set(
+        name='conv',
+        filter_stride=[1, 1],
+        filter_shape=[kernel, 1, channel, channel],
+        params_init=py_utils.WeightInit.Gaussian(0.1))
+    return p
+
+  def _FProp(self, layer, inputs, paddings):
+    return layer.FProp(layer.theta, inputs, paddings)
+
+  def _GetFPropOutput(self, fprop_out):
+    return fprop_out[0]
 
   @parameterized.named_parameters(
       ('Basic',),
@@ -779,57 +773,10 @@ class CausalConv2DLayerStreamStepTest(parameterized.TestCase,
       ('SkipNormS4', True, 4),
   )
   def testCommon(self, testonly_skip_norm_layers=False, stride=1):
+    kwargs = dict(input_dim=3, kernel=5, stride=stride)
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestHelper(testonly_skip_norm_layers, stride)
-
-  def _TestHelper(self, test_only_skip_norm_layers, stride):
-    batch_size, max_seqlen, channel = 2, 32, 3
-    kernel = 5
-    params = conv_layers.CausalConv2DLayerWithPadding.Params().Set(
-        name='conv',
-        filter_stride=[1, 1],
-        filter_shape=[kernel, 1, channel, channel],
-        params_init=py_utils.WeightInit.Gaussian(0.1))
-
-    conv_layer = params.Instantiate()
-    init_op = tf.global_variables_initializer()
-
-    np.random.seed(None)
-    inputs = np.random.normal(
-        0.5, 1, [batch_size, max_seqlen, 1, channel]).astype(np.float32)
-    print(f'np.sum(inputs): {np.sum(inputs)}')
-    inputs = tf.convert_to_tensor(inputs)
-
-    seqlen = np.random.randint(
-        low=1, high=max_seqlen + 1, size=(batch_size,), dtype=np.int32)
-    print(repr(seqlen))
-    seqlen = tf.convert_to_tensor(seqlen)
-    input_padding = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-    base_outputs, _ = conv_layer.FProp(conv_layer.theta, inputs, input_padding)
-    base_outputs *= tf.reshape(1. - input_padding,
-                               [batch_size, max_seqlen, 1, 1])
-
-    outputs = []
-    state = conv_layer.zero_state(batch_size)
-    assert max_seqlen % stride == 0
-    for i in range(0, max_seqlen // stride):
-      output, _, state = conv_layer.StreamStep(
-          conv_layer.theta, inputs[:, stride * i:stride * (i + 1), :, :],
-          input_padding[:, stride * i:stride * (i + 1)], state)
-      outputs.append(output)
-    # [b, t, 1, c * channel_multiplier]
-    outputs = tf.concat(outputs, axis=1)
-    outputs *= tf.reshape(1. - input_padding, [batch_size, max_seqlen, 1, 1])
-
-    with self.session(use_gpu=True) as sess:
-      sess.run(init_op)
-      expected, actual = sess.run([base_outputs, outputs])
-      print(repr(expected))
-      print(repr(actual))
-      print(f'np.sum(np.abs(ref_val)): {np.sum(np.abs(expected))}')
-      print(f'np.sum(np.abs(new_val)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual)
+      self._TestStreamStepHelper(**kwargs)
 
 
 class GlobalPoolingLayerTest(test_utils.TestCase):

@@ -25,6 +25,7 @@ from lingvo.core import base_layer
 from lingvo.core import batch_major_attention as attention
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+from lingvo.core import stream_step_test_base
 from lingvo.core import test_utils
 import numpy as np
 
@@ -1562,6 +1563,43 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [5.135725, 1.340482, 1.065773, 4.116683, 4.928454, 3.161165],
           np.sum(new_source_vecs, axis=1))
 
+
+class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
+                                      ):
+  """Tests StreamStep()."""
+
+  def _GetParams(self, **kwargs):
+    num_heads = kwargs['num_heads']
+    input_dim = kwargs['input_dim']
+    hidden_dim = kwargs['hidden_dim']
+    left_context = kwargs['left_context']
+    right_context = kwargs['right_context']
+
+    p_cls = kwargs.get('p_cls', attention.LocalSelfAttention)
+    use_3d_recurrent_state = kwargs.get('use_3d_recurrent_state', False)
+    inference_step_max_length = kwargs.get('inference_step_max_length', None)
+    minimize_state_size = kwargs.get('minimize_state_size', False)
+
+    p = p_cls.Params().Set(
+        name='local_self_atten',
+        num_heads=num_heads,
+        input_dim=input_dim,
+        hidden_dim=hidden_dim,
+        left_context=left_context,
+        right_context=right_context)
+    if p_cls == attention.LocalSelfAttentionXL:
+      p.Set(rel_pos_emb_dim=input_dim)
+    p.minimize_state_size = minimize_state_size
+    p.use_3d_recurrent_state = use_3d_recurrent_state
+    p.inference_step_max_length = inference_step_max_length
+    return p
+
+  def _FProp(self, layer, inputs, paddings):
+    return layer.FProp(layer.theta, inputs, inputs, inputs, paddings)
+
+  def _GetFPropOutput(self, fprop_out):
+    return fprop_out[0]
+
   @parameterized.named_parameters(
       ('Basic',),
       ('Basic3d', attention.LocalSelfAttention, False, 1, 1, True),
@@ -1587,245 +1625,51 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       ('SkipNormDynamicXL', attention.LocalSelfAttentionXL, True, 1, None),
       ('SkipNormS2DynamicXL', attention.LocalSelfAttentionXL, True, 2, None),
   )
-  def testStreamStep(self,
-                     p_cls=attention.LocalSelfAttention,
-                     testonly_skip_norm_layers=False,
-                     stride=1,
-                     inference_step_max_length=1,
-                     use_3d_recurrent_state=False,
-                     minimize_state_size=False):
+  def testLeftContext(self,
+                      p_cls=attention.LocalSelfAttention,
+                      testonly_skip_norm_layers=False,
+                      stride=1,
+                      inference_step_max_length=1,
+                      use_3d_recurrent_state=False,
+                      minimize_state_size=False):
+    tf.random.set_seed(2021)
+    kwargs = dict(
+        stride=stride,
+        input_dim=4,
+        num_heads=2,
+        hidden_dim=4,
+        left_context=3,
+        right_context=0,
+        p_cls=p_cls,
+        minimize_state_size=minimize_state_size,
+        use_3d_recurrent_state=use_3d_recurrent_state,
+        inference_step_max_length=inference_step_max_length)
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
-      self._TestStreamStepHelper(p_cls, stride, inference_step_max_length,
-                                 use_3d_recurrent_state, minimize_state_size)
+      self._TestStreamStepHelper(**kwargs)
 
-  def _TestStreamStepHelper(self, p_cls, stride, inference_step_max_length,
-                            use_3d_recurrent_state, minimize_state_size):
-    batch_size, max_seqlen, input_dim = 2, 32, 4
-    hidden_dim, num_heads = 4, 2
-    left_context = 3
-
-    # Prepares inputs.
-    np.random.seed(None)
-    inputs = np.random.normal(
-        0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
-    print(f'np.sum(inputs): {np.sum(inputs)}')
-    inputs = tf.convert_to_tensor(inputs)
-
-    seqlen = np.random.randint(
-        low=max_seqlen // 2,
-        high=max_seqlen + 1,
-        size=(batch_size,),
-        dtype=np.int32)
-    print(repr(seqlen))
-    seqlen = tf.convert_to_tensor(seqlen)
-    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-
-    # Builds graph.
-    p = p_cls.Params().Set(
-        name='local_self_atten',
-        num_heads=num_heads,
-        input_dim=input_dim,
-        hidden_dim=hidden_dim,
-        left_context=left_context,
-        right_context=0,
-        minimize_state_size=minimize_state_size)
-    if p_cls == attention.LocalSelfAttentionXL:
-      p.Set(rel_pos_emb_dim=input_dim)
-    p.use_3d_recurrent_state = use_3d_recurrent_state
-    p.inference_step_max_length = inference_step_max_length
-
-    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-    with self.session(use_gpu=False) as sess:
-      l = p.Instantiate()
-      init_op = tf.global_variables_initializer()
-
-      base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
-      base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
-
-      state = l.zero_state(batch_size)
-      outputs = []
-      assert max_seqlen % stride == 0
-      for i in range(max_seqlen // stride):
-        output, _, state = l.StreamStep(
-            l.theta, inputs[:, stride * i:stride * (i + 1), :],
-            paddings[:, stride * i:stride * (i + 1)], state)
-        outputs.append(output)
-      outputs = tf.concat(outputs, axis=1)
-      outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
-
-      sess.run(init_op)
-
-      expected, actual = sess.run([base_outputs, outputs])
-      print(f'expected: {repr(expected)}, {expected.shape}')
-      print(f'actual: {repr(actual)}, {actual.shape}')
-      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
-      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual)
-      self.assertEqual(
-          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
-
-  def testStreamStepRightContext(self):
+  def testRightContext(self):
     tf.random.set_seed(2021)
-    left_context, right_context = 9, 5
-    batch_size, max_seqlen, input_dim = 4, 8, 4
-    hidden_dim, num_heads = 4, 4
-    stride = 2
+    kwargs = dict(
+        stride=2,
+        input_dim=4,
+        num_heads=4,
+        hidden_dim=4,
+        left_context=9,
+        right_context=5)
+    self._TestStreamStepHelper(**kwargs)
 
-    # Prepares inputs.
-    np.random.seed(None)
-    inputs = np.random.normal(
-        0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
-    print(f'np.sum(inputs): {np.sum(inputs)}')
-    inputs = tf.convert_to_tensor(inputs)
-
-    seqlen = np.random.randint(
-        low=1, high=max_seqlen + 1, size=(batch_size,), dtype=np.int32)
-    print(f'seqlen: {seqlen}')
-
-    seqlen = tf.convert_to_tensor(seqlen)
-    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-
-    # Builds graph.
-    p = attention.LocalSelfAttention.Params().Set(
-        name='local_self_atten',
-        num_heads=num_heads,
-        input_dim=input_dim,
-        hidden_dim=hidden_dim,
-        left_context=left_context,
-        right_context=right_context)
-
-    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-    with self.session(use_gpu=False) as sess:
-      l = p.Instantiate()
-      init_op = tf.global_variables_initializer()
-
-      base_outputs, _ = l.FProp(l.theta, inputs, inputs, inputs, paddings)
-      base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
-
-      state = l.zero_state(batch_size)
-      outputs = []
-      assert max_seqlen % stride == 0
-      for i in range(max_seqlen // stride +
-                     int(math.ceil(right_context / stride))):
-        if i < max_seqlen // stride:
-          step_inputs = inputs[:, stride * i:stride * (i + 1)]
-          step_paddings = paddings[:, stride * i:stride * (i + 1)]
-        else:
-          step_inputs = tf.zeros_like(inputs[:, 0:stride])
-          step_paddings = tf.ones_like(paddings[:, 0:stride])
-        output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
-                                        state)
-        outputs.append(output)
-
-      outputs = tf.concat(outputs, axis=1)
-      outputs = outputs[:, right_context:][:, :max_seqlen]
-      outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
-
-      sess.run(init_op)
-
-      expected, actual = sess.run([base_outputs, outputs])
-      print(f'expected: {repr(expected)}, {expected.shape}')
-      print(f'actual: {repr(actual)}, {actual.shape}')
-      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
-      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual)
-      self.assertEqual(
-          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
-
-  def _BuildStackingBaseGraph(self, layers, num_layers, inputs, paddings):
-    outputs = inputs
-    for l in layers:
-      outputs, _ = l.FProp(l.theta, outputs, outputs, outputs, paddings)
-    # [b, t, -1]
-    outputs *= tf.expand_dims(1. - paddings, -1)
-    return outputs
-
-  def _BuildStackingStreamGraph(self, layers, num_layers, inputs, paddings,
-                                stride):
-    p = layers[0].params
-
-    batch_size, max_seqlen, dim = py_utils.GetShape(inputs)
-    assert max_seqlen % stride == 0
-    states = [l.zero_state(batch_size) for l in layers]
-
-    right_context = p.right_context
-    outputs = []
-    assert max_seqlen % stride == 0
-    for i in range(
-        int(math.ceil((max_seqlen + right_context * num_layers) / stride))):
-      if i < max_seqlen // stride:
-        step_inputs = inputs[:, stride * i:stride * (i + 1)]
-        step_paddings = paddings[:, stride * i:stride * (i + 1)]
-      else:
-        step_inputs = tf.zeros([batch_size, stride, dim])
-        step_paddings = tf.ones([batch_size, stride])
-
-      output, out_paddings = step_inputs, step_paddings
-      new_states = []
-      for l, state0 in zip(layers, states):
-        output, out_paddings, state1 = l.StreamStep(l.theta, output,
-                                                    out_paddings, state0)
-        new_states.append(state1)
-      states = new_states
-      outputs.append(output)
-
-    outputs = tf.concat(outputs, axis=1)
-    outputs = outputs[:, right_context * num_layers:][:, :max_seqlen]
-    outputs *= tf.expand_dims(1. - paddings, -1)
-    return outputs
-
-  def testStackingStreamStepRightContext(self):
+  def testRightContextStackingLayers(self):
     tf.random.set_seed(2021)
-    batch_size, max_seqlen, input_dim = 2, 32, 2
-    hidden_dim, num_heads = 2, 2
-    left_context, right_context = 6, 3
-    stride = 1
-    num_layers = 5
-
-    # Prepares inputs.
-    np.random.seed(None)
-    inputs = np.random.normal(
-        0.1, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
-    print(f'np.sum(inputs): {np.sum(inputs)}')
-    inputs = tf.convert_to_tensor(inputs)
-
-    seqlen = np.random.randint(
-        low=1, high=max_seqlen + 1, size=(batch_size,), dtype=np.int32)
-    print(f'seqlen: {seqlen}')
-
-    seqlen = tf.convert_to_tensor(seqlen)
-    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-
-    p = attention.LocalSelfAttention.Params().Set(
-        num_heads=num_heads,
-        input_dim=input_dim,
-        hidden_dim=hidden_dim,
-        left_context=left_context,
-        right_context=right_context)
-    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-
-    ps = [p.Copy().Set(name=f'base{i}') for i in range(num_layers)]
-    layers = [x.Instantiate() for x in ps]
-
-    base_outputs = self._BuildStackingBaseGraph(layers, num_layers, inputs,
-                                                paddings)
-
-    outputs = self._BuildStackingStreamGraph(layers, num_layers, inputs,
-                                             paddings, stride)
-
-    init_op = tf.global_variables_initializer()
-    with self.session(use_gpu=False) as sess:
-      sess.run(init_op)
-
-      expected, actual = sess.run([base_outputs, outputs])
-      print(f'expected: {repr(expected)}, {expected.shape}')
-      print(f'actual: {repr(actual)}, {actual.shape}')
-      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
-      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual, atol=5e-5)
-      self.assertEqual(
-          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
+    kwargs = dict(
+        stride=2,
+        input_dim=2,
+        num_heads=2,
+        hidden_dim=2,
+        left_context=6,
+        right_context=3,
+        num_layers=5)
+    self._TestRightContextStackingLayersHelper(**kwargs)
 
 
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):

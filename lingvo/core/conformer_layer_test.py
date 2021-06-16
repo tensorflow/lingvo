@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for conformer layers as in https://arxiv.org/abs/2005.08100."""
 # Lint as: PY3
-import math
 from unittest import mock
 from absl.testing import flagsaver
 from absl.testing import parameterized
@@ -29,6 +28,7 @@ from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import gshard_builder
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
+from lingvo.core import stream_step_test_base
 from lingvo.core import test_utils
 
 import numpy as np
@@ -41,9 +41,9 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       ('GN', 'gn'),
   )
   def testBasic(self, norm='bn'):
-    batch, seqlen, dim = 2, 16, 4
-    inputs = tf.zeros([batch, seqlen, dim])
-    paddings = tf.zeros([batch, seqlen])
+    batch_size, seqlen, dim = 2, 16, 4
+    inputs = tf.zeros([batch_size, seqlen, dim])
+    paddings = tf.zeros([batch_size, seqlen])
 
     p = conformer_layer.LConvLayer.CommonParams(input_dim=dim, kernel_size=3)
     p.name = 'lconv_layer'
@@ -62,67 +62,49 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
       out_vals = sess.run(outputs)
       print([x.shape for x in out_vals])
 
+
+class LConvLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
+
+  def _GetParams(self, **kwargs):
+    input_dim = kwargs['input_dim']
+    kernel = kwargs['kernel']
+    norm_type = kwargs['norm_type']
+
+    p = conformer_layer.LConvLayer.CommonParams(
+        input_dim=input_dim, is_causal=True, kernel_size=kernel)
+    if norm_type == 'ln':
+      p.conv_norm_layer_tpl = lingvo_layers.LayerNorm.Params()
+    else:
+      p.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+          num_groups=2, cumulative=True)
+    p.name = 'lconv'
+    return p
+
+  def _FProp(self, layer, inputs, paddings):
+    return layer.FProp(layer.theta, inputs, paddings)
+
+  def _GetFPropOutput(self, fprop_out):
+    return fprop_out[0]
+
   @parameterized.named_parameters(
       ('Basic',),
       ('BasicGN', False, 'gn'),
       ('SkipNorm', True),
   )
-  def testStreamStep(self, testonly_skip_norm_layers=False, norm_type='ln'):
+  def testLeftContext(self, testonly_skip_norm_layers=False, norm_type='ln'):
     with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
                             ), cluster_factory.SetEval(True):
       assert norm_type in ('ln', 'gn')
-      batch, max_seqlen, input_dim, kernel = 2, 8, 2, 3
-      p = conformer_layer.LConvLayer.CommonParams(
-          input_dim=input_dim, is_causal=True, kernel_size=kernel)
-      if norm_type == 'ln':
-        p.conv_norm_layer_tpl = lingvo_layers.LayerNorm.Params()
-      else:
-        p.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
-            num_groups=2, cumulative=True)
-      p.name = 'lconv'
-
-      l = p.Instantiate()
-      init_op = tf.global_variables_initializer()
-
-      np.random.seed(None)
-      inputs = np.random.normal(
-          0.1, 0.5, [batch, max_seqlen, input_dim]).astype(np.float32)
-      print(f'np.sum(inputs): {np.sum(inputs)}')
-      inputs = tf.convert_to_tensor(inputs)
-
-      seqlen = np.random.randint(
-          low=1, high=max_seqlen + 1, size=(batch,), dtype=np.int32)
-      print(repr(seqlen))
-      seqlen = tf.convert_to_tensor(seqlen)
-      paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-      base_outputs, _ = l.FProp(l.theta, inputs, paddings)
-      base_outputs *= tf.expand_dims(1. - paddings, -1)
-
-      outputs = []
-      state = l.zero_state(batch)
-      for i in range(max_seqlen):
-        output, _, state = l.StreamStep(l.theta, inputs[:, i:(i + 1), :],
-                                        paddings[:, i:(i + 1)], state)
-        outputs.append(output)
-      # [b, t, d]
-      outputs = tf.concat(outputs, axis=1)
-      outputs *= tf.expand_dims(1. - paddings, -1)
-
-      with self.session(use_gpu=False) as sess:
-        sess.run(init_op)
-        expected, actual = sess.run([base_outputs, outputs])
-        print(repr(expected))
-        print(repr(actual))
-        print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
-        print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-        self.assertAllClose(expected, actual)
+      input_dim, kernel = 2, 3
+      self._TestStreamStepHelper(
+          num_heads=2, input_dim=input_dim, kernel=kernel, norm_type=norm_type)
 
 
 class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def __init__(self, *args):
     super().__init__(*args)
-    self.batch = 2
+    self.batch_size = 2
     self.maxlen = 32
     self.dim = 4
     self.heads = 2
@@ -145,12 +127,12 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     return p
 
   def _GetInputs(self, dtype=tf.float32):
-    inputs = np.random.rand(self.batch, self.maxlen,
+    inputs = np.random.rand(self.batch_size, self.maxlen,
                             self.dim).astype(np.float32)
-    paddings = np.zeros((self.batch, self.maxlen), np.float32)
+    paddings = np.zeros((self.batch_size, self.maxlen), np.float32)
 
-    seqlen = np.random.randint(0, self.maxlen, size=(self.batch,))
-    for i in range(self.batch):
+    seqlen = np.random.randint(0, self.maxlen, size=(self.batch_size,))
+    for i in range(self.batch_size):
       for j in range(self.maxlen):
         paddings[i][j] = 1. if j >= seqlen[i] else 0.
     return tf.constant(inputs, dtype=dtype), tf.constant(paddings, dtype=dtype)
@@ -557,6 +539,60 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     else:
       self.assertEqual(p.Get(param_name), param_val)
 
+
+class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
+
+  def _GetParams(self, **kwargs):
+    input_dim = kwargs['input_dim']
+    kernel = kwargs['kernel']
+    layer_order = kwargs['layer_order']
+    num_heads = kwargs['num_heads']
+    left_context = kwargs['left_context']
+    right_context = kwargs['right_context']
+    ffn_dim = kwargs['ffn_dim']
+    # optional params.
+    norm_type = kwargs.get('norm_type', 'gn')
+    has_lconv = kwargs.get('has_lconv', 'conv2d')
+    has_fflayer_start = kwargs.get('has_fflayer_start', True)
+    num_groups = kwargs.get('num_groups', 2)
+
+    if layer_order == 'mhsa':
+      kernel = None
+    p = conformer_layer.ConformerLayer.CommonParams(
+        input_dim=input_dim,
+        is_causal=True,
+        atten_num_heads=num_heads,
+        atten_left_context=left_context,
+        atten_right_context=right_context,
+        use_relative_atten=False,
+        fflayer_hidden_dim=ffn_dim,
+        kernel_size=kernel,
+        layer_order=layer_order)
+    if norm_type == 'ln':
+      p.lconv_tpl.conv_norm_layer_tpl = lingvo_layers.LayerNorm.Params()
+    else:
+      p.lconv_tpl.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+          num_groups=num_groups, cumulative=True)
+    if not has_lconv:
+      p.lconv_tpl = None
+    elif has_lconv == 'conv2d':
+      p.lconv_tpl.depthwise_conv_tpl = (
+          conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params())
+    else:
+      assert has_lconv == 'depthwise'
+    if not has_fflayer_start:
+      p.fflayer_start_tpl = None
+
+    p.name = 'conformer'
+    return p
+
+  def _FProp(self, layer, inputs, paddings):
+    return layer.FProp(layer.theta,
+                       py_utils.NestedMap(features=inputs, paddings=paddings))
+
+  def _GetFPropOutput(self, fprop_out):
+    return fprop_out.features
+
   @parameterized.named_parameters(
       {
           'testcase_name': 'Basic',
@@ -659,202 +695,47 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
           'right_context': 2,
       },
   )
-  def testStreamStep(self,
-                     testonly_skip_norm_layers=False,
-                     norm_type='ln',
-                     num_groups=2,
-                     stride=1,
-                     layer_order='conv_before_mhsa',
-                     has_lconv='depthwise',
-                     has_fflayer_start=True,
-                     right_context=0):
+  def testCommon(self,
+                 testonly_skip_norm_layers=False,
+                 norm_type='ln',
+                 num_groups=2,
+                 stride=1,
+                 layer_order='conv_before_mhsa',
+                 has_lconv='depthwise',
+                 has_fflayer_start=True,
+                 right_context=0):
     assert norm_type in ('ln', 'gn'), norm_type
-    with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
-                            ), cluster_factory.SetEval(True):
-      batch, max_seqlen, input_dim, kernel = 2, 16, 8, 3
-      assert max_seqlen % stride == 0
+    kwargs = dict(
+        input_dim=8,
+        kernel=3,
+        layer_order=layer_order,
+        num_heads=2,
+        left_context=3,
+        right_context=right_context,
+        ffn_dim=4,
+        norm_type=norm_type,
+        has_lconv=has_lconv,
+        has_fflayer_start=has_fflayer_start,
+        num_groups=num_groups)
+    kwargs['tol'] = 1e-5
+    with cluster_factory.SetEval(True), flagsaver.flagsaver(
+        testonly_skip_norm_layers=testonly_skip_norm_layers):
+      self._TestStreamStepHelper(**kwargs)
 
-      if layer_order == 'mhsa':
-        kernel = None
-      num_heads, left_context, ffn_dim = 2, 3, 4
-      p = conformer_layer.ConformerLayer.CommonParams(
-          input_dim=input_dim,
-          is_causal=True,
-          atten_num_heads=num_heads,
-          atten_left_context=left_context,
-          atten_right_context=right_context,
-          use_relative_atten=False,
-          fflayer_hidden_dim=ffn_dim,
-          kernel_size=kernel,
-          layer_order=layer_order)
-      if norm_type == 'ln':
-        p.lconv_tpl.conv_norm_layer_tpl = lingvo_layers.LayerNorm.Params()
-      else:
-        p.lconv_tpl.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
-            num_groups=num_groups, cumulative=True)
-      if not has_lconv:
-        p.lconv_tpl = None
-      elif has_lconv == 'conv2d':
-        p.lconv_tpl.depthwise_conv_tpl = (
-            conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params())
-      else:
-        assert has_lconv == 'depthwise'
-      if not has_fflayer_start:
-        p.fflayer_start_tpl = None
-      p.name = 'conformer'
-
-      l = p.Instantiate()
-      init_op = tf.global_variables_initializer()
-
-      np.random.seed(None)
-      inputs = 5 * np.random.normal(
-          0.1, 0.5, [batch, max_seqlen, input_dim]).astype(np.float32)
-      print(f'np.sum(inputs): {np.sum(inputs)}')
-      inputs = tf.convert_to_tensor(inputs)
-
-      seqlen = np.random.randint(
-          low=1, high=max_seqlen + 1, size=(batch,), dtype=np.int32)
-      print(f'seqlen: {seqlen}')
-      seqlen = tf.convert_to_tensor(seqlen)
-      paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-
-      base_output_map = l.FProp(
-          l.theta, py_utils.NestedMap(features=inputs, paddings=paddings))
-      base_outputs = base_output_map.features
-      base_outputs *= tf.expand_dims(1. - paddings, -1)
-
-      outputs = []
-      state = l.zero_state(batch)
-      for i in range(max_seqlen // stride +
-                     int(math.ceil(right_context / stride))):
-        if i < max_seqlen // stride:
-          step_inputs = inputs[:, stride * i:stride * (i + 1)]
-          step_paddings = paddings[:, stride * i:stride * (i + 1)]
-        else:
-          step_inputs = tf.zeros_like(inputs[:, 0:stride])
-          step_paddings = tf.ones_like(paddings[:, 0:stride])
-        output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
-                                        state)
-        outputs.append(output)
-
-      outputs = tf.concat(outputs, axis=1)
-      outputs = outputs[:, right_context:][:, :max_seqlen]
-      outputs *= tf.reshape(1. - paddings, [batch, max_seqlen, 1])
-
-      with self.session(use_gpu=False) as sess:
-        sess.run(init_op)
-        expected, actual = sess.run([base_outputs, outputs])
-        print(repr(expected))
-        print(repr(actual))
-        print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
-        print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-        tol = 3.e-6 if testonly_skip_norm_layers else 2.e-5
-        self.assertAllClose(expected, actual, atol=tol, rtol=tol)
-
-  def _BuildStackingBaseGraph(self, layers, num_layers, inputs, paddings):
-    outputs = inputs
-    in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
-    for l in layers:
-      in_nmap = l.FProp(l.theta, in_nmap)
-    # [b, t, -1]
-    outputs = in_nmap.features * tf.expand_dims(1. - in_nmap.paddings, -1)
-    return outputs
-
-  def _BuildStackingStreamGraph(self, layers, num_layers, inputs, paddings,
-                                stride):
-    p = layers[0].params
-
-    batch_size, max_seqlen, dim = py_utils.GetShape(inputs)
-    assert max_seqlen % stride == 0
-    states = [l.zero_state(batch_size) for l in layers]
-
-    right_context = p.trans_atten_tpl.atten_tpl.right_context
-    outputs = []
-    assert max_seqlen % stride == 0
-    for i in range(
-        int(math.ceil((max_seqlen + right_context * num_layers) / stride))):
-      if i < max_seqlen // stride:
-        step_inputs = inputs[:, stride * i:stride * (i + 1)]
-        step_paddings = paddings[:, stride * i:stride * (i + 1)]
-      else:
-        step_inputs = tf.zeros([batch_size, stride, dim])
-        step_paddings = tf.ones([batch_size, stride])
-
-      output, out_paddings = step_inputs, step_paddings
-      new_states = []
-      for l, state0 in zip(layers, states):
-        output, out_paddings, state1 = l.StreamStep(l.theta, output,
-                                                    out_paddings, state0)
-        new_states.append(state1)
-      states = new_states
-      outputs.append(output)
-
-    outputs = tf.concat(outputs, axis=1)
-    outputs = outputs[:, right_context * num_layers:][:, :max_seqlen]
-    outputs *= tf.expand_dims(1. - paddings, -1)
-    return outputs
-
-  def testStackingStreamStepRightContext(self):
+  def testStackingLayerWithRightContext(self):
     tf.random.set_seed(2021)
-    batch_size, max_seqlen, input_dim, kernel = 2, 16, 8, 3
-    left_context, right_context = 6, 3
-    num_heads, ffn_dim = 2, 4
-    stride = 1
-    num_layers = 3
-    num_groups = 2
-
-    # Prepares inputs.
-    np.random.seed(None)
-    inputs = np.random.normal(
-        0.1, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
-    print(f'np.sum(inputs): {np.sum(inputs)}')
-    inputs = tf.convert_to_tensor(inputs)
-
-    seqlen = np.random.randint(
-        low=max_seqlen // 2,
-        high=max_seqlen + 1,
-        size=(batch_size,),
-        dtype=np.int32)
-    print(f'seqlen: {seqlen}')
-
-    seqlen = tf.convert_to_tensor(seqlen)
-    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
-
-    p = conformer_layer.ConformerLayer.CommonParams(
-        input_dim=input_dim,
-        is_causal=True,
-        layer_order='conv_before_mhsa',
-        atten_num_heads=num_heads,
-        atten_left_context=left_context,
-        atten_right_context=right_context,
-        use_relative_atten=False,
-        fflayer_hidden_dim=ffn_dim,
-        kernel_size=kernel)
-    p.lconv_tpl.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
-        num_groups=num_groups, cumulative=True)
-    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-
-    ps = [p.Copy().Set(name=f'base{i}') for i in range(num_layers)]
-    layers = [x.Instantiate() for x in ps]
-
-    base_outputs = self._BuildStackingBaseGraph(layers, num_layers, inputs,
-                                                paddings)
-
-    outputs = self._BuildStackingStreamGraph(layers, num_layers, inputs,
-                                             paddings, stride)
-
-    init_op = tf.global_variables_initializer()
-    with self.session(use_gpu=False) as sess:
-      sess.run(init_op)
-
-      expected, actual = sess.run([base_outputs, outputs])
-      print(f'expected: {repr(expected)}, {expected.shape}')
-      print(f'actual: {repr(actual)}, {actual.shape}')
-      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
-      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual, atol=2e-6, rtol=2e-6)
-      self.assertEqual(
-          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
+    kwargs = dict(
+        input_dim=8,
+        kernel=3,
+        num_heads=2,
+        left_context=6,
+        right_context=3,
+        ffn_dim=4,
+        stride=2,
+        layer_order='mhsa_before_conv',
+        num_layers=3)
+    with cluster_factory.SetEval(True):
+      self._TestRightContextStackingLayersHelper(**kwargs)
 
 
 if __name__ == '__main__':

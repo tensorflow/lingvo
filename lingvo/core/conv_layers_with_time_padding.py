@@ -543,6 +543,7 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
       paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
+      q = py_utils.GetShape(paddings)[1]
 
       concat_inputs = tf.concat(
           [state0.context, inputs * (1 - py_utils.AppendDims(paddings, 2))],
@@ -554,7 +555,7 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
           dilations=p.dilation_rate,
           data_format='NHWC',
           padding='VALID')
-      new_context = concat_inputs[:, -(p.filter_shape[0] - 1):]
+      new_context = concat_inputs[:, q:]
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 
@@ -702,6 +703,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
       paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
+      q = py_utils.GetShape(paddings)[1]
 
       concat_inputs = tf.concat(
           [state0.context, inputs * (1 - py_utils.AppendDims(paddings, 2))],
@@ -713,7 +715,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
           dilations=(1, 1),
           data_format='NHWC',
           padding='VALID')
-      new_context = concat_inputs[:, -(p.filter_shape[0] - 1):]
+      new_context = concat_inputs[:, q:]
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 

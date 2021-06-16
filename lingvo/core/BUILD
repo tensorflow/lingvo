@@ -215,15 +215,28 @@ py_test(
     timeout = "moderate",
     srcs = ["conformer_layer_test.py"],
     python_version = "PY3",
-    shard_count = 2,
+    shard_count = 4,
     srcs_version = "PY3",
     deps = [
         ":conformer_layer",
         ":py_utils",
+        ":stream_step_test_base",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
         "//lingvo/core:bn_layers",
-        "//lingvo/core:gshard_builder",
+        "//lingvo/core:test_utils",
+    ],
+)
+
+py_library(
+    name = "stream_step_test_base",
+    srcs = ["stream_step_test_base.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":py_utils",
+        # Implicit absl.testing.flagsaver dependency.
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo/core:bn_layers",
         "//lingvo/core:test_utils",
     ],
 )
@@ -309,6 +322,7 @@ py_test(
         ":batch_major_attention",
         ":hyperparams",
         ":py_utils",
+        ":stream_step_test_base",
         ":test_utils",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
@@ -956,6 +970,7 @@ lingvo_cuda_py_test(
     python_version = "PY3",
     deps = [
         ":layers_test_lib",
+        ":stream_step_test_base",
         # Implicit absl.testing.flagsaver dependency.
     ],
 )
