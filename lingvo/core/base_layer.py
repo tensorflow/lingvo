@@ -1040,6 +1040,18 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """
     self._children_list.append(child)
 
+  def _RemoveChild(self, name: str) -> None:
+    """Remove a sublayer instantiated earlier from this layer.
+
+    This method should only be called by subclasses, and is usually used to
+    remove unused layers instantiated by the super class.
+
+    Args:
+      name: the name of an existing sublayer.
+    """
+    self._children_list.remove(self._private_children[name])
+    del self._private_children[name]
+
   def _VerifyChildren(self) -> None:
     """Verify all children created by this layer are via `CreateChild(ren)`."""
     created_children = self._private_children.Flatten()
