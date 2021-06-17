@@ -502,12 +502,10 @@ class _Recurrent:
       # output, or the original state0 when on time step 0.
       state_from_acc = _Index(loop_state.acc_state,
                               tf.maximum(tf.constant(0, t.dtype), t - 1))
-      state0 = py_utils.If(
+      state0 = tf.cond(
           tf.equal(t, tf.constant(0, t.dtype)),
-          inputs=py_utils.NestedMap(
-              orig_state0=loop_state.state0, state_from_acc=state_from_acc),
-          then_branch=lambda nmap: nmap.orig_state0,
-          else_branch=lambda nmap: nmap.state_from_acc)
+          true_fn=lambda: loop_state.state0,
+          false_fn=lambda: state_from_acc)
 
       # The external inputs for time step t.
       inputs_t = _Index(loop_state.inputs, t)
