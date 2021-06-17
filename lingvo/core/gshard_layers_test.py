@@ -33,7 +33,10 @@ class CausalDepthwiseConv1DLayerTest(test_utils.TestCase):
 
   def _GetParams(self, kernel_size, dim):
     p = gshard_layers.CausalDepthwiseConv1DLayer.Params().Set(
-        name='conv', kernel_size=kernel_size, model_dims=dim)
+        name='conv',
+        kernel_size=kernel_size,
+        model_dims=dim,
+        compatible_with_mtf_ckpt=True)
     return p
 
   def _GetInputs(self, batch, seqlen, dim):
@@ -44,8 +47,10 @@ class CausalDepthwiseConv1DLayerTest(test_utils.TestCase):
   def testEqualToDepthwiseConvAutoregressive(self):
     b, seqlen, d, k = 2, 8, 4, 3
 
-    ref_l = self._GetRefParams(k, d).Instantiate()
-    exp_l = self._GetParams(k, d).Instantiate()
+    with tf.variable_scope('ref'):
+      ref_l = self._GetRefParams(k, d).Instantiate()
+    with tf.variable_scope('act'):
+      exp_l = self._GetParams(k, d).Instantiate()
 
     inputs = self._GetInputs(b, seqlen, d)
     # [b, t, d]
@@ -53,19 +58,10 @@ class CausalDepthwiseConv1DLayerTest(test_utils.TestCase):
     # [b, t, d]
     act_out = exp_l.FProp(exp_l.theta, inputs)
 
-    # k vars, each shape is [d].
-    all_ref_ws = [getattr(ref_l, f'w_{i}').vars.scale for i in range(k)]
-    # [k, d]
-    ref_w = tf.stack(all_ref_ws, axis=0)
-    # [k, 1, d, 1]
-    exp_w = exp_l.vars.w
-
     init_op = tf.global_variables_initializer()
-    copy_op = tf.assign(exp_w, ref_w[:, None, :, None])
 
     with self.session(use_gpu=False) as sess:
       sess.run(init_op)
-      sess.run(copy_op)
       expected, actual = sess.run([ref_out, act_out])
       self.assertAllClose(expected, actual)
 

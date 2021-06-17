@@ -1209,7 +1209,20 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
     p.Define(
         'state_layer', None, 'Set to Conv1DStateLayer.Params() for '
         'single-step fprop (e.g. autoregressive decoding).')
+    p.Define(
+        'compatible_with_mtf_ckpt', False,
+        'If creating vars to be compatible with Mesh Tf checkpoint, a.k.a '
+        'DepthwiseConvAutoregressive() layer. When training new models this '
+        'should be set to False.')
     return p
+
+  def _Var(self, name, weights):
+    """For compatibility with Mesh TF ckpt."""
+    return VarLayer.Params().Set(
+        name=name,
+        dtype=self.params.dtype,
+        fprop_dtype=self.params.fprop_dtype,
+        weights=weights)
 
   def __init__(self, params):
     super().__init__(params)
@@ -1217,33 +1230,59 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
     if p.state_layer is not None:
       self.CreateChild('state_layer', p.state_layer)
 
+    # If required to be compatible with Mesh TF, create VarLayers for vars.
+    if p.compatible_with_mtf_ckpt:
+      model_dims = p.model_dims
+      if not isinstance(model_dims, (list, tuple)):
+        model_dims = [p.model_dims]
+
+      def _GetScaleVar(shift_distance):
+        init_const = 0.5 if shift_distance == 0 else 0.5 / p.kernel_size
+        scale_var_weight_params = py_utils.WeightParams(
+            init=py_utils.WeightInit.Constant(init_const),
+            dtype=p.dtype,
+            shape=model_dims)
+        return self._Var(
+            name='w_%d' % shift_distance,
+            weights=[('scale', scale_var_weight_params)])
+
+      for i in range(p.kernel_size):
+        self.CreateChild(f'w_{i}', _GetScaleVar(i))
+
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    if p.compatible_with_mtf_ckpt:
+      # vars are created in sub VarLayer layers.
+      return
 
     model_dims = p.model_dims
     if not isinstance(model_dims, (list, tuple)):
       model_dims = [p.model_dims]
 
     filter_shape = [p.kernel_size, 1] + model_dims + [1]
+
+    def _GetScaleInitConst(shift_distance):
+      # The init vals are the reverse of that of DepthwiseConvAutoregressive()
+      # since here W[0] is the W[-1] of DepthwiseConvAutoregressive().
+      val = 0.5 if shift_distance == p.kernel_size - 1 else 0.5 / p.kernel_size
+      return np.full(p.model_dims, val)
+
+    # [kernel_size] + model_dims
+    init_const = np.stack([_GetScaleInitConst(i) for i in range(p.kernel_size)],
+                          axis=0)
+    init_const = np.reshape(init_const,
+                            filter_shape).astype(p.dtype.as_numpy_dtype)
+
     w_pc = py_utils.WeightParams(
         shape=filter_shape,
-        init=p.params_init,
+        init=py_utils.WeightInit.Constant(init_const),
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('w', w_pc)
 
   def _DoConv(self, theta, inputs, padding):
-    p = self.params
-
-    channel_size = p.model_dims
-    if isinstance(channel_size, (list, tuple)):
-      channel_size = np.prod(channel_size)
-    # To align with DepthwiseConvAutoregressive() a.k.a Mesh TF
-    # implementation.
-    # TODO(jamesqin): change ckpt conversion logic to remove the conversions.
-    w = tf.reshape(theta.w, [p.kernel_size, 1, channel_size, 1])
-    w = tf.reverse(theta.w, axis=[0])
+    w = self._GetWeight(theta)
 
     # [b, t, 1, d]
     output = tf.nn.depthwise_conv2d(
@@ -1255,6 +1294,20 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
         padding=padding)
     return tf.squeeze(output, axis=2)
 
+  def _GetWeight(self, theta):
+    """Returns a [p.kernel_size, 1, channel_size, 1] rank4 Tensor."""
+    p = self.params
+    channel_size = p.model_dims
+    if isinstance(channel_size, (list, tuple)):
+      channel_size = np.prod(channel_size)
+
+    if p.compatible_with_mtf_ckpt:
+      ws = [getattr(theta, f'w_{i}').scale for i in range(p.kernel_size)]
+      w = tf.reverse(tf.stack(ws, axis=0), axis=[0])
+    else:
+      w = theta.w
+    return tf.reshape(w, [p.kernel_size, 1, channel_size, 1])
+
   def FProp(self, theta, x):
     p = self.params
     x = py_utils.HasRank(x, 3)
@@ -1262,7 +1315,7 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       dilation = (1, 1)
       padding = conv_layers.ComputeExplicitPaddingForCausalConv(
-          theta.w.shape, dilation)
+          self._GetWeight(theta).shape, dilation)
 
       if p.state_layer is not None:
         x = self.state_layer.FProp(theta.state_layer, x)
