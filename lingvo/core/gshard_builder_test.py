@@ -52,14 +52,6 @@ class FakeMoEBuilder(gshard_builder.MoEBuilder):
 
 class _MoEBuilder(gshard_builder.MoEBuilder):
 
-  def _State(self, name, shape, dtype=None):
-    p = super()._State(name, shape, dtype)
-    p.use_xla_dynamic_update_slice = False
-    return p
-
-
-class _StateLayer(gshard_layers.StateLayer):
-
   @classmethod
   def Params(cls):
     p = super().Params()
@@ -168,12 +160,14 @@ class MoEBuilderTest(test_utils.TestCase):
       self.assertAllEqual(x1, x1b)
 
       # batch-major state
-      state = _StateLayer.InitState(layer, [batch_dim, 1, length_dim])
+      state = gshard_layers.StateLayer.InitState(layer,
+                                                 [batch_dim, 1, length_dim])
 
       # Increment the state one by one.
       for t in range(length_dim):
         # run with sliced input args using theta with state ('incremental mode')
-        theta_with_state = _StateLayer.UpdateTheta(layer, layer.theta, state, t)
+        theta_with_state = gshard_layers.StateLayer.UpdateTheta(
+            layer, layer.theta, state, t)
         tgt_mask = np.zeros([batch_dim, 1, length_dim])
         tgt_mask[:, :, :(t + 1)] = 1
         tgt_mask = tf.convert_to_tensor(tgt_mask.astype(np.float32))
@@ -194,7 +188,8 @@ class MoEBuilderTest(test_utils.TestCase):
         k_full2 = layer_0._fprop._named_tensors['k_full']
         v_full2 = layer_0._fprop._named_tensors['v_full']
 
-        state = _StateLayer.UpdateState(layer, theta_with_state, state)
+        state = gshard_layers.StateLayer.UpdateState(layer, theta_with_state,
+                                                     state)
 
         x2, b2, k2, v2 = sess.run([output2, bias2, k_full2, v_full2])
 

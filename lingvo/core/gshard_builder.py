@@ -218,6 +218,7 @@ class MoEBuilder(builder.Base):
              'Override Builder._LN with Builder._LNNoScale.')
     p.Define('model_dim_reshape_segments', None,
              'Size of N when reshaping model dimension M to Nm')
+    p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
     return p
 
   @classmethod
@@ -990,8 +991,8 @@ class MoEBuilder(builder.Base):
         ('->wq,wk,wv,wo', self._AttentionWeights(
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
-        ('k->k_full', self._State('k_state', state_shape)),
-        ('v->v_full', self._State('v_state', state_shape)),
+        ('k->k_full', self._AttentionState('k_state', state_shape)),
+        ('v->v_full', self._AttentionState('v_state', state_shape)),
         self._DecComputeBiasGraphEdge(),
         ('qq_bias->bias_full', self._Override('dec_self_attention_bias')),
         ('q,k_full,v_full,bias_full->o', self.Attention('attention')),
@@ -1180,10 +1181,10 @@ class MoEBuilder(builder.Base):
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('->relative_bias_weights', self._RelativeAttentionBiasWeights('wrb', collections)),
         ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
-        ('k->k_full', self._State('k_state', state_shape)),
-        ('v->v_full', self._State('v_state', state_shape)),
+        ('k->k_full', self._AttentionState('k_state', state_shape)),
+        ('v->v_full', self._AttentionState('v_state', state_shape)),
         ('segment_pos->key_segment_pos',
-         self._State('seg_pos', [None, None], dtype=tf.int32)),
+         self._AttentionState('seg_pos', [None, None], dtype=tf.int32)),
         self._DecComputeBiasGraphEdge(),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
         ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
@@ -1584,10 +1585,14 @@ class MoEBuilder(builder.Base):
         ('gating,inputs,reshaped_inputs,wi,wo->outputs,aux_loss',
          self._FeedForwardNetworksApplyGating('process_gating')))
 
-  def _State(self, name, shape, dtype=None):
-    dtype = dtype or py_utils.FPropDtype(self.params)
-    return gshard_layers.StateLayer.Params().Set(
-        name=name, shape=shape, dtype=dtype)
+  def _AttentionState(self, name, shape, dtype=None):
+    p = self.params
+    dtype = dtype or py_utils.FPropDtype(p)
+    return gshard_layers.MultiHeadAttentionStateLayer.Params().Set(
+        name=name,
+        shape=shape,
+        dtype=dtype,
+        use_xla_dynamic_update_slice=p.use_xla_dynamic_update_slice)
 
   def _Override(self, name, key=None):
     return gshard_layers.OverrideLayer.Params().Set(name=name, key=key or name)
@@ -1940,10 +1945,10 @@ class DenseBuilder(MoEBuilder):
          self._RelativeAttentionBiasWeights('wrb', collections)),
         ('vec,wq,wk,wv,wi_0,wi_1->q,k,v,h1,h2',
          self._ComputeQKVH('qkvh', hidden_dim_reshape_segments)),
-        ('k->k_full', self._State('k_state', state_shape)),
-        ('v->v_full', self._State('v_state', state_shape)),
+        ('k->k_full', self._AttentionState('k_state', state_shape)),
+        ('v->v_full', self._AttentionState('v_state', state_shape)),
         ('segment_pos->key_segment_pos',
-         self._State('seg_pos', [None, None], dtype=tf.int32)),
+         self._AttentionState('seg_pos', [None, None], dtype=tf.int32)),
         self._DecComputeBiasGraphEdge(),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
         # Decoder _AddRelativeBias always has bidirectional=False.
@@ -2536,10 +2541,10 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
          self._RelativeAttentionBiasWeights('wrb', collections)),
         ('x,%s->q,k,v,h1,h2' % wi_str,
          self._ComputeQKVH('qkvh', hidden_dim_reshape_segments)),
-        ('k->k_full', self._State('k_state', state_shape)),
-        ('v->v_full', self._State('v_state', state_shape)),
+        ('k->k_full', self._AttentionState('k_state', state_shape)),
+        ('v->v_full', self._AttentionState('v_state', state_shape)),
         ('i.segment_pos->key_segment_pos',
-         self._State('seg_pos', [None, None], dtype=tf.int32)),
+         self._AttentionState('seg_pos', [None, None], dtype=tf.int32)),
         ('i.segment_id,i.segment_pos->qq_bias', self._Fn(
             'bias', fn=_ComputeBias)),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),

@@ -684,22 +684,22 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
 
 class StateLayer(base_layer.BaseLayer):
-  """Container for recurrent state for incremental decoding.
+  """Abstract container for recurrent state for incremental decoding.
 
   It has two operation modes.
 
-  During training, it does nothing.
-  It expects that FProp(x, t) is called with t=None, and returns x unchanged.
+  During training, it does nothing. FProp(theta, x) is called with theta.t=None,
+  and returns x unchanged.
 
-  During decoding, it expects:
+  During decoding, it expects
 
-    t: an int32 scalar and
-    x: a tensor of shape `[batch, 1, ...]`.
+    theta.t:      an int32 scalar.
+    theta.state:  a tensor of shape `[batch, time ...]`.
+    x:            a tensor of shape `[batch, 1, ...]`.
 
-  It updates state `x_full[:, t, :] <- x[:, 0, :]` and returns x_full.
-  The shape of x_full is then `[batch, time, ...]`.
-
-  The state is stored as theta.state attribute.
+  Subclass must define the folllowing functions:
+    NewState(self, shape)
+    _Step(theta, x).
 
   To construct initial state, call InitState classmethod on the root layer.
   InitState() will traverse root layer children recursively, will initialize
@@ -717,7 +717,6 @@ class StateLayer(base_layer.BaseLayer):
     state1 = state0.copy()
     state1 = StateLayer.UpdateState(dec, theta0, state1)
   """
-  _use_flat_beam_search = False
 
   @classmethod
   def Params(cls):
@@ -725,106 +724,6 @@ class StateLayer(base_layer.BaseLayer):
     p.Define('shape', [None, None], 'batch, time, etc...')
     p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
     return p
-
-  def NewState(self, shape):
-    """Returns initial state.
-
-    Args:
-      shape: [batch, time] for beam_search_tpu_helper or [batch, beam, time] for
-        flat_beam_search.
-
-    Returns:
-      zero-initialized state tensor with shape [batch, time, ...] for
-        beam_search_tpu_helper or [time, batch, beam, ...] for flat_beam_search.
-
-    Raises:
-      ValueError: the length of shape is not 2 or 3.
-    """
-    p = self.params
-    fprop_dtype = p.dtype or py_utils.FPropDtype(p)
-
-    if len(shape) == 2:
-      # For use with beam_search_tpu_helper batch_major_compute=1
-      shape = tuple(shape) + tuple(p.shape[2:])
-      state = tf.zeros(shape, fprop_dtype)
-      return state
-    elif len(shape) == 3:
-      # For use with flat_beam_search
-      self._use_flat_beam_search = True
-      batch, beam, max_steps = shape
-      if p.use_xla_dynamic_update_slice:
-        state_shape = [batch, max_steps * beam]
-        # Need to remember beam_size to correctly map 't' argument of Fprop
-        # to the combined (max_steps * beam) dimension.
-        self._beam = beam
-      else:
-        state_shape = [max_steps, batch, beam]
-      state = tf.Empty(state_shape + p.shape[2:], fprop_dtype, init=True)
-      return state
-    else:
-      raise ValueError('bad shape: %r' % shape)
-
-  def FProp(self, theta, x):
-    p = self.params
-    if not hasattr(theta, 't'):
-      return x
-    t = theta.t
-    if t is None:
-      return x
-    assert hasattr(theta, 'state')
-    state = theta.state
-
-    tf.logging.info('p.name=%r', p.name)
-    tf.logging.info('state=%r', state)
-    tf.logging.info('x=%r', x)
-    tf.logging.info('t=%r', t)
-
-    with tf.name_scope(p.name):
-      if not self._use_flat_beam_search:
-        z = tf.one_hot(t, tf.shape(state)[1])
-        z = tf.expand_dims(z, 0)
-        while len(z.shape) < len(x.shape):
-          z = tf.expand_dims(z, -1)
-        y = state = (1 - z) * state + z * x
-
-      if self._use_flat_beam_search and not p.use_xla_dynamic_update_slice:
-        state_slice_size = int(state.shape[2])
-        update_slice_size = int(x.shape[1])
-        if update_slice_size == state_slice_size:
-          state = tf.InplaceUpdate(state, t, tf.cast(x, state.dtype))
-        else:
-          # With prefix decoding the first call to decoder can have
-          # sequence length (N * beam_size) with N > 1.
-          # In this special case state tensor update is implemented as multiple
-          # InplaceUpdate ops each for a slice [batch_size, beam_size].
-          div = int(update_slice_size / state_slice_size)
-          assert update_slice_size == state_slice_size * div, (
-              update_slice_size, state_slice_size)
-          for i, x_i in enumerate(tf.split(x, div, 1)):
-            state = tf.InplaceUpdate(state, t + i, tf.cast(x_i, state.dtype))
-        tf.logging.info('state*=%r', state)
-        # [T,B,L,...]
-        y = tf.cast(state, x.dtype)
-        # [T, B, L, ...] -> [B, T, L, ...]
-        perm = list(range(len(y.shape)))
-        perm[:2] = [1, 0]
-        y = tf.transpose(y, perm)
-        # [B, T, L, ...] -> [B, T*L, ...]
-        y_shape = list(y.shape)
-        y_shape[1:3] = [int(y_shape[1]) * int(y_shape[2])]
-        y = tf.reshape(y, y_shape)
-
-      if self._use_flat_beam_search and p.use_xla_dynamic_update_slice:
-        update_index = [0] * len(state.shape)
-        update_index[1] = (t * self._beam)
-        state = xla.dynamic_update_slice(state, tf.cast(x, state.dtype),
-                                         update_index)
-        y = state
-
-    theta.state = state
-
-    tf.logging.info('y=%r', y)
-    return y
 
   @classmethod
   def InitState(cls, layer, shape):
@@ -877,6 +776,140 @@ class StateLayer(base_layer.BaseLayer):
 
     Rec(layer, theta, state)
     return state
+
+  def FProp(self, theta, x):
+    t = getattr(theta, 't', None)
+    if t is None:
+      return x
+    return self._Step(theta, x)
+
+  def NewState(self, shape):
+    """Returns initial state.
+
+    Args:
+      shape: [batch, time] for beam_search_tpu_helper or [batch, beam, time] for
+        flat_beam_search.
+
+    Returns:
+      zero-initialized state tensor.
+    """
+    raise NotImplementedError
+
+  def _Step(self, theta, x):
+    """FProp in decoding mode."""
+    raise NotImplementedError
+
+
+class MultiHeadAttentionStateLayer(StateLayer):
+  r"""StateLayer specialization for multi-head attention.
+
+  During decoding, it updates state `x_full[:, t, :] <- x[:, 0, :]` and
+  returns x_full. The shape of x_full is then `[batch, time, ...]`.
+  """
+
+  _use_flat_beam_search = False
+
+  def NewState(self, shape):
+    """Returns initial state.
+
+    Args:
+      shape: [batch, time] for beam_search_tpu_helper or [batch, beam, time] for
+        flat_beam_search.
+
+    Returns:
+      zero-initialized state tensor whose shape can be:
+
+        - [batch, time, ...]: beam_search_tpu_helper.
+        - [batch, time * beam, ...]: flat_beam_search and
+          use_xla_dynamic_update_slice is True.
+        - [time, batch, beam, ...]: flat_beam_search and
+          use_xla_dynamic_update_slice is False.
+
+    Raises:
+      ValueError: the length of shape is not 2 or 3.
+    """
+    p = self.params
+    fprop_dtype = p.dtype or py_utils.FPropDtype(p)
+
+    if len(shape) == 2:
+      # For use with beam_search_tpu_helper batch_major_compute=1
+      shape = tuple(shape) + tuple(p.shape[2:])
+      state = tf.zeros(shape, fprop_dtype)
+      return state
+    elif len(shape) == 3:
+      # For use with flat_beam_search
+      self._use_flat_beam_search = True
+      batch, beam, max_steps = shape
+      if p.use_xla_dynamic_update_slice:
+        state_shape = [batch, max_steps * beam]
+        # Need to remember beam_size to correctly map 't' argument of Fprop
+        # to the combined (max_steps * beam) dimension.
+        self._beam = beam
+      else:
+        state_shape = [max_steps, batch, beam]
+      state = tf.Empty(state_shape + p.shape[2:], fprop_dtype, init=True)
+      return state
+    else:
+      raise ValueError('bad shape: %r' % shape)
+
+  def _Step(self, theta, x):
+    p = self.params
+    t = getattr(theta, 't', None)
+    assert t is not None
+    assert hasattr(theta, 'state')
+    state = theta.state
+
+    tf.logging.info('p.name=%r', p.name)
+    tf.logging.info('state=%r', state)
+    tf.logging.info('x=%r', x)
+    tf.logging.info('t=%r', t)
+
+    with tf.name_scope(p.name):
+      if not self._use_flat_beam_search:
+        z = tf.one_hot(t, tf.shape(state)[1])
+        z = tf.expand_dims(z, 0)
+        while len(z.shape) < len(x.shape):
+          z = tf.expand_dims(z, -1)
+        y = state = (1 - z) * state + z * x
+
+      if self._use_flat_beam_search and not p.use_xla_dynamic_update_slice:
+        state_slice_size = int(state.shape[2])
+        update_slice_size = int(x.shape[1])
+        if update_slice_size == state_slice_size:
+          state = tf.InplaceUpdate(state, t, tf.cast(x, state.dtype))
+        else:
+          # With prefix decoding the first call to decoder can have
+          # sequence length (N * beam_size) with N > 1.
+          # In this special case state tensor update is implemented as multiple
+          # InplaceUpdate ops each for a slice [batch_size, beam_size].
+          div = int(update_slice_size / state_slice_size)
+          assert update_slice_size == state_slice_size * div, (
+              update_slice_size, state_slice_size)
+          for i, x_i in enumerate(tf.split(x, div, 1)):
+            state = tf.InplaceUpdate(state, t + i, tf.cast(x_i, state.dtype))
+        tf.logging.info('state*=%r', state)
+        # [T,B,L,...]
+        y = tf.cast(state, x.dtype)
+        # [T, B, L, ...] -> [B, T, L, ...]
+        perm = list(range(len(y.shape)))
+        perm[:2] = [1, 0]
+        y = tf.transpose(y, perm)
+        # [B, T, L, ...] -> [B, T*L, ...]
+        y_shape = list(y.shape)
+        y_shape[1:3] = [int(y_shape[1]) * int(y_shape[2])]
+        y = tf.reshape(y, y_shape)
+
+      if self._use_flat_beam_search and p.use_xla_dynamic_update_slice:
+        update_start_index = [0] * len(state.shape)
+        update_start_index[1] = (t * self._beam)
+        state = xla.dynamic_update_slice(state, tf.cast(x, state.dtype),
+                                         update_start_index)
+        y = state
+
+    theta.state = state
+
+    tf.logging.info('y=%r', y)
+    return y
 
 
 class OverrideLayer(base_layer.BaseLayer):
