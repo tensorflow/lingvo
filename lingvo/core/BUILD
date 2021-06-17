@@ -2110,11 +2110,26 @@ py_library(
     deps = [
         ":activations",
         ":base_layer",
+        ":conv_layers_with_time_padding",
         ":gshard_utils",
         ":py_utils",
         ":recurrent",
         ":tpu_summary",
         ":var_tmp_wrappers",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_test(
+    name = "gshard_layers_test",
+    srcs = ["gshard_layers_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":gshard_builder",
+        ":gshard_layers",
+        ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

@@ -18,6 +18,7 @@
 from lingvo import compat as tf
 from lingvo.core import activations
 from lingvo.core import base_layer
+from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import gshard_utils
 from lingvo.core import py_utils
 from lingvo.core import recurrent
@@ -1103,6 +1104,53 @@ class SharedEmbeddingSoftmaxLayer(base_layer.BaseLayer):
         'loss': (avg_loss, 1.0),
         'avg_z_loss_inc': (avg_z_loss_inc, 1.0),
     }, per_example_loss
+
+
+class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
+  """Causal depthwise 1d convolution."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'filter_shape', (0, 0, 0),
+        'Filter shape. Must be a sequence of length 3. Elements are in'
+        ' the order of time, in_channel, channel_multipliers. ')
+    return p
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+    # Converts to len=4 since FProp() uses depthwise_conv2d().
+    filter_shape = list(p.filter_shape[:1]) + [1] + list(p.filter_shape[1:])
+    w_pc = py_utils.WeightParams(
+        shape=filter_shape,
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('w', w_pc)
+
+  def FProp(self, theta, x):
+    p = self.params
+    x = py_utils.HasRank(x, 3)
+    with tf.name_scope(p.name):
+      # To align with DepthwiseConvAutoregressive() a.k.a Mesh TF
+      # implementation.
+      # TODO(jamesqin): change ckpt conversion logic to remove this reverse.
+      w = tf.reverse(theta.w, axis=[0])
+
+      dilation = (1, 1)
+      padding = conv_layers_with_time_padding.ComputeExplicitPaddingForCausalConv(
+          self.vars.w.shape, dilation)
+      # [b, t, 1, d]
+      output = tf.nn.depthwise_conv2d(
+          x[:, :, None, :],
+          w,
+          strides=[1, 1, 1, 1],
+          dilations=dilation,
+          data_format='NHWC',
+          padding=padding)
+      return tf.squeeze(output, axis=2)
 
 
 def Top2GatingOnLogits(inputs,
