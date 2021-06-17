@@ -214,6 +214,10 @@ class MoEBuilder(builder.Base):
         'change the shape of conv variables. For checkpoint backward '
         'compatibility only, deprecated soon. If True, the variable shape '
         'of _LNConv will be based on model_dim_reshape_segment')
+    p.Define(
+        'use_fused_depthwise_conv_autoregressive', False,
+        'If True, use CausalDepthwiseConv for '
+        'DepthwiseConvAutoregressive.')
     p.Define('ln_no_scale', False,
              'Override Builder._LN with Builder._LNNoScale.')
     p.Define('model_dim_reshape_segments', None,
@@ -1219,6 +1223,13 @@ class MoEBuilder(builder.Base):
     return self._Fn(name,
                     lambda: tf.constant(0.0, py_utils.FPropDtype(self.params)))
 
+  def CausalDepthwiseConv(self, name, kernel_size, model_dims=None):
+    p = self.params
+    model_dims = model_dims or [p.model_dim]
+    model_dims = model_dims if p.conv_vars_reshape else [np.prod(model_dims)]
+    return gshard_layers.CausalDepthwiseConv1DLayer.Params().Set(
+        name=name, kernel_size=kernel_size, model_dims=model_dims)
+
   def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
     r"""Depthwise convolution for autoregressive models.
 
@@ -1242,13 +1253,16 @@ class MoEBuilder(builder.Base):
       A layer params that computes DepthwiseConvAutoregressive.
     """
     p = self.params
+    if p.use_fused_depthwise_conv_autoregressive:
+      return self.CausalDepthwiseConv(name, kernel_size, model_dims)
+
     var_shape = model_dims or [p.model_dim]
 
     def _GetScaleVar(shift_distance):
       init_const = 0.5 if shift_distance == 0 else 0.5 / kernel_size
       scale_var_weight_params = py_utils.WeightParams(
           init=py_utils.WeightInit.Constant(init_const),
-          dtype=self.params.dtype,
+          dtype=p.dtype,
           shape=var_shape if p.conv_vars_reshape else [np.prod(var_shape)])
       return self._Var(
           name='w_%d' % shift_distance,

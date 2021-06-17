@@ -33,11 +33,11 @@ class CausalDepthwiseConv1DLayerTest(test_utils.TestCase):
 
   def _GetParams(self, kernel_size, dim):
     p = gshard_layers.CausalDepthwiseConv1DLayer.Params().Set(
-        name='conv', filter_shape=(kernel_size, dim, 1))
+        name='conv', kernel_size=kernel_size, model_dims=dim)
     return p
 
   def _GetInputs(self, batch, seqlen, dim):
-    np.random.seed(2021)
+    np.random.seed(None)
     return tf.convert_to_tensor(
         np.random.rand(batch, seqlen, dim).astype(np.float32))
 
@@ -57,7 +57,6 @@ class CausalDepthwiseConv1DLayerTest(test_utils.TestCase):
     all_ref_ws = [getattr(ref_l, f'w_{i}').vars.scale for i in range(k)]
     # [k, d]
     ref_w = tf.stack(all_ref_ws, axis=0)
-    print(f'ref_w: {ref_w}')
     # [k, 1, d, 1]
     exp_w = exp_l.vars.w
 
@@ -68,6 +67,64 @@ class CausalDepthwiseConv1DLayerTest(test_utils.TestCase):
       sess.run(init_op)
       sess.run(copy_op)
       expected, actual = sess.run([ref_out, act_out])
+      self.assertAllClose(expected, actual)
+
+
+class Conv1DStateLayerTest(test_utils.TestCase):
+
+  def _GetParams(self, kernel_size, dim):
+    p = gshard_layers.CausalDepthwiseConv1DLayer.Params().Set(
+        name='conv', kernel_size=kernel_size, model_dims=dim)
+    p.state_layer = gshard_layers.Conv1DStateLayer.Params().Set(
+        shape=[None, None, dim])
+    return p
+
+  def _GetInputs(self, batch, seqlen, dim):
+    np.random.seed(None)
+    np_inputs = np.random.rand(batch, seqlen, dim).astype(np.float32)
+    tf.logging.info(f'np_inputs: {np_inputs}')
+    return tf.convert_to_tensor(np_inputs)
+
+  def testSingleStep(self):
+    b, seqlen, dim, k, beam = 2, 8, 2, 3, 1
+
+    inputs = self._GetInputs(b, seqlen * beam, dim)
+
+    l = self._GetParams(k, dim).Instantiate()
+    # Normal Fprop with a len=seqlen sequence.
+    outputs = l.FProp(l.theta, inputs)
+
+    state0 = gshard_layers.StateLayer.InitState(l, [b, beam, k])
+    tf.logging.info(f'state0: {repr(state0)}')
+
+    all_outputs = []
+    state_t = state0
+    theta_t = l.theta.DeepCopy()
+    for i in range(seqlen):
+      inputs_t = inputs[:, i:i + 1 * beam, :]
+
+      # Copies state to theta.
+      theta_t = gshard_layers.StateLayer.UpdateTheta(l, theta_t, state_t, t=i)
+      tf.logging.info(f'theta_{i}: {repr(theta_t)}')
+
+      # Updates theta inplace.
+      out_t = l.FProp(theta_t, inputs_t)
+
+      # Copies theta to state.
+      state_t = gshard_layers.StateLayer.UpdateState(l, theta_t, state_t)
+      tf.logging.info(f'state_{i}: {repr(state_t)}')
+
+      all_outputs.append(out_t)
+
+    # seqlen steps of FProp(), each with len=1.
+    concat_step_outputs = tf.concat(all_outputs, axis=1)
+
+    init_op = tf.global_variables_initializer()
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([outputs, concat_step_outputs])
+      print(f'expected: {expected}')
+      print(f'actual: {actual}')
       self.assertAllClose(expected, actual)
 
 

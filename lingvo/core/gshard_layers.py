@@ -18,12 +18,13 @@
 from lingvo import compat as tf
 from lingvo.core import activations
 from lingvo.core import base_layer
-from lingvo.core import conv_layers_with_time_padding
+from lingvo.core import conv_layers_with_time_padding as conv_layers
 from lingvo.core import gshard_utils
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import tpu_summary
 from lingvo.core import var_tmp_wrappers
+import numpy as np
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.tf2xla.python import xla
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
@@ -695,7 +696,7 @@ class StateLayer(base_layer.BaseLayer):
   During decoding, it expects
 
     theta.t:      an int32 scalar.
-    theta.state:  a tensor of shape `[batch, time ...]`.
+    theta.state:  a tensor of shape `[batch, max_steps, ...]`.
     x:            a tensor of shape `[batch, 1, ...]`.
 
   Subclass must define the folllowing functions:
@@ -722,13 +723,25 @@ class StateLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('shape', [None, None], 'batch, time, etc...')
+    p.Define(
+        'shape', [None, None],
+        'batch, max_steps, etc. This is used to get the shape[2:] dims '
+        '(a.k.a non-spatial dims) in InitState() and NewState(). The '
+        'first 2 dims are actually ignored.')
     p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
     return p
 
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert len(p.shape) >= 2, (
+        'p.shape is used to get the shape[2:] dims (a.k.a non-spatial dims) in '
+        'InitState() and NewState(), thus is expected to be at least rank2 ('
+        f'first 2 dims are actually ignored), but is {p.shape}.')
+
   @classmethod
   def InitState(cls, layer, shape):
-    """Returns new state with leading shape=[batch, time]."""
+    """Returns new state with leading shape=[batch, max_steps]."""
 
     def Rec(layer):  # pylint: disable=missing-docstring
       state = None
@@ -779,17 +792,21 @@ class StateLayer(base_layer.BaseLayer):
     return state
 
   def FProp(self, theta, x):
+    p = self.params
     t = getattr(theta, 't', None)
     if t is None:
       return x
-    return self._Step(theta, x)
+
+    with tf.name_scope(p.name):
+      return self._Step(theta, x)
 
   def NewState(self, shape):
     """Returns initial state.
 
     Args:
-      shape: [batch, time] for beam_search_tpu_helper or [batch, beam, time] for
-        flat_beam_search.
+      shape:
+        - [batch, max_steps] for beam_search_tpu_helper
+        - [batch, beam, max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor.
@@ -805,7 +822,7 @@ class MultiHeadAttentionStateLayer(StateLayer):
   r"""StateLayer specialization for multi-head attention.
 
   During decoding, it updates state `x_full[:, t, :] <- x[:, 0, :]` and
-  returns x_full. The shape of x_full is then `[batch, time, ...]`.
+  returns x_full. The shape of x_full is then `[batch, max_steps, ...]`.
   """
 
   _use_flat_beam_search = False
@@ -814,16 +831,17 @@ class MultiHeadAttentionStateLayer(StateLayer):
     """Returns initial state.
 
     Args:
-      shape: [batch, time] for beam_search_tpu_helper or [batch, beam, time] for
-        flat_beam_search.
+      shape:
+        - [batch, max_steps] for beam_search_tpu_helper
+        - [batch, beam, max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor whose shape can be:
 
-        - [batch, time, ...]: beam_search_tpu_helper.
-        - [batch, time * beam, ...]: flat_beam_search and
+        - [batch, max_steps, ...]: beam_search_tpu_helper.
+        - [batch, max_steps * beam, ...]: flat_beam_search and
           use_xla_dynamic_update_slice is True.
-        - [time, batch, beam, ...]: flat_beam_search and
+        - [max_steps, batch, beam, ...]: flat_beam_search and
           use_xla_dynamic_update_slice is False.
 
     Raises:
@@ -865,49 +883,116 @@ class MultiHeadAttentionStateLayer(StateLayer):
     tf.logging.info('x=%r', x)
     tf.logging.info('t=%r', t)
 
-    with tf.name_scope(p.name):
-      if not self._use_flat_beam_search:
-        z = tf.one_hot(t, tf.shape(state)[1])
-        z = tf.expand_dims(z, 0)
-        while len(z.shape) < len(x.shape):
-          z = tf.expand_dims(z, -1)
-        y = state = (1 - z) * state + z * x
+    if not self._use_flat_beam_search:
+      z = tf.one_hot(t, tf.shape(state)[1])
+      z = tf.expand_dims(z, 0)
+      while len(z.shape) < len(x.shape):
+        z = tf.expand_dims(z, -1)
+      y = state = (1 - z) * state + z * x
 
-      if self._use_flat_beam_search and not p.use_xla_dynamic_update_slice:
-        state_slice_size = int(state.shape[2])
-        update_slice_size = int(x.shape[1])
-        if update_slice_size == state_slice_size:
-          state = tf.InplaceUpdate(state, t, tf.cast(x, state.dtype))
-        else:
-          # With prefix decoding the first call to decoder can have
-          # sequence length (N * beam_size) with N > 1.
-          # In this special case state tensor update is implemented as multiple
-          # InplaceUpdate ops each for a slice [batch_size, beam_size].
-          div = int(update_slice_size / state_slice_size)
-          assert update_slice_size == state_slice_size * div, (
-              update_slice_size, state_slice_size)
-          for i, x_i in enumerate(tf.split(x, div, 1)):
-            state = tf.InplaceUpdate(state, t + i, tf.cast(x_i, state.dtype))
-        tf.logging.info('state*=%r', state)
-        # [T,B,L,...]
-        y = tf.cast(state, x.dtype)
-        # [T, B, L, ...] -> [B, T, L, ...]
-        perm = list(range(len(y.shape)))
-        perm[:2] = [1, 0]
-        y = tf.transpose(y, perm)
-        # [B, T, L, ...] -> [B, T*L, ...]
-        y_shape = list(y.shape)
-        y_shape[1:3] = [int(y_shape[1]) * int(y_shape[2])]
-        y = tf.reshape(y, y_shape)
+    if self._use_flat_beam_search and not p.use_xla_dynamic_update_slice:
+      state_slice_size = int(state.shape[2])
+      update_slice_size = int(x.shape[1])
+      if update_slice_size == state_slice_size:
+        state = tf.InplaceUpdate(state, t, tf.cast(x, state.dtype))
+      else:
+        # With prefix decoding the first call to decoder can have
+        # sequence length (N * beam_size) with N > 1.
+        # In this special case state tensor update is implemented as multiple
+        # InplaceUpdate ops each for a slice [batch_size, beam_size].
+        div = int(update_slice_size / state_slice_size)
+        assert update_slice_size == state_slice_size * div, (update_slice_size,
+                                                             state_slice_size)
+        for i, x_i in enumerate(tf.split(x, div, 1)):
+          state = tf.InplaceUpdate(state, t + i, tf.cast(x_i, state.dtype))
+      tf.logging.info('state*=%r', state)
+      # [T,B,L,...]
+      y = tf.cast(state, x.dtype)
+      # [T, B, L, ...] -> [B, T, L, ...]
+      perm = list(range(len(y.shape)))
+      perm[:2] = [1, 0]
+      y = tf.transpose(y, perm)
+      # [B, T, L, ...] -> [B, T*L, ...]
+      y_shape = list(y.shape)
+      y_shape[1:3] = [int(y_shape[1]) * int(y_shape[2])]
+      y = tf.reshape(y, y_shape)
 
-      if self._use_flat_beam_search and p.use_xla_dynamic_update_slice:
-        update_start_index = [0] * len(state.shape)
-        update_start_index[1] = (t * self._beam)
-        state = xla.dynamic_update_slice(state, tf.cast(x, state.dtype),
-                                         update_start_index)
-        y = state
+    if self._use_flat_beam_search and p.use_xla_dynamic_update_slice:
+      update_start_index = [0] * len(state.shape)
+      update_start_index[1] = (t * self._beam)
+      state = xla.dynamic_update_slice(state, tf.cast(x, state.dtype),
+                                       update_start_index)
+      y = state
 
     theta.state = state
+
+    tf.logging.info('y=%r', y)
+    return y
+
+
+class Conv1DStateLayer(StateLayer):
+  """Container for recurrent state for incremental decoding of conv1d.
+
+  At present (06/2021) it only supports flat_beam_search.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Delete('use_xla_dynamic_update_slice')
+    return p
+
+  def NewState(self, shape):
+    """Returns initial state.
+
+    Args:
+      shape: [batch, beam, kernel_size].
+
+    Returns:
+      zero-initialized state tensor of shape [batch, kernel_size * beam, ...],
+      with the underlying layout being the same as
+      [batch, kernel_size, beam, ...].
+    """
+    assert len(shape) == 3
+
+    p = self.params
+    fprop_dtype = p.dtype or py_utils.FPropDtype(p)
+
+    batch, beam, max_steps = shape
+    # Need to remember beam_size to correctly map 't' argument of Fprop
+    # to the combined (max_steps * beam) dimension.
+    self._beam = beam
+    state = tf.Empty(
+        [batch, max_steps * beam] + p.shape[2:], fprop_dtype, init=True)
+    return state
+
+  def _Step(self, theta, x):
+    """Single step decode.
+
+    Args:
+      theta: A NestedMap of layer weights.
+      x:     A Tensor of shape [batch, beam * num_steps, ...] with the
+        underlying layout being the same as [batch, num_steps, beam, ...].
+
+    Returns:
+      A Tensor of the same shape as theta.state as returned by NewState(),
+      a.k.a [batch, kernel_size * beam, ...].
+    """
+    t = getattr(theta, 't', None)
+    assert t is not None
+
+    p = self.params
+    state = theta.state
+    tf.logging.info('p.name=%r', p.name)
+    tf.logging.info('state=%r', state)
+    tf.logging.info('x=%r', x)
+    tf.logging.info('t=%r', t)
+
+    # left-shift state and append x.
+    new_state = tf.concat([state[:, self._beam:], x], axis=1)
+
+    theta.state = new_state
+    y = new_state
 
     tf.logging.info('y=%r', y)
     return y
@@ -1107,22 +1192,40 @@ class SharedEmbeddingSoftmaxLayer(base_layer.BaseLayer):
 
 
 class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
-  """Causal depthwise 1d convolution."""
+  """Causal depthwise 1d convolution.
+
+  Only supports the case where channel_multiplier is 1.
+  """
 
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define('kernel_size', 0, 'Spatial dimension filter size.')
     p.Define(
-        'filter_shape', (0, 0, 0),
-        'Filter shape. Must be a sequence of length 3. Elements are in'
-        ' the order of time, in_channel, channel_multipliers. ')
+        'model_dims', 0, 'The channel dimension. For compatibility with '
+        'gshard_builder.MoEBuilder.DepthwiseConvAutoregressive, the '
+        'layout could be multi-dimensional, the product of which is '
+        'the effective channel size.')
+    p.Define(
+        'state_layer', None, 'Set to Conv1DStateLayer.Params() for '
+        'single-step fprop (e.g. autoregressive decoding).')
     return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.state_layer is not None:
+      self.CreateChild('state_layer', p.state_layer)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
-    # Converts to len=4 since FProp() uses depthwise_conv2d().
-    filter_shape = list(p.filter_shape[:1]) + [1] + list(p.filter_shape[1:])
+
+    model_dims = p.model_dims
+    if not isinstance(model_dims, (list, tuple)):
+      model_dims = [p.model_dims]
+
+    filter_shape = [p.kernel_size, 1] + model_dims + [1]
     w_pc = py_utils.WeightParams(
         shape=filter_shape,
         init=p.params_init,
@@ -1130,27 +1233,44 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('w', w_pc)
 
+  def _DoConv(self, theta, inputs, padding):
+    p = self.params
+
+    channel_size = p.model_dims
+    if isinstance(channel_size, (list, tuple)):
+      channel_size = np.prod(channel_size)
+    # To align with DepthwiseConvAutoregressive() a.k.a Mesh TF
+    # implementation.
+    # TODO(jamesqin): change ckpt conversion logic to remove the conversions.
+    w = tf.reshape(theta.w, [p.kernel_size, 1, channel_size, 1])
+    w = tf.reverse(theta.w, axis=[0])
+
+    # [b, t, 1, d]
+    output = tf.nn.depthwise_conv2d(
+        inputs[:, :, None, :],
+        w,
+        strides=[1, 1, 1, 1],
+        dilations=(1, 1),
+        data_format='NHWC',
+        padding=padding)
+    return tf.squeeze(output, axis=2)
+
   def FProp(self, theta, x):
     p = self.params
     x = py_utils.HasRank(x, 3)
-    with tf.name_scope(p.name):
-      # To align with DepthwiseConvAutoregressive() a.k.a Mesh TF
-      # implementation.
-      # TODO(jamesqin): change ckpt conversion logic to remove this reverse.
-      w = tf.reverse(theta.w, axis=[0])
 
+    with tf.name_scope(p.name):
       dilation = (1, 1)
-      padding = conv_layers_with_time_padding.ComputeExplicitPaddingForCausalConv(
-          self.vars.w.shape, dilation)
-      # [b, t, 1, d]
-      output = tf.nn.depthwise_conv2d(
-          x[:, :, None, :],
-          w,
-          strides=[1, 1, 1, 1],
-          dilations=dilation,
-          data_format='NHWC',
-          padding=padding)
-      return tf.squeeze(output, axis=2)
+      padding = conv_layers.ComputeExplicitPaddingForCausalConv(
+          theta.w.shape, dilation)
+
+      if p.state_layer is not None:
+        x = self.state_layer.FProp(theta.state_layer, x)
+        if getattr(theta.state_layer, 't', None) is not None:
+          # Single-step, thus use 'VALID' padding.
+          padding = 'VALID'
+
+      return self._DoConv(theta, x, padding)
 
 
 def Top2GatingOnLogits(inputs,
