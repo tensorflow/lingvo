@@ -646,8 +646,11 @@ def GetTpuDeviceAssignment(job=None):
 
 
 # Whether it's running in eager mode. This is different than
-# tf.executing_eagerly() since it'll return False inside a tf.function.
+# tf.executing_eagerly(), which will return False inside a tf.function.
 _IS_EAGER_MODE = False
+# A temporary flag. Enable it when we need to use optimizers
+# that create vairables inside tf.function.
+_IS_OPTIMIZER_CACHED = False
 
 
 def SetIsEagerMode():
@@ -658,6 +661,16 @@ def SetIsEagerMode():
 
 def IsEagerMode():
   return _IS_EAGER_MODE
+
+
+def SetIsOptimizerCached():
+  global _IS_OPTIMIZER_CACHED
+  assert tf.executing_eagerly(), 'It must be in eager mode when setting this.'
+  _IS_OPTIMIZER_CACHED = True
+
+
+def IsOptimizerCached():
+  return _IS_OPTIMIZER_CACHED
 
 
 def SessionConfig(soft_placement=True,

@@ -212,6 +212,9 @@ class Learner(base_layer.BaseLayer):
     losses, var_grads, eval_metrics = self._ComputeLossesAndGradients(
         metrics, vmap)
 
+    assert py_utils.GetGlobalStep() is not None
+    lr = self.LearningRate()
+
     var_grads, stats = self.AdjustGradients(
         var_grads,
         gradient_mask=gradient_mask,
@@ -219,8 +222,6 @@ class Learner(base_layer.BaseLayer):
     eval_metrics.update(stats)
     self._var_grads = var_grads
 
-    assert py_utils.GetGlobalStep() is not None
-    lr = self.LearningRate()
     eval_metrics['learning_rate'] = (tf.convert_to_tensor(lr),
                                      tf.convert_to_tensor(1.))
 

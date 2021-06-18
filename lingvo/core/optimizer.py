@@ -71,7 +71,17 @@ class Base(base_layer.BaseLayer):
     Returns:
       The variable update op.
     """
-    optimizer = self.GetOptimizer(lr)
+    # We cache the v2 optimizer to avoid recreating variables
+    # when the training step is wrapped in tf.function.
+    if py_utils.IsOptimizerCached():
+      if self._optimizer is None:
+        self._optimizer = self.GetOptimizer(lr)
+      else:
+        # TODO(jiaweix): we need a mechanism for V1 optimizers
+        self._optimizer.learning_rate = lr
+      optimizer = self._optimizer
+    else:
+      optimizer = self.GetOptimizer(lr)
 
     def _Apply():
       if self.params.use_bf16_gradients_ar:
@@ -101,6 +111,11 @@ class Base(base_layer.BaseLayer):
       Ops to run after training loop ends.
     """
     return tf.no_op()
+
+  def __init__(self, params):
+    super().__init__(params)
+    if py_utils.IsEagerMode():
+      self._optimizer = None
 
 
 class CompositeOptimizer(Base):
@@ -359,6 +374,41 @@ class Adam(Base):
         learning_rate=lr,
         beta1=p.beta1,
         beta2=p.beta2,
+        epsilon=p.epsilon,
+        name=p.name)
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar('adam_lr', lr)
+
+
+class AdamV2(Base):
+  """Adam from TF2."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('beta1', 0.9, 'Beta1 for Adam.')
+    p.Define('beta2', 0.999, 'Beta2 for Adam.')
+    p.Define('epsilon', 1e-6, 'Epsilon for Adam.')
+    p.name = 'Adam'
+    return p
+
+  @classmethod
+  def ParamsA(cls):
+    """Convenient method for a commonly used Adam config."""
+    return cls.Params().Set(beta1=0.9, beta2=0.997, epsilon=1e-9)
+
+  @classmethod
+  def ParamsB(cls):
+    """Convenient method for another commonly used Adam config."""
+    return cls.Params().Set(beta1=0.9, beta2=0.98, epsilon=1e-9)
+
+  def GetOptimizer(self, lr):
+    p = self.params
+    return tf.keras.optimizers.Adam(
+        learning_rate=lr,
+        beta_1=p.beta1,
+        beta_2=p.beta2,
         epsilon=p.epsilon,
         name=p.name)
 
