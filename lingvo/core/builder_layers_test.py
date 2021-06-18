@@ -46,10 +46,9 @@ class FCLayerTestNestedMapFPropInput(lingvo_layers.FCLayer):
       - features: Output after applying projection (see super() for details).
       - paddings: Output (unused) paddings.
     """
-    out_nmap = in_nmap.copy()
     outputs = super().FProp(theta, in_nmap.features, in_nmap.paddings)
-    out_nmap.features = outputs
-    return out_nmap
+    in_nmap.features = outputs
+    return in_nmap
 
 
 class BuilderLayerTest(test_utils.TestCase):
@@ -602,6 +601,31 @@ class BuilderLayerTest(test_utils.TestCase):
       ref_out_vals = sess.run(ref_outputs)
       new_out_vals = sess.run(new_out_nmap.features)
       self.assertAllClose(ref_out_vals, new_out_vals)
+
+  def testRepeatLayerNestedMapBProp(self):
+    """Tests RepeatLayer having body layer with mutable NestedMap."""
+    repeat = 3
+    input_dim, output_dim = 2, 2
+    # RepeatLayer with NestedMap in `body` FProp input signature.
+    p = layers.RepeatLayer.Params().Set(
+        name='nested_map_recurrent',
+        repeat=repeat,
+        body=FCLayerTestNestedMapFPropInput.Params().Set(
+            input_dim=input_dim, output_dim=output_dim))
+    # Verify FProp output equality for both layers.
+    layer = p.Instantiate()
+    with self.session() as sess:
+      tf.random.set_seed(24332)
+      sess.run(tf.global_variables_initializer())
+      inputs = tf.random.normal(shape=[2, 5, 2])
+      paddings = tf.zeros((2, 5, 1))
+      args = py_utils.NestedMap(features=inputs, paddings=paddings)
+      outputs = layer.FPropDefaultTheta(args)
+      # Mutate 'args' before the bprop.
+      args.features = tf.transpose(args.features, [1, 0, 2])
+      args.paddings = tf.transpose(args.paddings, [1, 0, 2])
+      in_grads = tf.gradients(ys=tf.nest.flatten(outputs), xs=[inputs])
+      sess.run(in_grads)
 
   def testRepeatLayerNestedMapFPropInputRaisesErrorWithNoneInput(self):
     """Tests RepeatLayer raise ValueError with None values in input map."""

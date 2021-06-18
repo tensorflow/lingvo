@@ -184,6 +184,10 @@ class RepeatLayer(base_layer.BaseLayer):
     if self.do_eval and p.unrolled_in_eval:
       return self._unrolled_fprop(theta, *args)
 
+    # Make a copy of args for the bprop path in case 'args' are mutated between
+    # fprop and bprop.
+    saved_args = tf.nest.map_structure(lambda x: x, args)
+
     if p.per_layer_vars:
       all_iters = [theta['body_iter_%05d' % i] for i in range(p.repeat)]
       theta_stack = tf.nest.map_structure(lambda *t: tf.stack(list(t)),
@@ -213,11 +217,11 @@ class RepeatLayer(base_layer.BaseLayer):
         attr = '_s{}'.format(idx)
         arg_list.append(state[attr] if attr in state else None)
         if isinstance(arg_list[-1], py_utils.NestedMap):
-          assert isinstance(args[idx], py_utils.NestedMap)
-          py_utils.SetShapes(arg_list[-1], args[idx])
+          assert isinstance(saved_args[idx], py_utils.NestedMap)
+          py_utils.SetShapes(arg_list[-1], saved_args[idx])
         elif isinstance(arg_list[-1], tf.Tensor):
           if arg_list[-1] is not None:
-            arg_list[-1].set_shape(args[idx].shape)
+            arg_list[-1].set_shape(saved_args[idx].shape)
       return arg_list
 
     def _CellFn(unused_theta, state0, theta_i):
