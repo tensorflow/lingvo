@@ -458,6 +458,129 @@ class TPUEmbeddingAdamOptimizer(_TPUEmbeddingOptimizer):
     return load_op_list, retrieve_op_list
 
 
+class TPUEmbeddingFTRLOptimizer(_TPUEmbeddingOptimizer):
+  """FTRL optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'learning_rate_power', -0.5,
+        'A float value, must be less or equal to zero. Controls how the'
+        'learning rate decreases during training. Use zero for a fixed learning'
+        'rate.')
+    p.Define(
+        'initial_accumulator_value', 0.1, 'The starting value for'
+        'accumulators. Only zero or positive values are allowed.')
+    p.Define(
+        'l1_regularization_strength', 0.0, 'A float value, must be greater'
+        'than or equal to zero. Defaults to 0.0.')
+    p.Define(
+        'l2_regularization_strength', 0.0, 'A float value, must be greater'
+        'than or equal to zero. Defaults to 0.0.')
+    p.Define('multiply_linear_by_learning_rate', False, 'Whether multiply'
+             'linear by learning rate.')
+    p.Define(
+        'beta', 0.0, 'A float value, representing the beta value from the'
+        'FTLR paper. Defaults to 0.0.')
+    p.Define('allow_zero_accumulator', False, 'Whether allowing zero'
+             'accumulator.')
+    p.Define('clip_gradient_min', None, 'Clip gradient min value.')
+    p.Define('clip_gradient_max', None, 'Clip gradient max value.')
+    p.Define('use_gradient_accumulation', True, 'Use gradient accumulation.')
+    p.Define('initial_linear_value', 0.0, 'Initial linear value.')
+
+    return p
+
+  def CreateOptimizerParameters(self, learning_rate):
+    p = self.params
+    return tpu_embedding_lib.FtrlParameters(
+        learning_rate=learning_rate,
+        learning_rate_power=p.learning_rate_power,
+        initial_accumulator_value=p.initial_accumulator_value,
+        l1_regularization_strength=p.l1_regularization_strength,
+        l2_regularization_strength=p.l2_regularization_strength,
+        use_gradient_accumulation=p.use_gradient_accumulation,
+        clip_weight_min=p.clip_weight_min,
+        clip_weight_max=p.clip_weight_max,
+        weight_decay_factor=p.weight_decay_factor,
+        multiply_weight_decay_factor_by_learning_rate=p
+        .multiply_weight_decay_factor_by_learning_rate,
+        multiply_linear_by_learning_rate=p.multiply_linear_by_learning_rate,
+        beta=p.beta,
+        allow_zero_accumulator=p.allow_zero_accumulator,
+        clip_gradient_min=p.clip_gradient_min,
+        clip_gradient_max=p.clip_gradient_max)
+
+  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+    p = self.params
+
+    load_op_list = []
+    retrieve_op_list = []
+
+    num_tpu_hosts = tpu_embedding_table.params.num_tpu_hosts
+    table_name = tpu_embedding_table.table_name
+    slot_var_collections = [tpu_embedding_table.__class__.__name__ + '_vars']
+
+    for host_id, table_var in zip(range(num_tpu_hosts), table_vars):
+      # The slot vars should be on the same device as the table var.
+      device_name = tpu_embedding_table.GetDeviceName(host_id)
+      with tf.device(device_name), py_utils.outside_all_rewrites():
+        accumulator = py_utils.WeightParams(
+            shape=table_var.shape.as_list(),
+            init=py_utils.WeightInit.Constant(p.initial_accumulator_value),
+            dtype=p.dtype,
+            collections=slot_var_collections)
+        accumulator_name = (
+            tpu_embedding_table.GetVariableName(host_id) + '/Ftrl')
+        tpu_embedding_table.CreateVariable(
+            accumulator_name, accumulator, trainable=False)
+        accumulator_var = tpu_embedding_table.vars[accumulator_name]
+
+        linear = py_utils.WeightParams(
+            shape=table_var.shape.as_list(),
+            init=py_utils.WeightInit.Constant(p.initial_linear_value),
+            dtype=p.dtype,
+            collections=slot_var_collections)
+        linear_name = tpu_embedding_table.GetVariableName(host_id) + '/Ftrl_1'
+        tpu_embedding_table.CreateVariable(linear_name, linear, trainable=False)
+        linear_var = tpu_embedding_table.vars[linear_name]
+
+        # Only the Trainer needs these ops.
+        if py_utils.use_tpu():
+          # Remove the slot vars from the variable list to avoid them being
+          # copied to TPU.
+          _RemovePrivateVar(tpu_embedding_table, accumulator_name)
+          _RemovePrivateVar(tpu_embedding_table, linear_name)
+
+          # TPU Embedding load/retrieve ops need to be in the outer graph scope.
+          with tf.init_scope():
+            tf.logging.info('creating load and retrieve ops.')
+            load_parameters_op = (
+                tpu_embedding_lib.tpu_ops.load_tpu_embedding_ftrl_parameters(
+                    parameters=table_var,
+                    accumulators=accumulator_var,
+                    linears=linear_var,
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            load_op_list.append(load_parameters_op)
+
+            retrieved_table, retrieved_accumulator, retrieved_linear = (
+                tpu_embedding_lib.tpu_ops
+                .retrieve_tpu_embedding_ftrl_parameters(
+                    table_name=table_name,
+                    num_shards=num_tpu_hosts,
+                    shard_id=host_id))
+            retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
+                tf.assign(table_var, retrieved_table),
+                tf.assign(accumulator_var, retrieved_accumulator),
+                tf.assign(linear_var, retrieved_linear))
+            retrieve_op_list.append(retrieve_parameters_op)
+
+    return load_op_list, retrieve_op_list
+
+
 class TPUEmbeddingTable(base_layer.BaseLayer):
   """An embedding table controlled by TPUEmbeddingLayer.
 
