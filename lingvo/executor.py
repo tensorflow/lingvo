@@ -58,6 +58,9 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
 
     - ps_params_dict: High-level task name -> ProgramScheduleParams
     - train_cfg: A SingleTaskModelParams or MultiTaskModelParams.
+
+  Raises:
+    ValueError if the model params is invalid.
   """
 
   ps_params_dict = {}
@@ -71,6 +74,17 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
 
     if issubclass(train_cfg.cls, base_model.MultiTaskModel):
       multi_task_train_cfg = train_cfg
+
+      if multi_task_train_cfg.train.ema_decay > 0:
+        # Check that all subtasks use the same ema settings.
+        for task_name, task_params in (
+            multi_task_train_cfg.task_params.IterParams()):
+          for field in ['ema_decay', 'ema_decay_moving_vars']:
+            if (task_params.train.Get(field) !=
+                multi_task_train_cfg.train.Get(field)):
+              raise ValueError('Params did not match for field %s in task %s' %
+                               (field, task_name))
+
       for k, _ in multi_task_train_cfg.task_params.IterParams():
         if multi_task_train_cfg.share_model_object:
           # Create MultiTaskSubModel params from a MultiTaskModelParams.
@@ -284,7 +298,15 @@ class ExecutorTpu(base_runner.BaseRunner):
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
-          _ = py_utils.GetOrCreateGlobalStepVar()
+          global_step = py_utils.GetOrCreateGlobalStepVar()
+          if issubclass(train_cfg.cls, base_model.MultiTaskModel):
+            if train_cfg.train.ema_decay > 0:
+              # Create a global ExponentialMovingAverage object and share it
+              # across all subtasks.
+              ema = tf.train.ExponentialMovingAverage(
+                  decay=train_cfg.train.ema_decay, num_updates=global_step)
+              py_utils.SetExponentialMovingAverage(ema)
+
           for program in self._programs:
             program.BuildTpuSubgraph()
             py_utils.ClearTpuSummaryTensors()

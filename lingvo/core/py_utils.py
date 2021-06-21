@@ -673,6 +673,22 @@ def IsOptimizerCached():
   return _IS_OPTIMIZER_CACHED
 
 
+# The tf.train.ExponentialMovingAverage singleton used by all subtasks in
+# multi-task training with ExecutorTpu.
+_EXECUTOR_EMA = None
+
+
+def SetExponentialMovingAverage(ema):
+  global _EXECUTOR_EMA
+  assert ema
+  assert not _EXECUTOR_EMA, 'EMA was set before.'
+  _EXECUTOR_EMA = ema
+
+
+def ExponentialMovingAverage():
+  return _EXECUTOR_EMA
+
+
 def SessionConfig(soft_placement=True,
                   inline=True,
                   cluster_def=None,
