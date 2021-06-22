@@ -1558,6 +1558,7 @@ py_library(
     deps = [
         ":cluster_factory",
         ":py_utils",
+        ":scatter_update",
         ":sendrecv",
         ":symbolic",
         ":thread_local_utils",

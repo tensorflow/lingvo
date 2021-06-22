@@ -81,9 +81,11 @@ allow_implicit_captures flag.
 """
 
 import collections
+
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
+from lingvo.core import scatter_update
 from lingvo.core import sendrecv
 from lingvo.core import symbolic
 
@@ -139,7 +141,7 @@ def _Update(nmap_acc, nmap_x, t):
   lst = []
   for acc, (key, x) in zip(acc_lst, kx_lst):
     with tf.name_scope('update_%s' % py_utils.SanitizeScopeKey(key)):
-      lst += [tf.InplaceUpdate(acc, t, tf.expand_dims(x, 0))]
+      lst += [scatter_update.Update(acc, t, tf.expand_dims(x, 0))]
   return nmap_acc.Pack(lst)
 
 
