@@ -374,7 +374,8 @@ class TFDatasetSource(DataSource):
     self._iterator[self.host_id] = it
 
   def Initialize(self, sess):
-    self.Reset(sess)
+    if not tf.executing_eagerly():
+      self.Reset(sess)
     super().Initialize(sess)
 
   def Reset(self, sess):
