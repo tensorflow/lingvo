@@ -716,11 +716,19 @@ class DecodeProgram(BaseProgram):
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     dec_metrics = self._task.CreateDecoderMetrics()
+    dec_metrics.update({
+        'decode_secs': metrics.AverageMetric(),
+        'postprocess_secs': metrics.AverageMetric(),
+    })
     start_time = time.time()
     buffered_decode_out = []
     for i in range(self._steps_per_loop):
+      fetch_start = time.time()
       decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
+      dec_metrics['decode_secs'].Update(time.time() - fetch_start)
+      post_process_start = time.time()
       decode_out = self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
+      dec_metrics['postprocess_secs'].Update(time.time() - post_process_start)
       tf.logging.info('step: %d %f' %
                       (i, dec_metrics['num_samples_in_batch'].total_value))
       if decode_out:

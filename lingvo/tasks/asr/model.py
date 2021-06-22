@@ -158,7 +158,8 @@ class AsrModel(base_model.BaseTask):
     """
     p = self.params
     if p.frontend:
-      input_batch_src = self.frontend.FProp(theta.frontend, input_batch_src)
+      with tf.name_scope('frontend'):
+        input_batch_src = self.frontend.FProp(theta.frontend, input_batch_src)
     if initial_state:
       return self.encoder.FProp(
           theta.encoder, input_batch_src, state0=initial_state)
