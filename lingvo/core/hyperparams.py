@@ -23,8 +23,8 @@ import inspect
 import pickle
 import re
 import sys
-from typing import (Any, Dict, List, Generator, Generic, Mapping, Optional,
-                    Sequence, Tuple, Type, TypeVar, Union)
+from typing import (Any, Callable, Dict, List, Generator, Generic, Mapping,
+                    Optional, Sequence, Tuple, Type, TypeVar, Union)
 
 import dataclasses
 import lingvo.compat as tf
@@ -599,6 +599,85 @@ class Params:
 
     return _FromParam(param_pb)
 
+  def Visit(self,
+            visit_fn: Callable[[str, Any], None],
+            enter_fn: Callable[[str, Any], bool] = None,
+            exit_fn: Callable[[str, Any], None] = None):
+    """Recursively visits objects within this Params instance.
+
+    Visit can traverse Params, lists, tuples, dataclasses, and namedtuples.
+
+    By default, visit_fn is called on any object we don't know how to
+    traverse into, like an integer or a string. enter_fn and exit_fn are
+    called on objects we can traverse into, like Params, lists, tuples,
+    dataclasses, and namedtuples. We call enter_fn before traversing the object,
+    and exit_fn when we are finished.
+
+    If enter_fn returns false, that means we shouldn't traverse into the
+    object; we call visit_fn on it instead and never call exit_fn.
+
+    Keys are of the form::
+
+      key.subkey when traversing Params objects
+      key[1] when traversing lists/tuples
+      key[subkey] when traversing dataclasses or namedtuples
+
+    Lists of (key, value) tuples are treated like namedtuples.
+
+    Args:
+      visit_fn: Called on every object that can't be entered, or when enter_fn
+        returns false.
+      enter_fn: Called on every enter-able function. If this function returns
+        false, we call visit_fn and do not enter the object.
+      exit_fn: Called after an enter-able object has been traversed.
+    """
+    if not enter_fn:
+      enter_fn = lambda key, val: True
+    if not exit_fn:
+      exit_fn = lambda key, val: None
+
+    def _SubKey(key, subkey):
+      if key:
+        return f'{key}.{subkey}'
+      return subkey
+
+    def _Visit(key: str, val: Any):
+      if isinstance(val, Params):
+        if enter_fn(key, val):
+          for k, v in val.IterParams():
+            _Visit(_SubKey(key, k), v)
+          exit_fn(key, val)
+        else:
+          visit_fn(key, val)
+      elif (isinstance(val, (list, tuple)) and all(
+          isinstance(x, tuple) and len(x) == 2 and isinstance(x[0], str) and
+          isinstance(x[1], Params) for x in val)):
+        if enter_fn(key, val):
+          for subtuple in val:
+            _Visit(f'{key}[{subtuple[0]}]', subtuple[1])
+          exit_fn(key, val)
+      elif isinstance(val, list) or isinstance(val, range) or isinstance(
+          val, tuple):
+        if enter_fn(key, val):
+          for i, v in enumerate(val):
+            _Visit(f'{key}[{i}]', v)
+          exit_fn(key, val)
+        else:
+          visit_fn(key, val)
+      elif dataclasses.is_dataclass(val) or _IsNamedTuple(val):
+        items = val.__dict__.items() if dataclasses.is_dataclass(
+            val) else val._asdict().items()
+        if enter_fn(key, val):
+          for k, v in items:
+            _Visit(f'{key}[{k}]', v)
+          exit_fn(key, val)
+        else:
+          visit_fn(key, val)
+      else:
+        visit_fn(key, val)
+
+    _Visit('', self)
+
   def ToText(
       self,
       include_types: bool = False) -> Union[str, Tuple[str, Dict[str, str]]]:
@@ -621,9 +700,6 @@ class Params:
     Returns:
       The encoded text or (encoded text, types dict) if include_types is True.
     """
-    kv = {}
-    types = {}
-
     def GetRepr(val: Any) -> str:
       """Get the representation of `val`."""
       if isinstance(val, Params):
@@ -648,33 +724,37 @@ class Params:
         return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__
       return type(val).__name__
 
-    def Traverse(p: Any, prefix: str, kv: Mapping[str, Any]) -> None:
-      """Traverses 'p' and inserts key-value pairs to 'kv'."""
+    def _Enter(key: str, p: Any) -> bool:
+      del key
       if isinstance(p, Params):
-        for key, val in p.IterParams():
-          Traverse(val, prefix + '.' + key, kv)
+        return True
       elif (isinstance(p, (list, tuple)) and
             all(isinstance(x, Params) for x in p)):
-        for i, val in enumerate(p):
-          Traverse(val, '%s[%d]' % (prefix, i), kv)
+        return True
       # TODO(jiahuiyu): Create single-direction DebugString for
       # List[(str, Params)] pattern and remove redundancies.
       elif (isinstance(p, (list, tuple)) and all(
           isinstance(x, tuple) and len(x) == 2 and isinstance(x[0], str) and
           isinstance(x[1], Params) for x in p)):
-        for val in p:
-          Traverse(val[1], '%s[%s]' % (prefix, val[0]), kv)
-      elif isinstance(p, str):
-        kv[prefix] = _QuoteString(p)
-        types[prefix[1:]] = 'str'
-      else:
-        kv[prefix] = str(GetRepr(p))
-        types[prefix[1:]] = type(p).__name__
+        return True
+      return False
 
-    Traverse(self, '', kv)
+    kv = {}
+    types = {}
+
+    def _Visit(key: str, p: Any) -> None:
+      """Inserts key-value pairs to 'kv'."""
+      if isinstance(p, str):
+        kv[key] = _QuoteString(p)
+        types[key] = 'str'
+      else:
+        kv[key] = str(GetRepr(p))
+        types[key] = type(p).__name__
+
+    self.Visit(_Visit, enter_fn=_Enter)
     ret = ''
     for (k, v) in sorted(kv.items()):
-      ret += k[1:] + ' : ' + v + '\n'
+      ret += k + ' : ' + v + '\n'
 
     return (ret, types) if include_types else ret
 

@@ -301,6 +301,70 @@ class ParamsTest(test_utils.TestCase):
       number_of_params += 1
     self.assertEqual(number_of_params, len(keys))
 
+  def testVisitEnterFalse(self):
+    # Visit is also tested as a sub-component of ToText.
+    inner = hyperparams.Params()
+    inner.Define('a', 2, '')
+
+    outer = hyperparams.Params()
+    outer.Define('inner', None, '')
+    outer.inner = inner
+
+    enter_keys = []
+    visit_keys = []
+    exit_keys = []
+
+    def Enter(key, value):
+      del value
+      enter_keys.append(key)
+      return False
+
+    def Visit(key, value):
+      del value
+      visit_keys.append(key)
+
+    def Exit(key, value):
+      del value
+      exit_keys.append(key)
+
+    outer.Visit(Visit, enter_fn=Enter, exit_fn=Exit)
+
+    self.assertListEqual(enter_keys, [''])
+    self.assertListEqual(visit_keys, [''])
+    self.assertListEqual(exit_keys, [])
+
+  def testVisitEnterTrue(self):
+    # Visit is also tested as a sub-component of ToText.
+    inner = hyperparams.Params()
+    inner.Define('a', 2, '')
+
+    outer = hyperparams.Params()
+    outer.Define('inner', None, '')
+    outer.inner = inner
+
+    enter_keys = []
+    visit_keys = []
+    exit_keys = []
+
+    def Enter(key, value):
+      del value
+      enter_keys.append(key)
+      return True
+
+    def Visit(key, value):
+      del value
+      visit_keys.append(key)
+
+    def Exit(key, value):
+      del value
+      exit_keys.append(key)
+
+    outer.Visit(Visit, enter_fn=Enter, exit_fn=Exit)
+
+    self.assertListEqual(enter_keys, ['', 'inner'])
+    self.assertListEqual(visit_keys, ['inner.a'])
+    self.assertListEqual(exit_keys, ['inner', ''])
+
   def testToText(self):
     outer = hyperparams.Params()
     outer.Define('foo', 1, '')
@@ -535,12 +599,12 @@ escaping_single : 'In "quotes"'
     p.Define('cheesecake', None, 'dessert')
     p.Define('tofu', None, 'not dessert')
 
-    def set_param():
+    def SetParam():
       p.actuvation = 1
 
     self.assertRaisesWithLiteralMatch(
         AttributeError, 'actuvation (did you mean: [activation,activations])',
-        set_param)
+        SetParam)
 
   def testFromToTextTypes(self):
     p = hyperparams.Params()
@@ -645,14 +709,14 @@ escaping_single : 'In "quotes"'
 
   def testDiffSequenceParams(self):
 
-    def loss_params():
+    def LossParams():
       p = hyperparams.Params()
       p.Define('beta', 0.5, '')
       return p
 
     a = hyperparams.Params()
     a.Define('a', 42, '')
-    a.Define('losses', [(1.0, loss_params())], '')
+    a.Define('losses', [(1.0, LossParams())], '')
     b = a.Copy()
     c = a.Copy()
 
@@ -660,7 +724,7 @@ escaping_single : 'In "quotes"'
     self.assertEqual(a.TextDiff(b), '')
 
     # Change just the weight.
-    b.losses[0] = (0.25, loss_params())
+    b.losses[0] = (0.25, LossParams())
     self.assertEqual(
         a.TextDiff(b), '> losses[0][0]: 1.0\n'
         '< losses[0][0]: 0.25\n')
