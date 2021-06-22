@@ -505,6 +505,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       args = tf.nest.map_structure(_ToMicrobatches, args)
 
     if p.shard_stages_1d:
+      # Replicate the input as the layer is only sharded on the stage dimension.
+      args = tf.nest.map_structure(
+          lambda x: xla_sharding.replicate(x, use_sharding_op=True), args)
 
       def _SplitStages(x):
         return gshard_utils.Split(x, 0, p.num_stages, use_sharding_op=True)
@@ -673,6 +676,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         with tf.control_dependencies(_RestoreVarsToFinal()):
           output_tensors = tf.nest.map_structure(tf.identity, output_tensors)
 
+      if p.shard_stages_1d:
+        output_tensors = tf.nest.map_structure(
+            lambda x: xla_sharding.replicate(x, use_sharding_op=True),
+            output_tensors)
       if p.num_microbatches is not None:
 
         def _ToBatches(x):
