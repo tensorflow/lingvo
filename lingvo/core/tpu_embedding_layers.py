@@ -20,6 +20,7 @@ from typing import Dict
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import schedule
 
@@ -897,9 +898,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.tables
     assert p.batch_size > 0
     assert p.name
-    assert p.optimizer
-    assert p.learning_rate
-    assert p.lr_schedule
     assert p.gradient_multiplier_schedule
     assert p.partition_strategy in ['mod', 'div']
 
@@ -914,22 +912,22 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       num_tpu_hosts = p.tables[0].num_tpu_hosts
       assert all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
 
-    # Stop if a table has no optimizer parameters and the layer also has no
-    # optimizer parameters
-    table_optimizer_missing = any(
-        table_params.optimizer is None for table_params in p.tables)
-    if not p.optimizer and table_optimizer_missing:
-      raise ValueError(
-          'A table is missing optimizer parameters, and no layer-level '
-          'optimizer parameters were given.')
-    elif table_optimizer_missing:
-      for table_params in p.tables:
-        if table_params.optimizer is None:
-          table_params.optimizer = p.optimizer.Copy()
-        if table_params.learning_rate is None:
-          table_params.learning_rate = p.learning_rate
-        if table_params.lr_schedule is None:
-          table_params.lr_schedule = p.lr_schedule.Copy()
+    # Stop if a table has no optimizer related parameters and the layer also
+    # has no optimizer parameters
+    for param_name in ['optimizer', 'learning_rate', 'lr_schedule']:
+      table_param_missing = any(
+          table_params.Get(param_name) is None for table_params in p.tables)
+      if not p.Get(param_name) and table_param_missing:
+        raise ValueError(
+            f'A table is missing {param_name} parameters, and no layer-level '
+            f'{param_name} parameters were given.')
+      elif table_param_missing:
+        for table_params in p.tables:
+          if table_params.Get(param_name) is None:
+            value = p.Get(param_name)
+            if isinstance(value, hyperparams.Params):
+              value = value.Copy()  # Avoid mutating the original copy.
+            table_params.Set(**{param_name: value})
 
     self.CreateChildren('tables', p.tables)
     self.CreateChild('gradient_multiplier_schedule',

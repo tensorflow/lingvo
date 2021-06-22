@@ -2419,6 +2419,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":hyperparams",
         ":py_utils",
         ":schedule",
         "//lingvo:compat",
