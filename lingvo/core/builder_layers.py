@@ -124,14 +124,14 @@ class RepeatLayer(base_layer.BaseLayer):
     p.Define('repeat', 1,
              'Repeat layers specified in \'body\' this many times.')
     p.Define('per_layer_vars', False, 'Use separate variables for each layer')
-    p.Define('unrolled_in_eval', False, 'Unroll the layers during eval.')
+    p.Define('unroll', 'never', 'Unroll the layers: never, eval_only, always.')
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    assert p.name
     assert p.repeat > 0
+    assert p.unroll in ('never', 'eval_only', 'always')
     if p.per_layer_vars:
       for i in range(p.repeat):
         self.CreateChild('body_iter_%05d' % i, p.body)
@@ -181,7 +181,7 @@ class RepeatLayer(base_layer.BaseLayer):
   def FProp(self, theta, *args):
     p = self.params
 
-    if self.do_eval and p.unrolled_in_eval:
+    if p.unroll == 'always' or (self.do_eval and p.unroll == 'eval_only'):
       return self._unrolled_fprop(theta, *args)
 
     # Make a copy of args for the bprop path in case 'args' are mutated between

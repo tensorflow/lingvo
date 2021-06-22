@@ -273,13 +273,14 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     p.Define(
         'per_stage_vars', False,
         'Use separate variables for each stage. With single_stage_body only.')
-    p.Define('unrolled_in_eval', True, 'Unroll the stages during eval.')
+    p.Define('unroll', 'eval_only',
+             'Unroll the layers: never, eval_only, always.')
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    assert p.name
+    assert p.unroll in ('never', 'eval_only', 'always')
     if p.stage_parallel_body is not None:
       assert p.single_stage_body is None
       assert not p.per_stage_vars
@@ -457,7 +458,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   def FProp(self, theta, *args):
     p = self.params
 
-    if self.do_eval and p.unrolled_in_eval:
+    if p.unroll == 'always' or (self.do_eval and p.unroll == 'eval_only'):
       return self._unrolled_fprop(theta, *args)
 
     if p.per_stage_vars:

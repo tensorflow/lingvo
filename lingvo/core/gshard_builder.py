@@ -505,7 +505,7 @@ class MoEBuilder(builder.Base):
         body=body,
         repeat=repeat,
         per_layer_vars=per_layer_vars,
-        unrolled_in_eval=True)
+        unroll='eval_only')
 
   def ShardablePipeline(self, name, body, stages):
     """Wrapper to call gshard_layers.LayerwiseShardablePipelinedLayer."""

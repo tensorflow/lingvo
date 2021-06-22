@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for builder_layers."""
 
+from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import builder_layers as layers
 from lingvo.core import cluster_factory
@@ -51,7 +52,7 @@ class FCLayerTestNestedMapFPropInput(lingvo_layers.FCLayer):
     return in_nmap
 
 
-class BuilderLayerTest(test_utils.TestCase):
+class BuilderLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testCreateNestedMapLayerFProp(self):
     with self.session():
@@ -540,16 +541,17 @@ class BuilderLayerTest(test_utils.TestCase):
       np_val = np.maximum(0, np.dot(np_val, w.body.w[i]) + w.body.b[i])
     self.assertAllClose(np_val, y_val)
 
-  def testRepeatLayerUnrolledEval(self):
+  @parameterized.parameters(('eval_only', True), ('always', False))
+  def testRepeatLayerUnrolledEval(self, unroll, do_eval):
     repeat = 100
     with cluster_factory.ForTestingWorker(
-        mode='sync', job='trainer_client', do_eval=True):
+        mode='sync', job='trainer_client', do_eval=do_eval):
       tf.random.set_seed(24332)
       p = layers.RepeatLayer.Params().Set(
           name='recurrent',
           repeat=repeat,
           per_layer_vars=True,
-          unrolled_in_eval=True,
+          unroll=unroll,
           body=lingvo_layers.FCLayer.Params().Set(input_dim=2, output_dim=2))
       l = p.Instantiate()
       x = tf.random.normal(shape=[2, 2])
