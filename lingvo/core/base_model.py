@@ -258,8 +258,8 @@ class BaseTask(base_layer.BaseLayer):
         'If None, defaults to the actual value of `p.eval.samples_per_summary` '
         'for backwards compatibility.')
     ep.Define(
-        'load_checkpoint_from', None,
-        'If not None, specifies a location for the checkpoint that '
+        'load_checkpoint_from', '',
+        'If not Empty, specifies a location for the checkpoint that '
         'should be used for eval. One example format is a '
         'checkpoint directory of a training run.')
     ep.Define('start_eval_after', 0,
