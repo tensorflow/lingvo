@@ -2576,7 +2576,7 @@ class LocalSelfAttentionXL(LocalSelfAttention):
     r = self.params.right_context
     f = l + r
     # term a and c
-    term_ac = tf.einsum('BUTNH,BUSNH->BNUTS', query + theta.u, key)
+    term_ac = tf.einsum('BUWNH,BUCNH->BNUWC', query + theta.u, key)
 
     # term b and d
     # [1, F]
@@ -2621,7 +2621,7 @@ class LocalSelfAttentionXL(LocalSelfAttention):
   def _StreamAttenLogits(self, theta, query, key):
     # BQNH -> BUQNH
     query = tf.expand_dims(query, 1)
-    # BTNH -> BUSNH
+    # BTNH -> BUTNH
     key = tf.expand_dims(key, 1)
     logits = self._AttenLogits(theta, query, key)
     # BNUQT -> BNQT -> BQNT
