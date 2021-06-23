@@ -331,13 +331,232 @@ def causal_denominator(qs, ks):
   return result, grad
 
 
+_ITER_CHUNK_SIZE = 64
+
+
+def chunked_causal_numerator_func(qs, ks, vs):
+  """Forward pass of not-normalized FAVOR causal attention using chunks.
+
+  Args:
+    qs: query_prime tensor of the shape [L,B,H,M].
+    ks: key_prime tensor of the shape [L,B,H,M].
+    vs: value tensor of the shape [L,B,H,D].
+
+  Returns:
+    Not-normalized FAVOR causal attention A_{masked}V.
+    Last prefix sum state.
+  """
+
+  result = []
+  sums = tf.zeros_like(ks[0])[..., None] * tf.zeros_like(vs[0])[..., None, :]
+
+  for start_index in range(0, qs.shape[0], _ITER_CHUNK_SIZE):
+
+    end_index = min(qs.shape[0], start_index + _ITER_CHUNK_SIZE)
+
+    chunk = tf.einsum("sijk,sijl->sijkl", ks[start_index:end_index],
+                      vs[start_index:end_index])
+    chunk = sums[None, ...] + tf.math.cumsum(chunk, axis=0)
+    sums = chunk[-1]
+
+    result_elem = tf.einsum("sijkl,sijk->sijl", chunk,
+                            qs[start_index:end_index])
+    result.append(result_elem)
+
+  result = tf.concat(result, axis=0)
+
+  return result, sums
+
+
+def chunked_causal_numerator_grad(qs, ks, vs, sums, res_grad):
+  """Backward pass of not-normalized FAVOR causal attention using chunks.
+
+  Args:
+    qs: query_prime tensor of the shape [L,B,H,M].
+    ks: key_prime tensor of the shape [L,B,H,M].
+    vs: value tensor of the shape [L,B,H,D].
+    sums: last prefix sum state.
+    res_grad: gradient of the last prefix sum state.
+
+  Returns:
+    Gradient of qs.
+    Gradient of ks.
+    Gradient of vs.
+  """
+
+  grads = tf.zeros_like(ks[0])[..., None] * tf.zeros_like(vs[0])[..., None, :]
+  gr_sums = sums
+
+  q_grads = []
+  k_grads = []
+  v_grads = []
+
+  res_grad = res_grad[::-1]
+  qs_rev = qs[::-1]
+  ks_rev = ks[::-1]
+  vs_rev = vs[::-1]
+
+  for start_index in range(0, qs_rev.shape[0], _ITER_CHUNK_SIZE):
+
+    end_index = min(qs_rev.shape[0], start_index + _ITER_CHUNK_SIZE)
+
+    chunk = tf.einsum("sijk,sijl->sijkl", ks_rev[start_index:end_index - 1],
+                      vs_rev[start_index:end_index - 1])
+    chunk = tf.concat([tf.zeros_like(gr_sums[None, ...]), chunk], axis=0)
+    chunk = gr_sums[None, ...] - tf.math.cumsum(chunk, axis=0)
+    gr_sums = chunk[-1] - tf.einsum("ijk,ijl->ijkl", ks_rev[end_index - 1],
+                                    vs_rev[end_index - 1])
+
+    q_grads.append(
+        tf.einsum("sijkl,sijl->sijk", chunk, res_grad[start_index:end_index]))
+
+    grad_chunk = tf.einsum("sijk,sijl->sijkl", qs_rev[start_index:end_index],
+                           res_grad[start_index:end_index])
+    grad_chunk = grads[None, ...] + tf.math.cumsum(grad_chunk, axis=0)
+    grads = grad_chunk[-1]
+
+    k_grads.append(
+        tf.einsum("sijkl,sijl->sijk", grad_chunk,
+                  vs_rev[start_index:end_index]))
+    v_grads.append(
+        tf.einsum("sijkl,sijk->sijl", grad_chunk,
+                  ks_rev[start_index:end_index]))
+
+  q_grads = tf.concat(q_grads, axis=0)[::-1]
+  k_grads = tf.concat(k_grads, axis=0)[::-1]
+  v_grads = tf.concat(v_grads, axis=0)[::-1]
+
+  return q_grads, k_grads, v_grads
+
+
+@tf.custom_gradient  # ALLOW_CUSTOM_GRADIENT
+def chunked_causal_numerator(qs, ks, vs):
+  """Computes not-normalized FAVOR causal attention A_{masked}V using chunks.
+
+  Args:
+    qs: query_prime tensor of the shape [L,B,H,M].
+    ks: key_prime tensor of the shape [L,B,H,M].
+    vs: value tensor of the shape [L,B,H,D].
+
+  Returns:
+    Not-normalized FAVOR causal attention A_{masked}V.
+  """
+  result, sums = chunked_causal_numerator_func(qs, ks, vs)
+
+  def grad(res_grad):
+    return chunked_causal_numerator_grad(qs, ks, vs, sums, res_grad)
+
+  return result, grad
+
+
+def chunked_causal_denominator_func(qs, ks):
+  """Forward pass of FAVOR normalizer in causal attention using chunks.
+
+  Args:
+    qs: query_prime tensor of the shape [L,B,H,M].
+    ks: key_prime tensor of the shape [L,B,H,M].
+
+  Returns:
+    Not-normalized FAVOR causal attention A_{masked}V.
+    Last prefix sum state.
+  """
+
+  result = []
+  sums = tf.zeros_like(ks[0])
+
+  for start_index in range(0, qs.shape[0], _ITER_CHUNK_SIZE):
+
+    end_index = min(qs.shape[0], start_index + _ITER_CHUNK_SIZE)
+
+    chunk = ks[start_index:end_index]
+    chunk = sums[None, ...] + tf.math.cumsum(chunk, axis=0)
+    sums = chunk[-1]
+
+    result_elem = tf.reduce_sum(qs[start_index:end_index] * chunk, axis=3)
+    result.append(result_elem)
+
+  result = tf.concat(result, axis=0)
+
+  return result, sums
+
+
+def chunked_causal_denominator_grad(qs, ks, sums, res_grad):
+  """Backward pass of FAVOR normalizer in causal attention using chunks.
+
+  Args:
+    qs: query_prime tensor of the shape [L,B,H,M].
+    ks: key_prime tensor of the shape [L,B,H,M].
+    sums: last prefix sum state.
+    res_grad: last prefix sum state's grad.
+
+  Returns:
+    Gradients of qs.
+    Gradients of ks.
+  """
+
+  k_grad = tf.zeros_like(ks[0])
+  gr_sums = sums
+
+  q_grads = []
+  k_grads = []
+
+  res_grad = res_grad[::-1]
+  qs_rev = qs[::-1]
+  ks_rev = ks[::-1]
+
+  for start_index in range(0, qs_rev.shape[0], _ITER_CHUNK_SIZE):
+
+    end_index = min(qs_rev.shape[0], start_index + _ITER_CHUNK_SIZE)
+
+    chunk = ks_rev[start_index:end_index - 1]
+    chunk = tf.concat([tf.zeros_like(gr_sums[None, ...]), chunk], axis=0)
+    chunk = gr_sums[None, ...] - tf.math.cumsum(chunk, axis=0)
+    gr_sums = chunk[-1] - ks_rev[end_index - 1]
+
+    q_grads.append(
+        tf.einsum("sijk,sij->sijk", chunk, res_grad[start_index:end_index]))
+
+    k_grad_chunk = tf.einsum("sijk,sij->sijk", qs_rev[start_index:end_index],
+                             res_grad[start_index:end_index])
+    k_grad_chunk = k_grad[None, ...] + tf.math.cumsum(k_grad_chunk, axis=0)
+    k_grad = k_grad_chunk[-1]
+
+    k_grads.append(k_grad_chunk)
+
+  q_grads = tf.concat(q_grads, axis=0)[::-1]
+  k_grads = tf.concat(k_grads, axis=0)[::-1]
+
+  return q_grads, k_grads
+
+
+@tf.custom_gradient  # ALLOW_CUSTOM_GRADIENT
+def chunked_causal_denominator(qs, ks):
+  """Computes FAVOR normalizer in causal attention using chunks.
+
+  Args:
+    qs: query_prime tensor of the shape [L,B,H,M].
+    ks: key_prime tensor of the shape [L,B,H,M].
+
+  Returns:
+    FAVOR normalizer in causal attention.
+  """
+
+  result, sums = chunked_causal_denominator_func(qs, ks)
+
+  def grad(res_grad):
+    return chunked_causal_denominator_grad(qs, ks, sums, res_grad)
+
+  return result, grad
+
+
 def favor_attention(query,
                     key,
                     value,
                     paddings,
                     kernel_transformation,
                     causal,
-                    projection_matrix=None):
+                    projection_matrix=None,
+                    use_chunked_causal=False):
   """Computes FAVOR normalized attention.
 
   Args:
@@ -348,6 +567,7 @@ def favor_attention(query,
     kernel_transformation: transformation used to get finite kernel features.
     causal: whether attention is causal or not.
     projection_matrix: projection matrix to be used.
+    use_chunked_causal: whether to use (faster) chunked causal attention.
 
   Returns:
     FAVOR normalized attention.
@@ -366,8 +586,12 @@ def favor_attention(query,
   # bidirectional variant.
 
   if causal:
-    av_attention = causal_numerator(query_prime, key_prime, value)
-    attention_normalizer = causal_denominator(query_prime, key_prime)
+    if use_chunked_causal:
+      av_attention = chunked_causal_numerator(query_prime, key_prime, value)
+      attention_normalizer = chunked_causal_denominator(query_prime, key_prime)
+    else:
+      av_attention = causal_numerator(query_prime, key_prime, value)
+      attention_normalizer = causal_denominator(query_prime, key_prime)
   else:
     av_attention = noncausal_numerator(query_prime, key_prime, value)
     attention_normalizer = noncausal_denominator(query_prime, key_prime)
