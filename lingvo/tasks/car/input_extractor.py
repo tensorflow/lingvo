@@ -202,6 +202,48 @@ class FieldsExtractor(base_layer.BaseLayer):
     return py_utils.NestedMap(result)
 
 
+class NestedFieldsExtractor(FieldsExtractor):
+  """A nested fields extractor that contains multiple sub fields extractors."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'extractors', py_utils.NestedMap(),
+        'A map of sub-extractors that are FieldsExtractor. The output of '
+        'the sub-extractors will be nested under corresponding key.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.CreateChildren('extractors', self.params.extractors)
+
+  def FeatureMap(self):
+    feature_map = {}
+    for extractor in self.extractors.Flatten():
+      feature_map.update(extractor.FeatureMap())
+    return feature_map
+
+  def _Extract(self, features):
+    ret = py_utils.NestedMap()
+    for key, extractor in self.extractors.FlattenItems():
+      ret.Set(key, extractor.Extract(features))
+    return ret
+
+  def Shape(self):
+    shapes = py_utils.NestedMap()
+    for key, extractor in self.extractors.FlattenItems():
+      shapes.Set(key, extractor.Shape())
+    return shapes
+
+  def DType(self):
+    dtypes = py_utils.NestedMap()
+    print(self.extractors.FlattenItems())
+    for key, extractor in self.extractors.FlattenItems():
+      dtypes.Set(key, extractor.DType())
+    return dtypes
+
+
 class LaserExtractor(FieldsExtractor):
   """Interface for extracting laser data.
 

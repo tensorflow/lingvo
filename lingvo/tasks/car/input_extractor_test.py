@@ -24,7 +24,69 @@ from lingvo.tasks.car import input_extractor
 from lingvo.tasks.car import input_preprocessors
 
 
+# Create two extractors that differ in their key names.
+class E1(input_extractor.FieldsExtractor):
+  KEY_NAME = 'foo'
+
+  def FeatureMap(self):
+    return {self.KEY_NAME: tf.io.FixedLenFeature([], dtype=tf.float32)}
+
+  def DType(self):
+    return py_utils.NestedMap({self.KEY_NAME: tf.float32})
+
+  def Shape(self):
+    return py_utils.NestedMap({self.KEY_NAME: tf.TensorShape([])})
+
+  def _Extract(self, features):
+    return py_utils.NestedMap({'foo': features['foo']})
+
+
+class E2(E1):
+  KEY_NAME = 'bar'
+
+  def _Extract(self, features):
+    return py_utils.NestedMap({'bar': features['bar']})
+
+
+class E1WithCheck(E1):
+
+  def _Extract(self, features):
+    if 'bar' in features:
+      raise ValueError('This should never happen')
+    return super()._Extract(features)
+
+
+class E2WithCheck(E2):
+
+  def _Extract(self, features):
+    if 'foo' in features:
+      raise ValueError('This should never happen')
+    return super()._Extract(features)
+
+
 class InputExtractorTest(test_utils.TestCase):
+
+  def testNestedFieldsExtractor(self):
+    p = input_extractor.NestedFieldsExtractor.Params()
+    p.extractors.e1 = E1.Params()
+    p.extractors.e2 = E2.Params()
+    p.extractors.sub = py_utils.NestedMap(e1=E1.Params(), e2=E2.Params())
+
+    extractors = hyperparams.Params()
+    extractors.Define('nested_ext', p, '')
+
+    example = tf.train.Example()
+    example.features.feature['foo'].float_list.value[:] = [1.]
+    example.features.feature['bar'].float_list.value[:] = [2.]
+    serialized = example.SerializeToString()
+
+    ext = base_extractor._BaseExtractor.Params(extractors).Instantiate()
+    _, result = ext.ExtractUsingExtractors(serialized)
+
+    self.assertEqual(self.evaluate(result.nested_ext.e1.foo), 1.)
+    self.assertEqual(self.evaluate(result.nested_ext.e2.bar), 2.)
+    self.assertEqual(self.evaluate(result.nested_ext.sub.e1.foo), 1.)
+    self.assertEqual(self.evaluate(result.nested_ext.sub.e2.bar), 2.)
 
   def testBaseExtractorRaisesErrorWithMissingPreprocessorKeys(self):
     extractors = hyperparams.Params()
@@ -44,39 +106,13 @@ class InputExtractorTest(test_utils.TestCase):
 
   def testExtractorFilters(self):
 
-    # Create two extractors that differ in their key names.
-    class E1(input_extractor.FieldsExtractor):
-      KEY_NAME = 'foo'
-
-      def FeatureMap(self):
-        return {self.KEY_NAME: tf.io.FixedLenFeature([], dtype=tf.float32)}
-
-      def DType(self):
-        return py_utils.NestedMap({self.KEY_NAME: tf.float32})
-
-      def Shape(self):
-        return py_utils.NestedMap({self.KEY_NAME: tf.TensorShape([])})
-
-      def _Extract(self, features):
-        if 'bar' in features:
-          raise ValueError('This should never happen')
-        return py_utils.NestedMap({'foo': features['foo']})
-
-    class E2(E1):
-      KEY_NAME = 'bar'
-
-      def _Extract(self, features):
-        if 'foo' in features:
-          raise ValueError('This should never happen')
-        return py_utils.NestedMap({'bar': features['bar']})
-
     class ExampleExtractor(base_extractor._BaseExtractor):
 
       @classmethod
       def Params(cls):
         extractors = hyperparams.Params()
-        extractors.Define('e1', E1.Params(), '')
-        extractors.Define('e2', E2.Params(), '')
+        extractors.Define('e1', E1WithCheck.Params(), '')
+        extractors.Define('e2', E2WithCheck.Params(), '')
         return super().Params(extractors).Set(
             preprocessors=hyperparams.Params(), preprocessors_order=[])
 
@@ -94,8 +130,8 @@ class InputExtractorTest(test_utils.TestCase):
 
     # Test that a missing key in input for ProcessFeatures() raises
     # the right extra exception info.
-    with self.assertRaisesRegexp(RuntimeError,
-                                 'Failed running extractor E1: KeyError'):
+    with self.assertRaisesRegexp(
+        RuntimeError, 'Failed running extractor E1WithCheck: KeyError'):
       _, result = extractor.ProcessFeatures({})
 
   def testBatchedInterface(self):
