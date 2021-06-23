@@ -539,6 +539,7 @@ py_library(
         ":base_layer",
         ":computation_cost",
         ":py_utils",
+        ":quant_utils",
         ":recurrent",
         ":summary_utils",
         ":symbolic",

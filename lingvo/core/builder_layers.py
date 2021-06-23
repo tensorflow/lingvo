@@ -20,6 +20,7 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import computation_cost
 from lingvo.core import py_utils
+from lingvo.core import quant_utils
 from lingvo.core import recurrent
 from lingvo.core import summary_utils
 from lingvo.core import symbolic
@@ -1100,7 +1101,7 @@ class MapLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(flops=flops, out_shapes=tuple(rets))
 
 
-class LinearLayer(base_layer.BaseLayer):
+class LinearLayer(quant_utils.QuantizableLayer):
   """Linear layer."""
 
   @classmethod
@@ -1109,6 +1110,13 @@ class LinearLayer(base_layer.BaseLayer):
     p.Define('input_dims', 0, 'Depth of the input.')
     p.Define('output_dims', 0, 'Depth of the output.')
     return p
+
+  def __init__(self, params):
+    """Constructs a LinearLayer object."""
+    super().__init__(params)
+    p = self.params
+    self.CreateAqtWeight(
+        'aqt_w', shape=[p.input_dims, p.output_dims], feature_axis=-1)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -1144,8 +1152,11 @@ class LinearLayer(base_layer.BaseLayer):
           tf.reduce_prod(tf.cast(tf.shape(inputs)[:-1], tf.int64)) *
           tf.cast(symbolic.ToTensor(p.input_dims * p.output_dims), tf.int64) *
           2)
-      return py_utils.ProjectLastDim(inputs, theta.w, p.input_dims,
-                                     p.output_dims)
+      inputs, w = self.ToAqtInputs(
+          'aqt_w', act=inputs, weight=theta.w, w_feature_axis=-1)
+      ret = py_utils.ProjectLastDim(inputs, w, p.input_dims, p.output_dims)
+      ret = self.FromAqtMatmul('aqt_w', ret)
+      return ret
 
   @classmethod
   def FPropMeta(cls, p, inputs):
