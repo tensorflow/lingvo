@@ -649,6 +649,22 @@ class Params:
           exit_fn(key, val)
         else:
           visit_fn(key, val)
+      elif isinstance(val, dict):
+        if enter_fn(key, val):
+          for k, v in val.items():
+            _Visit(_SubKey(key, k), v)
+          exit_fn(key, val)
+        else:
+          visit_fn(key, val)
+      elif dataclasses.is_dataclass(val) or _IsNamedTuple(val):
+        items = val.__dict__.items() if dataclasses.is_dataclass(
+            val) else val._asdict().items()
+        if enter_fn(key, val):
+          for k, v in items:
+            _Visit(f'{key}[{k}]', v)
+          exit_fn(key, val)
+        else:
+          visit_fn(key, val)
       elif (isinstance(val, (list, tuple)) and all(
           isinstance(x, tuple) and len(x) == 2 and isinstance(x[0], str) and
           isinstance(x[1], Params) for x in val)):
@@ -661,15 +677,6 @@ class Params:
         if enter_fn(key, val):
           for i, v in enumerate(val):
             _Visit(f'{key}[{i}]', v)
-          exit_fn(key, val)
-        else:
-          visit_fn(key, val)
-      elif dataclasses.is_dataclass(val) or _IsNamedTuple(val):
-        items = val.__dict__.items() if dataclasses.is_dataclass(
-            val) else val._asdict().items()
-        if enter_fn(key, val):
-          for k, v in items:
-            _Visit(f'{key}[{k}]', v)
           exit_fn(key, val)
         else:
           visit_fn(key, val)

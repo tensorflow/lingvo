@@ -8,3 +8,10 @@ filegroup(
         "lenet_test_model*",
     ]),
 )
+
+filegroup(
+    name = "en_1k_spm",
+    data = glob([
+        "en-1k.spm.*",
+    ]),
+)

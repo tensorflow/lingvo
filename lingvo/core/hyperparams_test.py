@@ -365,6 +365,27 @@ class ParamsTest(test_utils.TestCase):
     self.assertListEqual(visit_keys, ['inner.a'])
     self.assertListEqual(exit_keys, ['inner', ''])
 
+  def testVisitTypes(self):
+    outer = hyperparams.Params()
+    outer.Define('inner', None, '')
+
+    Hey = collections.namedtuple('Hey', ['x'])
+
+    outer.inner = {'a': [('b', ('c', 'd', Hey('e')))]}
+
+    visit_keys = []
+
+    def Visit(key, value):
+      del value
+      visit_keys.append(key)
+
+    outer.Visit(Visit)
+
+    self.assertListEqual(visit_keys, [
+        'inner.a[0][0]', 'inner.a[0][1][0]', 'inner.a[0][1][1]',
+        'inner.a[0][1][2][x]'
+    ])
+
   def testToText(self):
     outer = hyperparams.Params()
     outer.Define('foo', 1, '')

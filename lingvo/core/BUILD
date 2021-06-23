@@ -1823,6 +1823,23 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
+        # Implicit tensorflow_text dependency.
+    ],
+)
+
+py_test(
+    name = "tokenizers_test",
+    srcs = ["tokenizers_test.py"],
+    data = [
+        "//lingvo/core/testdata:en_1k_spm",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":test_helper",
+        ":test_utils",
+        ":tokenizers",
+        "//lingvo:compat",
     ],
 )
 

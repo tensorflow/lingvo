@@ -209,6 +209,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       - bucket_id: A scalar int Tensor.
       - extracted: a NestedMap of Tensors extracted.
     """
+
     def ExtractAndFilter(e):
       with tf.name_scope(e.params.name):
         with tf.name_scope('extract'):
@@ -231,7 +232,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
           except Exception as exc:  # pylint:disable=bare-except
             # Raise exception with context about which extractor failed.
             raise RuntimeError('Failed running extractor '
-                               f'{e.params.name}. '
+                               f'{e.params.name}: {repr(exc)}. '
                                'See above exception for details.') from exc
         with tf.name_scope('filter'):
           if self.params.batched_input:

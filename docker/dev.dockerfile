@@ -81,6 +81,7 @@ ARG pip_dependencies=' \
       jupyter \
       jupyter_http_over_ws \
       matplotlib \
+      mock \
       model-pruning-google-research \
       numpy \
       oauth2client \

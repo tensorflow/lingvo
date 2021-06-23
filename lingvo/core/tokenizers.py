@@ -21,6 +21,8 @@ from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import wpm_encoder
 
+import tensorflow_text as tf_text
+
 
 class BaseTokenizer(base_layer.BaseLayer):
   """The base tokenizer."""
@@ -381,3 +383,84 @@ class WpmTokenizer(BaseTokenizer):
         dtype=tf.string,
         parallel_iterations=30,
         back_prop=False)
+
+
+class SentencePieceTokenizer(BaseTokenizer):
+  """SentencePiece tokenizer (https://arxiv.org/abs/1808.06226).
+
+  This is a wrapper around tf_text.SentencepieceTokenizer.
+
+  NOTE: this tokenizer is incompatible with GenericInput (b/191804185).
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.vocab_size = 0
+    p.Define('spm_model', None, 'The file path to the SentencePiece model.')
+    p.Define('alpha', 1.0,
+             'Inverse temparature for probability rescaling used in eval.')
+    p.Define(
+        'nbest_size', 0, 'A integer parameter for sampling.'
+        ' nbest_size = {0,1}: No sampling is performed.'
+        ' nbest_size > 1: samples from the nbest_size results.'
+        ' nbest_size < 0: assuming that nbest_size is infinite and samples from'
+        '                 all hypothesis (lattice) using'
+        '                 forward-filtering-and-backward-sampling algorithm.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    with tf.io.gfile.GFile(p.spm_model, 'rb') as f:
+      self._tokenizer = tf_text.SentencepieceTokenizer(
+          model=f.read(),
+          out_type=tf.int32,
+          nbest_size=p.nbest_size,
+          alpha=p.alpha,
+          reverse=False,
+          add_bos=False,
+          add_eos=p.append_eos)
+
+  def StringsToIds(self,
+                   strs,
+                   max_length,
+                   external_append_eos=None,
+                   languages=None):
+    """Tokenize strs into vocab ids."""
+    if (external_append_eos is not None and
+        external_append_eos != self.params.append_eos):
+      raise ValueError('external_append_eos is not supported.')
+    if languages is not None:
+      raise ValueError('languages is not supported.')
+    return self._StringsToIdsImpl(
+        strs, max_length, append_eos=None, languages=None)
+
+  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
+    del append_eos
+    del languages
+
+    p = self.params
+
+    tokens = self._tokenizer.tokenize(strs)
+    num_tokens = tokens.row_lengths(-1)
+
+    if max_length is None:
+      labels = tokens.to_tensor(default_value=p.target_unk_id)
+    else:
+      output_shape = tf.convert_to_tensor(strs).shape + [max_length]
+      labels = tokens.to_tensor(
+          default_value=p.target_unk_id, shape=output_shape)
+      num_tokens = tf.minimum(num_tokens, max_length)
+
+    ids = tf.concat([
+        tf.expand_dims(tf.ones_like(strs, tf.int32) * p.target_sos_id, -1),
+        labels[:, :-1]
+    ], -1)
+
+    paddings = 1.0 - tf.sequence_mask(
+        num_tokens, maxlen=max_length, dtype=tf.float32)
+    return ids, labels, paddings
+
+  def IdsToStrings(self, ids, lens, languages=None):
+    return self._tokenizer.detokenize(tf.RaggedTensor.from_tensor(ids, lens))
