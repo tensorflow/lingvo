@@ -411,11 +411,12 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       expected_topk_ids = [[1, 3, 2, 0, 0, 0], [1, 3, 13, 2, 0, 0],
                            [3, 4, 5, 2, 0, 0], [3, 4, 0, 2, 0, 0]]
       expected_topk_lens = [3, 4, 4, 4]
-      expected_topk_scores = [[-3.073836, -5.474799], [-0.415888, -23.295631]]
+      expected_topk_scores = [[-3.073836, -5.474799], [-0.415888, -24]]
 
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
-    self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
+    self.assertAllClose(
+        expected_topk_scores, actual_decode.topk_scores, rtol=1e-1)
 
   def testBeamSearchDecodeUseZeroAttenState(self, dtype=tf.float32):
     with self.session(use_gpu=True), self.SetEval(True):

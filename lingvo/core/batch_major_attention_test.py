@@ -2111,7 +2111,7 @@ class TransformerAttentionLayerTest(test_utils.TestCase,
     inputs = tf.convert_to_tensor(inputs)
 
     seqlen = np.random.randint(
-        low=0, high=stride + 1, size=(batch_size,), dtype=np.int32)
+        low=4, high=stride + 1, size=(batch_size,), dtype=np.int32)
     seqlen = tf.convert_to_tensor(seqlen)
     paddings = py_utils.PaddingsFromLengths(seqlen, stride)
 
