@@ -792,8 +792,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     embs = py_utils.HasShape(embs, [batch_size], ndims=1)
     return tf.expand_dims(embs, 1)
 
-  def CpuEmbLookup(self, ids_map: Dict[str, tf.Tensor],
-                   partition_strategy: str) -> Dict[str, tf.Tensor]:
+  def CpuEmbLookup(self, ids_map: py_utils.NestedMap,
+                   partition_strategy: str) -> py_utils.NestedMap:
     """CPU evaluation embedding lookup for dense tensors.
 
     Args:
@@ -807,14 +807,13 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       For non-sequence embeddings: [batch, 1, embedding_dim]
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
     """
-    rets = py_utils.NestedMap()
     if self.max_sequence_length > 0:
       # "Sequence embedding", no combiner case
-      for k, ids in ids_map.items():
-        rets[k] = self._SequenceEmbLookup(ids, partition_strategy)
+      return ids_map.Transform(
+          lambda ids: self._SequenceEmbLookup(ids, partition_strategy))
     else:
       # Non-"Sequence embedding", combiner case
-      for k, ids in ids_map.items():
+      def _Lookup(ids):
         # Dense to sparse.
         dense_shape = tf.shape(ids, out_type=tf.int64)
         sample_indices = tf.cast(tf.where(tf.not_equal(ids, -1)), tf.int64)
@@ -824,11 +823,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
             indices=sample_indices,
             values=embedding_indices,
             dense_shape=dense_shape)
-        rets[k] = self._CombinerEmbLookup(sparse_ids, partition_strategy)
-    return rets
+        return self._CombinerEmbLookup(sparse_ids, partition_strategy)
 
-  def CpuEmbLookupSparse(self, ids_map: Dict[str, tf.SparseTensor],
-                         partition_strategy: str) -> Dict[str, tf.Tensor]:
+      return ids_map.Transform(_Lookup)
+
+  def CpuEmbLookupSparse(self, ids_map: py_utils.NestedMap,
+                         partition_strategy: str) -> py_utils.NestedMap:
     """CPU evaluation embedding lookup for SparseTensors.
 
     Args:
@@ -840,18 +840,18 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       For non-sequence embeddings: [batch, 1, embedding_dim]
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
     """
-    rets = py_utils.NestedMap()
     if self.max_sequence_length > 0:
       # "Sequence embedding", no combiner case
-      for k, ids in ids_map.items():
+      def _Lookup(ids):
         # Sparse to dense.
         dense_ids = tf.sparse.to_dense(ids, default_value=-1)
-        rets[k] = self._SequenceEmbLookup(dense_ids, partition_strategy)
+        return self._SequenceEmbLookup(dense_ids, partition_strategy)
+
+      return ids_map.Transform(_Lookup)
     else:
       # Non-"Sequence embedding", combiner case
-      for k, ids in ids_map.items():
-        rets[k] = self._CombinerEmbLookup(ids, partition_strategy)
-    return rets
+      return ids_map.Transform(
+          lambda ids: self._CombinerEmbLookup(ids, partition_strategy))
 
 
 class TPUEmbeddingLayer(base_layer.BaseLayer):
@@ -938,6 +938,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     feature_names = set()
     for table in self.tables:
       for feature in table.input_keys:
+        if feature in feature_names:
+          raise ValueError(f'Input key {feature} was used by multiple tables.')
         feature_names.add(feature)
     self._tpu_embedding_collection.feature_names = feature_names
 
@@ -1042,14 +1044,14 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     ret = py_utils.NestedMap()
     for k, v in activations.items():
       if k in self._sequence_features:
-        ret[k] = v
+        ret.Set(k, v)
       else:
         # Non-sequence embeddings, we fill the "time" dimension with 1.
         with tf.name_scope(k):
-          ret[k] = tf.expand_dims(v, axis=[1])
+          ret.Set(k, tf.expand_dims(v, axis=[1]))
     return ret
 
-  def EmbLookup(self, ids_map: Dict[str, tf.Tensor]) -> Dict[str, tf.Tensor]:
+  def EmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Looks up embedding vectors for each entry in dense Tensor ids_map.
 
     Since the TPUEmbedding is monolothic, and consulted once per
@@ -1068,19 +1070,20 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
     """
+    assert isinstance(ids_map, py_utils.NestedMap)
     p = self.params
 
     def CpuEmbLookup(ids_map):
       """CPU evaluation embedding lookup."""
       rets = py_utils.NestedMap()
       for table in self.tables:
-        table_id_map = {}
+        table_id_map = py_utils.NestedMap()
         for key in table.input_keys:
-          table_id_map[key] = ids_map[key]
+          table_id_map.Set(key, ids_map.GetItem(key))
         table_rets = table.CpuEmbLookup(table_id_map, p.partition_strategy)
         # Merge table_rets with rets
-        for k, v in table_rets.items():
-          rets[k] = v
+        for key in table.input_keys:
+          rets.Set(key, table_rets.GetItem(key))
       return rets
 
     if _ShouldUseTpu(p):
@@ -1088,8 +1091,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     else:
       return CpuEmbLookup(ids_map)
 
-  def EmbLookupSparse(
-      self, ids_map: Dict[str, tf.SparseTensor]) -> Dict[str, tf.Tensor]:
+  def EmbLookupSparse(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Looks up embedding vectors for each entry in SparseTensor ids_map.
 
     Since the TPUEmbedding is monolothic, and consulted once per
@@ -1106,20 +1108,21 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
     """
+    assert isinstance(ids_map, py_utils.NestedMap)
     p = self.params
 
     def CpuEmbLookupSparse(ids_map):
       """CPU evaluation embedding lookup."""
       rets = py_utils.NestedMap()
       for table in self.tables:
-        table_id_map = {}
+        table_id_map = py_utils.NestedMap()
         for key in table.input_keys:
-          table_id_map[key] = ids_map[key]
+          table_id_map.Set(key, ids_map.GetItem(key))
         table_rets = table.CpuEmbLookupSparse(table_id_map,
                                               p.partition_strategy)
         # Merge table_rets with rets
-        for k, v in table_rets.items():
-          rets[k] = v
+        for key in table.input_keys:
+          rets.Set(key, table_rets.GetItem(key))
       return rets
 
     if _ShouldUseTpu(p):

@@ -582,13 +582,14 @@ class BaseInputGenerator(base_layer.BaseLayer):
     Returns:
       A list of TPU Embedding enqueue ops.
     """
+    assert isinstance(input_batch, py_utils.NestedMap)
     tpu_emb_input_keys = list(tpu_embedding.feature_to_config_dict.keys())
     tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
 
     num_cores_per_host = tpu_embedding.num_cores_per_host
     enqueue_dict_per_core = [{} for _ in range(num_cores_per_host)]
     for key in tpu_emb_input_keys:
-      feat = input_batch[key]
+      feat = input_batch.GetItem(key)
 
       if isinstance(feat, tf.sparse.SparseTensor):
         tpu_emb_feat_splitted = tf.sparse.split(
