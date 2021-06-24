@@ -373,6 +373,8 @@ class BaseBeamSearchDecoder(BaseDecoder):
             py_utils.assert_less_equal(weight, 1.),
             py_utils.assert_greater_equal(weight, 0.)
         ], (1.0 - weight) * pred_probs + weight * label_probs)
+        # Ensure that tf.math.log is applied to positive values.
+        probs = tf.maximum(probs, tf.constant(1e-12, dtype=probs.dtype))
         return tf.math.log(probs), consistent
 
       def NoApplyBias():
