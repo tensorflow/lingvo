@@ -16,7 +16,6 @@
 """TPU embedding layers."""
 
 import math
-from typing import Dict
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -130,14 +129,11 @@ class TpuEmbeddingCollection:
   def retrieve_ops(self):
     return self._retrieve_ops_map
 
-  def AddActivations(self, task_call_scope, activations):
-    if task_call_scope in self._activations_by_task:
-      existing_activations = self._activations_by_task[task_call_scope]
-      raise ValueError(
-          f'Activations for task {task_call_scope} already exists. '
-          f'Existing activations: {existing_activations}, '
-          f'activations being added: {activations}')
-    self._activations_by_task[task_call_scope] = activations
+  def AddActivations(self, task_call_scope):
+    if task_call_scope not in self._activations_by_task:
+      activations = self._tpu_embedding.get_activations()
+      self._activations_by_task[task_call_scope] = activations
+    return self._activations_by_task[task_call_scope]
 
   def GetActivations(self, task_call_scope):
     if task_call_scope in self._activations_by_task:
@@ -741,18 +737,18 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     return self._max_sequence_length
 
   def _SequenceEmbLookup(self, dense_ids: tf.Tensor,
-                         partition_strategy: str) -> Dict[str, tf.Tensor]:
+                         partition_strategy: str) -> tf.Tensor:
     """Sequence embedding lookup.
 
     Note that we do not support padding ids in sequence embeddings.
 
     Args:
-      dense_ids: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
+      dense_ids: An int Tensor of shape [batch, sequence].
       partition_strategy: See TPUEmbeddingLayer partition_strategy param.
 
     Returns:
-      An activations dict of string -> float32 Tensor of dimension [batch,
-      max_sequence_length, embedding_dim]
+      A float32 activations Tensor of shape
+      [batch, max_sequence_length, embedding_dim].
     """
     p = self.params
     embs = tf.nn.embedding_lookup(
@@ -763,17 +759,15 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     return tf.reshape(embs, out_shape)
 
   def _CombinerEmbLookup(self, sparse_ids: tf.SparseTensor,
-                         partition_strategy: str) -> Dict[str, tf.Tensor]:
+                         partition_strategy: str) -> tf.Tensor:
     """Combiner embedding lookup.
 
     Args:
-      sparse_ids: A dict of `input_key` string -> [batch, ...] int32
-        SparseTensor.
+      sparse_ids: An int SparseTensor of shape [batch, ...].
       partition_strategy: See TPUEmbeddingLayer partition_strategy param.
 
     Returns:
-      An activations dict of string -> float32 Tensor of dimension [batch, 1,
-      embedding_dim]
+      A float32 activations Tensor of shape [batch, 1, embedding_dim].
     """
     p = self.params
     embs = tf.nn.embedding_lookup_sparse(
@@ -797,13 +791,13 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     """CPU evaluation embedding lookup for dense tensors.
 
     Args:
-      ids_map: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
-        For sequence embeddings, -1 is used as a padding id. Non-sequence
-        embeddings do not support padded ids.
+      ids_map: A NestedMap of nested `input_key` string -> [batch, sequence]
+        int Tensor. For sequence embeddings, -1 is used as a padding id.
+        Non-sequence embeddings do not support padded ids.
       partition_strategy: See TPUEmbeddingLayer partition_strategy param.
 
     Returns:
-      An activations dict of string -> float32 Tensor.
+      An activations NestedMap of nested string -> float32 Tensor.
       For non-sequence embeddings: [batch, 1, embedding_dim]
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
     """
@@ -832,11 +826,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     """CPU evaluation embedding lookup for SparseTensors.
 
     Args:
-      ids_map: A dict of `input_key` string -> [batch, ...] int32 SparseTensor.
+      ids_map: A NestedMap of nested `input_key` string -> [batch, ...] int
+        SparseTensor.
       partition_strategy: See TPUEmbeddingLayer partition_strategy param.
 
     Returns:
-      An activations dict of string -> float32 Tensor.
+      An activations NestedMap of nested string -> float32 Tensor.
       For non-sequence embeddings: [batch, 1, embedding_dim]
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
     """
@@ -1035,20 +1030,20 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         self._tpu_embedding_collection.gradient_multiplier_schedule = (
             self.gradient_multiplier_schedule)
 
-  def _TpuEmbLookup(self) -> Dict[str, tf.Tensor]:
+  def _TpuEmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """TPU Embedding lookup."""
-    activations = self._tpu_embedding.get_activations()
     task_call_scope = py_utils.GetTaskCallScope()
-    self._tpu_embedding_collection.AddActivations(task_call_scope, activations)
+    activations = self._tpu_embedding_collection.AddActivations(task_call_scope)
 
     ret = py_utils.NestedMap()
     for k, v in activations.items():
-      if k in self._sequence_features:
-        ret.Set(k, v)
-      else:
-        # Non-sequence embeddings, we fill the "time" dimension with 1.
-        with tf.name_scope(k):
-          ret.Set(k, tf.expand_dims(v, axis=[1]))
+      if ids_map.Get(k) is not None:
+        if k in self._sequence_features:
+          ret.Set(k, v)
+        else:
+          # Non-sequence embeddings, we fill the "time" dimension with 1.
+          with tf.name_scope(k):
+            ret.Set(k, tf.expand_dims(v, axis=[1]))
     return ret
 
   def EmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
@@ -1060,12 +1055,13 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     the caller to call Lookup multiple times.
 
     Args:
-      ids_map: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
+      ids_map: A NestedMap of nested `input_key` string -> [batch, sequence] int
+        Tensor.
         For sequence embeddings, -1 is used as a padding id. Non-sequence
         embeddings do not support padded ids.
 
     Returns:
-      Activations dict of string ->
+      Activations NestedMap of nested string ->
       For non-sequence embeddings:  [batch, 1, embedding_dim],
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
@@ -1079,15 +1075,17 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       for table in self.tables:
         table_id_map = py_utils.NestedMap()
         for key in table.input_keys:
-          table_id_map.Set(key, ids_map.GetItem(key))
+          if ids_map.Get(key) is not None:
+            table_id_map.Set(key, ids_map.GetItem(key))
         table_rets = table.CpuEmbLookup(table_id_map, p.partition_strategy)
         # Merge table_rets with rets
         for key in table.input_keys:
-          rets.Set(key, table_rets.GetItem(key))
+          if ids_map.Get(key) is not None:
+            rets.Set(key, table_rets.GetItem(key))
       return rets
 
     if _ShouldUseTpu(p):
-      return self._TpuEmbLookup()
+      return self._TpuEmbLookup(ids_map)
     else:
       return CpuEmbLookup(ids_map)
 
@@ -1100,10 +1098,11 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     the caller to call Lookup multiple times.
 
     Args:
-      ids_map: A dict of `input_key` string -> [batch, ...] int32 SparseTensor.
+      ids_map: A NestedMap of nested `input_key` string -> [batch, ...] int
+      SparseTensor.
 
     Returns:
-      Activations dict of string ->
+      Activations NestedMap of nested string ->
       For non-sequence embeddings:  [batch, 1, embedding_dim],
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
@@ -1117,15 +1116,17 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       for table in self.tables:
         table_id_map = py_utils.NestedMap()
         for key in table.input_keys:
-          table_id_map.Set(key, ids_map.GetItem(key))
+          if ids_map.Get(key) is not None:
+            table_id_map.Set(key, ids_map.GetItem(key))
         table_rets = table.CpuEmbLookupSparse(table_id_map,
                                               p.partition_strategy)
         # Merge table_rets with rets
         for key in table.input_keys:
-          rets.Set(key, table_rets.GetItem(key))
+          if ids_map.Get(key) is not None:
+            rets.Set(key, table_rets.GetItem(key))
       return rets
 
     if _ShouldUseTpu(p):
-      return self._TpuEmbLookup()
+      return self._TpuEmbLookup(ids_map)
     else:
       return CpuEmbLookupSparse(ids_map)
