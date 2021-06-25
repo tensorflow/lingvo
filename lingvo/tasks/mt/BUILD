@@ -208,7 +208,6 @@ py_library(
         "//lingvo/core:insertion",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
-        "//lingvo/core:tpu_embedding_layers",
     ],
 )
 
