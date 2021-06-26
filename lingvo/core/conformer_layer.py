@@ -516,6 +516,7 @@ class ConformerLayer(base_layer.BaseLayer):
                    atten_local_context=None,
                    atten_left_context=None,
                    atten_right_context=None,
+                   atten_logit_cap=0.0,
                    use_relative_atten=True,
                    kernel_size=None,
                    fflayer_hidden_dim=None,
@@ -620,6 +621,7 @@ class ConformerLayer(base_layer.BaseLayer):
       p.lconv_tpl.conv_norm_layer_tpl = conv_norm_layer_tpl
     if fprop_dtype is not None:
       p.cls.SetFPropDtype(p, fprop_dtype)
+    p.trans_atten_tpl.atten_tpl.atten_logit_cap = atten_logit_cap
     return p
 
   @classmethod
