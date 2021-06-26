@@ -119,6 +119,10 @@ class BaseTask(base_layer.BaseLayer):
         'model-parallel cores will form a ring or mesh, or let the library to '
         'choose. Default None to AUTO.')
     tp.Define(
+        'tpu_computation_shape', None,
+        'A 4-element list that describes how virtual cores (which we specify '
+        'in TF computation) should be mapped to one or more logical cores.')
+    tp.Define(
         'vn_start_step', 200000000,
         'Step starting from which variational noise is added to '
         'params values during training.')
@@ -983,6 +987,10 @@ class BaseModel(base_layer.BaseLayer):
         'model-parallel cores will form a ring or mesh, or let the library to '
         'choose. Default None to AUTO.')
     tp.Define(
+        'tpu_computation_shape', None,
+        'A 4-element list that describes how virtual cores (which we specify '
+        'in TF computation) should be mapped to one or more logical cores.')
+    tp.Define(
         'ema_decay', 0.0,
         'If > 0, enable ExponentialMovingAverage during training '
         'with the give decay. '
@@ -1154,6 +1162,7 @@ class SingleTaskModel(SingleTaskBase):
       tp.max_steps = p.task.train.max_steps
       tp.tpu_steps_per_loop = p.task.train.tpu_steps_per_loop
       tp.tpu_device_order_mode = p.task.train.tpu_device_order_mode
+      tp.tpu_computation_shape = p.task.train.tpu_computation_shape
       # init_from_checkpoint_rules does not need to be copied.
       tp.early_stop = p.task.train.early_stop
       tp.enqueue_max_steps = p.task.train.enqueue_max_steps
