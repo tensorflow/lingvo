@@ -629,12 +629,12 @@ class BaseTask(base_layer.BaseLayer):
           *[opt.ApplyPostTrainingLoop() for opt in self.learners])
 
   def BProp(self):
-    with py_utils.GlobalStepContext(self._global_step_var):
+    with py_utils.GlobalStepContext(
+        self._global_step_var), py_utils.TaskCallScope(self):
       self._BPropForVariables(self.vars)
 
   def _BPropGenTrainOps(self, vmap, metrics=None, add_summary=True):
     """Populates the train_ops dictionary in a backwards pass."""
-    p = self._params
     metrics = metrics or self._metrics
 
     bprop_variable_filters = self.input_generator.GetBpropVariableFilters()
@@ -698,22 +698,6 @@ class BaseTask(base_layer.BaseLayer):
             increment_global_steps = tf.group(
                 increment_global_steps, tf.assign_add(self._global_step_var, 1))
         train_ops['global_step'] = increment_global_steps
-
-    # If we are using Tpu Embeddings, generate the monolithic send gradient op.
-    tpu_embedding_collection = tpu_embedding_layers.TpuEmbeddingCollection.Get()
-    tpu_embedding_activations_dict = tpu_embedding_collection.GetActivations(
-        py_utils.TaskCallScopeName(self))
-    if tpu_embedding_activations_dict:
-      # Lookup the per-task activations.
-      send_gradient_op, emb_metrics = py_utils.ComputeTpuEmbeddingGradients(
-          p.name, self.loss, tpu_embedding_activations_dict,
-          tpu_embedding_collection)
-      train_ops['tpu_embedding'] = send_gradient_op
-
-      if add_summary:
-        for name, value, weight in (tpu_embedding_collection.summary_tensors +
-                                    emb_metrics):
-          self.AddEvalMetric(name, value, weight, raise_if_already_added=False)
 
     for op_name, op in train_ops.items():
       assert op is not None, op_name

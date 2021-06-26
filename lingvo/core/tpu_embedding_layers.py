@@ -52,12 +52,10 @@ def _RemovePrivateVar(layer, var_name):
 class TpuEmbeddingCollection:
   """Manage various TPU embedding related ops and tensors."""
 
-  GRAPH_COLLECTION_NAME = '__tpu_embedding_collection'
-
   @classmethod
   def Get(cls):
     """Returns the TpuEmbeddingCollection associated with the current graph."""
-    emb_collection = tf.get_collection(cls.GRAPH_COLLECTION_NAME)
+    emb_collection = py_utils.GetTpuEmbeddingGraphCollection()
     assert len(emb_collection) <= 1
     if len(emb_collection) == 1:
       tf.logging.info(
@@ -65,7 +63,7 @@ class TpuEmbeddingCollection:
       return emb_collection[0]
     else:
       singleton = cls()
-      tf.add_to_collection(cls.GRAPH_COLLECTION_NAME, singleton)
+      emb_collection.append(singleton)
       return singleton
 
   def __init__(self):
@@ -92,6 +90,10 @@ class TpuEmbeddingCollection:
 
     # Schedule for the value that is used as TPU embedding gradient multiplier.
     self._gradient_multiplier_schedule = None
+
+    # Maps task name to the send gradient op for that task. Mainly used to
+    # ensure that send gradient op is created only once for each task.
+    self._send_gradient_op_by_task = {}
 
   def AddTableVariables(self, table_name, var_list):
     """Add TPU embedding table variable list to the collection."""
@@ -159,13 +161,52 @@ class TpuEmbeddingCollection:
                        f'feature names being added: {feature_names}')
     self._feature_names = feature_names
 
-  @property
-  def gradient_multiplier_schedule(self):
-    return self._gradient_multiplier_schedule
-
-  @gradient_multiplier_schedule.setter
-  def gradient_multiplier_schedule(self, multiplier_schedule):
+  def SetGradientMultiplierSchedule(self, multiplier_schedule):
+    if self._gradient_multiplier_schedule is not None:
+      raise ValueError('gradient_multiplier_schedule was set before.')
     self._gradient_multiplier_schedule = multiplier_schedule
+
+  def ApplyGradients(self, task_call_scope, feature_to_gradient_dict):
+    """Apply tpu embedding gradient updates.
+
+    Args:
+      task_call_scope: The current task call scope name.
+      feature_to_gradient_dict: A `py_utils.NestedMap` of: tpu embedding feature
+        name -> gradient tensor for the embedding feature.
+
+    Returns:
+      The gradient update op and a dict of eval metrics.
+
+    Raises:
+      ValueError: if gradients have been applied before for the current task.
+    """
+    # TODO(laigd): we need a way to tell which task needs backprop, and whether
+    # send gradient ops are created for that task.
+    if task_call_scope in self._send_gradient_op_by_task:
+      raise ValueError(
+          f'Send gradient op for task {task_call_scope} already exist.')
+
+    # Apply gradient multiplier schedule.
+    grad_multiplier = self._gradient_multiplier_schedule.Value()
+    feature_to_gradient_dict = feature_to_gradient_dict.Transform(
+        lambda g: g * grad_multiplier)
+
+    send_gradient_op = (
+        self._tpu_embedding.generate_send_gradients_op(
+            feature_to_gradient_dict, step=py_utils.GetGlobalStep()))
+    self._send_gradient_op_by_task[task_call_scope] = send_gradient_op
+
+    activations = self.GetActivations(task_call_scope).values()
+    eval_metrics = {
+        'tpu_embedding_activation_norm':
+            (tf.sqrt(py_utils.SumSquared(activations)), tf.constant(1.0)),
+        'tpu_embedding_grad_norm':
+            (tf.sqrt(py_utils.SumSquared(feature_to_gradient_dict.Flatten())),
+             tf.constant(1.0)),
+        'tpu_embedding_gradient_multiplier':
+            (grad_multiplier, tf.constant(1.0)),
+    }
+    return send_gradient_op, eval_metrics
 
 
 # TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.
@@ -1027,7 +1068,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             partition_strategy=p.partition_strategy,
             device_config=device_config)
         self._tpu_embedding_collection.tpu_embedding = self._tpu_embedding
-        self._tpu_embedding_collection.gradient_multiplier_schedule = (
+        self._tpu_embedding_collection.SetGradientMultiplierSchedule(
             self.gradient_multiplier_schedule)
 
   def _TpuEmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:

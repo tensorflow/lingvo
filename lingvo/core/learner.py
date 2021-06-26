@@ -211,6 +211,18 @@ class Learner(base_layer.BaseLayer):
     # compatibility on variables created by self.optimizer.Apply().
     losses, var_grads, eval_metrics = self._ComputeLossesAndGradients(
         metrics, vmap)
+    if 'tpu_embedding_var_grads' in var_grads:
+      tpu_embedding_var_grads = var_grads.tpu_embedding_var_grads
+      del var_grads.tpu_embedding_var_grads
+
+      tpu_embedding_collection = py_utils.GetTpuEmbeddingGraphCollection()[0]
+      assert tpu_embedding_collection
+      tpu_emb_update_op, stats = tpu_embedding_collection.ApplyGradients(
+          py_utils.GetTaskCallScope(),
+          tpu_embedding_var_grads.Transform(lambda var_grad: var_grad.grad))
+      eval_metrics.update(stats)
+    else:
+      tpu_emb_update_op = tf.no_op()
 
     assert py_utils.GetGlobalStep() is not None
     lr = self.LearningRate()
@@ -225,7 +237,9 @@ class Learner(base_layer.BaseLayer):
     eval_metrics['learning_rate'] = (tf.convert_to_tensor(lr),
                                      tf.convert_to_tensor(1.))
 
-    var_update_op = self.optimizer.Apply(lr, var_grads)
+    var_update_op = tf.group(
+        [tpu_emb_update_op,
+         self.optimizer.Apply(lr, var_grads)])
     return losses, var_update_op, eval_metrics
 
   def ComputeActivationGradients(self, activations, activations_grad, vmap):
@@ -277,6 +291,16 @@ class Learner(base_layer.BaseLayer):
     p = self.params
     vmap = self.GetTrainableVariables(vmap)
 
+    # Get tpu embedding activations to compute the gradients for.
+    tpu_embedding_graph_collection = py_utils.GetTpuEmbeddingGraphCollection()
+    if tpu_embedding_graph_collection:
+      tpu_embedding_collection = tpu_embedding_graph_collection[0]
+      tpu_embedding_activations = py_utils.NestedMap(
+          tpu_embedding_collection.GetActivations(py_utils.GetTaskCallScope())
+          or {})
+    else:
+      tpu_embedding_activations = py_utils.NestedMap()
+
     for v in vmap.Flatten():
       tf.logging.info('%s: bprop variable: %s', p.name, v.name)
 
@@ -296,12 +320,15 @@ class Learner(base_layer.BaseLayer):
           p.gate_gradients,
           compute_gradients_fn=self._CustomComputeGradientsFn(),
           skip_zero_gradients=p.skip_zero_gradients,
-          skip_none_gradients=False)
+          skip_none_gradients=False,
+          tpu_embedding_activations=tpu_embedding_activations)
 
     loss_name = p.loss_name or p.name
     losses = []
     eval_metrics = {}
     if isinstance(loss_name, (list, tuple)):
+      assert not tpu_embedding_activations, (
+          'TPU embedding does not support multiple loss currently.')
       losses_and_grads = {}
       variables = None
       for metric_name in loss_name:

@@ -1252,7 +1252,7 @@ def GetOpportunisticVariableReuse():
 _VARIABLE_RENAME_RULES = ThreadLocalStack()
 
 # Global variable to track task calling scope.
-# Currently only used for TPU Embedding purposes as a TPUEmbeddinglayer
+# Currently only used for TPU Embedding purposes as a TPUEmbeddingLayer
 # may be shared across tasks and the calling task needs to be known
 # for tracking embedding activations for backprop.
 _TASK_CALL_SCOPE = ThreadLocalStack()
@@ -2507,57 +2507,6 @@ def ComputeGradientsSimple(loss_or_activations,
       gate_gradients=gate_gradients)
 
 
-def ComputeTpuEmbeddingGradients(task_name, loss, activation_dict,
-                                 tpu_embedding_collection):
-  """Returns a TpuEmbedding SendGradient op.
-
-  Args:
-    task_name: The name of the task to compute the gradients for.
-    loss: The loss to backprop from.
-    activation_dict: String feature -> embedding activations dict.
-    tpu_embedding_collection: TpuEmbeddingCollection instance.
-
-  Returns:
-    A tuple (send_gradient_op, eval_metrics):
-    - send_gradient_op: A TF op that sends gradients to TPU Embedding.
-    - eval_metrics: A list of (name, value, weight) tuples containing the eval
-      metrics, where value and weight are scalar tensors.
-  """
-  # Scale the loss to account for the full batch size.
-  shards = tpu_function.get_tpu_context().number_of_shards
-  loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
-  gradients = tf.gradients(
-      loss,
-      list(activation_dict.values()),
-      # TPUEmbedding expects gradients for all embedding
-      # features, so return zero if unconnected.
-      unconnected_gradients=tf.UnconnectedGradients.ZERO)
-
-  # Apply gradient multiplier schedule.
-  grad_multiplier = (
-      tpu_embedding_collection.gradient_multiplier_schedule.Value())
-  gradients = [g * grad_multiplier for g in gradients]
-
-  feature_to_gradient_dict = py_collections.OrderedDict(
-      zip(list(activation_dict.keys()), gradients))
-  send_gradient_op = (
-      tpu_embedding_collection.tpu_embedding.generate_send_gradients_op(
-          feature_to_gradient_dict, step=GetGlobalStep()))
-
-  # Add eval metrics. Note we can't add these to tpu_embedding_collection since
-  # it'll leak these to a different graph from a different task in multi-task
-  # setup.
-  # TODO(laigd): find a better solution using tpu_embedding_collection.
-  eval_metrics = [
-      (f'tpu_embedding_activation_norm/{task_name}/all',
-       tf.sqrt(SumSquared(activation_dict.values())), tf.constant(1.0)),
-      (f'tpu_embedding_grad_norm/{task_name}/all',
-       tf.sqrt(SumSquared(gradients)), tf.constant(1.0)),
-      ('tpu_embedding_gradient_multiplier', grad_multiplier, tf.constant(1.0)),
-  ]
-  return send_gradient_op, eval_metrics
-
-
 def _ComputeGradientsTpu(loss_or_activations,
                          all_vars,
                          grad_aggregation_method,
@@ -2567,7 +2516,8 @@ def _ComputeGradientsTpu(loss_or_activations,
                          use_bf16_gradients_ar=False,
                          defer_crs_to_apply_grad=False,
                          activations_grad=None,
-                         is_activations=False):
+                         is_activations=False,
+                         tpu_embedding_activations=None):
   """Computes gradients for local loss across whole TPU cluster.
 
   This implementation specializes for the case where weight params maybe used
@@ -2595,9 +2545,12 @@ def _ComputeGradientsTpu(loss_or_activations,
       skip_zero_gradients is None.
     activations_grad: The gradients computed for activations.
     is_activations: A boolean, whether the input is loss or activations.
+    tpu_embedding_activations: A `.NestedMap` of tpu embedding feature name ->
+      embedding feature tensor.
 
   Returns:
-    Gradients to be passed back.
+    Gradients to be passed back. If tpu_embedding_activations is set, their
+    gradients will be placed at the end.
 
   Raises:
     ValueError: upon invalid arguments.
@@ -2611,16 +2564,29 @@ def _ComputeGradientsTpu(loss_or_activations,
     assert shards
     loss_or_activations *= tf.constant(
         1.0 / shards, dtype=loss_or_activations.dtype)
+  else:
+    assert not tpu_embedding_activations, (
+        'Gradient computation for tpu embedding activations requires proper '
+        'loss scaling, and so is not compatible with skip_zero_gradients and '
+        'is_activations.')
 
   # Computes the gradients.
   # Sum the grads so that we can compute statistics across the whole batch.
   all_grads = ComputeGradientsSimple(
       loss_or_activations=loss_or_activations,
-      all_vars=all_vars,
+      all_vars=all_vars +
+      (tpu_embedding_activations if tpu_embedding_activations else []),
       grad_aggregation_method=grad_aggregation_method,
       colocate_gradients_with_ops=colocate_gradients_with_ops,
       gate_gradients=gate_gradients,
       activations_grad=activations_grad)
+
+  if tpu_embedding_activations:
+    # Note we don't need to aggregate TPU embedding gradients below.
+    tpu_embedding_grads = all_grads[len(all_vars):]
+    all_grads = all_grads[:len(all_vars)]
+  else:
+    tpu_embedding_grads = []
 
   # NOTE: We can't use tpu_optimizer.CrossShardOptimizer since
   # we need to scale the grads *after* the cross_replica_sum to
@@ -2666,7 +2632,7 @@ def _ComputeGradientsTpu(loss_or_activations,
         num_updates = tf.maximum(tf.tpu.cross_replica_sum(g_is_non_zero), 1.0)
         normalized_g = tf.tpu.cross_replica_sum(g) / num_updates
       aggregated_grads.append(normalized_g)
-  return aggregated_grads
+  return aggregated_grads + tpu_embedding_grads
 
 
 class VarGrad:
@@ -2710,7 +2676,8 @@ def ComputeGradients(
     skip_none_gradients=True,
     defer_crs_to_apply_grad=False,
     activations_grad=None,
-    is_activations=False):
+    is_activations=False,
+    tpu_embedding_activations=None):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
@@ -2746,6 +2713,8 @@ def ComputeGradients(
       apply_gradient. This applies to TPU only.
     activations_grad: The gradients computed for activations.
     is_activations: A boolean, whether the input is loss or activations.
+    tpu_embedding_activations: A `.NestedMap` of tpu embedding feature name ->
+      embedding feature tensor.
 
   Returns:
     var_grad - a `.NestedMap` of VarGrad. You can view
@@ -2754,9 +2723,16 @@ def ComputeGradients(
     contributes to loss must exist in var_grad. Every var of var_grad
     must exist in vmap.  grad is the corresponding gradient computed
     for var. grad is guaranteed to be not None.
+    If tpu_embedding_activations is set, a sub `.NestedMap` named
+    tpu_embedding_var_grads will be used to store the VarGrads for the
+    activations. In this case, key is the feature name, and var in the VarGrad
+    is the activation tensor (not a real variable).
   """
   if not is_activations:
     loss_or_activations = HasRank(loss_or_activations, 0)
+  if not tpu_embedding_activations:
+    tpu_embedding_activations = NestedMap()
+  assert isinstance(tpu_embedding_activations, NestedMap)
   assert isinstance(vmap, NestedMap)
   assert skip_zero_gradients in (None, 'variable', 'weight')
 
@@ -2787,6 +2763,7 @@ def ComputeGradients(
 
   # Use caller-supplied gradient function if supplied.
   if compute_gradients_fn is not None:
+    assert not tpu_embedding_activations
     take_grad = compute_gradients_fn
   else:
     # tpu vs non-tpu is slightly different.
@@ -2797,13 +2774,21 @@ def ComputeGradients(
           use_bf16_gradients_ar=use_bf16_gradients_ar,
           defer_crs_to_apply_grad=defer_crs_to_apply_grad,
           activations_grad=activations_grad,
-          is_activations=is_activations)
+          is_activations=is_activations,
+          tpu_embedding_activations=tpu_embedding_activations.Flatten())
     else:
+      assert not tpu_embedding_activations
       take_grad = ComputeGradientsSimple
 
   grads = take_grad(loss_or_activations, filtered_vlist,
                     grad_aggregation_method, colocate_gradients_with_ops,
                     gate_gradients)
+
+  if tpu_embedding_activations:
+    tpu_embedding_grads = grads[len(filtered_vlist):]
+    grads = grads[:len(filtered_vlist)]
+  else:
+    tpu_embedding_grads = None
 
   # Formulate pairs of (var, grad) and pack them into the same
   # structure as filtered_vmap.
@@ -2812,6 +2797,30 @@ def ComputeGradients(
 
   if skip_none_gradients:
     var_grads = SkipNoneGradients(var_grads)
+
+  if tpu_embedding_grads:
+    # Create VarGrads for TPU embedding activations in a dedicated sub map.
+    assert 'tpu_embedding_var_grads' not in var_grads
+    tpu_embedding_activation_list = tpu_embedding_activations.Flatten()
+    tpu_embedding_var_grads = [
+        VarGrad(v, g)
+        for v, g in zip(tpu_embedding_activation_list, tpu_embedding_grads)
+    ]
+    tpu_embedding_var_grads = tpu_embedding_activations.Pack(
+        tpu_embedding_var_grads)
+
+    # Replace None gradients with zeros, since TPU embedding expect all
+    # activations to have gradients.
+    def _NoneToZeros(key, var_grad):
+      if var_grad.grad is None:
+        tf.logging.warning(
+            f'TPU embedding gradient for feature {key} is None. Replacing with '
+            'zeros.')
+        return VarGrad(var_grad.var, tf.zeros_like(var_grad.var))
+      return var_grad
+
+    var_grads.tpu_embedding_var_grads = (
+        tpu_embedding_var_grads.TransformWithKey(_NoneToZeros))
 
   return var_grads
 
@@ -5944,3 +5953,10 @@ def MaybeSoftCapLogits(x, cap=0.0):
     return x
   else:
     return cap * tf.math.tanh(x / cap)
+
+
+def GetTpuEmbeddingGraphCollection():
+  """Return the graph collection that stores the TpuEmbeddingCollection."""
+  tpu_emb_graph_collection = tf.get_collection_ref('__tpu_embedding_collection')
+  assert len(tpu_emb_graph_collection) <= 1
+  return tpu_emb_graph_collection
