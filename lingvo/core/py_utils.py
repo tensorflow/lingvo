@@ -3859,7 +3859,7 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
     padding: Tensor of padding values where 0 == keep and 1 == pad.
     x: Tensor to apply padding to.
     padded: Optional. Values to include for padded elements. Defaults to zeros.
-      Must be broadcastable to the same shape as 'x' if specified.
+      Must be the same shape as 'x' if specified.
     broadcast: Whether to broadcast the padding shape to the shape of 'x'. You
       almost certainly want this to be true as it matches how padding would be
       expanded if applied arithmetically.
@@ -3877,21 +3877,13 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
               tf.math.logical_or(
                   tf.equal(padding, 0.0), tf.equal(padding, 1.0))), [padding])
   ], padding)
-  scalar_zero = tf.constant(0, dtype=x.dtype)
   if use_select:
     if padded is None:
-      padded = scalar_zero
+      padded = tf.zeros_like(x)
     if broadcast:
-      # Turn padding into a broadcastable shape
-      append_dims = tf.rank(x) - tf.rank(padding)
-      append_shape = tf.ones([append_dims], dtype=tf.int32)
-      broadcast_shape = tf.concat([tf.shape(padding), append_shape], axis=0)
-      padding = tf.reshape(padding, broadcast_shape)
-    if padding.dtype != x.dtype:
-      padding = tf.cast(padding, x.dtype)
-    is_padding = tf.math.greater(padding, scalar_zero)
-    result = tf.compat.v2.where(is_padding, padded, x)
-    return tf.ensure_shape(result, x.shape)
+      # Broadcast padding to the full shape.
+      padding = tf.cast(padding, x.dtype) * tf.ones_like(x)
+    return tf.where(padding > tf.zeros_like(padding), padded, x)
   else:
     result = x * tf.cast(1.0 - padding, x.dtype)
     if padded is not None:
