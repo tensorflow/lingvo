@@ -27,6 +27,7 @@ requirements are met.
 
 import functools
 import os
+import uuid
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -721,6 +722,7 @@ class TFDataServiceSource(TFDatasetTransform):
 
   def __init__(self, params):
     super().__init__(params)
+    self._job_name = str(uuid.uuid4())
     self._dataset_id = None
     self._element_spec = None
 
@@ -772,7 +774,7 @@ class TFDataServiceSource(TFDatasetTransform):
         service=self.cluster.tf_data_service_address,
         dataset_id=self._dataset_id,
         element_spec=self._element_spec,
-        job_name=cluster.GetProcessUUID(),
+        job_name=self._job_name,
         consumer_index=consumer_index,
         num_consumers=num_consumers)
 

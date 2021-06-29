@@ -19,7 +19,6 @@ import collections
 import contextlib
 import heapq
 import re
-import uuid
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import nested_map
@@ -52,16 +51,6 @@ def GetInfeedContext():
 def MakeDeviceString(job_name, replica_id, task_id, device_name, device_id):
   return '%s/replica:%d/task:%d/device:%s:%d' % (job_name, replica_id, task_id,
                                                  device_name, device_id)
-
-
-_uuid = None
-
-
-def GetProcessUUID():
-  global _uuid
-  if not _uuid:
-    _uuid = str(uuid.uuid4())
-  return _uuid
 
 
 _CLUSTER_STACK = thread_local_utils.ThreadLocalStack()
