@@ -359,12 +359,12 @@ class Decoder(base_runner.BaseRunner):
     if samples_per_summary is None:
       samples_per_summary = p.eval.samples_per_summary
     if samples_per_summary == 0:
-      assert self._task.params.input.resettable
+      assert self._task.input.params.resettable
     self.checkpointer.RestoreFromPath(sess, checkpoint_path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
 
-    if self._task.params.input.resettable:
+    if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
 
@@ -426,7 +426,7 @@ class Decoder(base_runner.BaseRunner):
             samples_per_summary,
             time.time() - post_process_start)
       except tf.errors.OutOfRangeError:
-        if not self._task.params.input.resettable:
+        if not self._task.input.params.resettable:
           raise
         break
     tf.logging.info('Done decoding ckpt: %s', checkpoint_path)

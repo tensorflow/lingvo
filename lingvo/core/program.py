@@ -626,6 +626,10 @@ class EvalProgram(BaseProgram):
   def Run(self, sess):
     global_step = sess.run(self._model.global_step)
 
+    if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
+
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
@@ -713,6 +717,11 @@ class DecodeProgram(BaseProgram):
     self.SetStatusMessage(
         f'Executing decode program on dataset {self.params.dataset_name} '
         f'at step {global_step}')
+
+    if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
+
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     dec_metrics = self._task.CreateDecoderMetrics()
@@ -862,6 +871,11 @@ class ExperimentalDecodeProgram(DecodeProgram):
     self.SetStatusMessage(
         f'Executing decode program on dataset {self.params.dataset_name} '
         f'at step {global_step}')
+
+    if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
+
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     decode_future = self._infeed_pool.apply_async(

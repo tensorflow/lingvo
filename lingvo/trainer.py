@@ -963,7 +963,7 @@ class Evaler(base_runner.BaseRunner):
     if global_step < self._task.params.eval.start_eval_after:
       return
 
-    if self._task.params.input.resettable:
+    if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator.')
       self._task.input_generator.Reset(sess)
 
@@ -973,7 +973,7 @@ class Evaler(base_runner.BaseRunner):
     num_samples_metric = metrics_dict['num_samples_in_batch']
     samples_per_summary = self._task.params.eval.samples_per_summary
     if samples_per_summary == 0:
-      assert self._task.params.input.resettable
+      assert self._task.input.params.resettable
     while samples_per_summary == 0 or (num_samples_metric.total_value <
                                        samples_per_summary):
       try:
@@ -999,7 +999,7 @@ class Evaler(base_runner.BaseRunner):
         tf.logging.info('Total examples done: %d/%d',
                         num_samples_metric.total_value, samples_per_summary)
       except tf.errors.OutOfRangeError:
-        if not self._task.params.input.resettable:
+        if not self._task.input.params.resettable:
           raise
         break
 
