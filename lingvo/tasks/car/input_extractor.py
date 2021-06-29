@@ -238,7 +238,6 @@ class NestedFieldsExtractor(FieldsExtractor):
 
   def DType(self):
     dtypes = py_utils.NestedMap()
-    print(self.extractors.FlattenItems())
     for key, extractor in self.extractors.FlattenItems():
       dtypes.Set(key, extractor.DType())
     return dtypes
