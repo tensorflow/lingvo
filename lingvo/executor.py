@@ -410,21 +410,21 @@ class ExecutorTpu(base_runner.BaseRunner):
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
 
+        def RunSave(sess, global_step):
+          # Run TPU embedding retrieve ops.
+          # NOTE: this is expensive, so only run it when we're checkpointing.
+          tf.logging.info('Retrieve params.')
+          sess.run(self._retrieve_ops)
+          tf.logging.info('Retrieve params done.')
+          # Save program state first, so it's recoverable after we restore
+          # from checkpoint.
+          for program in self._programs:
+            program.SaveProgramState(sess, global_step)
+          # Save the checkpoints.
+          self.save_only_checkpointer.Save(sess, global_step)
+
         if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave(
             global_step):
-
-          def RunSave(sess, global_step):
-            # Run TPU embedding retrieve ops.
-            # NOTE: this is expensive, so only run it when we're checkpointing.
-            tf.logging.info('Retrieve params.')
-            sess.run(self._retrieve_ops)
-            tf.logging.info('Retrieve params done.')
-            # Save program state first, so it's recoverable after we restore
-            # from checkpoint.
-            for program in self._programs:
-              program.SaveProgramState(sess, global_step)
-            # Save the checkpoints.
-            self.save_only_checkpointer.Save(sess, global_step)
 
           if self.save_only_checkpointer.async_checkpointing:
             tf.logging.info('Save checkpoint asynchronously AT YOUR OWN RISK.')
@@ -460,9 +460,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if not self._ml_perf_log:
-            self.save_only_checkpointer.Save(sess, global_step)
-            for program in self._programs:
-              program.SaveProgramState(sess, global_step)
+            RunSave(sess, global_step)
           tf.logging.info('Shutting down programs.')
           program_schedule.Shutdown()
           return
