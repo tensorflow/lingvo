@@ -719,6 +719,11 @@ class TFDataServiceSource(TFDatasetTransform):
              'a sorted list of integers.')
     return p
 
+  def __init__(self, params):
+    super().__init__(params)
+    self._dataset_id = None
+    self._element_spec = None
+
   def SetInputGenerator(self, input_generator):
     super().SetInputGenerator(input_generator)
     if self.params.bucket_upper_bound and self.num_hosts > 1:
@@ -729,37 +734,46 @@ class TFDataServiceSource(TFDatasetTransform):
         # before p.tpu_infeed_parallelism is used.
         self._input_generator.params.tpu_infeed_parallelism = 1
 
-  def Transform(self, dataset):
+  def GetDataset(self):
     p = self.params
+    if self._dataset_id is None:
+      dataset = self.sub.GetDataset()
+
+      if p.bucket_upper_bound and self.num_hosts > 1:
+        # Batch is bucketed by sequence length. Group num_hosts batches
+        # in each window.
+        def KeyFunc(batch):
+          key = tf.reduce_min(batch.bucket_keys)
+          idx = tf.reduce_sum(
+              tf.cast(tf.greater(key, p.bucket_upper_bound), tf.int32))
+          return tf.constant(p.bucket_upper_bound, dtype=tf.int64)[idx]
+
+        dataset = dataset.apply(
+            tf.data.experimental.group_by_window(
+                key_func=KeyFunc,
+                reduce_func=lambda _, x: tf.data.Dataset.from_tensors(x),
+                window_size=self.num_hosts))
+        dataset = dataset.flat_map(lambda x: x)
+
+      self._dataset_id = tf.data.experimental.service.register_dataset(
+          service=self.cluster.tf_data_service_address, dataset=dataset)
+      self._element_spec = dataset.element_spec
+
     if p.bucket_upper_bound and self.num_hosts > 1:
-      # Batch is bucketed by sequence length. split into num_hosts batches
-      # and pull from the service in round-robin style.
-
-      def KeyFunc(batch):
-        key = tf.reduce_min(batch.bucket_keys)
-        idx = tf.reduce_sum(
-            tf.cast(tf.greater(key, p.bucket_upper_bound), tf.int32))
-        return tf.constant(p.bucket_upper_bound, dtype=tf.int64)[idx]
-
-      dataset = dataset.apply(
-          tf.data.experimental.group_by_window(
-              key_func=KeyFunc,
-              reduce_func=lambda _, x: tf.data.Dataset.from_tensors(x),
-              window_size=self.num_hosts))
-
-      dataset = dataset.flat_map(lambda x: x)
-      dataset = dataset.apply(
-          tf.data.experimental.service.distribute(
-              job_name=cluster.GetProcessUUID(),
-              processing_mode='parallel_epochs',
-              service=self.cluster.tf_data_service_address,
-              consumer_index=self.host_id,
-              num_consumers=self.num_hosts))
+      # Batch is bucketed by sequence length. Use round-robin order.
+      consumer_index = self.host_id
+      num_consumers = self.num_hosts
     else:
-      dataset = dataset.apply(
-          tf.data.experimental.service.distribute(
-              job_name=cluster.GetProcessUUID(),
-              processing_mode='parallel_epochs',
-              service=self.cluster.tf_data_service_address))
+      consumer_index = None
+      num_consumers = None
+
+    dataset = tf.data.experimental.service.from_dataset_id(
+        processing_mode='parallel_epochs',
+        service=self.cluster.tf_data_service_address,
+        dataset_id=self._dataset_id,
+        element_spec=self._element_spec,
+        job_name=cluster.GetProcessUUID(),
+        consumer_index=consumer_index,
+        num_consumers=num_consumers)
 
     return dataset
