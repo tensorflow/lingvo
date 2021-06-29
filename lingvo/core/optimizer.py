@@ -41,6 +41,14 @@ class Base(base_layer.BaseLayer):
     p.Define('add_summary_in_apply', True, 'Whether to add summary in Apply.')
     return p
 
+  def __init__(self, params):
+    super().__init__(params)
+
+    # Whether to cache the optimizer creation.
+    self._cache_optimizer = False
+    # The cached optimizer.
+    self._optimizer = None
+
   def GetOptimizer(self, lr):
     """Returns the TF optimizer object."""
     raise NotImplementedError('Abstract method')
@@ -71,9 +79,9 @@ class Base(base_layer.BaseLayer):
     Returns:
       The variable update op.
     """
-    # We cache the v2 optimizer to avoid recreating variables
+    # In eager mode, we cache the optimizer to avoid recreating variables
     # when the training step is wrapped in tf.function.
-    if py_utils.IsOptimizerCached():
+    if self._cache_optimizer:
       if self._optimizer is None:
         self._optimizer = self.GetOptimizer(lr)
       else:
@@ -111,11 +119,6 @@ class Base(base_layer.BaseLayer):
       Ops to run after training loop ends.
     """
     return tf.no_op()
-
-  def __init__(self, params):
-    super().__init__(params)
-    if py_utils.IsEagerMode():
-      self._optimizer = None
 
 
 class CompositeOptimizer(Base):
@@ -392,6 +395,10 @@ class AdamV2(Base):
     p.Define('epsilon', 1e-6, 'Epsilon for Adam.')
     p.name = 'Adam'
     return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self._cache_optimizer = True
 
   @classmethod
   def ParamsA(cls):
