@@ -356,14 +356,9 @@ class BaseBeamSearchDecoder(BaseDecoder):
 
         # convert from dense label to sparse label probs
         vocab_size = tf.shape(bs_results.log_probs)[1]
-        uncertainty = tf.constant(1e-10, py_utils.FPropDtype(
-            p))  # avoid 0 probs which may cause issues with log
         label_probs = tf.one_hot(
             label,
             vocab_size,
-            on_value=1 - uncertainty,
-            off_value=uncertainty /
-            tf.cast(vocab_size - 1, py_utils.FPropDtype(p)),
             dtype=py_utils.FPropDtype(p))  # [tgt_batch, vocab_size]
         pred_probs = tf.exp(bs_results.log_probs)
 
