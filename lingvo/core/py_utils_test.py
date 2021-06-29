@@ -232,6 +232,64 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(self.evaluate(var), self.evaluate(var_copy))
 
+  def testCreateVariableWithRegexDTypes(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.random.set_seed(12345678)
+      methods = [
+          py_utils.WeightInit.Uniform,
+          py_utils.WeightInit.UniformSqrtDim,
+          py_utils.WeightInit.UniformUnitScaling,
+      ]
+      dtypes = [tf.float32, tf.complex64]
+      all_vars = []
+      for i, (dt_orig, m) in enumerate(itertools.product(dtypes, methods)):
+        pc = py_utils.WeightParams([2, 3], m(0.1), dt_orig)
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
+
+      regex_dtypes = [
+          # var_100 does not exist. So it changes nothing.
+          ('var_100', tf.float16),
+          # reset var_new_0 to tf.float16.
+          ('var_new_0$', tf.float16),
+          # reset var_new_3 to tf.loat16.
+          ('.*3', tf.float16)
+      ]
+      all_vars_new = []
+      with py_utils.VariableListDtypeRegexScope(regex_dtypes):
+        for i, (dt_orig, m) in enumerate(itertools.product(dtypes, methods)):
+          pc = py_utils.WeightParams([2, 3], m(0.1), dt_orig)
+          all_vars_new.append(py_utils.CreateVariable('var_new_%d' % i, pc))
+      self.evaluate(tf.global_variables_initializer())
+
+      v1_v = self.evaluate(all_vars[0])
+      v2_v = self.evaluate(all_vars[1])
+      v4_v = self.evaluate(all_vars[3])
+      v1_v_expted = [[0.069674, -0.072278, -0.021777],
+                     [-0.052155, -0.050274, 0.086218]]
+      v2_v_expted = [[0.005361, 0.036109, -0.036575],
+                     [0.058314, 0.031438, 0.049196]]
+      v4_v_expted = [
+          [0.015448 + 0.068295j, -0.098710 - 0.054435j, 0.037030 - 0.048017j],
+          [-0.047435 + 0.035301j, 0.041994 + 0.000279j, -0.029097 + 0.084902j],
+      ]
+      tf.assert_type(all_vars[0], tf.float32)
+      self.assertAllClose(v1_v_expted, v1_v.tolist())
+      tf.assert_type(all_vars[1], tf.float32)
+      self.assertAllClose(v2_v_expted, v2_v.tolist())
+      tf.assert_type(all_vars[3], tf.complex64)
+      self.assertAllClose(v4_v_expted, v4_v.tolist())
+
+      v1_v = self.evaluate(all_vars_new[0])
+      v4_v = self.evaluate(all_vars_new[3])
+      v1_v_expted = [[0.089233, 0.016235, -0.053497],
+                     [0.077759, -0.00177, -0.08728]]
+      v4_v_expted = [[0.028931, -0.064636, 0.016968],
+                     [0.093506, 0.020142, -0.087646]]
+      tf.assert_type(all_vars_new[0], tf.float16)
+      self.assertAllClose(v1_v_expted, v1_v.tolist())
+      tf.assert_type(all_vars_new[3], tf.float16)
+      self.assertAllClose(v4_v_expted, v4_v.tolist())
+
   def testCreateVariableUniform(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(12345678)

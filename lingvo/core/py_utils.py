@@ -1306,6 +1306,44 @@ def GetVariableName(name):
   return new_name
 
 
+_LIST_REGEX_DTYPE = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def VariableListDtypeRegexScope(list_regex_dtypes):
+  """Append the list of (regex, dtype) to override the dtype.
+
+  Args:
+    list_regex_dtypes: pairs of (regexp, dtype). If the regexp matches, the data
+      type of the variable will be changed by the corresponding dtype.
+
+  Yields:
+    scope in which the list of (regex, dtype) is applied.
+  """
+  _LIST_REGEX_DTYPE.stack.append(list_regex_dtypes)
+  try:
+    yield
+  finally:
+    _LIST_REGEX_DTYPE.stack.pop()
+
+
+def FindDataType(var_name):
+  """Find the data type for var_name.
+
+  Args:
+    var_name: A string, name of the variable.
+
+  Returns:
+    The dtype of the first matched regex with var_name, or None if no matching
+      found.
+  """
+  for regex_dtypes in _LIST_REGEX_DTYPE.stack:
+    for regex, data_type in regex_dtypes:
+      if re.match(regex, var_name):
+        return data_type
+  return None
+
+
 def GenerateSeedFromName(name):
   """Generate a random seed from a name string.
 
@@ -1625,7 +1663,11 @@ def _CreateVariableStateful(name,
         # variable name as a stable random seed.
         seed = GenerateSeedFromName(var_name)
 
-  init_dtype = p.dtype.real_dtype
+  # If var_name matches a regex, then set the var_dtype; else use p.dtype.
+  var_dtype = FindDataType(var_name)
+  if var_dtype is None:
+    var_dtype = p.dtype
+  init_dtype = var_dtype.real_dtype
 
   # TODO(b/172827074): we do not natively support var initialization for
   # int8 type except for constant initialization.
@@ -1636,7 +1678,7 @@ def _CreateVariableStateful(name,
   v_init = _CreateVarInitStateful(name, method, shape, dim0, seed, scale,
                                   init_dtype)
 
-  if p.dtype == tf.complex64:
+  if var_dtype == tf.complex64:
 
     def ComplexWrapper(init):
 
@@ -1652,7 +1694,7 @@ def _CreateVariableStateful(name,
 
     v_init = ComplexWrapper(v_init)
 
-  if p.dtype == tf.int8:
+  if var_dtype == tf.int8:
 
     def FloatToInt8Wrapper(init):
 
@@ -1722,7 +1764,7 @@ def _CreateVariableStateful(name,
             var_params=p,
             name='var',
             shape=GetVariableShapePrefixes() + list(shape),
-            dtype=p.dtype,
+            dtype=var_dtype,
             initializer=v_init,
             collections=collections,
             trainable=trainable,
@@ -1801,11 +1843,15 @@ def _CreateVariableStateless(name,
   user_seed = seed if seed is not None else default_seed
   seed = _GenerateStatelessRngSeed(var_name, user_seed)
 
-  init_dtype = p.dtype.real_dtype
+  # If var_name matches a regex, then set the var_dtype; else use p.dtype.
+  var_dtype = FindDataType(var_name)
+  if var_dtype is None:
+    var_dtype = p.dtype
+  init_dtype = var_dtype.real_dtype
   v_init = _CreateVarInitStateless(name, method, shape, dim0, seed, scale,
                                    init_dtype)
 
-  if p.dtype == tf.complex64:
+  if var_dtype == tf.complex64:
     raise TypeError(
         'Stateless variable initialization does not support tf.complex64.')
 
@@ -1843,7 +1889,7 @@ def _CreateVariableStateless(name,
         var_params=p,
         name='var',
         shape=GetVariableShapePrefixes() + list(shape),
-        dtype=p.dtype,
+        dtype=var_dtype,
         initializer=v_init,
         collections=collections,
         trainable=trainable,
