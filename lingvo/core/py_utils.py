@@ -215,6 +215,13 @@ def with_dependencies(dependencies, output_tensor):  # pylint: disable=invalid-n
     return tf.identity(output_tensor)
 
 
+def _VarInCollection(var, collection):
+  """Return whether a variable `var` is in the given variable collection."""
+  # We use variable reference for comparison, since variable is not hashable in
+  # eager mode.
+  return var.ref() in [v.ref() for v in collection]
+
+
 @contextlib.contextmanager
 def _PrintOptions(*args, **kwargs):
   original = np.get_printoptions()
@@ -3010,7 +3017,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
       return var
 
   def ShouldAdjust(v):
-    return v not in tf.get_collection(SKIP_LP_REGULARIZATION)
+    return not _VarInCollection(v, tf.get_collection(SKIP_LP_REGULARIZATION))
 
   filtered_var_grads = [
       var_grad for var_grad in Flatten(var_grads) if ShouldAdjust(var_grad.var)
@@ -3060,7 +3067,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
           grad_v = tf.sign(values)
         delta = lp_regularizer_weight * weights * grad_v
         grad = tf.IndexedSlices(grad.values + delta, ids)
-    elif var not in tf.get_collection(SKIP_LP_REGULARIZATION):
+    elif not _VarInCollection(var, tf.get_collection(SKIP_LP_REGULARIZATION)):
       with tf.device(var.device):
         if p == 2.0:
           grad_v = var

@@ -52,13 +52,17 @@ class DecodeFinalizeArgs(
 
 def _VariablesForEMA(params, model_var_list):
   """Gets a list of variables that need to apply exponential moving average."""
+  # Use variable reference since variable is not hashable in eager mode.
+  ref_set = lambda variables: set([v.ref() for v in variables])
+
   # We need to apply EMA to trainable and moving average variable of the task,
   # not just bprop vars, so that we create a shadow '/ExponentialMovingAverage'
   # variable for every trainable and moving average variable.
-  all_vars = set(tf.trainable_variables()) | set(tf.moving_average_variables())
+  all_refs = ref_set(tf.trainable_variables()) | ref_set(
+      tf.moving_average_variables())
   if params.train.ema_decay_moving_vars:
-    all_vars |= set(tf.get_collection('moving_vars'))
-  all_vars &= set(model_var_list)
+    all_refs |= ref_set(tf.get_collection('moving_vars'))
+  all_refs &= ref_set(model_var_list)
 
   # Remove TPU embedding variables since TPU embedding doesn't support EMA.
   tpu_embedding_vars = (
@@ -67,8 +71,9 @@ def _VariablesForEMA(params, model_var_list):
     tf.logging.warning(
         'Detected TPU embedding variables, and EMA does not apply to them. '
         f'List of TPU embedding variables: {tpu_embedding_vars}.')
-    all_vars -= set(tpu_embedding_vars.Flatten())
+    all_refs -= ref_set(tpu_embedding_vars.Flatten())
 
+  all_vars = [v.deref() for v in all_refs]
   for var in all_vars:
     tf.logging.info('Variables for EMA: %s', var.name)
   return all_vars
