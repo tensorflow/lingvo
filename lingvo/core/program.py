@@ -466,6 +466,8 @@ class TrainProgram(BaseProgram):
         self._task.per_example_tensors, self._steps_per_loop,
         self.num_splits_per_client)
 
+    # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
+    # that the TPUEmbedding singleton is available.
     self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     # Get metric result from a single replica; they are all same here.
@@ -616,6 +618,9 @@ class EvalProgram(BaseProgram):
           TpuEvalLoopWrapper,
           num_shards=data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
+
+      # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
+      # that the TPUEmbedding singleton is available.
       self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
 
       # Get metric result from a single replica; they are all same here because
@@ -700,6 +705,10 @@ class DecodeProgram(BaseProgram):
         _DecodeFn,
         num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
+
+    # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
+    # that the TPUEmbedding singleton is available.
+    self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
 
     self.cpu_pt = self._task.input.DequeueCpuPassthrough()
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
@@ -820,6 +829,10 @@ class ExperimentalDecodeProgram(DecodeProgram):
         DecodeLoopFn,
         num_shards=self.data_parallelism,
         device_assignment=device_assignment)
+
+    # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
+    # that the TPUEmbedding singleton is available.
+    self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
 
     # Get a list of outfeed ops.
     self.decode_tensors = self._OutfeedDequeue()
