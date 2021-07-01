@@ -889,10 +889,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
     p.Define('xla_num_partitions', None,
              'Obsolete. Kept for backwards compatibility.')
-    p.Define(
-        'w_dtype', None,
-        'The data type of weight matrix w. If it is None, then it will '
-        'default to p.dtype.')
     return p
 
   def __init__(self, params):
@@ -944,9 +940,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     self.apply_compression = pruning_utils.ApplyCompression(p) and (
         p.input_dim > p.output_dim)
 
-    if p.w_dtype is None:
-      p.w_dtype = p.dtype
-
   def _GetBlockedMatMulInputOutputMultipliers(self):
     """Get number of input and output blocks."""
     p = self.params
@@ -987,13 +980,13 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       w_pc = py_utils.WeightParams(
           shape=[w_im * w_om, p.block_dim, p.block_dim],
           init=p.params_init,
-          dtype=p.w_dtype,
+          dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
     else:
       w_pc = py_utils.WeightParams(
           shape=[p.input_dim, p.output_dim],
           init=p.params_init,
-          dtype=p.w_dtype,
+          dtype=p.dtype,
           device_mesh=p.device_mesh,
           tensor_split_dims_mapping=p.weight_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
@@ -1176,10 +1169,13 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """
     p = self.params
     w = theta.w
-    # Cast w to p.dtype if w_dtype and dtype are different.
-    if p.w_dtype != p.dtype:
-      w = tf.cast(w, p.dtype)
     b = theta.b if p.has_bias else None
+    # Cast to fprop_dtype.
+    fprop_dtype = py_utils.FPropDtype(p)
+    if w.dtype != fprop_dtype:
+      w = tf.cast(w, fprop_dtype)
+    if b is not None and b.dtype != fprop_dtype:
+      b = tf.cast(b, fprop_dtype)
     if p.use_blocked_matmul:
       w = self._GetBlockedWeightMatrix(w)
       if p.weight_norm:
