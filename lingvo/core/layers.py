@@ -889,6 +889,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
     p.Define('xla_num_partitions', None,
              'Obsolete. Kept for backwards compatibility.')
+    p.Define('w_dtype', None, 'Obsolete. Kept for backwards compatibility.')
     return p
 
   def __init__(self, params):
