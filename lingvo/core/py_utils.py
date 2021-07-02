@@ -5802,41 +5802,48 @@ def ComputationShape(split_size, topology=None):
     computation_shape = [1, 1, 1, 1]
     computation_shape[topology_info.mesh_shape.tolist().index(
         split_size)] = split_size
-  elif split_size == 2:
-    computation_shape = [1, 1, 1, 2]
-  elif split_size == 4:
-    computation_shape = [1, 2, 1, 2]
-  elif split_size == 8:
-    computation_shape = [2, 2, 1, 2]
-  elif split_size == 16:
-    computation_shape = [4, 2, 1, 2]
-  elif split_size == 32:
-    computation_shape = [4, 4, 1, 2]
-  elif split_size == 64:
-    if topology and topology_info.mesh_shape[1] == 32:
-      # Fwd within-replica all-reduces is performed along column;
-      # Bwd gradient cross-replica all-reduces is performed along row.
-      # This currently has better performance than the strided patten.
-      computation_shape = [1, 32, 1, 2]
-    else:
-      computation_shape = [4, 8, 1, 2]
-  elif split_size == 128:
-    computation_shape = [8, 8, 1, 2]
-  elif split_size == 256:
-    computation_shape = [8, 16, 1, 2]
-  elif split_size == 512:
-    computation_shape = [16, 16, 1, 2]
-  elif split_size == 1024:
-    computation_shape = [16, 32, 1, 2]
-  elif split_size == 2048:
-    computation_shape = [32, 32, 1, 2]
-  elif split_size == 4096:
-    computation_shape = [64, 32, 1, 2]
-  elif split_size == 8192:
-    computation_shape = [128, 32, 1, 2]
   else:
-    assert False, ('Model parallelism with %d devices is currently not'
-                   ' supported.' % split_size)
+    if topology:
+      cores_per_chip = topology_info.mesh_shape[-1]
+    else:
+      cores_per_chip = 2
+    assert split_size % cores_per_chip == 0
+    split_chips = split_size // cores_per_chip
+    if split_chips == 1:
+      computation_shape = [1, 1, 1, cores_per_chip]
+    elif split_chips == 2:
+      computation_shape = [1, 2, 1, cores_per_chip]
+    elif split_chips == 4:
+      computation_shape = [2, 2, 1, cores_per_chip]
+    elif split_chips == 8:
+      computation_shape = [4, 2, 1, cores_per_chip]
+    elif split_chips == 16:
+      computation_shape = [4, 4, 1, cores_per_chip]
+    elif split_chips == 32:
+      if topology and topology_info.mesh_shape[1] == 32:
+        # Fwd within-replica all-reduces is performed along column;
+        # Bwd gradient cross-replica all-reduces is performed along row.
+        # This currently has better performance than the strided patten.
+        computation_shape = [1, 32, 1, cores_per_chip]
+      else:
+        computation_shape = [4, 8, 1, cores_per_chip]
+    elif split_chips == 64:
+      computation_shape = [8, 8, 1, cores_per_chip]
+    elif split_chips == 128:
+      computation_shape = [8, 16, 1, cores_per_chip]
+    elif split_chips == 256:
+      computation_shape = [16, 16, 1, cores_per_chip]
+    elif split_chips == 512:
+      computation_shape = [16, 32, 1, cores_per_chip]
+    elif split_chips == 1024:
+      computation_shape = [32, 32, 1, cores_per_chip]
+    elif split_chips == 2048:
+      computation_shape = [64, 32, 1, cores_per_chip]
+    elif split_chips == 4096:
+      computation_shape = [128, 32, 1, cores_per_chip]
+    else:
+      assert False, ('Model parallelism with %d devices is currently not'
+                     ' supported.' % split_size)
   assert computation_shape is not None
   return computation_shape
 
