@@ -78,6 +78,8 @@ class AsrModel(base_model.BaseTask):
       if not p.decoder.name:
         p.decoder.name = 'dec'
       self.CreateChild('decoder', p.decoder)
+    if getattr(p.input, 'skip_frontend', False):
+      p.frontend = None
     if p.frontend:
       self.CreateChild('frontend', p.frontend)
     self.CreateChild('decoder_metrics', self._DecoderMetricsParams())
