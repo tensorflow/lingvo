@@ -66,6 +66,11 @@ def Split(x,
   )
 
 
+def Replicate(x, use_sharding_op=True):
+  """Wrapper of xla_sharding.replicate."""
+  return xla_sharding.replicate(x, use_sharding_op=use_sharding_op)
+
+
 def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
   """Wrapper of xla_sharding.mesh_split()."""
   if (not py_utils_flags.use_tpu() or tensor_split_dims_mapping is None or

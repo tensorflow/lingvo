@@ -244,6 +244,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         in_mask = tf.equal(tf.range(num_stages), 0)
         stages_in = tf.where(in_mask, padded_input[i],  shifted_state)
         state = stage_parallel_body.FProp(theta.body, stages_in)
+
+  The body's FProp function takes arguments (theta, args, kwargs). It must
+  return the same structure as args, while kwargs are shared across all stages.
   """
 
   @classmethod
@@ -360,7 +363,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           'When using single_stage_body, non-trainable vars are only supported '
           'when per_stage_vars=False and shard_stages_1d=True.')
 
-  def BodyFProp(self, theta, *args):
+  def BodyFProp(self, theta, fn_name, *args, **kwargs):
     p = self.params
     wrappers = []
 
@@ -376,9 +379,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     def _BodyFProp(x):
       with self.TransformVarsTempContext(_WrapWithTracking):
         if p.per_stage_vars:
-          outs = self.body_iter_00000.FProp(x.theta, *x.args)
+          outs = getattr(self.body_iter_00000, fn_name)(x.theta, *x.args,
+                                                        **x.kwargs)
         else:
-          outs = self.body.FProp(x.theta, *x.args)
+          outs = getattr(self.body, fn_name)(x.theta, *x.args, **x.kwargs)
         if not wrappers:
           return outs, tf.zeros([], dtype=tf.int32)
         with tf.control_dependencies(
@@ -387,11 +391,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return outs, control_out
 
     if p.stage_parallel_body is not None:
-      return _BodyFProp(theta, *args)
+      return _BodyFProp(theta, *args, **kwargs)
 
     theta_args = py_utils.NestedMap(theta=theta, args=args)
 
     if p.shard_stages_1d:
+      # Each stage should have its own seed.
+      seeds = tf.stack([py_utils.GetIncStepSeed() for _ in range(p.num_stages)])
 
       def _ToManual(x):
         sharding = xla_sharding.Sharding.split(x, 0, p.num_stages)
@@ -400,6 +406,17 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return tf.squeeze(to_manual, 0)
 
       one_stage_theta_args = tf.nest.map_structure(_ToManual, theta_args)
+      py_utils.ResetStepSeed(_ToManual(seeds))
+
+      def _ToManualReplicate(x):
+        if x is None:
+          return None
+        sharding = xla_sharding.Sharding.replicate()
+        return xla_sharding.auto_to_manual_spmd_partition(
+            x, sharding.proto.SerializeToString())
+
+      one_stage_theta_args.kwargs = tf.nest.map_structure(
+          _ToManualReplicate, kwargs)
 
       # Wrap non-trainable vars with StackedVarWrapperWithManualSharding, in
       # case they are accessed directly in FProp (e.g., batch norm vars).
@@ -409,7 +426,11 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return var_tmp_wrappers.StackedVarWrapperWithManualSharding(v)
 
       with self.TransformVarsTempContext(_WrapWithManual):
-        one_stage_outputs, control_out = _BodyFProp(one_stage_theta_args)
+        # Step seed should be incremented by p.num_stages.
+        with py_utils.StepSeedIncrementContext(p.num_stages):
+          with py_utils.GlobalStepContext(
+              _ToManualReplicate(py_utils.GetGlobalStep())):
+            one_stage_outputs, control_out = _BodyFProp(one_stage_theta_args)
 
       def _ToAuto(x):
         full_shape = [p.num_stages] + x.shape
@@ -419,11 +440,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return xla_sharding.manual_to_auto_spmd_partition(
             x, sharding.proto.SerializeToString(), full_shape=full_shape)
 
+      # Reset step seed to the last stage's final seed.
+      py_utils.ResetStepSeed(_ToAuto(py_utils.GetStepSeed())[-1])
       return tf.nest.map_structure(_ToAuto, one_stage_outputs), control_out
 
     else:
       # TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped
       # auto-manual sharding conversion when it is available.
+      theta_args.kwargs = tf.nest.map_structure(
+          lambda x: tf.broadcast_to([p.num_stages] + x.shape), kwargs)
       return tf.vectorized_map(
           _BodyFProp, theta_args, fallback_to_while_loop=False)
 
@@ -436,7 +461,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     else:
       return self.body
 
-  def _unrolled_fprop(self, theta, *args):
+  def _unrolled_fprop(self, theta, *args, **kwargs):
     p = self.params
     fprop_inputs = args
     with tf.name_scope(p.name):
@@ -449,17 +474,21 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
             return t[idx]
 
           layer_theta = tf.nest.map_structure(_Slice, theta.body)
-        fprop_outputs = self._body.FProp(layer_theta, *fprop_inputs)
+        fprop_outputs = self._body.FProp(layer_theta, *fprop_inputs, **kwargs)
         fprop_outputs = _ToTuple(fprop_outputs)
         assert len(fprop_outputs) == len(fprop_inputs)
         fprop_inputs = fprop_outputs
       return fprop_outputs[0] if len(fprop_outputs) == 1 else fprop_outputs
 
-  def FProp(self, theta, *args):
+  def FProp(self, theta, *args, **kwargs):
+    return self.FPropFn(theta, 'FProp', *args, **kwargs)
+
+  def FPropFn(self, theta, fn_name, *args, **kwargs):
+    """Runs forward pass on a specified function."""
     p = self.params
 
     if p.unroll == 'always' or (self.do_eval and p.unroll == 'eval_only'):
-      return self._unrolled_fprop(theta, *args)
+      return self._unrolled_fprop(theta, *args, **kwargs)
 
     if p.per_stage_vars:
       all_iters = [theta['body_iter_%05d' % i] for i in range(p.num_stages)]
@@ -491,6 +520,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       num_microbatches = p.num_microbatches
 
       def _ToMicrobatches(x):
+        if x is None:
+          return None
         x_shape = py_utils.GetShape(x)
         assert x_shape[0] % p.num_microbatches == 0
         # We first put p.num_microbatches in the inner dimension then transpose
@@ -504,11 +535,17 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                             [1, 0] + list(range(2, len(reshaped.shape))))
 
       args = tf.nest.map_structure(_ToMicrobatches, args)
+      kwargs = tf.nest.map_structure(_ToMicrobatches, kwargs)
+
+    def _Replicate(x):
+      if x is None:
+        return None
+      return xla_sharding.replicate(x, use_sharding_op=True)
 
     if p.shard_stages_1d:
       # Replicate the input as the layer is only sharded on the stage dimension.
-      args = tf.nest.map_structure(
-          lambda x: xla_sharding.replicate(x, use_sharding_op=True), args)
+      args = tf.nest.map_structure(_Replicate, args)
+      kwargs = tf.nest.map_structure(_Replicate, kwargs)
 
       def _SplitStages(x):
         return gshard_utils.Split(x, 0, p.num_stages, use_sharding_op=True)
@@ -595,6 +632,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       assigns = tf.nest.map_structure(lambda v, s: v.assign(s),
                                       self._non_trainable_vars,
                                       state0.non_trainable_vars)
+      kwargs_offset = tf.minimum(state0.iteration, p.num_stages - 1)
+      kwargs_i = tf.nest.map_structure(
+          lambda x: None if x is None else x[kwargs_offset], kwargs)
       # Runs the actual body's FProp
       if assigns:
         # Group the dependencies int to a single no_op to avoid quadratic number
@@ -602,9 +642,11 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         with tf.control_dependencies(assigns):
           ctrl_before = tf.no_op()
         with tf.control_dependencies([ctrl_before]):
-          fprop_outputs, ctrl = self.BodyFProp(theta, *selected_inputs)
+          fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, *selected_inputs,
+                                               **kwargs_i)
       else:
-        fprop_outputs, ctrl = self.BodyFProp(theta, *selected_inputs)
+        fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, *selected_inputs,
+                                             **kwargs_i)
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(selected_inputs)
 
@@ -662,7 +704,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           cell_fn=_CellFn,
           extras={},
           allow_implicit_capture=p.allow_implicit_capture,
-          allowed_tensor_captures=self._non_trainable_vars,
+          allowed_tensor_captures=self._non_trainable_vars +
+          [arg for arg in py_utils.Flatten(kwargs) if arg is not None],
           backward_cleanup=(_RestoreVarsToFinal
                             if self._non_trainable_vars else None))
 
@@ -678,9 +721,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           output_tensors = tf.nest.map_structure(tf.identity, output_tensors)
 
       if p.shard_stages_1d:
-        output_tensors = tf.nest.map_structure(
-            lambda x: xla_sharding.replicate(x, use_sharding_op=True),
-            output_tensors)
+        output_tensors = tf.nest.map_structure(_Replicate, output_tensors)
       if p.num_microbatches is not None:
 
         def _ToBatches(x):

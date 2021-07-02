@@ -3377,6 +3377,20 @@ def DisableVN():
 # Step seed keyed by graph.
 _STEP_SEED_DICT = ThreadLocalDict()
 
+# The step seed will increment by np.prod(_STEP_SEED_INCREMENT.stack)
+_STEP_SEED_INCREMENT = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def StepSeedIncrementContext(step):
+  """Adds an element to _STEP_SEED_INCREMENT."""
+  assert step > 0, ('%s' % step)
+  _STEP_SEED_INCREMENT.stack.append(step)
+  try:
+    yield
+  finally:
+    _STEP_SEED_INCREMENT.stack.pop()
+
 
 def GetStepSeed():
   """Gets step_seed."""
@@ -3416,7 +3430,8 @@ def GetIncStepSeed():
   step_seed = GetStepSeed()
   # TODO(lepikhin): introduce a routine filling a queue of uint32 random seeds
   # independent of underlying PRNG used by tensorflow.
-  ResetStepSeed(step_seed + 1)
+  inc = np.prod(_STEP_SEED_INCREMENT.stack)
+  ResetStepSeed(step_seed + inc)
   return step_seed
 
 
