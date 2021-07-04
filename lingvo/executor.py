@@ -447,6 +447,7 @@ class ExecutorTpu(base_runner.BaseRunner):
 
         done = program_schedule.Run(sess)
         if (not self._ml_perf_log and
+            self.save_only_checkpointer.ShouldSave(global_step) and
             self.save_only_checkpointer.async_checkpointing):
           saver_future.wait()
 
