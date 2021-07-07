@@ -727,11 +727,11 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
                                                        embedding_table_vars)
 
     if not _ShouldUseTpu(p):
-      # We don't want to add this for TrainerTpu, otherwise the identity
-      # reference leads to copying the embedding to the TPU for no reason.
+      # We don't need this for TrainerTpu, as the vars are not directly
+      # accessed besides in the TPU embeddding load/retrieve ops.
       # However, this is needed for CPU (eval/decode/controller).
       self._private_vars['wm'] = embedding_table_vars
-      self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
+      self._private_theta['wm'] = embedding_table_vars
 
     # If slot variables and load/retrieve ops were created before, maybe by a
     # different program or task, don't create it again.
@@ -752,7 +752,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
   # Return device to place sharded variables on.
   def GetDeviceName(self, host_id):
     if self.do_eval:
-      return None
+      return '/cpu:0'
     else:
       return '{}/replica:0/task:{}/device:CPU:0'.format(
           self.cluster.params.worker.name, host_id)
