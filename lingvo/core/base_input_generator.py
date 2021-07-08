@@ -538,76 +538,127 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     num_tpu_hosts = self.cluster.num_tpu_hosts
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
-    if p.filter_sparse_tensors:
-      assert len(self._per_host_emb_batches) == num_infeed_hosts
-    else:
-      assert len(self._per_host_batches) == num_infeed_hosts
-
-    if num_tpu_hosts > 1 and tpu_embedding is not None:
-      if not p.use_per_host_infeed:
-        tf.logging.fatal(
-            'TPU Embedding must be used with per_host_infeed with multiple '
-            'TPU host topologies.')
+    input_batches = (
+        self._per_host_emb_batches
+        if p.filter_sparse_tensors else self._per_host_batches)
+    assert len(input_batches) == num_infeed_hosts
 
     enqueue_ops = []
-    for task_id in range(num_infeed_hosts):
-      host_device = '/task:{}/device:CPU:0'.format(task_id)
-      if p.filter_sparse_tensors:
-        batch = self._per_host_emb_batches[task_id]
-      else:
-        batch = self._per_host_batches[task_id]
+    if num_tpu_hosts > 1 and not p.use_per_host_infeed:
+      batch = input_batches[0]
       assert len(batch) == 1, "Tpu Embedding doesn't support sharded inputs."
-      batch = batch[0]
-      with tf.device(host_device):
-        tf.logging.info('host_device: %s, batch: %r', host_device, batch)
-        enqueue_ops += self.CreateTpuEmbeddingEnqueueOpsForHost(
-            tpu_embedding, batch, mode_override=mode_override)
+      with tf.device('/task:0/device:CPU:0'):
+        batch = self.PreprocessTpuEmbeddingInputBatch(batch[0])
+        # When not using per-host infeed, we use `self.tpu_number_of_shards`
+        # when splitting the inputs, so `num_tpu_hosts` is taken into account.
+        all_enqueue_data = self._GetTpuEmbeddingEnqueueData(
+            tpu_embedding, batch, self.tpu_number_of_shards)
+
+        # Translate replica index to (host_device, tpu_ordinal). The mechanism
+        # need to be the same as the one for other tpu infeed, so that the same
+        # split of tpu-embedding and non-tpu-embedding inputs are sent to the
+        # same core. See CreateTpuEnqueueOps() for more details.
+        num_cores_per_host = tpu_embedding.num_cores_per_host
+        enqueue_data_per_host = {}
+        device_assignment = py_utils.GetTpuDeviceAssignment()
+        for replica_index, per_replica_data in enumerate(all_enqueue_data):
+          host_device = device_assignment.host_device(replica=replica_index)
+          core = device_assignment.tpu_ordinal(replica=replica_index)
+          assert core < num_cores_per_host
+          if host_device not in enqueue_data_per_host:
+            enqueue_data_per_host[host_device] = [None] * num_cores_per_host
+          assert enqueue_data_per_host[host_device][core] is None
+          enqueue_data_per_host[host_device][core] = per_replica_data
+        assert len(enqueue_data_per_host) == num_tpu_hosts
+
+      for host_device, src_enqueue_data in enqueue_data_per_host.items():
+        with tf.device(host_device):
+          # TF's `TPUEmbedding` colocates the enqueue ops with the input
+          # tensors, so we add a tf.identity here to ensure they are copied to
+          # `host_device` before generating the enqueue ops.
+          dst_enqueue_data = [
+              {} for _ in range(tpu_embedding.num_cores_per_host)
+          ]
+          # src_enqueue_data is a list of dicts, one for each core.
+          for i, data_dict in enumerate(src_enqueue_data):
+            assert data_dict, src_enqueue_data
+            for key, data in data_dict.items():
+              dst_enqueue_data[i][key] = tpu_embedding_lib.EnqueueData(
+                  embedding_indices=tf.identity(data.embedding_indices),
+                  sample_indices=tf.identity(data.sample_indices)
+                  if data.sample_indices is not None else None,
+                  aggregation_weights=tf.identity(data.aggregation_weights)
+                  if data.aggregation_weights is not None else None)
+          tf.logging.info('host_device: %s, enqueue_data: %r', host_device,
+                          dst_enqueue_data)
+          enqueue_ops += tpu_embedding.generate_enqueue_ops(
+              dst_enqueue_data, mode_override=mode_override)
+    else:
+      assert tpu_embedding.num_cores_per_host == self.tpu_number_of_shards
+      for task_id in range(num_tpu_hosts):
+        host_device = '/task:{}/device:CPU:0'.format(task_id)
+        batch = input_batches[task_id]
+        assert len(batch) == 1, "Tpu Embedding doesn't support sharded inputs."
+        with tf.device(host_device):
+          batch = self.PreprocessTpuEmbeddingInputBatch(batch[0])
+          tf.logging.info('host_device: %s, batch: %r', host_device, batch)
+          enqueue_data = self._GetTpuEmbeddingEnqueueData(
+              tpu_embedding, batch, tpu_embedding.num_cores_per_host)
+          enqueue_ops += tpu_embedding.generate_enqueue_ops(
+              enqueue_data, mode_override=mode_override)
+
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
-  def CreateTpuEmbeddingEnqueueOpsForHost(self,
-                                          tpu_embedding,
-                                          input_batch,
-                                          mode_override=None):
-    """Hook for creating TPU embedding enqueue ops for a single host.
-
-    Used by CreateTpuEmbeddingEnqueueOps(). Override this method in input
-    generators to control how embedding inputs are enqueued onto TPU.
+  def _GetTpuEmbeddingEnqueueData(self, tpu_embedding, input_batch, num_splits):
+    """Get a list of per-core TPU embedding enqueue data.
 
     Args:
       tpu_embedding: The monolithic TpuEmbedding object.
-      input_batch: The input batch for this host.
-      mode_override: String to override TPU embedding mode. See
-        TPUEmbedding.generate_enqueue_ops()
+      input_batch: The input batch used to generate the enqueue data.
+      num_splits: The number of shards to split the inputs into in order to get
+        per-core inputs, before generating enqueue data.
 
     Returns:
-      A list of TPU Embedding enqueue ops.
+      A list of `num_splits` enqueue elements, where each element is a dict of
+      feature_name -> `tpu_embedding_lib.EnqueueData`.
     """
     assert isinstance(input_batch, py_utils.NestedMap)
     tpu_emb_input_keys = list(tpu_embedding.feature_to_config_dict.keys())
     tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
+    enqueue_data = [{} for _ in range(num_splits)]
 
-    num_cores_per_host = tpu_embedding.num_cores_per_host
-    enqueue_dict_per_core = [{} for _ in range(num_cores_per_host)]
+    # Get enqueue data for each replica.
     for key in tpu_emb_input_keys:
       feat = input_batch.GetItem(key)
-
       if isinstance(feat, tf.sparse.SparseTensor):
-        tpu_emb_feat_splitted = tf.sparse.split(
-            feat, num_cores_per_host, axis=0)
-        for core, split in enumerate(tpu_emb_feat_splitted):
-          enqueue_data = tpu_embedding_lib.EnqueueData.from_sparse_tensor(split)
-          enqueue_dict_per_core[core][key] = enqueue_data
+        tpu_emb_feat_splitted = tf.sparse.split(feat, num_splits, axis=0)
+        for i, split in enumerate(tpu_emb_feat_splitted):
+          enqueue_data[i][key] = (
+              tpu_embedding_lib.EnqueueData.from_sparse_tensor(split))
       else:
-        tpu_emb_feat_splitted = tf.split(feat, num_cores_per_host)
-        for core, split in enumerate(tpu_emb_feat_splitted):
+        tpu_emb_feat_splitted = tf.split(feat, num_splits)
+        for i, split in enumerate(tpu_emb_feat_splitted):
           # Dense to sparse. Note the assumption of a padding id.
           sample_indices = tf.where(tf.not_equal(split, -1))
           embedding_indices = tf.gather_nd(split, sample_indices)
-          enqueue_data = tpu_embedding_lib.EnqueueData(embedding_indices,
-                                                       sample_indices)
-          enqueue_dict_per_core[core][key] = enqueue_data
-    return tpu_embedding.generate_enqueue_ops(
-        enqueue_dict_per_core, mode_override=mode_override)
+          enqueue_data[i][key] = tpu_embedding_lib.EnqueueData(
+              embedding_indices, sample_indices)
+    return enqueue_data
+
+  def PreprocessTpuEmbeddingInputBatch(self, input_batch):
+    """Hook to manipulate the TPU embedding input batch.
+
+    Used by CreateTpuEmbeddingEnqueueOps(). Override this method in input
+    generators to preprocess the TPU embedding inputs before using them to
+    generate enqueue ops.
+
+    Args:
+      input_batch: The input batch to process.
+
+    Returns:
+      The preprocessed TPU embedding input batch.
+    """
+    return input_batch
 
   def GetCpuPassthroughKeys(self):
     """Return a list of keys from the input to skip sending to the device.
