@@ -300,6 +300,7 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
         batch_eqn = eqn_sym[:(rank - 1)] if rank else '...'
         eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
         out_feature_axis = (-2, -1)
+      theta = theta.Transform(lambda x: tf.cast(x, py_utils.FPropDtype(p)))
       inputs, w = self.ToAqtInputs(
           'aqt_w', act=inputs, weight=theta.w, w_feature_axis=out_feature_axis)
       ret = tf.einsum(eqn, inputs, w)

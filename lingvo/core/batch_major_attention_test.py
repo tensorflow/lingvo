@@ -207,16 +207,24 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertEqual(result_np.shape, tuple(batch_sizes + [model_dims]))
 
-  def testMultiHeadedAttentionDotProduct(self):
+  @parameterized.named_parameters(
+      # Use the default data types.
+      ('dtype_default', [], 1e-06),
+      # Set the post projection matrix to float16.
+      ('dtype_post_float16', [('.*post/w', tf.float16)], 1e-04),
+      # Set the 4 weight matrices, query, key, value and post, to float16.
+      ('dtype_all_float16', [('.*w', tf.float16)], 1e-04))
+  def testMultiHeadedAttentionDotProduct(self, list_regex_dtypes, atol):
     # input_batch:6, seq_len:6. Test n = 2 case.
     with self.session(use_gpu=True) as sess:
       input_vecs, input_padding, _, _ = self._AttentionInputs()
       p = attention.MultiHeadedAttention.Params().Set(
           name='self_atten', num_heads=2, input_dim=4, hidden_dim=4)
 
-      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
-
-      l = p.Instantiate()
+      # Use Gaussian() to have consistent init values for float32 and float16.
+      p.params_init = py_utils.WeightInit.Gaussian(0.1)
+      with py_utils.VariableListDtypeRegexScope(list_regex_dtypes):
+        l = p.Instantiate()
       tf.global_variables_initializer().run()
       ctx_vec, _ = l.FProp(
           l.theta,
@@ -228,8 +236,9 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       context_vec_out = sess.run(ctx_vec)
       context_vec_out = np.reshape(context_vec_out, (6, 24))
       self.assertAllClose(
-          [27.417763, 31.783672, 19.99568, 23.907103, 21.078259, 28.429199],
-          np.sum(context_vec_out, axis=1))
+          [-0.091584, 0.133402, 0.036773, -0.033578, 0.097802, 0.047879],
+          np.sum(context_vec_out, axis=1),
+          atol=atol)
 
   def testMultiHeadedCrossAttentionDotProduct(self):
     with self.session(use_gpu=True) as sess:
