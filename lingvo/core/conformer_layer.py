@@ -766,7 +766,9 @@ class ConformerLayer(base_layer.BaseLayer):
     p = self.params
     fflayer_tpl = fflayer_tpl.Copy()
     if not issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
-      return fflayer_tpl.Set(input_dim=p.input_dim)
+      if hasattr(fflayer_tpl, 'input_dim'):
+        fflayer_tpl.Set(input_dim=p.input_dim)
+      return fflayer_tpl
     # TODO(rpang): migrate clients to TransformerShardedMoeLayer.
     fflayer_tpl.model_dim = p.input_dim
     moe_builder = fflayer_tpl.Instantiate()

@@ -205,7 +205,6 @@ py_library(
         ":layers_with_attention",
         ":py_utils",
         ":recurrent",
-        ":symbolic",
         "//lingvo:compat",
     ],
 )

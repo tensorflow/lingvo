@@ -19,6 +19,8 @@ from unittest import mock
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
+from lingvo.core import gshard_builder
+from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
@@ -421,6 +423,64 @@ class AsrModelTest(test_utils.TestCase):
     res1, res2 = Run(1), Run(2)
     self.assertAllClose(res1[0], res2[0])
     self.assertAllEqual(res1[1], res2[1])
+
+  def testFrontendAndEncoderFPropWithAuxLoss(self):
+
+    class DummyAsrEncoder(base_layer.BaseLayer):
+      """Speech encoder with aux loss."""
+
+      @classmethod
+      def Params(cls):
+        p = super().Params()
+        p.Define('proj', None, 'MoE network')
+        p.Define('input_shape', [2, 16, 8, 1],
+                 'Shape of the input. This should a TensorShape with rank 4.')
+        return p
+
+      def __init__(self, params):
+        super().__init__(params)
+        p = self.params
+        self.CreateChild('proj', p.proj)
+
+      @property
+      def input_shape(self):
+        return self.params.input_shape
+
+      def zero_state(self, theta, batch_size):
+        return py_utils.NestedMap()
+
+      def FProp(self, theta, batch, state0=None):
+        p = self.params
+        inputs, paddings = batch.src.src_inputs, batch.src.paddings
+        outputs = py_utils.NestedMap()
+        with tf.name_scope(p.name):
+          inputs = inputs[:, :, :, 0]
+          encoded = self.proj.FProp(theta.proj, inputs, paddings)
+          outputs['encoded'] = encoded
+          outputs['padding'] = paddings
+          return outputs
+
+    with self.session():
+      # Construct a network that adds aux loss.
+      p = self._testParams()
+      moe_builder = gshard_builder.MoEBuilder.Params().Set(
+          num_devices=2,
+          num_groups=2,
+          e_dim=2,
+          c_dim=2,
+          model_dim=8,
+          dropout_rate=0,
+          moe_hidden_dim=8,
+          moe_activation='SWISH')
+      moe_ff = layers_with_attention.MoEFeedforwardLayer.Params().Set(
+          moe_builder_p=moe_builder)
+      p.encoder = DummyAsrEncoder.Params().Set(proj=moe_ff)
+      p.input.source_shape = p.encoder.input_shape
+      mdl = p.Instantiate()
+      input_batch = mdl.input.GetPreprocessedInputBatch()
+      encoder_outputs = mdl.FrontendAndEncoderFProp(mdl.theta, input_batch)
+      self.assertIn('encoded', encoder_outputs)
+      self.assertIn('aux_loss', encoder_outputs)
 
   def testComputePredictions(self):
     with self.session():

@@ -1085,7 +1085,7 @@ class OverrideLayer(base_layer.BaseLayer):
 
 
 class ReshapeInputLayer(base_layer.BaseLayer):
-  """Reshape input only for training."""
+  """Reshape input for MoE for training or using TPU."""
 
   @classmethod
   def Params(cls):
@@ -1101,17 +1101,19 @@ class ReshapeInputLayer(base_layer.BaseLayer):
   def FProp(self, unused_theta, inputs, segment_id):
     p = self.params
     paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
-    orig_inputs = inputs
-    # input size in tokens
-    input_size = (
-        py_utils.GetShape(orig_inputs)[0] * py_utils.GetShape(orig_inputs)[1])
-    group_size = input_size // p.num_groups
-    model_dims = p.model_dims or [orig_inputs.shape[-1]]
-    inputs = tf.reshape(
-        orig_inputs, [p.num_groups, group_size] + model_dims,
-        name='grouped_inputs')
-    if p.num_devices > 1:
-      inputs = gshard_utils.Split(inputs, 0, p.num_devices)
+    # Only reshape for tpu.
+    if py_utils.use_tpu() or not self.do_eval:
+      orig_inputs = inputs
+      # input size in tokens
+      input_size = (
+          py_utils.GetShape(orig_inputs)[0] * py_utils.GetShape(orig_inputs)[1])
+      group_size = input_size // p.num_groups
+      model_dims = p.model_dims or [orig_inputs.shape[-1]]
+      inputs = tf.reshape(
+          orig_inputs, [p.num_groups, group_size] + model_dims,
+          name='grouped_inputs')
+      if p.num_devices > 1:
+        inputs = gshard_utils.Split(inputs, 0, p.num_devices)
     paddings = tf.reshape(paddings, py_utils.GetShape(inputs)[:2])
     return inputs, paddings
 
