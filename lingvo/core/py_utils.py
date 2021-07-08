@@ -3897,7 +3897,8 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
       Assert(
           tf.reduce_all(
               tf.math.logical_or(
-                  tf.equal(padding, 0.0), tf.equal(padding, 1.0))), [padding])
+                  tf.equal(padding, tf.zeros([], padding.dtype)),
+                  tf.equal(padding, tf.ones([], padding.dtype)))), [padding])
   ], padding)
   if use_select:
     if padded is None:
