@@ -75,7 +75,7 @@ def _VariablesForEMA(params, model_var_list):
 
   all_vars = [v.deref() for v in all_refs]
   for var in all_vars:
-    tf.logging.info('Variables for EMA: %s', var.name)
+    tf.logging.debug('Variables for EMA: %s', var.name)
   return all_vars
 
 

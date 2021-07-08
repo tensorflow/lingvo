@@ -378,9 +378,9 @@ class InferenceGraphExporter:
       else:
         _DisablePackedInput(model_cfg.task)
 
-    tf.logging.info('Model %s params:', model_cfg.name)
+    tf.logging.debug('Model %s params:', model_cfg.name)
     for line in model_cfg.ToText().split('\n'):
-      tf.logging.info('%s', line)
+      tf.logging.debug('%s', line)
 
     # Instantiate the graph.
     graph = tf.Graph()
