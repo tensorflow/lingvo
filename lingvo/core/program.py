@@ -555,13 +555,7 @@ class TrainProgram(BaseProgram):
 
 
 class EvalProgram(BaseProgram):
-  """Evaluation program.
-
-  Note that this currently has different infeed semantics compared to
-  the existing Evaler as the input generator is not recreated
-  per-eval. Thus different random samples are selected each
-  evaluation.
-  """
+  """Evaluation program."""
 
   def __init__(self, params, shared_model=None, **kwargs):
     super().__init__(params, shared_model=shared_model, **kwargs)
@@ -671,13 +665,7 @@ def _FetchDecodeOut(sess, decode_tensors, cpu_passthrough_tensors):
 
 
 class DecodeProgram(BaseProgram):
-  """DecodeProgram.
-
-  Note that this currently has different infeed semantics compared to
-  the existing Decoder as the input generator is not recreated
-  per-eval. Thus different random samples are selected each
-  decoder run.
-  """
+  """DecodeProgram."""
 
   def __init__(self, params, shared_model=None, **kwargs):
     super().__init__(params, shared_model=shared_model, **kwargs)
