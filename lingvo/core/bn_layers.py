@@ -249,6 +249,7 @@ class BatchNormLayer(base_layer.BaseLayer):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
+
     Returns:
       Tuple of (mean, variance, beta, gamma).
     """
@@ -675,8 +676,8 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     with tf.name_scope(p.name) as scope:
       if self.do_eval:
         outputs = tf.nn.batch_normalization(inputs, theta.moving_mean,
-                                            theta.moving_variance,
-                                            theta.beta, theta.gamma, p.epsilon)
+                                            theta.moving_variance, theta.beta,
+                                            theta.gamma, p.epsilon)
       else:
         mean, variance = self._Moments(inputs, p.bn_group_size)
         mean = py_utils.CheckNumerics(
@@ -905,8 +906,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'cached_sum: %r', cached_sum)
     tf.logging.vlog(1, 'cached_count: %r', cached_count)
 
-    mask = tf.cast(1.0 - paddings, inputs.dtype)
-    inputs *= tf.cast(mask, inputs.dtype)
+    inputs = py_utils.ApplyPadding(paddings, inputs, use_select=False)
 
     input_rank = py_utils.GetRank(inputs)
     assert input_rank is not None, (f'inputs rank must be staic for '
@@ -922,6 +922,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     sum_v += cached_sum
 
     # [B, T, 1, 1, 1] or [B, T, 1, 1]
+    mask = tf.cast(1.0 - paddings, inputs.dtype)
     count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=True)
     count_v = tf.math.cumsum(count_v, axis=1)
     input_shape = py_utils.GetShape(inputs)
@@ -946,12 +947,15 @@ class GroupNormLayer(base_layer.BaseLayer):
       else:
         tiled_mean = tf.tile(mean, [1, 1, inputs_shape[2], 1, inputs_shape[4]])
       sum_vv = tf.reduce_sum(
-          tf.math.square(inputs - tiled_mean) * mask,
+          py_utils.ApplyPadding(
+              paddings, tf.math.square(inputs - tiled_mean), use_select=False),
           reduce_over_dims,
           keepdims=True)
     else:
       sum_vv = tf.reduce_sum(
-          (inputs - mean)**2 * mask, reduce_over_dims, keepdims=True)
+          py_utils.ApplyPadding(paddings, (inputs - mean)**2, use_select=False),
+          reduce_over_dims,
+          keepdims=True)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
     sum_vv += cached_var
 
