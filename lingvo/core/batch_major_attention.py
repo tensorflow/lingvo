@@ -2484,12 +2484,12 @@ class LocalSelfAttention(MultiHeadedAttention):
             tf.cast(expanded_state_paddings, tf.bool),
             tf.cast(local_atten_per_step_paddings, tf.bool))
         # [B, Q, 1, T]
-        final_paddings = tf.expand_dims(
-            tf.cast(final_paddings, logits.dtype), axis=2)
+        final_paddings = tf.expand_dims(final_paddings, axis=2)
 
       # [B, Q, N, T]
-      logits = logits * (1 -
-                         final_paddings) + very_negative_logits * final_paddings
+      logits = py_utils.ApplyPadding(final_paddings, logits,
+                                     very_negative_logits)
+
       # [B, Q, N, T]
       posteriors = py_utils.Softmax(
           logits, axis=-1, extra_logit=p.atten_extra_logit)
