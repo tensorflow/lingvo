@@ -26,7 +26,6 @@ from lingvo.core import py_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
 
-
 ActivationLayer = activations.ActivationLayer
 
 
@@ -87,7 +86,7 @@ def ComputeConvOutputPadding(paddings,
     stride: The time-stride between adjacent windows.
     padding_algorithm: 'SAME' or 'VALID'.
     v2_padding: Prefer setting to True. The default implementation is buggy for
-    strided convolutions.
+      strided convolutions.
 
   Returns:
     out_padding, The new padding tensor of size [batch, ceil(time / stride)].
@@ -705,9 +704,10 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
       paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
       q = py_utils.GetShape(paddings)[1]
 
-      concat_inputs = tf.concat(
-          [state0.context, inputs * (1 - py_utils.AppendDims(paddings, 2))],
-          axis=1)
+      padded_inputs = py_utils.ApplyPadding(
+          py_utils.AppendDims(paddings, 2), inputs)
+
+      concat_inputs = tf.concat([state0.context, padded_inputs], axis=1)
       outputs = tf.nn.depthwise_conv2d(
           concat_inputs,
           self._GetWeight(theta),
