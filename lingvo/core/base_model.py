@@ -55,10 +55,12 @@ def _VariablesForEMA(params, model_var_list):
   # Use variable reference since variable is not hashable in eager mode.
   ref_set = lambda variables: set([v.ref() for v in variables])
 
+  trainable_variables = [var for var in model_var_list if var.trainable]
+
   # We need to apply EMA to trainable and moving average variable of the task,
   # not just bprop vars, so that we create a shadow '/ExponentialMovingAverage'
   # variable for every trainable and moving average variable.
-  all_refs = ref_set(tf.trainable_variables()) | ref_set(
+  all_refs = ref_set(trainable_variables) | ref_set(
       tf.moving_average_variables())
   if params.train.ema_decay_moving_vars:
     all_refs |= ref_set(tf.get_collection('moving_vars'))
