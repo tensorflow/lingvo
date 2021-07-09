@@ -3858,13 +3858,13 @@ def PadSequenceTo(xs, padding, length, pad_val):
     return tuple(res), padding
 
 
-def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
+def ApplyPadding(padding, x, padded=None, use_select=True):
   """Applies padding to a tensor.
 
   This is preferable to using arithmetic means for masking out padded values
   such as::
 
-      # Equiv to ApplyPadding(padding, x))
+      # Equiv to ApplyPadding(padding, x)
       x *= 1.0 - padding
       # Equiv to ApplyPadding(padding, new, old)
       new = old * padding + new * (1 - padding)
@@ -3881,10 +3881,7 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
     padding: Tensor of padding values where 0 == keep and 1 == pad.
     x: Tensor to apply padding to.
     padded: Optional. Values to include for padded elements. Defaults to zeros.
-      Must be the same shape as 'x' if specified.
-    broadcast: Whether to broadcast the padding shape to the shape of 'x'. You
-      almost certainly want this to be true as it matches how padding would be
-      expanded if applied arithmetically.
+      Must have a shape broadcastable to 'x' if specified.
     use_select: Controls whether padding is applied with a select-mask
       (True/default) or arithmetically (False). Some platforms have a
       sensitivity to one or the other and this is used to work around such
@@ -3902,11 +3899,9 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
   ], padding)
   if use_select:
     if padded is None:
-      padded = tf.zeros_like(x)
-    if broadcast:
-      # Broadcast padding to the full shape.
-      padding = tf.cast(padding, x.dtype) * tf.ones_like(x)
-    return tf.where(padding > tf.zeros_like(padding), padded, x)
+      padded = tf.zeros([], x.dtype)
+    result = tf.where_v2(padding > tf.zeros([], padding.dtype), padded, x)
+    return tf.ensure_shape(result, x.shape)
   else:
     result = x * tf.cast(1.0 - padding, x.dtype)
     if padded is not None:
