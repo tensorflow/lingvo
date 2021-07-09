@@ -363,7 +363,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           'When using single_stage_body, non-trainable vars are only supported '
           'when per_stage_vars=False and shard_stages_1d=True.')
 
-  def BodyFProp(self, theta, fn_name, *args, **kwargs):
+  def BodyFProp(self, theta, fn_name, iteration, *args, **kwargs):
     p = self.params
     wrappers = []
 
@@ -409,14 +409,23 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       py_utils.ResetStepSeed(_ToManual(seeds))
 
       def _ToManualReplicate(x):
-        if x is None:
-          return None
+        if not isinstance(x, (tf.Operation, tf.Tensor)):
+          return x
         sharding = xla_sharding.Sharding.replicate()
         return xla_sharding.auto_to_manual_spmd_partition(
             x, sharding.proto.SerializeToString())
 
-      one_stage_theta_args.kwargs = tf.nest.map_structure(
-          _ToManualReplicate, kwargs)
+      stage_id = _ToManual(tf.range(p.num_stages))
+      microbatch_id = tf.maximum(
+          _ToManualReplicate(iteration) - stage_id,
+          _ToManualReplicate(tf.zeros([], dtype=stage_id.dtype)))
+
+      def _KwargSlice(x):
+        if not isinstance(x, (tf.Operation, tf.Tensor)):
+          return x
+        return _ToManualReplicate(x)[microbatch_id]
+
+      one_stage_theta_args.kwargs = tf.nest.map_structure(_KwargSlice, kwargs)
 
       # Wrap non-trainable vars with StackedVarWrapperWithManualSharding, in
       # case they are accessed directly in FProp (e.g., batch norm vars).
@@ -447,8 +456,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     else:
       # TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped
       # auto-manual sharding conversion when it is available.
-      theta_args.kwargs = tf.nest.map_structure(
-          lambda x: tf.broadcast_to([p.num_stages] + x.shape), kwargs)
+      def _AssertNotTensor(x):
+        if not isinstance(x, (tf.Operation, tf.Tensor)):
+          return x
+        raise NotImplementedError(
+            'kwargs only supported with shard_stages_1d=True')
+
+      theta_args.kwargs = tf.nest.map_structure(_AssertNotTensor, kwargs)
       return tf.vectorized_map(
           _BodyFProp, theta_args, fallback_to_while_loop=False)
 
@@ -520,8 +534,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       num_microbatches = p.num_microbatches
 
       def _ToMicrobatches(x):
-        if x is None:
-          return None
+        if not isinstance(x, (tf.Operation, tf.Tensor)):
+          return x
         x_shape = py_utils.GetShape(x)
         assert x_shape[0] % p.num_microbatches == 0
         # We first put p.num_microbatches in the inner dimension then transpose
@@ -538,8 +552,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       kwargs = tf.nest.map_structure(_ToMicrobatches, kwargs)
 
     def _Replicate(x):
-      if x is None:
-        return None
+      if not isinstance(x, (tf.Operation, tf.Tensor)):
+        return x
       return xla_sharding.replicate(x, use_sharding_op=True)
 
     if p.shard_stages_1d:
@@ -560,8 +574,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     # Inputs are not the loop state: they are not changed during the loop. The
     # state (shifting buffer) does not have a num_microbatches dimension.
     def _PadInput(inp):
-      if inp is None:
-        return None
+      if not isinstance(inp, (tf.Operation, tf.Tensor)):
+        return inp
       # Takes input tensor of shape [num_microbatches, ...] and returns padded
       # tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],
       # where num_stages is a new dimension.
@@ -632,21 +646,17 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       assigns = tf.nest.map_structure(lambda v, s: v.assign(s),
                                       self._non_trainable_vars,
                                       state0.non_trainable_vars)
-      kwargs_offset = tf.minimum(state0.iteration, p.num_stages - 1)
-      kwargs_i = tf.nest.map_structure(
-          lambda x: None if x is None else x[kwargs_offset], kwargs)
-      # Runs the actual body's FProp
       if assigns:
         # Group the dependencies int to a single no_op to avoid quadratic number
         # of control edges.
         with tf.control_dependencies(assigns):
           ctrl_before = tf.no_op()
         with tf.control_dependencies([ctrl_before]):
-          fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, *selected_inputs,
-                                               **kwargs_i)
+          fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
+                                               *selected_inputs, **kwargs)
       else:
-        fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, *selected_inputs,
-                                             **kwargs_i)
+        fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
+                                             *selected_inputs, **kwargs)
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(selected_inputs)
 
@@ -704,8 +714,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           cell_fn=_CellFn,
           extras={},
           allow_implicit_capture=p.allow_implicit_capture,
-          allowed_tensor_captures=self._non_trainable_vars +
-          [arg for arg in py_utils.Flatten(kwargs) if arg is not None],
+          allowed_tensor_captures=self._non_trainable_vars + [
+              x for x in py_utils.Flatten(kwargs)
+              if isinstance(x, (tf.Operation, tf.Tensor))
+          ],
           backward_cleanup=(_RestoreVarsToFinal
                             if self._non_trainable_vars else None))
 
