@@ -3900,10 +3900,12 @@ def ApplyPadding(padding, x, padded=None, use_select=True):
   if use_select:
     if padded is None:
       padded = tf.zeros([], x.dtype)
-    result = tf.where_v2(padding > tf.zeros([], padding.dtype), padded, x)
+    if padding.dtype != tf.bool:
+      padding = padding > tf.zeros([], padding.dtype)
+    result = tf.where_v2(padding, padded, x)
     return tf.ensure_shape(result, x.shape)
   else:
-    result = x * tf.cast(1.0 - padding, x.dtype)
+    result = x * tf.cast(1.0 - tf.cast(padding, tf.float32), x.dtype)
     if padded is not None:
       result += padded * tf.cast(padding, padded.dtype)
     return result
