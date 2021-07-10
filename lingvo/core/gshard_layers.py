@@ -247,6 +247,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
   The body's FProp function takes arguments (theta, args, kwargs). It must
   return the same structure as args, while kwargs are shared across all stages.
+
+  Additionally, FPropFn can take run a specified function of the body, and it
+  can have per-stage inputs/outputs that are modeled as padded_per_stage_states.
+  These states must be padded (for bubbles) before calling this function using
+  PadMicrobatches(), and have shapes [num_microbatches + num_stages - 1,
+  num_stages, ...]. This allows a typical use case, decoding, to avoid data
+  formatting inside the decoding loop. Note that the bubble iterations are
+  located at different offsets across stages and will not be removed, so use
+  this only when the state is not used outside thie pipelined layers.
   """
 
   @classmethod
@@ -263,8 +272,14 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         'single_stage_body', None,
         'The param for a single stage, which will be automatically vectorized '
         'into a stage-parallel computation.')
+    # Only one of num_microbatches and microbatch_size is needed when the input
+    # needs microbatching.
     p.Define(
         'num_microbatches', None,
+        'If not None, the input is not yet microbatched, and will be reshaped '
+        'to [num_microbatches, microbatch_size] here.')
+    p.Define(
+        'microbatch_size', None,
         'If not None, the input is not yet microbatched, and will be reshaped '
         'to [num_microbatches, microbatch_size] here.')
     p.Define(
@@ -400,6 +415,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       seeds = tf.stack([py_utils.GetIncStepSeed() for _ in range(p.num_stages)])
 
       def _ToManual(x):
+        if not isinstance(x, (tf.Operation, tf.Tensor)):
+          return x
         sharding = xla_sharding.Sharding.split(x, 0, p.num_stages)
         to_manual = xla_sharding.auto_to_manual_spmd_partition(
             x, sharding.proto.SerializeToString())
@@ -442,6 +459,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
             one_stage_outputs, control_out = _BodyFProp(one_stage_theta_args)
 
       def _ToAuto(x):
+        if not isinstance(x, (tf.Operation, tf.Tensor)):
+          return x
         full_shape = [p.num_stages] + x.shape
         sharding = xla_sharding.Sharding.split(
             None, 0, p.num_stages, input_shape=full_shape)
@@ -495,9 +514,23 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       return fprop_outputs[0] if len(fprop_outputs) == 1 else fprop_outputs
 
   def FProp(self, theta, *args, **kwargs):
-    return self.FPropFn(theta, 'FProp', *args, **kwargs)
+    return self.FPropFn(
+        theta, 'FProp', *args, padded_per_stage_states=[], **kwargs)
 
-  def FPropFn(self, theta, fn_name, *args, **kwargs):
+  def PadMicrobatches(self, inp):
+    """Pads a microbatched input for bubble iterations."""
+    p = self.params
+    if not isinstance(inp, (tf.Operation, tf.Tensor)):
+      return inp
+    padding = [[0, 0]] * len(inp.shape)
+    padding[0] = [0, p.num_stages - 1]
+    padded = tf.pad(inp, padding)
+    if p.shard_stages_1d:
+      padded = gshard_utils.Split(padded, 1, p.num_stages, use_sharding_op=True)
+
+    return padded
+
+  def FPropFn(self, theta, fn_name, *args, padded_per_stage_states, **kwargs):
     """Runs forward pass on a specified function."""
     p = self.params
 
@@ -528,23 +561,31 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     else:
       theta_body = theta.body
 
+    needs_microbatching = False
     if p.num_microbatches is None:
       num_microbatches = py_utils.Flatten(args)[0].get_shape().as_list()[0]
+      if p.microbatch_size is not None:
+        batch_size = num_microbatches
+        assert batch_size % p.microbatch_size == 0
+        num_microbatches = batch_size // p.microbatch_size
+        needs_microbatching = True
     else:
       num_microbatches = p.num_microbatches
+      needs_microbatching = True
+
+    if needs_microbatching:
 
       def _ToMicrobatches(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
           return x
         x_shape = py_utils.GetShape(x)
-        assert x_shape[0] % p.num_microbatches == 0
-        # We first put p.num_microbatches in the inner dimension then transpose
+        assert x_shape[0] % num_microbatches == 0
+        # We first put num_microbatches in the inner dimension then transpose
         # it. This allows the sharding on the batch (if any) to be propagated
         # to the microbatch dimension. We cannot shard the num_microbatches
         # dimension, since it's indexed by the loop iteration.
         reshaped = tf.reshape(
-            x, [x_shape[0] // p.num_microbatches, p.num_microbatches] +
-            x_shape[1:])
+            x, [x_shape[0] // num_microbatches, num_microbatches] + x_shape[1:])
         return tf.transpose(reshaped,
                             [1, 0] + list(range(2, len(reshaped.shape))))
 
@@ -621,8 +662,12 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                               shapes[idx])
       return arg_list
 
-    def _CellFn(theta, state0, inputs):
+    def _CellFn(theta, state0, inputs_and_per_stage_states):
       """Recurrent cell function wrapper of body.FProp."""
+      inputs = inputs_and_per_stage_states.inputs
+      per_stage_states = inputs_and_per_stage_states.per_stage_states
+      tf.nest.map_structure(lambda x, y: x.set_shape(y.shape[1:]),
+                            per_stage_states, padded_per_stage_states)
 
       def _SelectInput(state, inp):
         # The state is aligned to previous stage. We shift it to the right by 1
@@ -653,16 +698,19 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           ctrl_before = tf.no_op()
         with tf.control_dependencies([ctrl_before]):
           fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
-                                               *selected_inputs, **kwargs)
+                                               *selected_inputs,
+                                               *per_stage_states, **kwargs)
       else:
         fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
-                                             *selected_inputs, **kwargs)
+                                             *selected_inputs,
+                                             *per_stage_states, **kwargs)
       fprop_outputs = _ToTuple(fprop_outputs)
-      assert len(fprop_outputs) == len(selected_inputs)
+      assert len(fprop_outputs) == len(selected_inputs) + len(per_stage_states)
 
       # Passes fprop outputs to the next layer through state.
       state1 = py_utils.NestedMap(
-          args=_ArgsToState(fprop_outputs),
+          args=_ArgsToState(fprop_outputs[:len(selected_inputs)]),
+          per_stage_states=list(fprop_outputs[len(selected_inputs):]),
           iteration=state0.iteration + tf.constant(1, dtype=tf.int32))
 
       # Pass state0.non_trainable_vars or updated values depending on whether
@@ -693,6 +741,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       # Add FProp arg list to state0.
       state0 = py_utils.NestedMap(
           args=tf.nest.map_structure(_CreateInitState, inputs_nmap),
+          per_stage_states=tf.nest.map_structure(_CreateInitState,
+                                                 padded_per_stage_states),
           iteration=tf.constant(0, dtype=tf.int32),
           non_trainable_vars=tf.nest.map_structure(tf.identity,
                                                    self._non_trainable_vars))
@@ -710,7 +760,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       accum, outputs = recurrent.Recurrent(
           theta=theta_body,
           state0=state0,
-          inputs=inputs_nmap,
+          inputs=py_utils.NestedMap(
+              inputs=inputs_nmap, per_stage_states=padded_per_stage_states),
           cell_fn=_CellFn,
           extras={},
           allow_implicit_capture=p.allow_implicit_capture,
@@ -728,22 +779,27 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       final_non_trainable_var_values = outputs.non_trainable_vars
       output_tensors = tf.nest.map_structure(
           _ExtractLastStage, _StateToArgs(accum.args, padded_shapes))
+      output_per_stage_states = accum.per_stage_states
       if self._non_trainable_vars:
         with tf.control_dependencies(_RestoreVarsToFinal()):
           output_tensors = tf.nest.map_structure(tf.identity, output_tensors)
+          output_per_stage_states = tf.nest.map_structure(
+              tf.identity, output_per_stage_states)
 
       if p.shard_stages_1d:
         output_tensors = tf.nest.map_structure(_Replicate, output_tensors)
-      if p.num_microbatches is not None:
+      if needs_microbatching:
 
         def _ToBatches(x):
           x_shape = py_utils.GetShape(x)
           transposed = tf.transpose(x, [1, 0] + list(range(2, len(x_shape))))
           return tf.reshape(transposed,
-                            [p.num_microbatches * x_shape[1]] + x_shape[2:])
+                            [num_microbatches * x_shape[1]] + x_shape[2:])
 
         output_tensors = tf.nest.map_structure(_ToBatches, output_tensors)
-      return output_tensors[0] if len(args) == 1 else tuple(output_tensors)
+      output_tensors += output_per_stage_states
+      return output_tensors[0] if len(output_tensors) == 1 else tuple(
+          output_tensors)
 
 
 class StateLayer(base_layer.BaseLayer):

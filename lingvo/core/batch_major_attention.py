@@ -4905,6 +4905,125 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     return decoder_output, updated_states
 
 
+class PipelinedTransformerLayers(base_layer.BaseLayer):
+  """Pipelined layers of StackedTransformerLayers."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('pipeline_stage', StackedTransformerLayers.Params(),
+             'The layer params of each stage.')
+    p.Define('num_pipeline_stages', None, 'Number of pipeline stages.')
+    p.Define('num_pipeline_microbatches', None,
+             'Number of pipeline microbatches.')
+    p.Define('pipeline_microbatch_size', None,
+             'Size of each pipeline microbatch.')
+    p.Define('shard_stages_1d', False,
+             'Whether to use 1D sharding on pipeline stages.')
+    return p
+
+  class WrappedStageClass:
+    """Wrapper of the stage to fix argument order for pipelining."""
+
+    def __init__(self, stage):
+      self._stage = stage
+
+    def __getattr__(self, attr):
+      return getattr(self._stage, attr)
+
+    def ExtendStep(self, theta, query_vec, cached_states, **kwargs):
+      # LayerwiseShardablePipelinedLayer requires the outputs to have the same
+      # structure as the positional arguments, which only include query_vec and
+      # cached_states.
+      return self._stage.ExtendStep(
+          theta, query_vec, cached_states=cached_states, **kwargs)
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.num_pipeline_stages > 1
+    # Use deterministic droupout in pipelined layers.
+    layer_params = p.pipeline_stage.transformer_layer_params_tpl
+    layer_params.tr_atten_tpl.dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    layer_params.tr_atten_tpl.atten_tpl.dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    if layer_params.tr_self_atten_tpl is not None:
+      layer_params.tr_self_atten_tpl.dropout_tpl = (
+          layers.DeterministicDropoutLayer.Params())
+      layer_params.tr_self_atten_tpl.atten_tpl.dropout_tpl = (
+          layers.DeterministicDropoutLayer.Params())
+    layer_params.tr_fflayer_tpl.residual_dropout_tpl = (
+        layers.DeterministicDropoutLayer.Params())
+    layer_params.tr_fflayer_tpl.fflayer_tpl.dropout = (
+        layers.DeterministicDropoutLayer.Params())
+    pipeline_params = gshard_layers.LayerwiseShardablePipelinedLayer.Params(
+    ).Set(
+        name=p.name,
+        num_stages=p.num_pipeline_stages,
+        single_stage_body=p.pipeline_stage,
+        num_microbatches=p.num_pipeline_microbatches,
+        microbatch_size=p.pipeline_microbatch_size,
+        shard_stages_1d=p.shard_stages_1d,
+        per_stage_vars=False,
+        unroll='never')
+    self.CreateChild('pipeline', pipeline_params)
+    self.pipeline.body = self.WrappedStageClass(self.pipeline.body)
+
+  def FProp(self, theta, *args, **kwargs):
+    return self.pipeline.FProp(theta.pipeline, *args, **kwargs)
+
+  def InitStates(self, theta, *args, **kwargs):
+    p = self.params
+    per_stage, _ = self.pipeline.BodyFProp(
+        theta.pipeline.body,
+        'InitStates',
+        tf.zeros([], dtype=tf.int32),  # iteration
+        *args,
+        **kwargs)
+
+    def _TransposeStageBatch(x):
+      """Microbatches the state and applying padding."""
+      # [num_stages, t, b, ...]
+      shape = py_utils.GetShape(x)
+      if p.num_pipeline_microbatches is not None:
+        assert shape[2] % p.num_pipeline_microbatches == 0
+        mb = p.num_pipeline_microbatches
+      else:
+        assert shape[2] % p.pipeline_microbatch_size == 0
+        mb = shape[2] // p.pipeline_microbatch_size
+      # [num_stages, t, mb_size, mb, ...]
+      x = tf.reshape(x, shape[:2] + [shape[2] // mb, mb] + shape[3:])
+      # [mb, num_stages, t, mb_size, ...]
+      perm = [3, 0, 1, 2] + [i + 4 for i in range(len(shape) - 3)]
+      x = tf.transpose(x, perm)
+      return self.pipeline.PadMicrobatches(x)
+
+    return tf.nest.map_structure(_TransposeStageBatch, per_stage)
+
+  def ExtendStep(self,
+                 theta,
+                 query_vec,
+                 aux_vec,
+                 aux_paddings,
+                 cached_states,
+                 time_step,
+                 use_short_seq_opt=False,
+                 **kwargs):
+    # Fix argument order for LayerwiseShardablePipelinedLayer.
+    return self.pipeline.FPropFn(
+        theta.pipeline,
+        'ExtendStep',
+        query_vec,
+        padded_per_stage_states=[cached_states],
+        aux_vec=aux_vec,
+        aux_paddings=aux_paddings,
+        time_step=tf.broadcast_to(time_step,
+                                  py_utils.GetShape(query_vec)[:1]),
+        use_short_seq_opt=use_short_seq_opt,
+        **kwargs)
+
+
 class TransformerFeedForwardLayerWithTaskId(
     layers_with_attention.TransformerFeedForwardLayer):
   """TransformerFeedForwardLayer with optional task_id input args."""
