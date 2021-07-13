@@ -622,8 +622,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             tf.expand_dims(per_step_padding, 1), [1, n, 1, 1])
         paddings += per_step_padding
 
-      very_negative_logits = (tf.ones_like(logits) * GetDtypeMin(logits.dtype))
-      padded_logits = tf.where(paddings > 0.0, very_negative_logits, logits)
+      padded_logits = py_utils.ApplyPadding(paddings > 0.0, logits,
+                                            GetDtypeMin(logits.dtype))
 
     if self.params.enable_scaling_code_motion:
       # Split the softmax into two parts. Do the 1st part here; the 2nd part
@@ -770,14 +770,14 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     query = tf.reshape(query, [b, n, h])
     pad = tf.reshape(
         tf.tile(tf.expand_dims(tf.transpose(paddings), 2), [1, 1, n]), [s, -1])
-    very_negative_logits = (tf.ones_like(pad) * GetDtypeMin(query.dtype))
 
     def _LongSeq():
       """For long sequence, directly apply to the entire tensor with padding."""
       logits = self._AttenLogitsOneStep(theta, query, key, time_step)
 
       logits = tf.reshape(logits, [s, -1])
-      padded_logits = tf.where(pad > 0.0, very_negative_logits, logits)
+      padded_logits = py_utils.ApplyPadding(pad > 0.0, logits,
+                                            GetDtypeMin(logits.dtype))
       probs = py_utils.Softmax(
           padded_logits, axis=0, extra_logit=p.atten_extra_logit)
       probs = tf.reshape(probs, [s, b, n])
@@ -819,7 +819,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       logits = self.FromAqtActActMatmul(logits)
       logits = self._CapLogits(logits)
 
-      padded_logits = tf.where(pad > 0.0, very_negative_logits, logits)
+      padded_logits = py_utils.ApplyPadding(pad > 0.0, logits,
+                                            GetDtypeMin(logits.dtype))
       probs = py_utils.Softmax(
           padded_logits, axis=0, extra_logit=p.atten_extra_logit)
 
@@ -1755,8 +1756,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     # -> [B, N, U, W, C]
     logits = self._AttenLogits(theta, query_blocks, key_block_context)
 
-    very_negative_logits = (tf.ones_like(logits) * GetDtypeMin(logits.dtype))
-    padded_logits = logits * mask + very_negative_logits * paddings
+    padded_logits = py_utils.ApplyPadding(
+        paddings, logits, GetDtypeMin(logits.dtype), use_select=False)
 
     if p.enable_scaling_code_motion:
       # Split the softmax into two parts. Do the 1st part here; the 2nd part
@@ -2341,8 +2342,6 @@ class LocalSelfAttention(MultiHeadedAttention):
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query_proj, key)
 
-      very_negative_logits = GetDtypeMin(logits.dtype)
-
       with tf.name_scope('compute_padding'):
         # Generate local atten mask.
         # [Q, 1]
@@ -2384,8 +2383,8 @@ class LocalSelfAttention(MultiHeadedAttention):
             tf.cast(final_paddings, logits.dtype), axis=2)
 
       # [B, Q, N, S]
-      logits = logits * (1 -
-                         final_paddings) + very_negative_logits * final_paddings
+      logits = py_utils.ApplyPadding(
+          final_paddings, logits, GetDtypeMin(logits.dtype), use_select=False)
       # [B, Q, N, S]
       posteriors = py_utils.Softmax(
           logits, axis=-1, extra_logit=p.atten_extra_logit)
@@ -2451,8 +2450,6 @@ class LocalSelfAttention(MultiHeadedAttention):
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query, key)
 
-      very_negative_logits = GetDtypeMin(logits.dtype)
-
       with tf.name_scope('compute_padding'):
         # Generate local atten mask.
         # [Q, 1]
@@ -2484,7 +2481,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       # [B, Q, N, T]
       logits = py_utils.ApplyPadding(final_paddings, logits,
-                                     very_negative_logits)
+                                     GetDtypeMin(logits.dtype))
 
       # [B, Q, N, T]
       posteriors = py_utils.Softmax(
@@ -3184,8 +3181,8 @@ class RoutingAttention(MultiHeadedAttention):
     logits = tf.einsum('BNKVD,BNKWD->BNKVW', c_query, c_key)
     logits *= tf.math.rsqrt(tf.cast(dim_per_head, py_utils.FPropDtype(p)))
 
-    very_negative_logits = (tf.ones_like(logits) * GetDtypeMin(logits.dtype))
-    padded_logits = tf.where(is_key_padded, very_negative_logits, logits)
+    padded_logits = py_utils.ApplyPadding(is_key_padded, logits,
+                                          GetDtypeMin(logits.dtype))
 
     c_atten_probs = tf.nn.softmax(padded_logits)
     c_outputs = tf.einsum('BNKWD,BNKVW->BNKVD', c_value, c_atten_probs)

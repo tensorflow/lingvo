@@ -356,7 +356,7 @@ class BatchNormLayer(base_layer.BaseLayer):
         bn_output = tf.nn.batch_normalization(inputs, norm_mean, norm_variance,
                                               beta, gamma, self._epsilon)
       if p.set_padded_output_to_zero:
-        bn_output *= 1.0 - paddings
+        bn_output = py_utils.ApplyPadding(paddings, bn_output)
     return bn_output
 
   def _MaybeExpandPaddings(self, inputs, paddings):
