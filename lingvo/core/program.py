@@ -252,9 +252,10 @@ class BaseProgram:
 
   def SetStatusMessage(self, msg):
     """Write to borglet status."""
-    tf.logging.info('Status: %s', msg)
     if self._status_msg_fn:
       self._status_msg_fn(msg)
+    else:
+      tf.logging.info('Status: %s', msg)
 
   def Compile(self, sess):
     """Compile the program using the given session handle."""
@@ -592,7 +593,7 @@ class EvalProgram(BaseProgram):
     return self._eval_metrics.FinalizeMetrics(loop_result)
 
   def BuildTpuSubgraph(self):
-    tf.logging.info('EvalProgram BuildTpuSubGraph')
+    tf.logging.info(f'EvalProgram {self.params.dataset_name} BuildTpuSubGraph')
     p = self.params
     with cluster_factory.SetEval(True):
       self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
@@ -703,7 +704,8 @@ class DecodeProgram(BaseProgram):
     self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
 
   def BuildTpuSubgraph(self):
-    tf.logging.info('DecodeProgram BuildTpuSubGraph')
+    tf.logging.info(
+        f'DecodeProgram {self.params.dataset_name} BuildTpuSubGraph')
     py_utils.ResetStepSeed()
     with cluster_factory.SetEval(True):
       self._CompileDecodeFn()
@@ -830,7 +832,8 @@ class ExperimentalDecodeProgram(DecodeProgram):
     self.cpu_pt = self._task.input.DequeueCpuPassthrough()
 
   def BuildTpuSubgraph(self):
-    tf.logging.info('DecodeProgram BuildTpuSubGraph')
+    tf.logging.info(
+        f'DecodeProgram {self.params.dataset_name} BuildTpuSubGraph')
     py_utils.ResetStepSeed()
     self.spmd = (
         self.params.spmd or
