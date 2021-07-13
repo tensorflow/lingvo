@@ -91,6 +91,9 @@ class TpuEmbeddingCollection:
     # Schedule for the value that is used as TPU embedding gradient multiplier.
     self._gradient_multiplier_schedule = None
 
+    # Maps task name to the mode used by that task.
+    self._mode_by_task = {}
+
     # Maps task name to the send gradient op for that task. Mainly used to
     # ensure that send gradient op is created only once for each task.
     self._send_gradient_op_by_task = {}
@@ -166,6 +169,20 @@ class TpuEmbeddingCollection:
       raise ValueError('gradient_multiplier_schedule was set before.')
     self._gradient_multiplier_schedule = multiplier_schedule
 
+  def SetTaskMode(self, task_call_scope, mode):
+    tf.logging.info(
+        f'Setting TPU embedding mode for task {task_call_scope} as {mode}.')
+    self._mode_by_task[task_call_scope] = mode
+
+  def ShouldStopGradient(self, task_call_scope):
+    if task_call_scope not in self._mode_by_task:
+      raise ValueError(
+          f'TPU embedding mode for task {task_call_scope} not found.')
+    should_stop_gradient = (self._mode_by_task[task_call_scope] != 'train')
+    tf.logging.info(('Disabled' if should_stop_gradient else 'Enabled') +
+                    f' TPU embedding gradient for task {task_call_scope}.')
+    return should_stop_gradient
+
   def ApplyGradients(self, task_call_scope, feature_to_gradient_dict):
     """Apply tpu embedding gradient updates.
 
@@ -209,7 +226,6 @@ class TpuEmbeddingCollection:
     return send_gradient_op, eval_metrics
 
 
-# TODO(jeffreyzhao): Add the rest of the TPU Embedding optimizers.
 class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
   """Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers."""
 

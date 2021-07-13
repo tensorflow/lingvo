@@ -147,10 +147,14 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'training related input data stats.')
 
     p.Define(
-        'skip_tpu_embedding_enqueue_ops', False,
-        'Whether to skip CreateTpuEmbeddingEnqueueOps. This is useful for '
-        'multi-program training with one tasking having tpu embedding and '
-        'the other not.')
+        'tpu_embedding_mode', 'train',
+        'The mode used to enqueue TPU embedding ids. Valid values are: {'
+        'None: no TPU embedding enqueue ops will be generated; '
+        '"inference": enqueue ops will be generated, but backprop will be '
+        'disabled (i.e. no gradient will be generated and the embedding '
+        'tables are freezed); '
+        '"train": both enqueue ops and gradient will be generated when '
+        'do_eval is False, otherwise fallback to "inference" mode; }.')
 
     return p
 
@@ -179,6 +183,17 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     # Tensorboard layout for charts displaying input data stats.
     self._input_data_summary_layout = None
+
+    assert self.params.tpu_embedding_mode in [None, 'train', 'inference']
+    self._tpu_embedding_mode = self.params.tpu_embedding_mode
+    if self._tpu_embedding_mode == 'train' and self.do_eval:
+      self._tpu_embedding_mode = 'inference'  # Always disable backprop in eval.
+
+    if self.parent:
+      tpu_embedding_collection = (
+          tpu_embedding_layers.TpuEmbeddingCollection.Get())
+      tpu_embedding_collection.SetTaskMode(
+          py_utils.TaskCallScopeName(self.parent), self._tpu_embedding_mode)
 
     self.CreateDatasource()
 
@@ -517,18 +532,14 @@ class BaseInputGenerator(base_layer.BaseLayer):
       tensors = self._tpu_queues[0].generate_dequeue_op()
     return self._batch_nm_types.Pack(tensors)
 
-  def CreateTpuEmbeddingEnqueueOps(self, mode_override=None):
+  def CreateTpuEmbeddingEnqueueOps(self):
     """Creates the TpuEmbedding enqueue ops on all hosts.
 
     Note that this must be called after the instantiation of the
     monolithic TPUEmbeddingLayer.
-
-    Args:
-      mode_override: String to override TPU embedding mode. See
-        TPUEmbedding.generate_enqueue_ops()
     """
     p = self.params
-    if p.skip_tpu_embedding_enqueue_ops:
+    if self._tpu_embedding_mode is None:
       return
 
     tpu_embedding_collection = tpu_embedding_layers.TpuEmbeddingCollection.Get()
@@ -592,7 +603,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           tf.logging.info('host_device: %s, enqueue_data: %r', host_device,
                           dst_enqueue_data)
           enqueue_ops += tpu_embedding.generate_enqueue_ops(
-              dst_enqueue_data, mode_override=mode_override)
+              dst_enqueue_data, mode_override=self._tpu_embedding_mode)
     else:
       assert tpu_embedding.num_cores_per_host == self.tpu_number_of_shards
       for task_id in range(num_tpu_hosts):
@@ -605,7 +616,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           enqueue_data = self._GetTpuEmbeddingEnqueueData(
               tpu_embedding, batch, tpu_embedding.num_cores_per_host)
           enqueue_ops += tpu_embedding.generate_enqueue_ops(
-              enqueue_data, mode_override=mode_override)
+              enqueue_data, mode_override=self._tpu_embedding_mode)
 
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 

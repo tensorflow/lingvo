@@ -292,14 +292,19 @@ class Learner(base_layer.BaseLayer):
     vmap = self.GetTrainableVariables(vmap)
 
     # Get tpu embedding activations to compute the gradients for.
+    tpu_embedding_activations = py_utils.NestedMap()
     tpu_embedding_graph_collection = py_utils.GetTpuEmbeddingGraphCollection()
     if tpu_embedding_graph_collection:
       tpu_embedding_collection = tpu_embedding_graph_collection[0]
+      task_call_scope = py_utils.GetTaskCallScope()
       tpu_embedding_activations = py_utils.NestedMap(
-          tpu_embedding_collection.GetActivations(py_utils.GetTaskCallScope())
-          or {})
-    else:
-      tpu_embedding_activations = py_utils.NestedMap()
+          tpu_embedding_collection.GetActivations(task_call_scope) or {})
+      # It's possible that task_call_scope is None and its mode is not set in
+      # tpu_embedding_collection (e.g. in unit test), but if the activation is
+      # not empty, the mode must have been set.
+      if tpu_embedding_activations and (
+          tpu_embedding_collection.ShouldStopGradient(task_call_scope)):
+        tpu_embedding_activations = py_utils.NestedMap()
 
     for v in vmap.Flatten():
       tf.logging.info('%s: bprop variable: %s', p.name, v.name)

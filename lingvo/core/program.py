@@ -616,7 +616,7 @@ class EvalProgram(BaseProgram):
 
       # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
       # that the TPUEmbedding singleton is available.
-      self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
+      self._task.input.CreateTpuEmbeddingEnqueueOps()
 
       # Get metric result from a single replica; they are all same here because
       # TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
@@ -697,7 +697,7 @@ class DecodeProgram(BaseProgram):
 
     # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
     # that the TPUEmbedding singleton is available.
-    self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
+    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     self.cpu_pt = self._task.input.DequeueCpuPassthrough()
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
@@ -822,7 +822,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
     # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
     # that the TPUEmbedding singleton is available.
-    self._task.input.CreateTpuEmbeddingEnqueueOps(mode_override='inference')
+    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     # Get a list of outfeed ops.
     self.decode_tensors = self._OutfeedDequeue()
