@@ -2034,7 +2034,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       - value: [B, conext_len, N, H].
       - masks: [B, conext_len], 0/1 Tensor where 0s are masked out positions.
       - query: (only if p.right_context > 0) [B, p.right_context, N, H].
-      - out_paddings: (only if p.right_context> 0): [B, p.right_context].
+      - out_masks : (only if p.right_context> 0): [B, p.right_context].
     """
     p = self.params
     assert p.enable_value_proj, 'Value projection must be enabled.'
@@ -2052,7 +2052,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     if p.right_context > 0:
       state0.query = tf.zeros(
           [batch_size, p.right_context, p.num_heads, per_head_dim], dtype)
-      state0.out_paddings = tf.ones([batch_size, p.right_context], dtype)
+      state0.out_masks = tf.zeros([batch_size, p.right_context], dtype)
       # This is used only if the caller of the layer uses skip_connection in
       # the layer's client code.
       state0.skip_conn_input = tf.zeros(
@@ -2421,18 +2421,14 @@ class LocalSelfAttention(MultiHeadedAttention):
       if p.right_context == 0:
         # [B, Q, N, H]
         query = query_proj
-        out_paddings = paddings
+        out_masks = 1. - paddings
       else:
         # [B, R + Q, N, H]
         concat_query = tf.concat([state0.query, query_proj], axis=1)
         # [B, Q, N, H]
         query = concat_query[:, :q]
-        concat_out_paddings = tf.concat([
-            state0.out_paddings,
-            paddings,
-        ],
-                                        axis=1)
-        out_paddings = concat_out_paddings[:, :q]
+        concat_out_masks = tf.concat([state0.out_masks, 1. - paddings], axis=1)
+        out_masks = concat_out_masks[:, :q]
 
       # key, value, mask.
       # [B, T, N, H].
@@ -2506,8 +2502,8 @@ class LocalSelfAttention(MultiHeadedAttention):
           masks=1 - state_paddings[:, q:])
       if p.right_context > 0:
         state1.query = concat_query[:, q:]
-        state1.out_paddings = concat_out_paddings[:, q:]
-      return output, out_paddings, state1
+        state1.out_masks = concat_out_masks[:, q:]
+      return output, 1. - out_masks, state1
 
   @classmethod
   def FPropMeta(cls, p, *args):
