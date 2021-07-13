@@ -1,5 +1,4 @@
 # Lint as: python3
-# Lint as: python2, python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -683,7 +682,8 @@ class DecodeProgram(BaseProgram):
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
-      with py_utils.OpportunisticVariableReuseScope(True):
+      with py_utils.OpportunisticVariableReuseScope(
+          True), py_utils.TaskCallScope(self._task):
         self._model.InstantiateVariables()
         input_batch = self._task.input.TpuDequeueBatch()
         decode_dict = self._task.Decode(input_batch)
@@ -803,7 +803,8 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
     def _DecodeStep():
       """Decode call to be compiled for TPU."""
-      with py_utils.OpportunisticVariableReuseScope(True):
+      with py_utils.OpportunisticVariableReuseScope(
+          True), py_utils.TaskCallScope(self._task):
         self._model.InstantiateVariables()
         input_batch = self._task.input.TpuDequeueBatch()
         decode_dict = self._task.Decode(input_batch)
