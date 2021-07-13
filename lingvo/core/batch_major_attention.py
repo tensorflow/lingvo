@@ -2402,7 +2402,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     # Sanity checks.
     b, q = py_utils.GetShape(query_vec, 2)
-    unused_n, h = p.num_heads, p.hidden_dim // p.num_heads
+    h = p.hidden_dim // p.num_heads
     context_len = p.left_context - 1 + p.right_context
 
     query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
