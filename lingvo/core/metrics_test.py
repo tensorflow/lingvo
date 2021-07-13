@@ -157,6 +157,29 @@ class MetricsTest(test_utils.TestCase):
     m.Update(label=[0, 0], prob=[0.1, 0.2], weight=[1.0, 1.0])
     self.assertEqual(0.5, m.value)
 
+  def testMultiClassAUCMetric(self):
+    m = metrics.MultiClassAUCMetric(num_classes=3)
+    class_labels = [[1, 1], [1, 1], [1, 1]]
+    class_probs = [[0.1, 0.2], [0.7, 0.9], [0.4, 0.6]]
+    m.Update(class_labels, class_probs)
+    # No meaningful AUC yet, since all classes have the same label and AUCMetric
+    # requires 2 types of labels to properly compute AUC.
+    for auc_metric in m._class_auc_metrics:
+      self.assertEqual(0.0, auc_metric.value)
+    self.assertEqual(0.0, m.value)
+
+    class_labels = [[0, 0], [0, 0], [0, 1]]
+    class_probs = [[0.1, 0.2], [0.1, 0.15], [0.5, 0.9]]
+    m.Update(class_labels, class_probs)
+
+    # Verify each class's AUC value.
+    self.assertEqual(0.5, m._class_auc_metrics[0].value)
+    self.assertEqual(1.0, m._class_auc_metrics[1].value)
+    self.assertAllClose(2 / 3, m._class_auc_metrics[2].value)
+
+    # Verify average AUC value.
+    self.assertAllClose(0.722222222, m.value)
+
 
 if __name__ == '__main__':
   tf.test.main()

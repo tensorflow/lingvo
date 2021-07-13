@@ -398,6 +398,50 @@ class AUCMetric(BaseMetric):
     return ret
 
 
+class MultiClassAUCMetric(BaseMetric):
+  """Class to compute mAP or mAUC for multiclass/multilabel classification.
+
+  This metric is equivalent to mAP (mean average precision) or mAUC (multiclass
+  AUC-ROC) for non-binary classification tasks. Another perspective of this
+  measure defines it as the per-class average of the auc roc or auc pr curves.
+  """
+
+  def __init__(self, num_classes, mode='roc', samples=-1):
+    """Construct a MultiClassAUCMetric instance.
+
+    Args:
+      num_classes: The number of classes.
+      mode: Possible values: 'roc' or 'pr'.
+      samples: The number of sample points to compute the AUC. If -1, include
+        all points seen thus far.
+    """
+    self._num_classes = num_classes
+    self._class_auc_metrics = []
+    for _ in range(self._num_classes):
+      self._class_auc_metrics.append(AUCMetric(mode, samples))
+
+  def Update(self, labels, probs, weights=None):
+    """Updates the MultiClassAUCMetric.
+
+    Args:
+      labels: An list of arrays specifying the groundtruth binary labels for
+        each class. Values must be either 0 or 1.
+      probs: A list of arrays specifying teh prediction probabilities for each
+        class. Values must be within [0, 1.0]
+      weights: An array to specify the sample weight for each example in the auc
+        computation.
+    """
+    for i, auc_metric in enumerate(self._class_auc_metrics):
+      sliced_labels = labels[i]
+      sliced_probs = probs[i]
+      auc_metric.Update(sliced_labels, sliced_probs, weights)
+
+  @property
+  def value(self):
+    auc_values = [auc_metric.value for auc_metric in self._class_auc_metrics]
+    return np.sum(auc_values) / self._num_classes
+
+
 class CorrelationMetric(BaseMetric):
   """Class to compute correlation."""
 
