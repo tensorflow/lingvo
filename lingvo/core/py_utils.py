@@ -2388,6 +2388,9 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
   """Determines variables to load and their names in checkpoint."""
   # This list contains mappings from var names as they appear in the checkpoint
   # to the vars in our model they correspond to.
+  unused_rules = {
+      regexp: name_format for regexp, name_format in variable_loading_rules
+  }
   vars_to_load = []
   for model_var in all_vars:
     loaded = False
@@ -2406,12 +2409,16 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
       tf.logging.info('Loading %s from %s with regexp: %s', model_var.name,
                       checkpoint_var_name, regexp)
       vars_to_load.append((checkpoint_var_name, model_var))
+      unused_rules.pop(regexp, None)
       loaded = True
       break
     if not loaded:
       tf.logging.info(
           'Not loading model variable %s from %s as it does not match any rules'
           ' or matches ignored', model_var.name, ckpt_path)
+    for regexp, name_format in unused_rules.items():
+      tf.logging.warning(f'User provided rule matched no variables: ({regexp}, '
+                         f'{name_format})')
   return vars_to_load
 
 
