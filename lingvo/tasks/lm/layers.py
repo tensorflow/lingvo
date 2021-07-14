@@ -506,6 +506,8 @@ class RnnLm(RnnLmNoEmbedding):
     p.Define('emb_softmax', None, 'Embedding to concatenate to softmax input')
     p.Define('inject_emb_method', 'concat',
              'Unused if emb_softmax=False. Can be one of (`concat`, `add`)')
+    p.Define('couple_input_forget_gates', False,
+             'Whether to couple the input and forget gates.')
     p.emb.max_num_shards = 1
     return p
 
@@ -519,7 +521,8 @@ class RnnLm(RnnLmNoEmbedding):
                    rnn_hidden_dims=0,
                    residual_start=1,
                    layer_norm=False,
-                   softmax_max_alloc=None):
+                   softmax_max_alloc=None,
+                   couple_input_forget_gates=False):
     """A LM model parameterized by vocab size, etc.
 
     Args:
@@ -535,6 +538,8 @@ class RnnLm(RnnLmNoEmbedding):
       softmax_max_alloc: If set to a positive integer the soft-max computation
         is chunked into allocations of at most `softmax_max_alloc`; when left to
         its default value of None no chunking is done.
+      couple_input_forget_gates: If true, then the input and forget gates
+        are coupled.
 
     Returns:
       A `RnnLm` parameter object.
@@ -559,7 +564,8 @@ class RnnLm(RnnLmNoEmbedding):
     lstm_cell_tpl.Set(
         num_input_nodes=rnn_dims,
         num_output_nodes=rnn_dims,
-        num_hidden_nodes=rnn_hidden_dims)
+        num_hidden_nodes=rnn_hidden_dims,
+        couple_input_forget_gates=couple_input_forget_gates)
     if num_layers > 1:
       p.rnns.cell_tpl = [lstm_cell_tpl.Copy(), lstm_cell_tpl.Copy()]
     else:
