@@ -5646,6 +5646,18 @@ def WhileLoop(cond, body, loop_state):
   wrapped_inputs = body_sigs.AddFrameworkInputs(loop_state)
   new_state = tf.While(
       Flatten(wrapped_inputs), cond=cond_sigs.func, body=body_sigs.func)
+
+  # The functional `While` used above does not have a registered gradient.
+  # This was not a problem in Graph mode, however in Eager mode,
+  # GradientTape will attempt to call the gradient of the While op in the
+  # forward pass. `stop_gradient` is used to pretend the op is a constant
+  # in the forward pass. This also avoids calling the gradient of other ops in
+  # `While` in the forward pass.
+  # Details in https://www.tensorflow.org/api_docs/python/tf/custom_gradient.
+  # Guarded by 'IsEagerMode' to limit impact.
+  if IsEagerMode():
+    new_state = [tf.stop_gradient(t) for t in new_state]
+
   return Pack(wrapped_inputs, new_state).inputs
 
 
