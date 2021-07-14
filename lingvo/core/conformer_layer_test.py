@@ -202,6 +202,35 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       print([g.shape for g in grad_vals])
 
   @parameterized.named_parameters(
+      ('DefaultFp32', [], tf.float32),
+      ('RegexDtypeFp16', [(r'.*(fflayer_[01]|linear_start|post)/w$', tf.float16)
+                         ], tf.float16),
+  )
+  def testFPropDtypesWithListRegexDtypes(self, regex_dtypes, target_dtype):
+    p = self._GetParams()
+    p.lconv_tpl.conv_norm_layer_tpl = (
+        bn_layers.GroupNormLayer.Params().Set(num_groups=2))
+    p.list_regex_dtypes = regex_dtypes
+
+    l = p.Instantiate()
+    inputs, paddings = self._GetInputs()
+    outputs, grads = self._GetGrad(l, inputs, paddings)
+
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      out_vals = sess.run(outputs)
+      grad_vals = sess.run(grads)
+      print([x.shape for x in out_vals])
+      print([g.shape for g in grad_vals])
+
+    tf.assert_type(l.vars.fflayer_start.fflayer.fc[0].w, target_dtype)
+    tf.assert_type(l.vars.fflayer_start.fflayer.fc[1].w, target_dtype)
+    tf.assert_type(l.vars.fflayer_end.fflayer.fc[0].w, target_dtype)
+    tf.assert_type(l.vars.fflayer_end.fflayer.fc[1].w, target_dtype)
+    tf.assert_type(l.vars.lconv.linear_start.w, target_dtype)
+    tf.assert_type(l.vars.trans_atten.atten.post.w, target_dtype)
+
+  @parameterized.named_parameters(
       ('Start', True, False),
       ('End', False, True),
       ('StartAndEnd', True, True),
@@ -507,7 +536,8 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ('FFLayerActivation', 'fflayer_activation', 'GELU'),
       ('UseRelativeAttentionTrue', 'use_relative_atten', True),
       ('UseRelativeAttentionFalse', 'use_relative_atten', False),
-      ('IsCausal', 'is_causal', True))
+      ('IsCausal', 'is_causal', True),
+      ('ListRegexDtypes', 'list_regex_dtypes', [('test_regex', tf.float16)]))
   def testCommonParamsSet(self, param_name, param_val):
     """Checks values set in CommonParams() correctly."""
 

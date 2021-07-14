@@ -505,6 +505,12 @@ class ConformerLayer(base_layer.BaseLayer):
     p.Define(
         'remat', False, 'If to rematerialize the layer. If true, '
         'intermediate tensors are not saved in FProp().')
+    p.Define(
+        'list_regex_dtypes', [],
+        'A list of (regex, dtype) to set the data types of variables using '
+        'regex. The default value is [] to use the existing data types without '
+        'any changes. If a variable name matches the first regex in the list, '
+        'the variable data type will be set by the corresponding dtype.')
     return p
 
   @classmethod
@@ -535,7 +541,8 @@ class ConformerLayer(base_layer.BaseLayer):
                    fflayer_start_tpl=None,
                    fflayer_end_tpl=None,
                    trans_atten_tpl=None,
-                   lconv_tpl=None):
+                   lconv_tpl=None,
+                   list_regex_dtypes=None):
     assert all([input_dim])
     if layer_order != 'conv':
       assert atten_num_heads or trans_atten_tpl
@@ -622,6 +629,8 @@ class ConformerLayer(base_layer.BaseLayer):
     if fprop_dtype is not None:
       p.cls.SetFPropDtype(p, fprop_dtype)
     p.trans_atten_tpl.atten_tpl.atten_logit_cap = atten_logit_cap
+    if list_regex_dtypes is not None:
+      p.list_regex_dtypes = list_regex_dtypes
     return p
 
   @classmethod
@@ -747,6 +756,11 @@ class ConformerLayer(base_layer.BaseLayer):
 
     ln_p = p.final_ln_tpl.Copy().Set(name='final_ln', input_dim=p.input_dim)
     self.CreateChild('final_ln', ln_p)
+
+  def _CreateChildrenVariables(self):
+    """Change the variable dtypes by list_regex_dtypes."""
+    with py_utils.VariableListDtypeRegexScope(self.params.list_regex_dtypes):
+      super()._CreateChildrenVariables()
 
   # lconv and fflayer_start have the special treatment, which can be absent,
   # because Transformer doesn't have those.

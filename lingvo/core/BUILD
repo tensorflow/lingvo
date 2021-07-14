@@ -211,10 +211,10 @@ py_library(
 
 py_test(
     name = "conformer_layer_test",
-    timeout = "moderate",
+    timeout = "long",
     srcs = ["conformer_layer_test.py"],
     python_version = "PY3",
-    shard_count = 4,
+    shard_count = 8,
     srcs_version = "PY3",
     deps = [
         ":conformer_layer",
