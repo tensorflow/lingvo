@@ -368,7 +368,14 @@ class AUCMetric(BaseMetric):
   @property
   def value(self):
     try:
-      return self._score_fn(self._label, self._prob, sample_weight=self._weight)
+      auc_val = self._score_fn(
+          self._label, self._prob, sample_weight=self._weight)
+      # For precision/recall, _score_fn returns nan if only one type of label is
+      # present rather than throwing a ValueError.
+      if np.isnan(auc_val):
+        return 0.0
+      else:
+        return auc_val
     except ValueError as exception:
       # In case self._label still has just 1 type of label, e.g. all(labels==0).
       if 'Only one class present in y_true.' in str(exception):
@@ -406,19 +413,17 @@ class MultiClassAUCMetric(BaseMetric):
   measure defines it as the per-class average of the auc roc or auc pr curves.
   """
 
-  def __init__(self, num_classes, mode='roc', samples=-1):
+  def __init__(self, num_classes, mode='roc'):
     """Construct a MultiClassAUCMetric instance.
 
     Args:
       num_classes: The number of classes.
       mode: Possible values: 'roc' or 'pr'.
-      samples: The number of sample points to compute the AUC. If -1, include
-        all points seen thus far.
     """
     self._num_classes = num_classes
     self._class_auc_metrics = []
     for _ in range(self._num_classes):
-      self._class_auc_metrics.append(AUCMetric(mode, samples))
+      self._class_auc_metrics.append(AUCMetric(mode))
 
   def Update(self, labels, probs, weights=None):
     """Updates the MultiClassAUCMetric.
