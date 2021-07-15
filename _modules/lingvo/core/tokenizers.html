@@ -176,6 +176,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">wpm_encoder</span>
 
+<span class="kn">import</span> <span class="nn">tensorflow_text</span> <span class="k">as</span> <span class="nn">tf_text</span>
+
 
 <div class="viewcode-block" id="BaseTokenizer"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer">[docs]</a><span class="k">class</span> <span class="nc">BaseTokenizer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;The base tokenizer.&quot;&quot;&quot;</span>
@@ -536,6 +538,87 @@
         <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
         <span class="n">parallel_iterations</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
         <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SentencePieceTokenizer"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SentencePieceTokenizer">[docs]</a><span class="k">class</span> <span class="nc">SentencePieceTokenizer</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;SentencePiece tokenizer (https://arxiv.org/abs/1808.06226).</span>
+
+<span class="sd">  This is a wrapper around tf_text.SentencepieceTokenizer.</span>
+
+<span class="sd">  NOTE: this tokenizer is incompatible with GenericInput (b/191804185).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SentencePieceTokenizer.Params"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SentencePieceTokenizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;spm_model&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The file path to the SentencePiece model.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+             <span class="s1">&#39;Inverse temparature for probability rescaling used in eval.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;nbest_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;A integer parameter for sampling.&#39;</span>
+        <span class="s1">&#39; nbest_size = {0,1}: No sampling is performed.&#39;</span>
+        <span class="s1">&#39; nbest_size &gt; 1: samples from the nbest_size results.&#39;</span>
+        <span class="s1">&#39; nbest_size &lt; 0: assuming that nbest_size is infinite and samples from&#39;</span>
+        <span class="s1">&#39;                 all hypothesis (lattice) using&#39;</span>
+        <span class="s1">&#39;                 forward-filtering-and-backward-sampling algorithm.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">spm_model</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tf_text</span><span class="o">.</span><span class="n">SentencepieceTokenizer</span><span class="p">(</span>
+          <span class="n">model</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span>
+          <span class="n">out_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+          <span class="n">nbest_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">nbest_size</span><span class="p">,</span>
+          <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+          <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">add_eos</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">append_eos</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SentencePieceTokenizer.StringsToIds"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SentencePieceTokenizer.StringsToIds">[docs]</a>  <span class="k">def</span> <span class="nf">StringsToIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">strs</span><span class="p">,</span>
+                   <span class="n">max_length</span><span class="p">,</span>
+                   <span class="n">external_append_eos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tokenize strs into vocab ids.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">external_append_eos</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="n">external_append_eos</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">append_eos</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;external_append_eos is not supported.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">languages</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;languages is not supported.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringsToIdsImpl</span><span class="p">(</span>
+        <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SentencePieceTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SentencePieceTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">append_eos</span>
+    <span class="k">del</span> <span class="n">languages</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize</span><span class="p">(</span><span class="n">strs</span><span class="p">)</span>
+    <span class="n">num_tokens</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">max_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">labels</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_unk_id</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">output_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">strs</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">[</span><span class="n">max_length</span><span class="p">]</span>
+      <span class="n">labels</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">to_tensor</span><span class="p">(</span>
+          <span class="n">default_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_unk_id</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">output_shape</span><span class="p">)</span>
+      <span class="n">num_tokens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">num_tokens</span><span class="p">,</span> <span class="n">max_length</span><span class="p">)</span>
+
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">strs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">labels</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">paddings</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span>
+        <span class="n">num_tokens</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span></div>
+
+<div class="viewcode-block" id="SentencePieceTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SentencePieceTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">detokenize</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">))</span></div></div>
 </pre></div>
 
            </div>

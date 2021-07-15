@@ -180,7 +180,6 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
@@ -406,6 +405,8 @@
         <span class="s1">&#39;params_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
         <span class="s1">&#39;How model weights should be initialized. Not to be confused with &#39;</span>
         <span class="s1">&#39;hyperparams.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_name_to_theta&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Wrap theta with tf.identity(var_name).&#39;</span><span class="p">)</span>
     <span class="c1"># Makes additional alterations for graphs being used for inference.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;is_inference&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;True if in inference mode.&#39;</span><span class="p">)</span>
     <span class="c1"># In addition to is_inference, indicate that the inference graph is</span>
@@ -516,6 +517,8 @@
                      <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
     <span class="c1"># Vars created by this layer.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="c1"># Utility for TransformVarsTempContext() to restore self._private_vars.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars_transform_restore_stack</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="c1"># Theta derived from this layer&#39;s vars.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="c1"># A simple transformation before used by the forward computation. Its</span>
@@ -723,6 +726,41 @@
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
       <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">ret</span>
+
+<div class="viewcode-block" id="BaseLayer._TransformVarsInternal"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._TransformVarsInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_TransformVarsInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Internal: replaces each variable v in self._private_vars with fn(v).</span>
+
+<span class="sd">    Also recursively invokes _TransformVarsInternal() on self._private_children.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fn: A function that takes a variable and returns a variable or a wrapper</span>
+<span class="sd">        of the variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars_transform_restore_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Cannot access vars for layer </span><span class="si">%s</span><span class="s1"> before they have been created.&#39;</span> <span class="o">%</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">_TransformVarsInternal</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseLayer._UndoTransformVarsInternal"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._UndoTransformVarsInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_UndoTransformVarsInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Internal. Undoes _TransformVarsInternal().&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars_transform_restore_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">_UndoTransformVarsInternal</span><span class="p">(),</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseLayer.TransformVarsTempContext"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.TransformVarsTempContext">[docs]</a>  <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+  <span class="k">def</span> <span class="nf">TransformVarsTempContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Enters a context that temporarily transforms each variable v to fn(v).&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TransformVarsInternal</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_UndoTransformVarsInternal</span><span class="p">()</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">theta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -967,26 +1005,21 @@
     <span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="c1"># On GPU (which always trains a single step per session.run()), reference</span>
-      <span class="c1"># a tensor in FProp to cache it on device and avoid extraneous sends from</span>
-      <span class="c1"># reading variables from ps multiple times.</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># Pass the resource variable directly into the training loop.</span>
-      <span class="n">value</span> <span class="o">=</span> <span class="n">var</span>
 
-    <span class="c1"># Due to b/174956514, we have to annotate the use of the variable once,</span>
-    <span class="c1"># otherwise, the sharding annotation on the var will be ignored.</span>
-    <span class="c1"># TODO(yonghui): Get rid of this once b/174956514 is fixed.</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-        <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">)):</span>
-      <span class="n">value</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
-          <span class="n">value</span><span class="p">,</span>
-          <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-          <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span><span class="p">,</span>
-          <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="c1"># With eager trainer, always use the variable directly.</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="n">var</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># On GPU (which always trains a single step per session.run()),</span>
+        <span class="c1"># reference a tensor in FProp to cache it on device and avoid extraneous</span>
+        <span class="c1"># sends from reading variables from ps multiple times.</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+          <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_name_to_theta</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">var</span>
 
     <span class="k">if</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta_fn</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span>
@@ -1161,6 +1194,18 @@
 <span class="sd">      child: A sub-layer of this layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseLayer._RemoveChild"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._RemoveChild">[docs]</a>  <span class="k">def</span> <span class="nf">_RemoveChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Remove a sublayer instantiated earlier from this layer.</span>
+
+<span class="sd">    This method should only be called by subclasses, and is usually used to</span>
+<span class="sd">    remove unused layers instantiated by the super class.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: the name of an existing sublayer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="BaseLayer._VerifyChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._VerifyChildren">[docs]</a>  <span class="k">def</span> <span class="nf">_VerifyChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Verify all children created by this layer are via `CreateChild(ren)`.&quot;&quot;&quot;</span>

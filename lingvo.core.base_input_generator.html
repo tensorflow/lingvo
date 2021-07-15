@@ -307,35 +307,45 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps">
-<span class="sig-name descname"><span class="pre">CreateTpuEmbeddingEnqueueOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEmbeddingEnqueueOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">CreateTpuEmbeddingEnqueueOps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEmbeddingEnqueueOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates the TpuEmbedding enqueue ops on all hosts.</p>
 <p>Note that this must be called after the instantiation of the
 monolithic TPUEmbeddingLayer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator._GetTpuEmbeddingEnqueueData">
+<span class="sig-name descname"><span class="pre">_GetTpuEmbeddingEnqueueData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tpu_embedding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_splits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator._GetTpuEmbeddingEnqueueData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator._GetTpuEmbeddingEnqueueData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of per-core TPU embedding enqueue data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>mode_override</strong> – String to override TPU embedding mode. See
-TPUEmbedding.generate_enqueue_ops()</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tpu_embedding</strong> – The monolithic TpuEmbedding object.</p></li>
+<li><p><strong>input_batch</strong> – The input batch used to generate the enqueue data.</p></li>
+<li><p><strong>num_splits</strong> – The number of shards to split the inputs into in order to get
+per-core inputs, before generating enqueue data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">num_splits</span></code> enqueue elements, where each element is a dict of
+feature_name -&gt; <code class="xref py py-obj docutils literal notranslate"><span class="pre">tpu_embedding_lib.EnqueueData</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOpsForHost">
-<span class="sig-name descname"><span class="pre">CreateTpuEmbeddingEnqueueOpsForHost</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tpu_embedding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEmbeddingEnqueueOpsForHost"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOpsForHost" title="Permalink to this definition">¶</a></dt>
-<dd><p>Hook for creating TPU embedding enqueue ops for a single host.</p>
+<dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator.PreprocessTpuEmbeddingInputBatch">
+<span class="sig-name descname"><span class="pre">PreprocessTpuEmbeddingInputBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.PreprocessTpuEmbeddingInputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.PreprocessTpuEmbeddingInputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hook to manipulate the TPU embedding input batch.</p>
 <p>Used by CreateTpuEmbeddingEnqueueOps(). Override this method in input
-generators to control how embedding inputs are enqueued onto TPU.</p>
+generators to preprocess the TPU embedding inputs before using them to
+generate enqueue ops.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tpu_embedding</strong> – The monolithic TpuEmbedding object.</p></li>
-<li><p><strong>input_batch</strong> – The input batch for this host.</p></li>
-<li><p><strong>mode_override</strong> – String to override TPU embedding mode. See
-TPUEmbedding.generate_enqueue_ops()</p></li>
-</ul>
+<dd class="field-odd"><p><strong>input_batch</strong> – The input batch to process.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A list of TPU Embedding enqueue ops.</p>
+<dd class="field-even"><p>The preprocessed TPU embedding input batch.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -896,7 +906,7 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.base_input_generator.DefineTFDataInput">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_input_generator.</span></span><span class="sig-name descname"><span class="pre">DefineTFDataInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#DefineTFDataInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.DefineTFDataInput" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_input_generator.</span></span><span class="sig-name descname"><span class="pre">DefineTFDataInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">name</span></em>, <em class="sig-param"><span class="pre">func</span></em>, <em class="sig-param"><span class="pre">ignore_args=None</span></em>, <em class="sig-param"><span class="pre">map_args=None</span></em>, <em class="sig-param"><span class="pre">base_class=&lt;class</span> <span class="pre">'lingvo.core.base_input_generator.BaseInputGenerator'&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#DefineTFDataInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.DefineTFDataInput" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a new InputGenerator class from given tf.data pipeline.</p>
 <p>This function allows users to utilize existing tf.data pipelines which are
 defined externally, without making binding boilerplates.
@@ -967,6 +977,7 @@ Each entry in the dict represents a <code class="xref py py-obj docutils literal
 that the <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params().layer_param</span></code> field will be mapped to the parameter
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">func_param</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>. <code class="xref py py-obj docutils literal notranslate"><span class="pre">func_param</span></code> won’t be added into <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params().args</span></code>
 to avoid duplicated definitions about the same parameters.</p></li>
+<li><p><strong>base_class</strong> – A class name to inherit from, default is BaseInputGenerator.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

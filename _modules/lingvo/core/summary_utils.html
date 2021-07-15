@@ -186,29 +186,29 @@
 
 <div class="viewcode-block" id="scalar"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar">[docs]</a><span class="k">def</span> <span class="nf">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="scalar_input_stats"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar_input_stats">[docs]</a><span class="k">def</span> <span class="nf">scalar_input_stats</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">collections</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;collections&#39;</span><span class="p">,</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">[</span>
       <span class="n">base_input_generator</span><span class="o">.</span><span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span>
   <span class="p">]</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="histogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.histogram">[docs]</a><span class="k">def</span> <span class="nf">histogram</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="image"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.image">[docs]</a><span class="k">def</span> <span class="nf">image</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="text"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.text">[docs]</a><span class="k">def</span> <span class="nf">text</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="scalar_v2"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar_v2">[docs]</a><span class="k">def</span> <span class="nf">scalar_v2</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -379,18 +379,13 @@
     <span class="n">src</span> <span class="o">=</span> <span class="n">src</span><span class="p">[</span><span class="mi">0</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">src</span>
     <span class="n">tgt</span> <span class="o">=</span> <span class="n">tgt</span><span class="p">[</span><span class="mi">0</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tgt</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tgt</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">tgt</span>
     <span class="n">tgt_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">tgt</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
-      <span class="n">attention_tensor_name</span> <span class="o">=</span> <span class="n">attention_tensor</span><span class="o">.</span><span class="n">name</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">attention_tensor_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[eager]_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span>
-
     <span class="n">attention_tensors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
                 <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">attention_tensor</span><span class="p">),</span>
                 <span class="n">tgt_shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">src</span><span class="p">)[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="n">tgt_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
-        <span class="p">],</span> <span class="n">attention_tensor</span><span class="p">),</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;:.*$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">attention_tensor_name</span><span class="p">))</span>
+        <span class="p">],</span> <span class="n">attention_tensor</span><span class="p">),</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;:.*$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">GetTensorName</span><span class="p">(</span><span class="n">attention_tensor</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)))</span>
 
   <span class="k">if</span> <span class="ow">not</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
     <span class="k">return</span>
@@ -420,16 +415,10 @@
       <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten</span><span class="p">,</span> <span class="n">Get</span><span class="p">(</span><span class="n">src_lens</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">Get</span><span class="p">(</span><span class="n">tgt_lens</span><span class="p">,</span> <span class="n">n</span><span class="p">)]</span>
       <span class="k">if</span> <span class="n">transcripts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
-        <span class="n">atten_name</span> <span class="o">=</span> <span class="n">atten</span><span class="o">.</span><span class="n">name</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">atten_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[eager]_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1">&#39;</span>
-
       <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">(</span>
           <span class="n">args</span><span class="p">,</span>
           <span class="n">TrimPaddingAndPlotAttention</span><span class="p">,</span>
-          <span class="n">title</span><span class="o">=</span><span class="n">atten_name</span><span class="p">,</span>
+          <span class="n">title</span><span class="o">=</span><span class="n">GetTensorName</span><span class="p">(</span><span class="n">atten</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span>
           <span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Input&#39;</span><span class="p">,</span>
           <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Output&#39;</span><span class="p">)</span></div>
 
@@ -506,14 +495,9 @@
 
   <span class="k">with</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">plots</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.5</span><span class="p">))</span> <span class="k">as</span> <span class="n">fig</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">plots</span><span class="p">):</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
-        <span class="n">tensor_name</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">name</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">tensor_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[eager]_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span>
-
       <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">([</span><span class="n">tensor</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span>
                      <span class="n">TrimPaddingAndPlotSequence</span><span class="p">,</span>
-                     <span class="n">title</span><span class="o">=</span><span class="n">tensor_name</span><span class="p">,</span>
+                     <span class="n">title</span><span class="o">=</span><span class="n">GetTensorName</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
                      <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
@@ -615,6 +599,33 @@
   <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">100</span>
   <span class="n">output</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">total #params: </span><span class="si">{</span><span class="n">analyzer</span><span class="o">.</span><span class="n">total</span><span class="si">:</span><span class="s1">,</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span>
   <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">total</span></div>
+
+
+<div class="viewcode-block" id="GetTensorName"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.GetTensorName">[docs]</a><span class="k">def</span> <span class="nf">GetTensorName</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">name_eager</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">i_eager</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns tensor name.</span>
+
+<span class="sd">  It is useful for compatibility with eager mode.</span>
+<span class="sd">  Args:</span>
+<span class="sd">    tensor: tensor</span>
+<span class="sd">    name_eager: additional string to append in eager mode</span>
+<span class="sd">    i_eager: additional index to append in eager mode</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    tensor.name in session mode, or concatenation of name_eager, i_eager</span>
+<span class="sd">      in eager mode</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="n">tensor_name</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">name</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">name_eager</span> <span class="ow">and</span> <span class="n">i_eager</span><span class="p">:</span>
+      <span class="n">tensor_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[eager]_</span><span class="si">{</span><span class="n">name_eager</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">i_eager</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">elif</span> <span class="n">name_eager</span><span class="p">:</span>
+      <span class="n">tensor_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[eager]_</span><span class="si">{</span><span class="n">name_eager</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">elif</span> <span class="n">i_eager</span><span class="p">:</span>
+      <span class="n">tensor_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;[eager]_</span><span class="si">{</span><span class="n">i_eager</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tensor_name</span> <span class="o">=</span> <span class="s1">&#39;[eager]&#39;</span>
+  <span class="k">return</span> <span class="n">tensor_name</span></div>
 </pre></div>
 
            </div>

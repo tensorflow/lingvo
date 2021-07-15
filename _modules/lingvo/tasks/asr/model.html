@@ -171,6 +171,7 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">decoder</span>
@@ -233,6 +234,8 @@
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
         <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dec&#39;</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s1">&#39;skip_frontend&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">frontend</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;frontend&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">frontend</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;decoder_metrics&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderMetricsParams</span><span class="p">())</span>
@@ -313,12 +316,21 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">frontend</span><span class="p">:</span>
-      <span class="n">input_batch_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">frontend</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">initial_state</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">,</span> <span class="n">state0</span><span class="o">=</span><span class="n">initial_state</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span></div>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;frontend&#39;</span><span class="p">):</span>
+        <span class="n">input_batch_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">frontend</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="p">()</span> <span class="k">as</span> <span class="n">aux_loss_ctx</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">initial_state</span><span class="p">:</span>
+        <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">,</span> <span class="n">state0</span><span class="o">=</span><span class="n">initial_state</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span>
+      <span class="c1"># get aux loss if there is.</span>
+      <span class="k">if</span> <span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+        <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">)</span>
+        <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">aux_loss</span>
+      <span class="k">return</span> <span class="n">encoder_outputs</span></div>
 
 <div class="viewcode-block" id="AsrModel._GetTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._GetTopK">[docs]</a>  <span class="k">def</span> <span class="nf">_GetTopK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_metrics</span><span class="o">.</span><span class="n">GetTopK</span><span class="p">(</span>

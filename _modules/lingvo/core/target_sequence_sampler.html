@@ -198,6 +198,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_eos_id&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Id of the end of sentence token.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_eoc_id&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Id of the end of chunk token.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Maximum allowed target seq length.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;top_k&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If &gt; 0, use top-k sampling.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;top_k_renormalize&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Renormalize top-k probabilities.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;temperature&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;If &gt; 1, a smoother distribution than logits; &#39;</span>
         <span class="s1">&#39;if &lt; 1, a sharper distribution than logits. &#39;</span>
@@ -209,8 +211,14 @@
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;target_sequence_sampler&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="TargetSequenceSampler.Sample"><a class="viewcode-back" href="../../../lingvo.core.target_sequence_sampler.html#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">,</span>
-             <span class="n">init_state_callback</span><span class="p">,</span> <span class="n">pre_step_callback</span><span class="p">,</span> <span class="n">post_step_callback</span><span class="p">):</span>
+<div class="viewcode-block" id="TargetSequenceSampler.Sample"><a class="viewcode-back" href="../../../lingvo.core.target_sequence_sampler.html#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="n">decoder_theta</span><span class="p">,</span>
+             <span class="n">encoder_outputs</span><span class="p">,</span>
+             <span class="n">random_seed</span><span class="p">,</span>
+             <span class="n">init_state_callback</span><span class="p">,</span>
+             <span class="n">pre_step_callback</span><span class="p">,</span>
+             <span class="n">post_step_callback</span><span class="p">,</span>
+             <span class="n">init_step_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Samples target sequences, one target sequence per source sequence.</span>
 
 <span class="sd">    (Please see beam_search_helper.py for description of decoder callbacks.)</span>
@@ -224,6 +232,7 @@
 <span class="sd">      init_state_callback: decoder._InitBeamSearchStateCallback.</span>
 <span class="sd">      pre_step_callback: decoder._PreBeamSearchStepCallback.</span>
 <span class="sd">      post_step_callback: decoder._PostBeamSearchStepCallback.</span>
+<span class="sd">      init_step_ids: [batch], optional init step ids, default to SOS.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A NestedMap containing the following tensors</span>
@@ -238,6 +247,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># Remove None values, which are not supported by recurrent.</span>
       <span class="k">del</span> <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">]</span>
@@ -255,7 +265,8 @@
         <span class="n">timestep</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
         <span class="n">logits</span><span class="o">=</span><span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span>
         <span class="c1"># Start with target_sos_id.</span>
-        <span class="n">ids</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">batch</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+        <span class="n">ids</span><span class="o">=</span><span class="n">init_step_ids</span> <span class="k">if</span> <span class="n">init_step_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">batch</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
         <span class="n">bs_state</span><span class="o">=</span><span class="n">bs_state</span><span class="p">)</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">dummy</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span> <span class="n">batch</span><span class="p">]))</span>
 
@@ -273,14 +284,25 @@
         <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">timestep</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">timestep</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">logits</span> <span class="o">=</span> <span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span>
+
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">topk_logits</span><span class="p">,</span> <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">top_k</span><span class="p">)</span>
+          <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span>
+              <span class="n">topk_logits</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k_renormalize</span> <span class="k">else</span> <span class="n">topk_logits</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">logits</span>
+
         <span class="c1"># Sample ids from logits. [batch].</span>
-        <span class="n">state1</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_categorical</span><span class="p">(</span>
-                <span class="n">state1</span><span class="o">.</span><span class="n">logits</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
+                <span class="n">sample_logits</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">temperature</span><span class="p">,</span>
                 <span class="n">num_samples</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">recurrent_theta</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">timestep</span><span class="p">]),</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;sample_next_id&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">batch</span><span class="p">])</span>
+        <span class="n">state1</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="n">topk_ids</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">ids</span>
+
         <span class="k">if</span> <span class="s1">&#39;is_last_chunk&#39;</span> <span class="ow">in</span> <span class="n">bs_result</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
           <span class="n">state1</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">is_last_chunk</span><span class="p">,</span>

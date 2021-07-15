@@ -237,9 +237,14 @@
 <div class="viewcode-block" id="_ModelRegistryHelper._GetSourceInfo"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._GetSourceInfo">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_GetSourceInfo</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets a source info string given a source class.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1">:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ModelParamsClassKey</span><span class="p">(</span><span class="n">src_cls</span><span class="p">),</span>
-                         <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcefile</span><span class="p">(</span><span class="n">src_cls</span><span class="p">),</span>
-                         <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+    <span class="n">info_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ModelParamsClassKey</span><span class="p">(</span><span class="n">src_cls</span><span class="p">),</span>
+                          <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcefile</span><span class="p">(</span><span class="n">src_cls</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">info_str</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+      <span class="c1"># The class definition is not found in the source file, as it might be</span>
+      <span class="c1"># dynamically created. We omit the line number in this case.</span>
+      <span class="k">return</span> <span class="n">info_str</span></div>
 
 <div class="viewcode-block" id="_ModelRegistryHelper._RegisterModel"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._RegisterModel">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_RegisterModel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">wrapper_cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>

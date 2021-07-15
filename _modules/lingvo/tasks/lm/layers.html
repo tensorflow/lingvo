@@ -661,6 +661,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb_softmax&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Embedding to concatenate to softmax input&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inject_emb_method&#39;</span><span class="p">,</span> <span class="s1">&#39;concat&#39;</span><span class="p">,</span>
              <span class="s1">&#39;Unused if emb_softmax=False. Can be one of (`concat`, `add`)&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;couple_input_forget_gates&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to couple the input and forget gates.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -674,7 +676,8 @@
                    <span class="n">rnn_hidden_dims</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                    <span class="n">residual_start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                    <span class="n">layer_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                   <span class="n">softmax_max_alloc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                   <span class="n">softmax_max_alloc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">couple_input_forget_gates</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A LM model parameterized by vocab size, etc.</span>
 
 <span class="sd">    Args:</span>
@@ -690,6 +693,8 @@
 <span class="sd">      softmax_max_alloc: If set to a positive integer the soft-max computation</span>
 <span class="sd">        is chunked into allocations of at most `softmax_max_alloc`; when left to</span>
 <span class="sd">        its default value of None no chunking is done.</span>
+<span class="sd">      couple_input_forget_gates: If true, then the input and forget gates</span>
+<span class="sd">        are coupled.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A `RnnLm` parameter object.</span>
@@ -714,7 +719,8 @@
     <span class="n">lstm_cell_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">num_input_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
         <span class="n">num_output_nodes</span><span class="o">=</span><span class="n">rnn_dims</span><span class="p">,</span>
-        <span class="n">num_hidden_nodes</span><span class="o">=</span><span class="n">rnn_hidden_dims</span><span class="p">)</span>
+        <span class="n">num_hidden_nodes</span><span class="o">=</span><span class="n">rnn_hidden_dims</span><span class="p">,</span>
+        <span class="n">couple_input_forget_gates</span><span class="o">=</span><span class="n">couple_input_forget_gates</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span><span class="n">lstm_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span> <span class="n">lstm_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()]</span>
     <span class="k">else</span><span class="p">:</span>

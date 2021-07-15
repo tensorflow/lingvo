@@ -511,14 +511,9 @@
 
         <span class="c1"># convert from dense label to sparse label probs</span>
         <span class="n">vocab_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">uncertainty</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1e-10</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span>
-            <span class="n">p</span><span class="p">))</span>  <span class="c1"># avoid 0 probs which may cause issues with log</span>
         <span class="n">label_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
             <span class="n">label</span><span class="p">,</span>
             <span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">on_value</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">uncertainty</span><span class="p">,</span>
-            <span class="n">off_value</span><span class="o">=</span><span class="n">uncertainty</span> <span class="o">/</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>  <span class="c1"># [tgt_batch, vocab_size]</span>
         <span class="n">pred_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)</span>
 
@@ -528,6 +523,8 @@
             <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
         <span class="p">],</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">pred_probs</span> <span class="o">+</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">label_probs</span><span class="p">)</span>
+        <span class="c1"># Ensure that tf.math.log is applied to positive values.</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">consistent</span>
 
       <span class="k">def</span> <span class="nf">NoApplyBias</span><span class="p">():</span>

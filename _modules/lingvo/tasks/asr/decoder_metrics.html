@@ -175,7 +175,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">decoder_utils</span>
-
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="c1"># hyps: [num_beams, num_hyps_per_beam] of serialized Hypothesis protos.</span>
 <span class="c1"># ids: [num_beams * num_hyps_per_beam, max_target_length].</span>
@@ -304,6 +304,10 @@
     <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeNormalizedWER</span><span class="p">(</span>
         <span class="n">filtered_hyps</span><span class="p">,</span> <span class="n">filtered_refs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="s1">&#39;example_weights&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="n">example_weights</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">example_weights</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">example_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">tgt_batch</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;target_ids&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
         <span class="s1">&#39;target_labels&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
@@ -316,6 +320,7 @@
         <span class="s1">&#39;topk_scores&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
         <span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">:</span> <span class="n">norm_wer_errors</span><span class="p">,</span>
         <span class="s1">&#39;norm_wer_words&#39;</span><span class="p">:</span> <span class="n">norm_wer_words</span><span class="p">,</span>
+        <span class="s1">&#39;example_weights&#39;</span><span class="p">:</span> <span class="n">example_weights</span>
     <span class="p">}</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="s1">&#39;sample_ids&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
@@ -359,13 +364,17 @@
     <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_paddings&#39;</span><span class="p">]</span>
     <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_ids&#39;</span><span class="p">]</span>
     <span class="n">topk_lens</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_lens&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;example_weights&#39;</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">:</span>
+      <span class="n">example_weights</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;example_weights&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">example_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_labels</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_words</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
 
-    <span class="n">num_samples_in_batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+    <span class="n">num_samples_in_batch</span> <span class="o">=</span> <span class="n">example_weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
     <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">num_samples_in_batch</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">GetRefIds</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">,</span> <span class="n">ref_paddinds</span><span class="p">):</span>
@@ -376,8 +385,8 @@
           <span class="n">return_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">return_ids</span>
 
-    <span class="n">total_norm_wer_errs</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="n">total_norm_wer_words</span> <span class="o">=</span> <span class="n">norm_wer_words</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">total_norm_wer_errs</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">example_weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">total_norm_wer_words</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_wer_words</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">example_weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
     <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
         <span class="n">total_norm_wer_errs</span> <span class="o">/</span> <span class="n">total_norm_wer_words</span><span class="p">,</span> <span class="n">total_norm_wer_words</span><span class="p">)</span>

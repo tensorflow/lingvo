@@ -227,6 +227,7 @@
 
   <span class="n">GATED_GELU</span> <span class="o">=</span> <span class="kc">True</span>
   <span class="n">POSITIONAL_EMBEDDING</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">USE_REPEAT_LAYER</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="DenseLmTemplate.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># tokens per batch per replica (~64 cores)</span>
@@ -237,6 +238,7 @@
         <span class="n">gated_gelu</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">GATED_GELU</span><span class="p">,</span>
         <span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span>
         <span class="n">positional_embedding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">POSITIONAL_EMBEDDING</span><span class="p">,</span>
+        <span class="n">use_repeat_layer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">USE_REPEAT_LAYER</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
         <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;transformer&#39;</span><span class="p">,</span>
@@ -295,8 +297,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
         <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
         <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Train&#39;</span><span class="p">],</span>
-        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">spmd</span> <span class="o">=</span> <span class="kc">True</span>
@@ -347,6 +349,28 @@
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.25</span>  <span class="c1"># Total batch size 128</span>
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
   <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span></div>
+
+
+<span class="c1"># Total params: 174366928896</span>
+<span class="c1"># Expect ~51.53k tokens / sec</span>
+<div class="viewcode-block" id="DenseLm175B32x32"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm175B32x32">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DenseLm175B32x32</span><span class="p">(</span><span class="n">DenseLm128B16x16</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;175B params LM model with 2D split on v3-2048.&quot;&quot;&quot;</span>
+  <span class="n">HIDDEN_DIM</span> <span class="o">=</span> <span class="mi">12288</span> <span class="o">*</span> <span class="mi">4</span>
+  <span class="n">ATTENTION_KEY_VALUE_DIM</span> <span class="o">=</span> <span class="mi">128</span>
+  <span class="n">MODEL_DIM</span> <span class="o">=</span> <span class="mi">12288</span>
+  <span class="n">NUM_HEADS</span> <span class="o">=</span> <span class="mi">96</span>
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">96</span>
+  <span class="n">GATED_GELU</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">POSITIONAL_EMBEDDING</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">USE_REPEAT_LAYER</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">2048</span>
+  <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">2048</span>
+  <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># Total batch size 1M tokens</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)),</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span></div>
 
 
 <span class="c1"># Total params: 1,100,041,175,040.</span>

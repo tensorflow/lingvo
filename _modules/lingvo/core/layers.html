@@ -1044,6 +1044,7 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Obsolete. Kept for backwards compatibility.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;w_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Obsolete. Kept for backwards compatibility.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1259,9 +1260,8 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">((</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">shape</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">w</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">[</span>
@@ -1326,6 +1326,12 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="c1"># Cast to fprop_dtype.</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">fprop_dtype</span><span class="p">:</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">b</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">fprop_dtype</span><span class="p">:</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">:</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBlockedWeightMatrix</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
@@ -1730,6 +1736,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stride&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The stride for emitting the stacked output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pad_with_left_frame&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to use the left frame for padding instead of 0s.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pad_with_right_frame&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to use the right frame for padding instead of 0s.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;padding_reduce_option&#39;</span><span class="p">,</span> <span class="s1">&#39;reduce_min&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;reduce_max or reduce_min. How to reduce stacked padding from &#39;</span>
+        <span class="s1">&#39;[b, t / stride, stride] to [b, t / stride, 1].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1739,6 +1751,13 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">padding_reduce_option</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;reduce_min&#39;</span><span class="p">,</span> <span class="s1">&#39;reduce_max&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetVariableFree</span><span class="p">()</span>
+
+<div class="viewcode-block" id="StackingOverTime.WindowSize"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime.WindowSize">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">WindowSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the stacking window size.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">+</span> <span class="mi">1</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">window_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1750,7 +1769,7 @@
 <span class="sd">      Window size.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">WindowSize</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="StackingOverTime._ApplyStack"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime._ApplyStack">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The core function to apply the stacking to inputs.</span>
@@ -1767,17 +1786,21 @@
       <span class="n">out</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">inputs_max_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">left_to_pad</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span>
+      <span class="n">right_to_pad</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_with_left_frame</span><span class="p">:</span>
         <span class="n">left_pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:],</span> <span class="n">repeats</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">left_pad</span><span class="p">,</span> <span class="n">inputs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_value</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Add zero paddings to the left and right of the input sequence.</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_value</span><span class="p">)</span>
+        <span class="n">left_to_pad</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_with_right_frame</span><span class="p">:</span>
+        <span class="n">right_pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:],</span> <span class="n">repeats</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">inputs</span><span class="p">,</span> <span class="n">right_pad</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">right_to_pad</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c1"># Add zero paddings to the left and right of the input sequence.</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">left_to_pad</span><span class="p">,</span> <span class="n">right_to_pad</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+          <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_value</span><span class="p">)</span>
 
       <span class="c1"># Make window_size() copies of the padded sequence with the original</span>
       <span class="c1"># sequence length, where each copy is offset by 1 time step.</span>
@@ -1833,7 +1856,10 @@
       <span class="c1"># an output time step becomes a padded one only if all of the underlying</span>
       <span class="c1"># stacked steps are padded ones.</span>
       <span class="n">out_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyStack</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">pad_value</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">out_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">padding_reduce_option</span> <span class="o">==</span> <span class="s1">&#39;reduce_min&#39;</span><span class="p">:</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">out_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">out_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">out_paddings</span></div>
 
@@ -2610,6 +2636,7 @@
     <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
     <span class="n">flat_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
+    <span class="c1"># TODO(shivaniagrawal): Determine if quantizing flat_ids would be useful.</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_compression</span><span class="p">:</span>
       <span class="n">embs_result</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetEmbeddingLookupResult</span><span class="p">(</span>
@@ -3026,6 +3053,10 @@
         <span class="s1">&#39; [-logits_abs_max, logits_abs_max]. This can be a scalar&#39;</span>
         <span class="s1">&#39; or a scalar tensor. Applies back pressure at training time; ignored&#39;</span>
         <span class="s1">&#39; for inference.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;logits_soft_max&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;If positive, soft cap logits to be within (-x, x) where x is&#39;</span>
+        <span class="s1">&#39; this value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, computes the per example &#39;</span>
         <span class="s1">&#39;xent by small chunks along the batch dimension.&#39;</span><span class="p">)</span>
@@ -3755,6 +3786,9 @@
 <div class="viewcode-block" id="SharedSoftmaxLayer.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="SharedSoftmaxLayer.SimpleLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.SimpleLogits">[docs]</a>  <span class="k">def</span> <span class="nf">SimpleLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">SimpleLogits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="SharedSoftmaxLayer.XentLossFromLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.XentLossFromLogits">[docs]</a>  <span class="k">def</span> <span class="nf">XentLossFromLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">XentLossFromLogits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
@@ -3781,6 +3815,8 @@
       <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
       <span class="n">embs_result</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="o">**</span><span class="mf">0.5</span>
 
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                         <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">embs_result</span></div></div>
 
 
@@ -3841,6 +3877,9 @@
     <span class="k">if</span> <span class="n">abs_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
       <span class="n">abs_min</span> <span class="o">=</span> <span class="o">-</span><span class="n">abs_max</span>  <span class="c1"># pylint: disable=invalid-unary-operand-type</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">abs_min</span><span class="p">,</span> <span class="n">abs_max</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_soft_max</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeSoftCapLogits</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_soft_max</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">logits</span></div>
 
 <div class="viewcode-block" id="SingleShardFullSoftmax.XentLossFromLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardFullSoftmax.XentLossFromLogits">[docs]</a>  <span class="k">def</span> <span class="nf">XentLossFromLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -4362,14 +4401,21 @@
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
-<span class="sd">      inputs: A tensor of shape [..., dim_reshape_segments, hidden_dim //</span>
-<span class="sd">        dim_reshape_segments].</span>
+<span class="sd">      inputs: A 4D tensor of shape [a, b, dim_reshape_segments, hidden_dim //</span>
+<span class="sd">        dim_reshape_segments]. If a 3D tensor [time, batch, dim], the input</span>
+<span class="sd">        (resp. output) rank is first augmented (resp. reduced) by splitting</span>
+<span class="sd">        the last dimension according to the device_mesh (resp. merging the</span>
+<span class="sd">        last two dimensions).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      tensor of the same shape with inputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">inputs_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">do_reshape</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+      <span class="k">if</span> <span class="n">do_reshape</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">ReshapeDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
       <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetScaleAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
@@ -4391,7 +4437,11 @@
       <span class="n">inputs_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">scale</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">cur_bias</span></div></div>
+      <span class="n">output</span> <span class="o">=</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">cur_bias</span>
+      <span class="k">if</span> <span class="n">do_reshape</span><span class="p">:</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">inputs_shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">output</span></div></div>
 
 
 <div class="viewcode-block" id="CategoricalLayerNorm"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">CategoricalLayerNorm</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">):</span>
@@ -5704,10 +5754,13 @@
 
     <span class="c1"># [batch, input_dim, bottleneck_dim].</span>
     <span class="n">down_w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bk,kin-&gt;bin&#39;</span><span class="p">,</span> <span class="n">tasks_onehot</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">down_w</span><span class="p">)</span>
+
     <span class="c1"># [batch, 1, bottleneck_dim].</span>
     <span class="n">down_b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bk,kn-&gt;bn&#39;</span><span class="p">,</span> <span class="n">tasks_onehot</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">down_b</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
     <span class="c1"># [batch, bottleneck_dim, input_dim].</span>
     <span class="n">up_w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bk,kni-&gt;bni&#39;</span><span class="p">,</span> <span class="n">tasks_onehot</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">up_w</span><span class="p">)</span>
+
     <span class="c1"># [batch, 1, input_dim].</span>
     <span class="n">up_b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bk,ki-&gt;bi&#39;</span><span class="p">,</span> <span class="n">tasks_onehot</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">up_b</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 

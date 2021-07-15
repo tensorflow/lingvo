@@ -334,19 +334,23 @@ Otherwise the default tokenizer will be used.</p></li>
 <li><p>p.packing_factor depends on the training data and max lengths used.</p>
 <p>If this value is too small, we generate packed batches that contain
 too many padding that could have been used to pack more examples.
-If this value is too large, we use more memory and randomly discard
+If this value is too large, we use more host memory and randomly discard
 examples that could not fit.</p>
-<p>One can look at the num_samples_in_batch graph to determine if its
-value is too small. For example, with an effective scaled batch size of
-1024, suppose we set p.packing_factor=3.0, and observe that
-num_samples_in_batch is saturated at 3072(=1024x3), this means 3.0 is
-likely too small. If we instead observe that num_samples_in_batch
-fluctuates around 2500, this means 3.0 is larger than needed.</p>
+<p>One can look at the ‘examples/src_packed_token_ratio’ (or
+‘examples/tgt_packed_token_ratio’) graph to determine if
+its value is too small. For example, with p.packing_factor=3.5, if we
+observe that ‘examples/src_packed_token_ratio’ is saturated at 1.0, this
+means 3.5 is likely too small. If we instead observe that
+‘examples/src_packed_token_ratio’ fluctuates around 0.5, this means 3.5 is
+larger than needed.</p>
 <p>We believe that there can be a slight bias against longer sequences
-when packing is enabled. The remedy is either use larger effective
-batch size, or use a larger-than-optimal packing factor when effective
-batch size is smaller. For example, p.packing_factor = 8 seems to work
-reasonably well in practice.</p>
+(meaning longer sequences have a slightly higher probability of being
+dropped) when packing factor is too large to have to drop data. The
+remedy is either use larger effective batch size, or use a conservative
+packing factor to not drop data.</p>
+<p>Note that the metric ‘num_samples_in_batch’ is a static value for
+max global number of samples, while ‘exmples/num_packed_examples’
+is the actual number of samples per batch.</p>
 </li>
 <li><p>p.source_max_length and p.target_max_length control both the shape of
 the generated input batch (how long each row is) and the filtering

@@ -182,6 +182,7 @@
 
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -529,7 +530,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">it</span></div>
 
 <div class="viewcode-block" id="TFDatasetSource.Initialize"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TFDatasetSource.Reset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
@@ -873,6 +875,12 @@
              <span class="s1">&#39;a sorted list of integers.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_id</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_element_spec</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="TFDataServiceSource.SetInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.SetInputGenerator">[docs]</a>  <span class="k">def</span> <span class="nf">SetInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_generator</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">SetInputGenerator</span><span class="p">(</span><span class="n">input_generator</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -883,38 +891,47 @@
         <span class="c1"># before p.tpu_infeed_parallelism is used.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">=</span> <span class="mi">1</span></div>
 
-<div class="viewcode-block" id="TFDataServiceSource.Transform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="TFDataServiceSource.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub</span><span class="o">.</span><span class="n">GetDataset</span><span class="p">()</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Batch is bucketed by sequence length. Group num_hosts batches</span>
+        <span class="c1"># in each window.</span>
+        <span class="k">def</span> <span class="nf">KeyFunc</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+          <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">bucket_keys</span><span class="p">)</span>
+          <span class="n">idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">group_by_window</span><span class="p">(</span>
+                <span class="n">key_func</span><span class="o">=</span><span class="n">KeyFunc</span><span class="p">,</span>
+                <span class="n">reduce_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensors</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+                <span class="n">window_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">))</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">register_dataset</span><span class="p">(</span>
+          <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_element_spec</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">element_spec</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="c1"># Batch is bucketed by sequence length. split into num_hosts batches</span>
-      <span class="c1"># and pull from the service in round-robin style.</span>
-
-      <span class="k">def</span> <span class="nf">KeyFunc</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">bucket_keys</span><span class="p">)</span>
-        <span class="n">idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="n">idx</span><span class="p">]</span>
-
-      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">group_by_window</span><span class="p">(</span>
-              <span class="n">key_func</span><span class="o">=</span><span class="n">KeyFunc</span><span class="p">,</span>
-              <span class="n">reduce_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensors</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
-              <span class="n">window_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">))</span>
-
-      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span>
-      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">distribute</span><span class="p">(</span>
-              <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">GetProcessUUID</span><span class="p">(),</span>
-              <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
-              <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span>
-              <span class="n">consumer_index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">,</span>
-              <span class="n">num_consumers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">))</span>
+      <span class="c1"># Batch is bucketed by sequence length. Use round-robin order.</span>
+      <span class="n">consumer_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_id</span>
+      <span class="n">num_consumers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">distribute</span><span class="p">(</span>
-              <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">GetProcessUUID</span><span class="p">(),</span>
-              <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
-              <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">))</span>
+      <span class="n">consumer_index</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="n">num_consumers</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">from_dataset_id</span><span class="p">(</span>
+        <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
+        <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span>
+        <span class="n">dataset_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dataset_id</span><span class="p">,</span>
+        <span class="n">element_spec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_element_spec</span><span class="p">,</span>
+        <span class="n">job_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span>
+        <span class="n">consumer_index</span><span class="o">=</span><span class="n">consumer_index</span><span class="p">,</span>
+        <span class="n">num_consumers</span><span class="o">=</span><span class="n">num_consumers</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">dataset</span></div></div>
 </pre></div>

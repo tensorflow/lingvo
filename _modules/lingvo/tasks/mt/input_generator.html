@@ -587,21 +587,26 @@
 
 <span class="sd">      If this value is too small, we generate packed batches that contain</span>
 <span class="sd">      too many padding that could have been used to pack more examples.</span>
-<span class="sd">      If this value is too large, we use more memory and randomly discard</span>
+<span class="sd">      If this value is too large, we use more host memory and randomly discard</span>
 <span class="sd">      examples that could not fit.</span>
 
-<span class="sd">      One can look at the num_samples_in_batch graph to determine if its</span>
-<span class="sd">      value is too small. For example, with an effective scaled batch size of</span>
-<span class="sd">      1024, suppose we set p.packing_factor=3.0, and observe that</span>
-<span class="sd">      num_samples_in_batch is saturated at 3072(=1024x3), this means 3.0 is</span>
-<span class="sd">      likely too small. If we instead observe that num_samples_in_batch</span>
-<span class="sd">      fluctuates around 2500, this means 3.0 is larger than needed.</span>
+<span class="sd">      One can look at the &#39;examples/src_packed_token_ratio&#39; (or</span>
+<span class="sd">      &#39;examples/tgt_packed_token_ratio&#39;) graph to determine if</span>
+<span class="sd">      its value is too small. For example, with p.packing_factor=3.5, if we</span>
+<span class="sd">      observe that &#39;examples/src_packed_token_ratio&#39; is saturated at 1.0, this</span>
+<span class="sd">      means 3.5 is likely too small. If we instead observe that</span>
+<span class="sd">      &#39;examples/src_packed_token_ratio&#39; fluctuates around 0.5, this means 3.5 is</span>
+<span class="sd">      larger than needed.</span>
 
 <span class="sd">      We believe that there can be a slight bias against longer sequences</span>
-<span class="sd">      when packing is enabled. The remedy is either use larger effective</span>
-<span class="sd">      batch size, or use a larger-than-optimal packing factor when effective</span>
-<span class="sd">      batch size is smaller. For example, p.packing_factor = 8 seems to work</span>
-<span class="sd">      reasonably well in practice.</span>
+<span class="sd">      (meaning longer sequences have a slightly higher probability of being</span>
+<span class="sd">      dropped) when packing factor is too large to have to drop data. The</span>
+<span class="sd">      remedy is either use larger effective batch size, or use a conservative</span>
+<span class="sd">      packing factor to not drop data.</span>
+
+<span class="sd">      Note that the metric &#39;num_samples_in_batch&#39; is a static value for</span>
+<span class="sd">      max global number of samples, while &#39;exmples/num_packed_examples&#39;</span>
+<span class="sd">      is the actual number of samples per batch.</span>
 
 <span class="sd">    * p.source_max_length and p.target_max_length control both the shape of</span>
 <span class="sd">      the generated input batch (how long each row is) and the filtering</span>

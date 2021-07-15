@@ -204,6 +204,7 @@
 <span class="kn">import</span> <span class="nn">six</span>
 
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">attr_value_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">node_def_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">rewriter_config_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">func_graph</span>
@@ -369,6 +370,13 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="_VarInCollection"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._VarInCollection">[docs]</a><span class="k">def</span> <span class="nf">_VarInCollection</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">collection</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Return whether a variable `var` is in the given variable collection.&quot;&quot;&quot;</span>
+  <span class="c1"># We use variable reference for comparison, since variable is not hashable in</span>
+  <span class="c1"># eager mode.</span>
+  <span class="k">return</span> <span class="n">var</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">collection</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="_PrintOptions"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._PrintOptions">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">_PrintOptions</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="n">original</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">get_printoptions</span><span class="p">()</span>
@@ -449,8 +457,9 @@
   <span class="n">caller_more_vars</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">if</span> <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">:</span>
     <span class="c1"># Rough and likely to fail. But better than nothing.</span>
-    <span class="n">caller_var</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Debug\((.*?)(\)|,).*$&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
-        <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Debug\((.*?)(\)|,).*$&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+      <span class="n">caller_var</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">more</span><span class="p">:</span>
       <span class="n">more_vars</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;more=\[(.*?)\].*$&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
           <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
@@ -798,17 +807,35 @@
   <span class="k">return</span> <span class="n">_tpu_device_assignment_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span></div>
 
 
-<span class="c1"># Whether it&#39;s running in eager mode.</span>
+<span class="c1"># Whether it&#39;s running in eager mode. This is different than</span>
+<span class="c1"># tf.executing_eagerly(), which will return False inside a tf.function.</span>
 <span class="n">_IS_EAGER_MODE</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <div class="viewcode-block" id="SetIsEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetIsEagerMode">[docs]</a><span class="k">def</span> <span class="nf">SetIsEagerMode</span><span class="p">():</span>
   <span class="k">global</span> <span class="n">_IS_EAGER_MODE</span>
+  <span class="k">assert</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">(),</span> <span class="s1">&#39;It must be in eager mode when setting this.&#39;</span>
   <span class="n">_IS_EAGER_MODE</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="IsEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.IsEagerMode">[docs]</a><span class="k">def</span> <span class="nf">IsEagerMode</span><span class="p">():</span>
   <span class="k">return</span> <span class="n">_IS_EAGER_MODE</span></div>
+
+
+<span class="c1"># The tf.train.ExponentialMovingAverage singleton used by all subtasks in</span>
+<span class="c1"># multi-task training with ExecutorTpu.</span>
+<span class="n">_EXECUTOR_EMA</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="SetExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetExponentialMovingAverage">[docs]</a><span class="k">def</span> <span class="nf">SetExponentialMovingAverage</span><span class="p">(</span><span class="n">ema</span><span class="p">):</span>
+  <span class="k">global</span> <span class="n">_EXECUTOR_EMA</span>
+  <span class="k">assert</span> <span class="n">ema</span>
+  <span class="k">assert</span> <span class="ow">not</span> <span class="n">_EXECUTOR_EMA</span><span class="p">,</span> <span class="s1">&#39;EMA was set before.&#39;</span>
+  <span class="n">_EXECUTOR_EMA</span> <span class="o">=</span> <span class="n">ema</span></div>
+
+
+<div class="viewcode-block" id="ExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ExponentialMovingAverage">[docs]</a><span class="k">def</span> <span class="nf">ExponentialMovingAverage</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">_EXECUTOR_EMA</span></div>
 
 
 <div class="viewcode-block" id="SessionConfig"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SessionConfig">[docs]</a><span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -1374,15 +1401,20 @@
 <span class="n">_VARIABLE_RENAME_RULES</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 
 <span class="c1"># Global variable to track task calling scope.</span>
-<span class="c1"># Currently only used for TPU Embedding purposes as a TPUEmbeddinglayer</span>
+<span class="c1"># Currently only used for TPU Embedding purposes as a TPUEmbeddingLayer</span>
 <span class="c1"># may be shared across tasks and the calling task needs to be known</span>
 <span class="c1"># for tracking embedding activations for backprop.</span>
 <span class="n">_TASK_CALL_SCOPE</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 
 
+<div class="viewcode-block" id="TaskCallScopeName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.TaskCallScopeName">[docs]</a><span class="k">def</span> <span class="nf">TaskCallScopeName</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get a unique string identifying a task.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="nb">id</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span></div>
+
+
 <div class="viewcode-block" id="TaskCallScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.TaskCallScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">TaskCallScope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
-  <span class="n">_TASK_CALL_SCOPE</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">TaskCallScope</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+  <span class="n">_TASK_CALL_SCOPE</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">TaskCallScopeName</span><span class="p">(</span><span class="n">task</span><span class="p">))</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="k">yield</span>
   <span class="k">finally</span><span class="p">:</span>
@@ -1434,6 +1466,44 @@
   <span class="k">if</span> <span class="n">new_name</span> <span class="o">!=</span> <span class="n">name</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;WARNING!!! Renaming variable &#39;</span><span class="si">%s</span><span class="s2">&#39; to &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">new_name</span></div>
+
+
+<span class="n">_LIST_REGEX_DTYPE</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="VariableListDtypeRegexScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.VariableListDtypeRegexScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">VariableListDtypeRegexScope</span><span class="p">(</span><span class="n">list_regex_dtypes</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Append the list of (regex, dtype) to override the dtype.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    list_regex_dtypes: pairs of (regexp, dtype). If the regexp matches, the data</span>
+<span class="sd">      type of the variable will be changed by the corresponding dtype.</span>
+
+<span class="sd">  Yields:</span>
+<span class="sd">    scope in which the list of (regex, dtype) is applied.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">_LIST_REGEX_DTYPE</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">list_regex_dtypes</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_LIST_REGEX_DTYPE</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="FindDataType"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.FindDataType">[docs]</a><span class="k">def</span> <span class="nf">FindDataType</span><span class="p">(</span><span class="n">var_name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Find the data type for var_name.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    var_name: A string, name of the variable.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The dtype of the first matched regex with var_name, or None if no matching</span>
+<span class="sd">      found.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">for</span> <span class="n">regex_dtypes</span> <span class="ow">in</span> <span class="n">_LIST_REGEX_DTYPE</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">regex</span><span class="p">,</span> <span class="n">data_type</span> <span class="ow">in</span> <span class="n">regex_dtypes</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">var_name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">data_type</span>
+  <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="GenerateSeedFromName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GenerateSeedFromName">[docs]</a><span class="k">def</span> <span class="nf">GenerateSeedFromName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
@@ -1494,9 +1564,35 @@
 <span class="n">_VARIABLE_SHAPE_PREFIXES</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 
 
+<div class="viewcode-block" id="GetVarLeadingDimsAsCombinedLayers"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetVarLeadingDimsAsCombinedLayers">[docs]</a><span class="k">def</span> <span class="nf">GetVarLeadingDimsAsCombinedLayers</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Gets the number of leading dimensions of `var` marked as combined layers.</span>
+
+<span class="sd">  Such dimensions represent variables from different layers stacked together,</span>
+<span class="sd">  e.g., in RepeatLayer, and optimizers (which have shape-dependant behaviors)</span>
+<span class="sd">  can adjust its behavior based on this information to match the behavior for</span>
+<span class="sd">  separate layer variables.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    var: A variable.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    An integer representing the number of leading dimensions.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">var</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">get_attr</span><span class="p">(</span><span class="s1">&#39;_num_leading_dims_for_combined_layers&#39;</span><span class="p">)</span>
+  <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="k">return</span> <span class="mi">0</span>
+  <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+    <span class="c1"># AttributeError: &#39;DistributedVarOp&#39; object has no attribute &#39;get_attr&#39;.</span>
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
 <div class="viewcode-block" id="VariableShapePrefixContext"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.VariableShapePrefixContext">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">VariableShapePrefixContext</span><span class="p">(</span><span class="n">shape_prefix</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Add a shape prefix to variable created by CreateVariable().</span>
+
+<span class="sd">  This new dimension will be marked as combined-layers. See also comments for</span>
+<span class="sd">  GetVarLeadingDimsAsCombinedLayers().</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    shape_prefix: a positive integer of shape prefix.</span>
@@ -1517,21 +1613,30 @@
   <span class="k">return</span> <span class="n">_VARIABLE_SHAPE_PREFIXES</span><span class="o">.</span><span class="n">stack</span></div>
 
 
-<div class="viewcode-block" id="GetFanInFanOut"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetFanInFanOut">[docs]</a><span class="k">def</span> <span class="nf">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+<div class="viewcode-block" id="GetVariableNumLeadingDimsForCombinedLayersContext"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetVariableNumLeadingDimsForCombinedLayersContext">[docs]</a><span class="k">def</span> <span class="nf">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Return the number of leading combined-layers dims for CreateVariable().&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">_VARIABLE_SHAPE_PREFIXES</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetFanInFanOut"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetFanInFanOut">[docs]</a><span class="k">def</span> <span class="nf">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">prefix_dims_to_skip</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns (fan_in, fan_out) of a weight variable of the give shape.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
     <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">prefix_dims_to_skip</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Variable shape is </span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s1"> but prefix_dims_to_skip is &#39;</span>
+                     <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">prefix_dims_to_skip</span><span class="si">}</span><span class="s1">, larger than the shape rank.&#39;</span><span class="p">)</span>
+  <span class="n">adjusted_shape</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="n">prefix_dims_to_skip</span><span class="p">:]</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">adjusted_shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
     <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
-  <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+  <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">adjusted_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
     <span class="c1"># Following _compute_fans() from TF&#39;s init_ops.py.</span>
-    <span class="k">return</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">adjusted_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">adjusted_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">receptive_field_size</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">adjusted_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]:</span>
       <span class="n">receptive_field_size</span> <span class="o">*=</span> <span class="n">s</span>
-    <span class="n">fan_in</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">receptive_field_size</span>
-    <span class="n">fan_out</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">receptive_field_size</span>
+    <span class="n">fan_in</span> <span class="o">=</span> <span class="n">adjusted_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">receptive_field_size</span>
+    <span class="n">fan_out</span> <span class="o">=</span> <span class="n">adjusted_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">receptive_field_size</span>
     <span class="k">return</span> <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span></div>
 
 
@@ -1720,7 +1825,11 @@
         <span class="c1"># variable name as a stable random seed.</span>
         <span class="n">seed</span> <span class="o">=</span> <span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
 
-  <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">real_dtype</span>
+  <span class="c1"># If var_name matches a regex, then set the var_dtype; else use p.dtype.</span>
+  <span class="n">var_dtype</span> <span class="o">=</span> <span class="n">FindDataType</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">var_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">var_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+  <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">var_dtype</span><span class="o">.</span><span class="n">real_dtype</span>
 
   <span class="c1"># TODO(b/172827074): we do not natively support var initialization for</span>
   <span class="c1"># int8 type except for constant initialization.</span>
@@ -1731,7 +1840,7 @@
   <span class="n">v_init</span> <span class="o">=</span> <span class="n">_CreateVarInitStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
                                   <span class="n">init_dtype</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">var_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">ComplexWrapper</span><span class="p">(</span><span class="n">init</span><span class="p">):</span>
 
@@ -1747,7 +1856,7 @@
 
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">ComplexWrapper</span><span class="p">(</span><span class="n">v_init</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">var_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">FloatToInt8Wrapper</span><span class="p">(</span><span class="n">init</span><span class="p">):</span>
 
@@ -1817,13 +1926,19 @@
             <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
             <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
             <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
             <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
             <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
+
+  <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">combined_layers_dims</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="c1"># pylint: disable=protected-access</span>
+    <span class="n">var</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">_set_attr</span><span class="p">(</span><span class="s1">&#39;_num_leading_dims_for_combined_layers&#39;</span><span class="p">,</span>
+                     <span class="n">attr_value_pb2</span><span class="o">.</span><span class="n">AttrValue</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">combined_layers_dims</span><span class="p">))</span>
 
   <span class="c1"># Shard the variable according to the sharding spec.</span>
   <span class="n">tensor_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span>
@@ -1890,11 +2005,15 @@
   <span class="n">user_seed</span> <span class="o">=</span> <span class="n">seed</span> <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_seed</span>
   <span class="n">seed</span> <span class="o">=</span> <span class="n">_GenerateStatelessRngSeed</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">user_seed</span><span class="p">)</span>
 
-  <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">real_dtype</span>
+  <span class="c1"># If var_name matches a regex, then set the var_dtype; else use p.dtype.</span>
+  <span class="n">var_dtype</span> <span class="o">=</span> <span class="n">FindDataType</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">var_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">var_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+  <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">var_dtype</span><span class="o">.</span><span class="n">real_dtype</span>
   <span class="n">v_init</span> <span class="o">=</span> <span class="n">_CreateVarInitStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
                                    <span class="n">init_dtype</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">var_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
         <span class="s1">&#39;Stateless variable initialization does not support tf.complex64.&#39;</span><span class="p">)</span>
 
@@ -1932,13 +2051,19 @@
         <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
         <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
         <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
         <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
+
+  <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">combined_layers_dims</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="c1"># pylint: disable=protected-access</span>
+    <span class="n">var</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">_set_attr</span><span class="p">(</span><span class="s1">&#39;_num_leading_dims_for_combined_layers&#39;</span><span class="p">,</span>
+                     <span class="n">attr_value_pb2</span><span class="o">.</span><span class="n">AttrValue</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">combined_layers_dims</span><span class="p">))</span>
 
   <span class="c1"># Shard the variable according to the sharding spec.</span>
   <span class="n">tensor_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span>
@@ -1953,13 +2078,14 @@
 
 <div class="viewcode-block" id="_RandomXavierUniformInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._RandomXavierUniformInitializer">[docs]</a><span class="k">def</span> <span class="nf">_RandomXavierUniformInitializer</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a random Xavier uniform initializer.&quot;&quot;&quot;</span>
+  <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
 
   <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span><span class="p">:</span>
       <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
@@ -1982,16 +2108,18 @@
           <span class="s1">&#39;Make sure that it is intended.&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">dim0</span><span class="p">)</span>
     <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dim0</span><span class="p">)</span>
 
+  <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
+
   <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">]:</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span><span class="p">]:</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_out</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanavg&#39;</span><span class="p">]:</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">scale</span> <span class="o">*=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
 
@@ -2037,7 +2165,7 @@
       <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
-      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span><span class="p">:</span>
         <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
       <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
@@ -2158,6 +2286,8 @@
   <span class="p">}:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid `distribution` argument:&#39;</span><span class="p">,</span> <span class="n">distribution</span><span class="p">)</span>
 
+  <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
+
   <span class="k">def</span> <span class="nf">DeterministicVarianceScaling</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
     <span class="c1"># This is originally from TensorFlow: python/ops/init_ops.py</span>
     <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">shape</span>
@@ -2169,7 +2299,7 @@
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale_shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">scale_shape</span><span class="p">:</span>
       <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">scale_shape</span><span class="p">)</span>
+      <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">scale_shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;fan_in&#39;</span><span class="p">:</span>
       <span class="n">scale_inner</span> <span class="o">=</span> <span class="n">scale</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">fan_in</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;fan_out&#39;</span><span class="p">:</span>
@@ -2196,13 +2326,14 @@
 
 <div class="viewcode-block" id="_DeterministicRandomXavierUniformInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._DeterministicRandomXavierUniformInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomXavierUniformInitializer</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a variance scaling initializer.&quot;&quot;&quot;</span>
+  <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
 
   <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span><span class="p">:</span>
       <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
@@ -2226,16 +2357,18 @@
           <span class="s1">&#39;Make sure that it is intended.&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">dim0</span><span class="p">)</span>
     <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dim0</span><span class="p">)</span>
 
+  <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
+
   <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">]:</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span><span class="p">]:</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_out</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gaussian_sqrt_fanavg&#39;</span><span class="p">]:</span>
-    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">fan_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fan_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">scale</span> <span class="o">*=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
 
@@ -2410,6 +2543,9 @@
   <span class="sd">&quot;&quot;&quot;Determines variables to load and their names in checkpoint.&quot;&quot;&quot;</span>
   <span class="c1"># This list contains mappings from var names as they appear in the checkpoint</span>
   <span class="c1"># to the vars in our model they correspond to.</span>
+  <span class="n">unused_rules</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="n">regexp</span><span class="p">:</span> <span class="n">name_format</span> <span class="k">for</span> <span class="n">regexp</span><span class="p">,</span> <span class="n">name_format</span> <span class="ow">in</span> <span class="n">variable_loading_rules</span>
+  <span class="p">}</span>
   <span class="n">vars_to_load</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">model_var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
     <span class="n">loaded</span> <span class="o">=</span> <span class="kc">False</span>
@@ -2428,12 +2564,16 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading </span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1"> with regexp: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                       <span class="n">checkpoint_var_name</span><span class="p">,</span> <span class="n">regexp</span><span class="p">)</span>
       <span class="n">vars_to_load</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">checkpoint_var_name</span><span class="p">,</span> <span class="n">model_var</span><span class="p">))</span>
+      <span class="n">unused_rules</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">regexp</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
       <span class="n">loaded</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="k">break</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">loaded</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
           <span class="s1">&#39;Not loading model variable </span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1"> as it does not match any rules&#39;</span>
           <span class="s1">&#39; or matches ignored&#39;</span><span class="p">,</span> <span class="n">model_var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">regexp</span><span class="p">,</span> <span class="n">name_format</span> <span class="ow">in</span> <span class="n">unused_rules</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;User provided rule matched no variables: (</span><span class="si">{</span><span class="n">regexp</span><span class="si">}</span><span class="s1">, &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name_format</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">vars_to_load</span></div>
 
 
@@ -2569,57 +2709,6 @@
       <span class="n">gate_gradients</span><span class="o">=</span><span class="n">gate_gradients</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ComputeTpuEmbeddingGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ComputeTpuEmbeddingGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeTpuEmbeddingGradients</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">activation_dict</span><span class="p">,</span>
-                                 <span class="n">tpu_embedding_collection</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns a TpuEmbedding SendGradient op.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    task_name: The name of the task to compute the gradients for.</span>
-<span class="sd">    loss: The loss to backprop from.</span>
-<span class="sd">    activation_dict: String feature -&gt; embedding activations dict.</span>
-<span class="sd">    tpu_embedding_collection: TpuEmbeddingCollection instance.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    A tuple (send_gradient_op, eval_metrics):</span>
-<span class="sd">    - send_gradient_op: A TF op that sends gradients to TPU Embedding.</span>
-<span class="sd">    - eval_metrics: A list of (name, value, weight) tuples containing the eval</span>
-<span class="sd">      metrics, where value and weight are scalar tensors.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="c1"># Scale the loss to account for the full batch size.</span>
-  <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
-  <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-  <span class="n">gradients</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
-      <span class="n">loss</span><span class="p">,</span>
-      <span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
-      <span class="c1"># TPUEmbedding expects gradients for all embedding</span>
-      <span class="c1"># features, so return zero if unconnected.</span>
-      <span class="n">unconnected_gradients</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">UnconnectedGradients</span><span class="o">.</span><span class="n">ZERO</span><span class="p">)</span>
-
-  <span class="c1"># Apply gradient multiplier schedule.</span>
-  <span class="n">grad_multiplier</span> <span class="o">=</span> <span class="p">(</span>
-      <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">gradient_multiplier_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">())</span>
-  <span class="n">gradients</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="o">*</span> <span class="n">grad_multiplier</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">gradients</span><span class="p">]</span>
-
-  <span class="n">feature_to_gradient_dict</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
-      <span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">gradients</span><span class="p">))</span>
-  <span class="n">send_gradient_op</span> <span class="o">=</span> <span class="p">(</span>
-      <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
-          <span class="n">feature_to_gradient_dict</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">GetGlobalStep</span><span class="p">()))</span>
-
-  <span class="c1"># Add eval metrics. Note we can&#39;t add these to tpu_embedding_collection since</span>
-  <span class="c1"># it&#39;ll leak these to a different graph from a different task in multi-task</span>
-  <span class="c1"># setup.</span>
-  <span class="c1"># TODO(laigd): find a better solution using tpu_embedding_collection.</span>
-  <span class="n">eval_metrics</span> <span class="o">=</span> <span class="p">[</span>
-      <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;tpu_embedding_var_norm/</span><span class="si">{</span><span class="n">task_name</span><span class="si">}</span><span class="s1">/all&#39;</span><span class="p">,</span>
-       <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">SumSquared</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)),</span>
-      <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;tpu_embedding_grad_norm/</span><span class="si">{</span><span class="n">task_name</span><span class="si">}</span><span class="s1">/all&#39;</span><span class="p">,</span>
-       <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">SumSquared</span><span class="p">(</span><span class="n">gradients</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)),</span>
-      <span class="p">(</span><span class="s1">&#39;tpu_embedding_gradient_multiplier&#39;</span><span class="p">,</span> <span class="n">grad_multiplier</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)),</span>
-  <span class="p">]</span>
-  <span class="k">return</span> <span class="n">send_gradient_op</span><span class="p">,</span> <span class="n">eval_metrics</span></div>
-
-
 <div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span>
                          <span class="n">all_vars</span><span class="p">,</span>
                          <span class="n">grad_aggregation_method</span><span class="p">,</span>
@@ -2629,7 +2718,8 @@
                          <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                          <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                          <span class="n">activations_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                         <span class="n">is_activations</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                         <span class="n">is_activations</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                         <span class="n">tpu_embedding_activations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients for local loss across whole TPU cluster.</span>
 
 <span class="sd">  This implementation specializes for the case where weight params maybe used</span>
@@ -2657,9 +2747,12 @@
 <span class="sd">      skip_zero_gradients is None.</span>
 <span class="sd">    activations_grad: The gradients computed for activations.</span>
 <span class="sd">    is_activations: A boolean, whether the input is loss or activations.</span>
+<span class="sd">    tpu_embedding_activations: A `.NestedMap` of tpu embedding feature name -&gt;</span>
+<span class="sd">      embedding feature tensor.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    Gradients to be passed back.</span>
+<span class="sd">    Gradients to be passed back. If tpu_embedding_activations is set, their</span>
+<span class="sd">    gradients will be placed at the end.</span>
 
 <span class="sd">  Raises:</span>
 <span class="sd">    ValueError: upon invalid arguments.</span>
@@ -2673,16 +2766,29 @@
     <span class="k">assert</span> <span class="n">shards</span>
     <span class="n">loss_or_activations</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
         <span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss_or_activations</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">tpu_embedding_activations</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;Gradient computation for tpu embedding activations requires proper &#39;</span>
+        <span class="s1">&#39;loss scaling, and so is not compatible with skip_zero_gradients and &#39;</span>
+        <span class="s1">&#39;is_activations.&#39;</span><span class="p">)</span>
 
   <span class="c1"># Computes the gradients.</span>
   <span class="c1"># Sum the grads so that we can compute statistics across the whole batch.</span>
   <span class="n">all_grads</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span><span class="p">(</span>
       <span class="n">loss_or_activations</span><span class="o">=</span><span class="n">loss_or_activations</span><span class="p">,</span>
-      <span class="n">all_vars</span><span class="o">=</span><span class="n">all_vars</span><span class="p">,</span>
+      <span class="n">all_vars</span><span class="o">=</span><span class="n">all_vars</span> <span class="o">+</span>
+      <span class="p">(</span><span class="n">tpu_embedding_activations</span> <span class="k">if</span> <span class="n">tpu_embedding_activations</span> <span class="k">else</span> <span class="p">[]),</span>
       <span class="n">grad_aggregation_method</span><span class="o">=</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
       <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
       <span class="n">gate_gradients</span><span class="o">=</span><span class="n">gate_gradients</span><span class="p">,</span>
       <span class="n">activations_grad</span><span class="o">=</span><span class="n">activations_grad</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
+    <span class="c1"># Note we don&#39;t need to aggregate TPU embedding gradients below.</span>
+    <span class="n">tpu_embedding_grads</span> <span class="o">=</span> <span class="n">all_grads</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">all_vars</span><span class="p">):]</span>
+    <span class="n">all_grads</span> <span class="o">=</span> <span class="n">all_grads</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">all_vars</span><span class="p">)]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">tpu_embedding_grads</span> <span class="o">=</span> <span class="p">[]</span>
 
   <span class="c1"># NOTE: We can&#39;t use tpu_optimizer.CrossShardOptimizer since</span>
   <span class="c1"># we need to scale the grads *after* the cross_replica_sum to</span>
@@ -2728,7 +2834,7 @@
         <span class="n">num_updates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g_is_non_zero</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
         <span class="n">normalized_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_updates</span>
       <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">normalized_g</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">aggregated_grads</span></div>
+  <span class="k">return</span> <span class="n">aggregated_grads</span> <span class="o">+</span> <span class="n">tpu_embedding_grads</span></div>
 
 
 <div class="viewcode-block" id="VarGrad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.VarGrad">[docs]</a><span class="k">class</span> <span class="nc">VarGrad</span><span class="p">:</span>
@@ -2772,7 +2878,8 @@
     <span class="n">skip_none_gradients</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">activations_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">is_activations</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">is_activations</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">tpu_embedding_activations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
@@ -2808,6 +2915,8 @@
 <span class="sd">      apply_gradient. This applies to TPU only.</span>
 <span class="sd">    activations_grad: The gradients computed for activations.</span>
 <span class="sd">    is_activations: A boolean, whether the input is loss or activations.</span>
+<span class="sd">    tpu_embedding_activations: A `.NestedMap` of tpu embedding feature name -&gt;</span>
+<span class="sd">      embedding feature tensor.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of VarGrad. You can view</span>
@@ -2816,9 +2925,16 @@
 <span class="sd">    contributes to loss must exist in var_grad. Every var of var_grad</span>
 <span class="sd">    must exist in vmap.  grad is the corresponding gradient computed</span>
 <span class="sd">    for var. grad is guaranteed to be not None.</span>
+<span class="sd">    If tpu_embedding_activations is set, a sub `.NestedMap` named</span>
+<span class="sd">    tpu_embedding_var_grads will be used to store the VarGrads for the</span>
+<span class="sd">    activations. In this case, key is the feature name, and var in the VarGrad</span>
+<span class="sd">    is the activation tensor (not a real variable).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">is_activations</span><span class="p">:</span>
     <span class="n">loss_or_activations</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
+    <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+  <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tpu_embedding_activations</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)</span>
   <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vmap</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)</span>
   <span class="k">assert</span> <span class="n">skip_zero_gradients</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;variable&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">)</span>
 
@@ -2849,6 +2965,7 @@
 
   <span class="c1"># Use caller-supplied gradient function if supplied.</span>
   <span class="k">if</span> <span class="n">compute_gradients_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">tpu_embedding_activations</span>
     <span class="n">take_grad</span> <span class="o">=</span> <span class="n">compute_gradients_fn</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="c1"># tpu vs non-tpu is slightly different.</span>
@@ -2859,13 +2976,21 @@
           <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="n">use_bf16_gradients_ar</span><span class="p">,</span>
           <span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="n">defer_crs_to_apply_grad</span><span class="p">,</span>
           <span class="n">activations_grad</span><span class="o">=</span><span class="n">activations_grad</span><span class="p">,</span>
-          <span class="n">is_activations</span><span class="o">=</span><span class="n">is_activations</span><span class="p">)</span>
+          <span class="n">is_activations</span><span class="o">=</span><span class="n">is_activations</span><span class="p">,</span>
+          <span class="n">tpu_embedding_activations</span><span class="o">=</span><span class="n">tpu_embedding_activations</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">tpu_embedding_activations</span>
       <span class="n">take_grad</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span>
 
   <span class="n">grads</span> <span class="o">=</span> <span class="n">take_grad</span><span class="p">(</span><span class="n">loss_or_activations</span><span class="p">,</span> <span class="n">filtered_vlist</span><span class="p">,</span>
                     <span class="n">grad_aggregation_method</span><span class="p">,</span> <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
                     <span class="n">gate_gradients</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">tpu_embedding_activations</span><span class="p">:</span>
+    <span class="n">tpu_embedding_grads</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">filtered_vlist</span><span class="p">):]</span>
+    <span class="n">grads</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">filtered_vlist</span><span class="p">)]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">tpu_embedding_grads</span> <span class="o">=</span> <span class="kc">None</span>
 
   <span class="c1"># Formulate pairs of (var, grad) and pack them into the same</span>
   <span class="c1"># structure as filtered_vmap.</span>
@@ -2874,6 +2999,30 @@
 
   <span class="k">if</span> <span class="n">skip_none_gradients</span><span class="p">:</span>
     <span class="n">var_grads</span> <span class="o">=</span> <span class="n">SkipNoneGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">tpu_embedding_grads</span><span class="p">:</span>
+    <span class="c1"># Create VarGrads for TPU embedding activations in a dedicated sub map.</span>
+    <span class="k">assert</span> <span class="s1">&#39;tpu_embedding_var_grads&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">var_grads</span>
+    <span class="n">tpu_embedding_activation_list</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="n">tpu_embedding_var_grads</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">VarGrad</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tpu_embedding_activation_list</span><span class="p">,</span> <span class="n">tpu_embedding_grads</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">tpu_embedding_var_grads</span> <span class="o">=</span> <span class="n">tpu_embedding_activations</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+        <span class="n">tpu_embedding_var_grads</span><span class="p">)</span>
+
+    <span class="c1"># Replace None gradients with zeros, since TPU embedding expect all</span>
+    <span class="c1"># activations to have gradients.</span>
+    <span class="k">def</span> <span class="nf">_NoneToZeros</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;TPU embedding gradient for feature </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> is None. Replacing with &#39;</span>
+            <span class="s1">&#39;zeros.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">VarGrad</span><span class="p">(</span><span class="n">var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">var_grad</span>
+
+    <span class="n">var_grads</span><span class="o">.</span><span class="n">tpu_embedding_var_grads</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tpu_embedding_var_grads</span><span class="o">.</span><span class="n">TransformWithKey</span><span class="p">(</span><span class="n">_NoneToZeros</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">var_grads</span></div>
 
@@ -3030,7 +3179,7 @@
       <span class="k">return</span> <span class="n">var</span>
 
   <span class="k">def</span> <span class="nf">ShouldAdjust</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">)</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">_VarInCollection</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">))</span>
 
   <span class="n">filtered_var_grads</span> <span class="o">=</span> <span class="p">[</span>
       <span class="n">var_grad</span> <span class="k">for</span> <span class="n">var_grad</span> <span class="ow">in</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span> <span class="k">if</span> <span class="n">ShouldAdjust</span><span class="p">(</span><span class="n">var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
@@ -3080,7 +3229,7 @@
           <span class="n">grad_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
         <span class="n">delta</span> <span class="o">=</span> <span class="n">lp_regularizer_weight</span> <span class="o">*</span> <span class="n">weights</span> <span class="o">*</span> <span class="n">grad_v</span>
         <span class="n">grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">values</span> <span class="o">+</span> <span class="n">delta</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">):</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">_VarInCollection</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">)):</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mf">2.0</span><span class="p">:</span>
           <span class="n">grad_v</span> <span class="o">=</span> <span class="n">var</span>
@@ -3390,6 +3539,20 @@
 <span class="c1"># Step seed keyed by graph.</span>
 <span class="n">_STEP_SEED_DICT</span> <span class="o">=</span> <span class="n">ThreadLocalDict</span><span class="p">()</span>
 
+<span class="c1"># The step seed will increment by np.prod(_STEP_SEED_INCREMENT.stack)</span>
+<span class="n">_STEP_SEED_INCREMENT</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="StepSeedIncrementContext"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.StepSeedIncrementContext">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">StepSeedIncrementContext</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adds an element to _STEP_SEED_INCREMENT.&quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">step</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">step</span><span class="p">)</span>
+  <span class="n">_STEP_SEED_INCREMENT</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_STEP_SEED_INCREMENT</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
 
 <div class="viewcode-block" id="GetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetStepSeed</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Gets step_seed.&quot;&quot;&quot;</span>
@@ -3429,7 +3592,8 @@
   <span class="n">step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
   <span class="c1"># TODO(lepikhin): introduce a routine filling a queue of uint32 random seeds</span>
   <span class="c1"># independent of underlying PRNG used by tensorflow.</span>
-  <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">step_seed</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">inc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">_STEP_SEED_INCREMENT</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span>
+  <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">step_seed</span> <span class="o">+</span> <span class="n">inc</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">step_seed</span></div>
 
 
@@ -3574,14 +3738,14 @@
       <span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">update_delta</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_inf</span><span class="p">(</span><span class="n">update_delta</span><span class="p">)))</span>
-      <span class="n">update_delta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">,</span>
-                             <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">update_delta</span><span class="p">),</span>
-                             <span class="k">lambda</span><span class="p">:</span> <span class="n">update_delta</span><span class="p">)</span>
+      <span class="n">update_delta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">update_delta</span><span class="p">),</span>
+                              <span class="n">update_delta</span><span class="p">)</span>
       <span class="n">bn_update</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_sub</span><span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">update_delta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">scope</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">BATCH_NORM_UPDATES</span><span class="p">,</span> <span class="n">bn_update</span><span class="p">)</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly_outside_functions</span><span class="p">():</span>
     <span class="n">bn_update_dict</span> <span class="o">=</span> <span class="n">_get_batch_norm_updates_dict</span><span class="p">()</span>
-    <span class="k">assert</span> <span class="n">bn_update</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bn_update_dict</span>
+    <span class="k">if</span> <span class="n">bn_update</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">bn_update_dict</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;BN update </span><span class="si">{</span><span class="n">bn_update</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> already exists.&#39;</span><span class="p">)</span>
     <span class="n">bn_update_dict</span><span class="p">[</span><span class="n">bn_update</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">batch_norm_stats</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">bn_update</span></div>
 
@@ -3856,13 +4020,13 @@
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">),</span> <span class="n">padding</span></div>
 
 
-<div class="viewcode-block" id="ApplyPadding"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ApplyPadding">[docs]</a><span class="k">def</span> <span class="nf">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padded</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">broadcast</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_select</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="ApplyPadding"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ApplyPadding">[docs]</a><span class="k">def</span> <span class="nf">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padded</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_select</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Applies padding to a tensor.</span>
 
 <span class="sd">  This is preferable to using arithmetic means for masking out padded values</span>
 <span class="sd">  such as::</span>
 
-<span class="sd">      # Equiv to ApplyPadding(padding, x))</span>
+<span class="sd">      # Equiv to ApplyPadding(padding, x)</span>
 <span class="sd">      x *= 1.0 - padding</span>
 <span class="sd">      # Equiv to ApplyPadding(padding, new, old)</span>
 <span class="sd">      new = old * padding + new * (1 - padding)</span>
@@ -3879,10 +4043,7 @@
 <span class="sd">    padding: Tensor of padding values where 0 == keep and 1 == pad.</span>
 <span class="sd">    x: Tensor to apply padding to.</span>
 <span class="sd">    padded: Optional. Values to include for padded elements. Defaults to zeros.</span>
-<span class="sd">      Must be the same shape as &#39;x&#39; if specified.</span>
-<span class="sd">    broadcast: Whether to broadcast the padding shape to the shape of &#39;x&#39;. You</span>
-<span class="sd">      almost certainly want this to be true as it matches how padding would be</span>
-<span class="sd">      expanded if applied arithmetically.</span>
+<span class="sd">      Must have a shape broadcastable to &#39;x&#39; if specified.</span>
 <span class="sd">    use_select: Controls whether padding is applied with a select-mask</span>
 <span class="sd">      (True/default) or arithmetically (False). Some platforms have a</span>
 <span class="sd">      sensitivity to one or the other and this is used to work around such</span>
@@ -3895,17 +4056,18 @@
       <span class="n">Assert</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-                  <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))),</span> <span class="p">[</span><span class="n">padding</span><span class="p">])</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([],</span> <span class="n">padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))),</span> <span class="p">[</span><span class="n">padding</span><span class="p">])</span>
   <span class="p">],</span> <span class="n">padding</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">use_select</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">padded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">broadcast</span><span class="p">:</span>
-      <span class="c1"># Broadcast padding to the full shape.</span>
-      <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">padding</span><span class="p">),</span> <span class="n">padded</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">padding</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="n">padding</span> <span class="o">&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where_v2</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">padded</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">padded</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">result</span> <span class="o">+=</span> <span class="n">padded</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">padded</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span></div>
@@ -4729,7 +4891,7 @@
 
 <span class="c1"># Partially borrowed from</span>
 <span class="c1"># https://github.com/tensorflow/tensor2tensor/blob/32929305e1a4ec926eff24123758b794df35492b/tensor2tensor/layers/common_layers.py#L349</span>
-<div class="viewcode-block" id="CumSum"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.CumSum">[docs]</a><span class="k">def</span> <span class="nf">CumSum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="CumSum"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.CumSum">[docs]</a><span class="k">def</span> <span class="nf">CumSum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_einsum</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A TPU efficient implementation of tf.cumsum().</span>
 
 <span class="sd">  This is equivalent to tf.cumsum and is faster on TPU as of 08/2019 unless</span>
@@ -4740,6 +4902,7 @@
 <span class="sd">    x: An input Tensor.</span>
 <span class="sd">    axis: An int for the axis.</span>
 <span class="sd">    exclusive: A bool for performing exclusive cumsum.</span>
+<span class="sd">    use_einsum: If true, use einsum on TPU.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A Tensor of the same shape as x.</span>
@@ -4761,6 +4924,20 @@
     <span class="k">if</span> <span class="n">axis</span> <span class="o">+</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unexpected axis: </span><span class="si">%d</span><span class="s1"> (rank = </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">rank</span><span class="p">))</span>
     <span class="n">axis</span> <span class="o">+=</span> <span class="n">rank</span>
+
+  <span class="k">if</span> <span class="n">use_einsum</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">26</span><span class="p">,</span> <span class="n">rank</span>
+    <span class="c1"># Use einsum to avoid data formatting overhead.</span>
+    <span class="n">a2z</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">)])</span>  <span class="c1"># abc...xyz</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="n">a2z</span><span class="p">[:</span><span class="n">rank</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+      <span class="n">tgt</span> <span class="o">=</span> <span class="n">src</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;z&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tgt</span> <span class="o">=</span> <span class="n">src</span><span class="p">[:</span><span class="n">axis</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;z&#39;</span> <span class="o">+</span> <span class="n">src</span><span class="p">[</span><span class="n">axis</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="n">axis</span><span class="p">]</span>
+    <span class="n">causal_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">band_part</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">length</span><span class="p">,</span> <span class="n">length</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s1">,</span><span class="si">{</span><span class="n">src</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="si">}</span><span class="s1">z-&gt;</span><span class="si">{</span><span class="n">tgt</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">causal_mask</span><span class="p">)</span>
 
   <span class="n">length</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="n">axis</span><span class="p">]</span>
   <span class="n">my_range</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
@@ -5631,6 +5808,18 @@
   <span class="n">wrapped_inputs</span> <span class="o">=</span> <span class="n">body_sigs</span><span class="o">.</span><span class="n">AddFrameworkInputs</span><span class="p">(</span><span class="n">loop_state</span><span class="p">)</span>
   <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
       <span class="n">Flatten</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">),</span> <span class="n">cond</span><span class="o">=</span><span class="n">cond_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_sigs</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
+
+  <span class="c1"># The functional `While` used above does not have a registered gradient.</span>
+  <span class="c1"># This was not a problem in Graph mode, however in Eager mode,</span>
+  <span class="c1"># GradientTape will attempt to call the gradient of the While op in the</span>
+  <span class="c1"># forward pass. `stop_gradient` is used to pretend the op is a constant</span>
+  <span class="c1"># in the forward pass. This also avoids calling the gradient of other ops in</span>
+  <span class="c1"># `While` in the forward pass.</span>
+  <span class="c1"># Details in https://www.tensorflow.org/api_docs/python/tf/custom_gradient.</span>
+  <span class="c1"># Guarded by &#39;IsEagerMode&#39; to limit impact.</span>
+  <span class="k">if</span> <span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="n">new_state</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">new_state</span><span class="p">]</span>
+
   <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">wrapped_inputs</span><span class="p">,</span> <span class="n">new_state</span><span class="p">)</span><span class="o">.</span><span class="n">inputs</span></div>
 
 
@@ -5800,41 +5989,48 @@
     <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">computation_shape</span><span class="p">[</span><span class="n">topology_info</span><span class="o">.</span><span class="n">mesh_shape</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
         <span class="n">split_size</span><span class="p">)]</span> <span class="o">=</span> <span class="n">split_size</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">64</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">topology</span> <span class="ow">and</span> <span class="n">topology_info</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
-      <span class="c1"># Fwd within-replica all-reduces is performed along column;</span>
-      <span class="c1"># Bwd gradient cross-replica all-reduces is performed along row.</span>
-      <span class="c1"># This currently has better performance than the strided patten.</span>
-      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">128</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">256</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">512</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">1024</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">2048</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">4096</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">8192</span><span class="p">:</span>
-    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Model parallelism with </span><span class="si">%d</span><span class="s1"> devices is currently not&#39;</span>
-                   <span class="s1">&#39; supported.&#39;</span> <span class="o">%</span> <span class="n">split_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">topology</span><span class="p">:</span>
+      <span class="n">cores_per_chip</span> <span class="o">=</span> <span class="n">topology_info</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">cores_per_chip</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="n">split_size</span> <span class="o">%</span> <span class="n">cores_per_chip</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">split_chips</span> <span class="o">=</span> <span class="n">split_size</span> <span class="o">//</span> <span class="n">cores_per_chip</span>
+    <span class="k">if</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">topology</span> <span class="ow">and</span> <span class="n">topology_info</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+        <span class="c1"># Fwd within-replica all-reduces is performed along column;</span>
+        <span class="c1"># Bwd gradient cross-replica all-reduces is performed along row.</span>
+        <span class="c1"># This currently has better performance than the strided patten.</span>
+        <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">64</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">128</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">256</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">512</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">1024</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">2048</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">split_chips</span> <span class="o">==</span> <span class="mi">4096</span><span class="p">:</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cores_per_chip</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Model parallelism with </span><span class="si">%d</span><span class="s1"> devices is currently not&#39;</span>
+                     <span class="s1">&#39; supported.&#39;</span> <span class="o">%</span> <span class="n">split_size</span><span class="p">)</span>
   <span class="k">assert</span> <span class="n">computation_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="k">return</span> <span class="n">computation_shape</span></div>
 
@@ -5967,6 +6163,29 @@
 
 <div class="viewcode-block" id="AppendDims"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.AppendDims">[docs]</a><span class="k">def</span> <span class="nf">AppendDims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ndims</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">ndims</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MaybeSoftCapLogits"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MaybeSoftCapLogits">[docs]</a><span class="k">def</span> <span class="nf">MaybeSoftCapLogits</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cap</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Caps logits x to be within a certain range.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: A float tensor, the logit values to be capped.</span>
+<span class="sd">    cap: a float, the limit to cap x within. If cap &lt;= 0.0, x is not capped.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    logits after capping.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">cap</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">x</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">cap</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">cap</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetTpuEmbeddingGraphCollection"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetTpuEmbeddingGraphCollection">[docs]</a><span class="k">def</span> <span class="nf">GetTpuEmbeddingGraphCollection</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Return the graph collection that stores the TpuEmbeddingCollection.&quot;&quot;&quot;</span>
+  <span class="n">tpu_emb_graph_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="s1">&#39;__tpu_embedding_collection&#39;</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tpu_emb_graph_collection</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+  <span class="k">return</span> <span class="n">tpu_emb_graph_collection</span></div>
 </pre></div>
 
            </div>

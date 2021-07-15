@@ -200,6 +200,12 @@ available to be executed on demand without significant delay.</p>
 <dd><p>“Defaults parameters for Programs.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._InitializeVizier">
+<span class="sig-name descname"><span class="pre">_InitializeVizier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InitializeVizier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InitializeVizier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if this program should report metrics to vizier.</p>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._summary_writer">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_summary_writer</span></span><a class="headerlink" href="#lingvo.core.program.BaseProgram._summary_writer" title="Permalink to this definition">¶</a></dt>
@@ -241,6 +247,30 @@ available to be executed on demand without significant delay.</p>
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._InfeedLoop">
 <span class="sig-name descname"><span class="pre">_InfeedLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InfeedLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Infeed loop for input generator for batched data and input data stats.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._ReportVizierMetrics">
+<span class="sig-name descname"><span class="pre">_ReportVizierMetrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._ReportVizierMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._ReportVizierMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Report metrics to vizier service.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>global_step</strong> – Int.</p></li>
+<li><p><strong>metrics_dict</strong> – A dict of metric name -&gt; metric values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Boolean, indicates if early stopping has bee requested</dt><dd><p>by vizier.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>vizier_early_stop</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -393,10 +423,6 @@ or a MultiTaskSubModel.</p>
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">EvalProgram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>Evaluation program.</p>
-<p>Note that this currently has different infeed semantics compared to
-the existing Evaler as the input generator is not recreated
-per-eval. Thus different random samples are selected each
-evaluation.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.EvalProgram.TpuEvalStep">
 <span class="sig-name descname"><span class="pre">TpuEvalStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.TpuEvalStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.TpuEvalStep" title="Permalink to this definition">¶</a></dt>
@@ -454,10 +480,6 @@ evaluation.</p>
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">DecodeProgram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>DecodeProgram.</p>
-<p>Note that this currently has different infeed semantics compared to
-the existing Decoder as the input generator is not recreated
-per-eval. Thus different random samples are selected each
-decoder run.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._CompileDecodeFn">
 <span class="sig-name descname"><span class="pre">_CompileDecodeFn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._CompileDecodeFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._CompileDecodeFn" title="Permalink to this definition">¶</a></dt>
@@ -570,6 +592,12 @@ batch size).</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.MLPerfTrainDecodeProgram._InitializeVizier">
+<span class="sig-name descname"><span class="pre">_InitializeVizier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram._InitializeVizier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram._InitializeVizier" title="Permalink to this definition">¶</a></dt>
+<dd><p>We never use vizier with MLPerfPrograms.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.MLPerfTrainDecodeProgram.BuildTpuSubgraph">
 <span class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
@@ -660,8 +688,12 @@ Run all the eval_programs</p>
 <li><p><strong>train_dataset_name</strong> – Name of the training dataset, eg: ‘Train’</p></li>
 <li><p><strong>train_steps_per_loop</strong> – Number of steps to execute the training program.</p></li>
 <li><p><strong>eval_dataset_names</strong> – List of eval dataset_name strings, eg: [‘Train’].</p></li>
-<li><p><strong>eval_steps_per_loop</strong> – Number of steps to execute the eval program.</p></li>
-<li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program.</p></li>
+<li><p><strong>eval_steps_per_loop</strong> – Number of steps to execute the eval program. Can be a
+single value or a list of values corresponding to the entries in
+eval_dataset_names.</p></li>
+<li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program. Can be
+a single value or a list of values corresponding to the entries in
+eval_dataset_names.</p></li>
 <li><p><strong>experimental_decoder</strong> – bool. Whether to use experimental deocder which is
 placed in a tpu loop.</p></li>
 <li><p><strong>train_program_cls</strong> – The class to use for training programs.  Defaults

@@ -366,6 +366,21 @@
     <span class="c1"># compatibility on variables created by self.optimizer.Apply().</span>
     <span class="n">losses</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">,</span> <span class="n">eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeLossesAndGradients</span><span class="p">(</span>
         <span class="n">metrics</span><span class="p">,</span> <span class="n">vmap</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;tpu_embedding_var_grads&#39;</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="p">:</span>
+      <span class="n">tpu_embedding_var_grads</span> <span class="o">=</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">tpu_embedding_var_grads</span>
+      <span class="k">del</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">tpu_embedding_var_grads</span>
+
+      <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuEmbeddingGraphCollection</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">assert</span> <span class="n">tpu_embedding_collection</span>
+      <span class="n">tpu_emb_update_op</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">ApplyGradients</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTaskCallScope</span><span class="p">(),</span>
+          <span class="n">tpu_embedding_var_grads</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">var_grad</span><span class="p">:</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">grad</span><span class="p">))</span>
+      <span class="n">eval_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tpu_emb_update_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+
+    <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span><span class="p">()</span>
 
     <span class="n">var_grads</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AdjustGradients</span><span class="p">(</span>
         <span class="n">var_grads</span><span class="p">,</span>
@@ -374,12 +389,12 @@
     <span class="n">eval_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">var_grads</span>
 
-    <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span><span class="p">()</span>
     <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">lr</span><span class="p">),</span>
                                      <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="mf">1.</span><span class="p">))</span>
 
-    <span class="n">var_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)</span>
+    <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tpu_emb_update_op</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)])</span>
     <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">eval_metrics</span></div>
 
 <div class="viewcode-block" id="Learner.ComputeActivationGradients"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.ComputeActivationGradients">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeActivationGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activations</span><span class="p">,</span> <span class="n">activations_grad</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
@@ -431,6 +446,21 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">vmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTrainableVariables</span><span class="p">(</span><span class="n">vmap</span><span class="p">)</span>
 
+    <span class="c1"># Get tpu embedding activations to compute the gradients for.</span>
+    <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">tpu_embedding_graph_collection</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuEmbeddingGraphCollection</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">tpu_embedding_graph_collection</span><span class="p">:</span>
+      <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tpu_embedding_graph_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">task_call_scope</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTaskCallScope</span><span class="p">()</span>
+      <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">GetActivations</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
+      <span class="c1"># It&#39;s possible that task_call_scope is None and its mode is not set in</span>
+      <span class="c1"># tpu_embedding_collection (e.g. in unit test), but if the activation is</span>
+      <span class="c1"># not empty, the mode must have been set.</span>
+      <span class="k">if</span> <span class="n">tpu_embedding_activations</span> <span class="ow">and</span> <span class="p">(</span>
+          <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">ShouldStopGradient</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)):</span>
+        <span class="n">tpu_embedding_activations</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
     <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
@@ -450,12 +480,15 @@
           <span class="n">p</span><span class="o">.</span><span class="n">gate_gradients</span><span class="p">,</span>
           <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_CustomComputeGradientsFn</span><span class="p">(),</span>
           <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">skip_zero_gradients</span><span class="p">,</span>
-          <span class="n">skip_none_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+          <span class="n">skip_none_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">tpu_embedding_activations</span><span class="o">=</span><span class="n">tpu_embedding_activations</span><span class="p">)</span>
 
     <span class="n">loss_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_name</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">eval_metrics</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">tpu_embedding_activations</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;TPU embedding does not support multiple loss currently.&#39;</span><span class="p">)</span>
       <span class="n">losses_and_grads</span> <span class="o">=</span> <span class="p">{}</span>
       <span class="n">variables</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">for</span> <span class="n">metric_name</span> <span class="ow">in</span> <span class="n">loss_name</span><span class="p">:</span>

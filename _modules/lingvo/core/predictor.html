@@ -189,7 +189,7 @@
 <span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
 
 
-<div class="viewcode-block" id="LoadInferenceGraph"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.LoadInferenceGraph">[docs]</a><span class="k">def</span> <span class="nf">LoadInferenceGraph</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">clear_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="LoadInferenceGraph"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.LoadInferenceGraph">[docs]</a><span class="k">def</span> <span class="nf">LoadInferenceGraph</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">clear_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="sd">&quot;&quot;&quot;Parse the given path as an InferenceGraph proto.</span>
 
 <span class="sd">  Args:</span>
@@ -224,12 +224,13 @@
                <span class="n">device_type</span><span class="o">=</span><span class="s2">&quot;gpu&quot;</span><span class="p">,</span>
                <span class="n">tf_master</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
                <span class="n">session_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">clear_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+               <span class="n">clear_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">load_graph_def_from_inference_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructor.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      inference_graph: A saved InferenceGraph proto.</span>
-<span class="sd">      subgraph_name: The subgraph to use for prediction.</span>
+<span class="sd">      subgraph_name: The default subgraph to use for Run().</span>
 <span class="sd">      checkpoint: An optional checkpoint to load.</span>
 <span class="sd">      device_type: Device type string. Either &quot;cpu&quot;, &quot;gpu&quot;, or &quot;tpu&quot;.</span>
 <span class="sd">      tf_master: The tf_master.</span>
@@ -237,6 +238,9 @@
 <span class="sd">        py_utils.SessionConfig() is used.</span>
 <span class="sd">      clear_device_placement: If set, clears device field of loaded inference</span>
 <span class="sd">        graph.</span>
+<span class="sd">      load_graph_def_from_inference_graph: Whether to load a graph def.</span>
+<span class="sd">        If False, assumes the names in the inference graph correspond to tensors</span>
+<span class="sd">        in the current default graph.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">device_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="s2">&quot;gpu&quot;</span><span class="p">,</span> <span class="s2">&quot;tpu&quot;</span><span class="p">]</span>
     <span class="n">subgraph_name</span> <span class="o">=</span> <span class="n">subgraph_name</span> <span class="ow">or</span> <span class="s2">&quot;default&quot;</span>
@@ -245,43 +249,53 @@
       <span class="n">inference_graph</span> <span class="o">=</span> <span class="n">LoadInferenceGraph</span><span class="p">(</span><span class="n">inference_graph</span><span class="p">,</span>
                                            <span class="n">clear_device_placement</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span> <span class="o">=</span> <span class="n">inference_graph</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_default_subgraph_name</span> <span class="o">=</span> <span class="n">subgraph_name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_device_type</span> <span class="o">=</span> <span class="n">device_type</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span> <span class="o">=</span> <span class="n">tf_master</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_session_config</span> <span class="o">=</span> <span class="n">session_config</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
-    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-          <span class="s2">&quot;Loading inference graph for prediction subgraph_name=</span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-              <span class="n">subgraph_name</span><span class="p">))</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">%s</span><span class="s2">:0&quot;</span> <span class="o">%</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span> <span class="k">else</span> <span class="n">device_type</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">import_graph_def</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span><span class="p">:</span>
-        <span class="c1"># If no tpu init op exists, create it here.</span>
-        <span class="k">try</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s2">&quot;tpu_init_op&quot;</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">load_graph_def_from_inference_graph</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Loading inference graph for prediction subgraph_name=</span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">subgraph_name</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">%s</span><span class="s2">:0&quot;</span> <span class="o">%</span>
+                       <span class="s2">&quot;cpu&quot;</span> <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span> <span class="k">else</span> <span class="n">device_type</span><span class="p">):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">import_graph_def</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span><span class="p">:</span>
+      <span class="c1"># If no tpu init op exists, create it here.</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s2">&quot;tpu_init_op&quot;</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tpu_init_op&quot;</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">subgraph_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Subgraph </span><span class="si">%s</span><span class="s2"> not defined. Valid subgraphs: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
-            <span class="p">(</span><span class="n">subgraph_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+            <span class="sa">f</span><span class="s2">&quot;Subgraph </span><span class="si">{</span><span class="n">subgraph_name</span><span class="si">}</span><span class="s2"> not defined. Valid subgraphs: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subgraphs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
       <span class="n">subgraph</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">subgraph_name</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s2">&quot;fetches&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span> <span class="ow">or</span> <span class="s2">&quot;feeds&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Graph does not contain feeds or fetches. Inference &quot;</span>
+                         <span class="s2">&quot;graph is probably empty!&quot;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">fetches</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">feeds</span>
 
     <span class="c1"># Lock for creating new sessions.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sess_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateNewSession</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_new_session</span><span class="p">()</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">fetch_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -292,6 +306,13 @@
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
 
   <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">fetch_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Conversion from dict to NestedMap required.</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">))</span>
+
+  <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">feed_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Conversion from dict to NestedMap required.</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
@@ -299,14 +320,52 @@
         <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="p">))</span>
 
   <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">fetch_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">subgraphs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+<div class="viewcode-block" id="Predictor._get_subgraph"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._get_subgraph">[docs]</a>  <span class="k">def</span> <span class="nf">_get_subgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;This inference graph does not have subgraphs.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">subgraph_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;Subgraph </span><span class="si">{</span><span class="n">subgraph_name</span><span class="si">}</span><span class="s2"> not defined. Valid subgraphs: &quot;</span>
+          <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subgraphs</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">subgraph_name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Predictor._get_subgraph_fetches"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._get_subgraph_fetches">[docs]</a>  <span class="k">def</span> <span class="nf">_get_subgraph_fetches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">subgraph_name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_subgraph_name</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span><span class="o">.</span><span class="n">fetches</span></div>
+
+<div class="viewcode-block" id="Predictor._get_subgraph_feeds"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._get_subgraph_feeds">[docs]</a>  <span class="k">def</span> <span class="nf">_get_subgraph_feeds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">subgraph_name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_subgraph_name</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span><span class="o">.</span><span class="n">feeds</span></div>
+
+<div class="viewcode-block" id="Predictor.subgraph_fetch_keys"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.subgraph_fetch_keys">[docs]</a>  <span class="k">def</span> <span class="nf">subgraph_fetch_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">subgraph_name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_subgraph_name</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch_keys</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph_fetches</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="Predictor.subgraph_feed_keys"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.subgraph_feed_keys">[docs]</a>  <span class="k">def</span> <span class="nf">subgraph_feed_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">subgraph_name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_subgraph_name</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feed_keys</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph_feeds</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="Predictor.subgraph_fetch_shapes"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.subgraph_fetch_shapes">[docs]</a>  <span class="k">def</span> <span class="nf">subgraph_fetch_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">):</span>
     <span class="c1"># Conversion from dict to NestedMap required.</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
         <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">))</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph_fetches</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)))</span></div>
 
-<div class="viewcode-block" id="Predictor._CreateNewSession"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._CreateNewSession">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
-  <span class="k">def</span> <span class="nf">_CreateNewSession</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Predictor.subgraph_feed_shapes"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.subgraph_feed_shapes">[docs]</a>  <span class="k">def</span> <span class="nf">subgraph_feed_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subgraph_name</span><span class="p">):</span>
+    <span class="c1"># Conversion from dict to NestedMap required.</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph_feeds</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="Predictor._create_new_session"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._create_new_session">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
+  <span class="k">def</span> <span class="nf">_create_new_session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Updates self._sess with a new session.&quot;&quot;&quot;</span>
     <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_config</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="p">:</span>
@@ -335,7 +394,7 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created new predictor session.&quot;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="o">=</span> <span class="n">sess</span></div>
 
-<div class="viewcode-block" id="Predictor._MaybeCreateNewSession"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._MaybeCreateNewSession">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeCreateNewSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess_id</span><span class="p">):</span>
+<div class="viewcode-block" id="Predictor._maybe_create_new_session"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._maybe_create_new_session">[docs]</a>  <span class="k">def</span> <span class="nf">_maybe_create_new_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess_id</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a new session if sess_id is the current session.</span>
 
 <span class="sd">    Args:</span>
@@ -343,12 +402,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess_lock</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">sess_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateNewSession</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_new_session</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Current session id </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span><span class="p">))</span></div>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current session id </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Predictor._RunWithValidSession"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._RunWithValidSession">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
-  <span class="k">def</span> <span class="nf">_RunWithValidSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Predictor._run_with_valid_session"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._run_with_valid_session">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
+  <span class="k">def</span> <span class="nf">_run_with_valid_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Ensures `fn` is called while self._sess is a valid session.&quot;&quot;&quot;</span>
     <span class="n">sess_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span>
     <span class="k">try</span><span class="p">:</span>
@@ -357,10 +416,10 @@
       <span class="c1"># self._sess is invalid, most likely due to the worker being preempted.</span>
       <span class="c1"># Make sure a new session is created before re-raising the exception and</span>
       <span class="c1"># triggering the py_utils.Retry loop.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeCreateNewSession</span><span class="p">(</span><span class="n">sess_id</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_create_new_session</span><span class="p">(</span><span class="n">sess_id</span><span class="p">)</span>
       <span class="k">raise</span></div>
 
-<div class="viewcode-block" id="Predictor.Load"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.Load">[docs]</a>  <span class="k">def</span> <span class="nf">Load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">):</span>
+<div class="viewcode-block" id="Predictor.Load"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.Load">[docs]</a>  <span class="k">def</span> <span class="nf">Load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
     <span class="sd">&quot;&quot;&quot;Loads parameters from a checkpoint if self._sess is a valid session.</span>
 
 <span class="sd">    Args:</span>
@@ -376,7 +435,7 @@
         <span class="c1"># self._sess is invalid, most likely due to the worker being preempted.</span>
         <span class="c1"># Make sure a new session is created before re-raising the exception and</span>
         <span class="c1"># triggering the py_utils.Retry loop.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeCreateNewSession</span><span class="p">(</span><span class="n">sess_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_create_new_session</span><span class="p">(</span><span class="n">sess_id</span><span class="p">)</span>
         <span class="k">raise</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span></div>
 
@@ -386,7 +445,8 @@
           <span class="n">session_run_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
           <span class="n">run_metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
           <span class="n">time_session_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-          <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+          <span class="n">subgraph_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
     <span class="sd">&quot;&quot;&quot;Runs predictor.</span>
 
 <span class="sd">    Args:</span>
@@ -398,6 +458,7 @@
 <span class="sd">      run_metadata: Optional tf.RunMetadata() to use in the session.</span>
 <span class="sd">      time_session_run: Optional bool, if True, additionally return the</span>
 <span class="sd">        execution time of session.run. Defaults to False.</span>
+<span class="sd">      subgraph_name: Optional string of the subgraph to use.</span>
 <span class="sd">      **kwargs: a dict of inputs to feed.</span>
 
 <span class="sd">    Returns:</span>
@@ -409,34 +470,40 @@
 <span class="sd">      KeyError: a feed specified in kwargs is invalid, or a fetch in fetch_keys</span>
 <span class="sd">        is invalid and validate_fetches is True.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">subgraph_name</span> <span class="o">=</span> <span class="n">subgraph_name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_subgraph_name</span>
+
     <span class="n">single_fetch</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="nb">dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()))):</span>
       <span class="n">single_fetch</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">fetch_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">fetch_keys</span><span class="p">]</span>
 
+    <span class="n">valid_fetch_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subgraph_fetch_keys</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">validate_fetches</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fetch_keys</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fetch_keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_fetch_keys</span><span class="p">:</span>
           <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
-              <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> is not in the list of available fetches. Available keys: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
-              <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
-    <span class="n">valid_fetch_idxs</span><span class="p">,</span> <span class="n">valid_fetches</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+              <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> is not in the list of available fetches. Available keys: &quot;</span>
+              <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">valid_fetch_keys</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="n">subgraph_fetches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph_fetches</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span>
+    <span class="n">valid_fetch_idxs</span><span class="p">,</span> <span class="n">valid_fetches</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">subgraph_fetches</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
                                             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">)</span>
-                                            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+                                            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">valid_fetch_keys</span><span class="p">])</span>
 
+    <span class="n">valid_feed_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subgraph_feed_keys</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_feed_keys</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
-            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> is not in the list of available feeds. Available keys: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
-            <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
-    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> is not in the list of available feeds. Available keys: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">valid_feed_keys</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="n">subgraph_feeds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_subgraph_feeds</span><span class="p">(</span><span class="n">subgraph_name</span><span class="p">)</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="n">subgraph_feeds</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
     <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">session_run_options</span><span class="p">:</span>
       <span class="n">run_options</span> <span class="o">=</span> <span class="n">session_run_options</span>
 
     <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="n">fetched_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span>
+    <span class="n">fetched_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_with_valid_session</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="o">.</span><span class="n">run</span><span class="p">,</span>
         <span class="n">valid_fetches</span><span class="p">,</span>
         <span class="n">feed_dict</span><span class="o">=</span><span class="n">feeds</span><span class="p">,</span>

@@ -175,10 +175,11 @@
 <span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span>
-                    <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Generic</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span>
+                    <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span><span class="p">)</span>
 
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -656,6 +657,8 @@
         <span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span>
             <span class="n">proto_cls</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">proto_cls</span><span class="o">.</span><span class="vm">__name__</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span>
+      <span class="k">elif</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">IsExpr</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+        <span class="n">param_pb</span><span class="o">.</span><span class="n">symbolic_val</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># We represent a NoneType by the absence of any of the oneof.</span>
         <span class="k">pass</span>
@@ -726,6 +729,11 @@
         <span class="n">proto_msg</span> <span class="o">=</span> <span class="n">proto_cls</span><span class="p">()</span>
         <span class="n">proto_msg</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">proto_val</span><span class="o">.</span><span class="n">val</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">proto_msg</span>
+      <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;symbolic_val&#39;</span><span class="p">:</span>
+        <span class="n">sym</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">symbolic_val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">IsExpr</span><span class="p">(</span><span class="n">sym</span><span class="p">):</span>
+          <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Unexpected result when deserializing symbolic expr.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sym</span>
       <span class="k">elif</span> <span class="n">which_oneof</span> <span class="o">==</span> <span class="s1">&#39;string_repr_val&#39;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Cannot deserialize string_repr_val instance: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                         <span class="n">param_pb</span><span class="o">.</span><span class="n">string_repr_val</span><span class="p">)</span>
@@ -745,6 +753,92 @@
       <span class="k">return</span> <span class="n">params</span>
 
     <span class="k">return</span> <span class="n">_FromParam</span><span class="p">(</span><span class="n">param_pb</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Params.Visit"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Visit">[docs]</a>  <span class="k">def</span> <span class="nf">Visit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">visit_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="n">enter_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">exit_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Recursively visits objects within this Params instance.</span>
+
+<span class="sd">    Visit can traverse Params, lists, tuples, dataclasses, and namedtuples.</span>
+
+<span class="sd">    By default, visit_fn is called on any object we don&#39;t know how to</span>
+<span class="sd">    traverse into, like an integer or a string. enter_fn and exit_fn are</span>
+<span class="sd">    called on objects we can traverse into, like Params, lists, tuples,</span>
+<span class="sd">    dataclasses, and namedtuples. We call enter_fn before traversing the object,</span>
+<span class="sd">    and exit_fn when we are finished.</span>
+
+<span class="sd">    If enter_fn returns false, that means we shouldn&#39;t traverse into the</span>
+<span class="sd">    object; we call visit_fn on it instead and never call exit_fn.</span>
+
+<span class="sd">    Keys are of the form::</span>
+
+<span class="sd">      key.subkey when traversing Params objects</span>
+<span class="sd">      key[1] when traversing lists/tuples</span>
+<span class="sd">      key[subkey] when traversing dataclasses or namedtuples</span>
+
+<span class="sd">    Lists of (key, value) tuples are treated like namedtuples.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      visit_fn: Called on every object that can&#39;t be entered, or when enter_fn</span>
+<span class="sd">        returns false.</span>
+<span class="sd">      enter_fn: Called on every enter-able function. If this function returns</span>
+<span class="sd">        false, we call visit_fn and do not enter the object.</span>
+<span class="sd">      exit_fn: Called after an enter-able object has been traversed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">enter_fn</span><span class="p">:</span>
+      <span class="n">enter_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exit_fn</span><span class="p">:</span>
+      <span class="n">exit_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_SubKey</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">subkey</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">key</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">subkey</span><span class="si">}</span><span class="s1">&#39;</span>
+      <span class="k">return</span> <span class="n">subkey</span>
+
+    <span class="k">def</span> <span class="nf">_Visit</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">enter_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+            <span class="n">_Visit</span><span class="p">(</span><span class="n">_SubKey</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">v</span><span class="p">)</span>
+          <span class="n">exit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">visit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">enter_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">_Visit</span><span class="p">(</span><span class="n">_SubKey</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">v</span><span class="p">)</span>
+          <span class="n">exit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">visit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">is_dataclass</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_IsNamedTuple</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">is_dataclass</span><span class="p">(</span>
+            <span class="n">val</span><span class="p">)</span> <span class="k">else</span> <span class="n">val</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">enter_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="n">_Visit</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">[</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+          <span class="n">exit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">visit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span>
+          <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">Params</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">val</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">enter_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">subtuple</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+            <span class="n">_Visit</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">[</span><span class="si">{</span><span class="n">subtuple</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">subtuple</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+          <span class="n">exit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">range</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+          <span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">enter_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+          <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="n">_Visit</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+          <span class="n">exit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">visit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">visit_fn</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="n">_Visit</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Params.ToText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToText">[docs]</a>  <span class="k">def</span> <span class="nf">ToText</span><span class="p">(</span>
       <span class="bp">self</span><span class="p">,</span>
@@ -768,9 +862,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      The encoded text or (encoded text, types dict) if include_types is True.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">kv</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">types</span> <span class="o">=</span> <span class="p">{}</span>
-
     <span class="k">def</span> <span class="nf">GetRepr</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
       <span class="sd">&quot;&quot;&quot;Get the representation of `val`.&quot;&quot;&quot;</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
@@ -795,33 +886,37 @@
         <span class="k">return</span> <span class="s1">&#39;type/&#39;</span> <span class="o">+</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmodule</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">val</span><span class="o">.</span><span class="vm">__name__</span>
       <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
 
-    <span class="k">def</span> <span class="nf">Traverse</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">kv</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="sd">&quot;&quot;&quot;Traverses &#39;p&#39; and inserts key-value pairs to &#39;kv&#39;.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_Enter</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+      <span class="k">del</span> <span class="n">key</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-          <span class="n">Traverse</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">key</span><span class="p">,</span> <span class="n">kv</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
       <span class="k">elif</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span>
             <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Params</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="p">)):</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
-          <span class="n">Traverse</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">[</span><span class="si">%d</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">kv</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
       <span class="c1"># TODO(jiahuiyu): Create single-direction DebugString for</span>
       <span class="c1"># List[(str, Params)] pattern and remove redundancies.</span>
       <span class="k">elif</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
           <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span>
           <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">Params</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="p">)):</span>
-        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
-          <span class="n">Traverse</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">[</span><span class="si">%s</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">kv</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">kv</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">_QuoteString</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-        <span class="n">types</span><span class="p">[</span><span class="n">prefix</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="s1">&#39;str&#39;</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">kv</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GetRepr</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-        <span class="n">types</span><span class="p">[</span><span class="n">prefix</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">return</span> <span class="kc">True</span>
+      <span class="k">return</span> <span class="kc">False</span>
 
-    <span class="n">Traverse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">kv</span><span class="p">)</span>
+    <span class="n">kv</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">_Visit</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="sd">&quot;&quot;&quot;Inserts key-value pairs to &#39;kv&#39;.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">kv</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_QuoteString</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">types</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;str&#39;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">kv</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GetRepr</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="n">types</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">Visit</span><span class="p">(</span><span class="n">_Visit</span><span class="p">,</span> <span class="n">enter_fn</span><span class="o">=</span><span class="n">_Enter</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">kv</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-      <span class="n">ret</span> <span class="o">+=</span> <span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="s1">&#39; : &#39;</span> <span class="o">+</span> <span class="n">v</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+      <span class="n">ret</span> <span class="o">+=</span> <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39; : &#39;</span> <span class="o">+</span> <span class="n">v</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span> <span class="k">if</span> <span class="n">include_types</span> <span class="k">else</span> <span class="n">ret</span></div>
 

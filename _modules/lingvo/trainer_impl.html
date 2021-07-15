@@ -426,9 +426,18 @@
         <span class="c1"># decode.</span>
         <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">input_device</span><span class="p">):</span>
-          <span class="n">input_batch</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">())</span>
+          <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">():</span>
+          <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">:</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> already present in decode output. &#39;</span>
+                                 <span class="sa">f</span><span class="s1">&#39;Not adding from input batch.&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                                                      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
@@ -464,17 +473,13 @@
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateProcessedCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decode_all_checkpoints</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_RunOnAllCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-          <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindNewCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
-          <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-            <span class="k">break</span>
-
-    <span class="c1"># Maybe decode the last checkpoint if we are not given a specific</span>
-    <span class="c1"># checkpoint to decode.</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">DecodeLatestCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_RunOnLatestCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">,</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reporting trial done.&#39;</span><span class="p">)</span>
@@ -490,22 +495,31 @@
 <div class="viewcode-block" id="Decoder.GetCkptIdFromFile"><a class="viewcode-back" href="../../lingvo.trainer_impl.html#lingvo.trainer.Decoder.GetCkptIdFromFile">[docs]</a>  <span class="k">def</span> <span class="nf">GetCkptIdFromFile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;.*ckpt-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">))</span></div>
 
+<div class="viewcode-block" id="Decoder._RemoveScalarSummaries"><a class="viewcode-back" href="../../lingvo.trainer_impl.html#lingvo.trainer.Decoder._RemoveScalarSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_RemoveScalarSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">summaries</span><span class="p">):</span>
+    <span class="n">proto</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">()</span>
+    <span class="n">proto</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">summaries</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">proto</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">WhichOneof</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;simple_value&#39;</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">proto</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">proto</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="Decoder.DecodeCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer_impl.html#lingvo.trainer.Decoder.DecodeCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decodes `samples_per_summary` examples using `checkpoint_path`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span>
     <span class="n">ckpt_id_from_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCkptIdFromFile</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">ckpt_id_from_file</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">start_decoder_after</span><span class="p">:</span>
-      <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">return</span>
+
     <span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span>
     <span class="k">if</span> <span class="n">samples_per_summary</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span>
     <span class="k">if</span> <span class="n">samples_per_summary</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">resettable</span>
+      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
 
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
@@ -519,30 +533,55 @@
     <span class="k">while</span> <span class="n">samples_per_summary</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">&lt;</span>
                                        <span class="n">samples_per_summary</span><span class="p">):</span>
       <span class="k">try</span><span class="p">:</span>
+        <span class="n">is_first_loop</span> <span class="o">=</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Fetching dec_output.&#39;</span><span class="p">)</span>
         <span class="n">fetch_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="c1"># No summaries were collected.</span>
-          <span class="n">dec_out</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
+
+        <span class="c1"># NOTE: We intentionally do not generate scalar summaries by</span>
+        <span class="c1"># default, because decoder is run  multiple times for each</span>
+        <span class="c1"># checkpoint. Multiple summaries at the same step is often confusing.</span>
+        <span class="c1"># Instead, models should generate aggregate summaries using</span>
+        <span class="c1"># PostProcessDecodeOut. Other types of summaries (images, audio etc.)</span>
+        <span class="c1"># will be generated for the first eval batch.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_first_loop</span><span class="p">:</span>
+          <span class="n">dec_out</span><span class="p">,</span> <span class="n">summaries</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span><span class="p">],</span>
+                                        <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
+          <span class="n">summaries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RemoveScalarSummaries</span><span class="p">(</span><span class="n">summaries</span><span class="p">)</span>
+
+          <span class="c1"># Add non-scalar summaries only for the first batch of data.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summaries</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">dec_out</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span><span class="p">],</span>
-                                      <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="n">dec_out</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_RunTF2SummaryOps</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
         <span class="n">post_process_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done fetching (</span><span class="si">%f</span><span class="s1"> seconds)&#39;</span> <span class="o">%</span>
                         <span class="p">(</span><span class="n">post_process_start</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">))</span>
         <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
-          <span class="n">buffered_decode_out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">decode_out</span><span class="p">)</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decode_out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">decode_out</span> <span class="o">=</span> <span class="n">decode_out</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+
+          <span class="k">if</span> <span class="n">is_first_loop</span><span class="p">:</span>
+            <span class="c1"># Add summaries only for the first batch of data.</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">decode_out</span><span class="p">:</span>
+              <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">):</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Adding summary </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> with tags &#39;</span>
+                                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">tag</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">]</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+          <span class="n">buffered_decode_out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+              <span class="n">kv</span> <span class="k">for</span> <span class="n">kv</span> <span class="ow">in</span> <span class="n">decode_out</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">))</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="s1">&#39;Total examples done: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1"> &#39;</span>
             <span class="s1">&#39;(</span><span class="si">%f</span><span class="s1"> seconds decode postprocess)&#39;</span><span class="p">,</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span><span class="p">,</span>
             <span class="n">samples_per_summary</span><span class="p">,</span>
             <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">post_process_start</span><span class="p">)</span>
       <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
           <span class="k">raise</span>
         <span class="k">break</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done decoding ckpt: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
@@ -576,14 +615,9 @@
         <span class="n">decode_out_path</span><span class="o">=</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">decode_out</span><span class="o">=</span><span class="n">buffered_decode_out</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">DecodeFinalize</span><span class="p">(</span><span class="n">decode_finalize_args</span><span class="p">)</span>
 
-    <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reporting eval measure for step </span><span class="si">%d</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">global_step</span><span class="p">)</span>
-      <span class="n">trial_should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
-                                                        <span class="n">dec_metrics</span><span class="p">,</span>
-                                                        <span class="n">checkpoint_path</span><span class="p">)</span>
-      <span class="n">should_stop</span> <span class="o">=</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">trial_should_stop</span>
-    <span class="k">return</span> <span class="n">should_stop</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder.DecodeLatestCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer_impl.html#lingvo.trainer.Decoder.DecodeLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs decoder on the latest checkpoint.&quot;&quot;&quot;</span>

@@ -304,6 +304,24 @@
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.metrics.MCCMetric">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">MCCMetric</span></span><a class="reference internal" href="_modules/lingvo/core/metrics.html#MCCMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.MCCMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.F1Metric" title="lingvo.core.metrics.F1Metric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.F1Metric</span></code></a></p>
+<p>Class to compute Matthews correlation coefficient metric.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.metrics.MCCMetric.UpdateTrueNegative">
+<span class="sig-name descname"><span class="pre">UpdateTrueNegative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#MCCMetric.UpdateTrueNegative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.MCCMetric.UpdateTrueNegative" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.metrics.MCCMetric.value">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#lingvo.core.metrics.MCCMetric.value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Current value of this metric.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.CorpusBleuMetric">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">CorpusBleuMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CorpusBleuMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
@@ -408,6 +426,17 @@ tpu.batch_parallel.</p>
 <dd><p>Packs numpy values into a dict of metrics.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.metrics.TpuEvalMetrics.ToAverageMetrics">
+<span class="sig-name descname"><span class="pre">ToAverageMetrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics.ToAverageMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.ToAverageMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap the final metric values into AverageMetric objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict that maps metric names to AverageMetric objects.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -450,6 +479,40 @@ within [0, 1.0].</p></li>
 <dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto.</p>
 </dd>
 </dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.metrics.MultiClassAUCMetric">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">MultiClassAUCMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'roc'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#MultiClassAUCMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.MultiClassAUCMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<p>Class to compute mAP or mAUC for multiclass/multilabel classification.</p>
+<p>This metric is equivalent to mAP (mean average precision) or mAUC (multiclass
+AUC-ROC) for non-binary classification tasks. Another perspective of this
+measure defines it as the per-class average of the auc roc or auc pr curves.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.metrics.MultiClassAUCMetric.Update">
+<span class="sig-name descname"><span class="pre">Update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#MultiClassAUCMetric.Update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.MultiClassAUCMetric.Update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the MultiClassAUCMetric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> – An list of arrays specifying the groundtruth binary labels for
+each class. Values must be either 0 or 1.</p></li>
+<li><p><strong>probs</strong> – A list of arrays specifying teh prediction probabilities for each
+class. Values must be within [0, 1.0]</p></li>
+<li><p><strong>weights</strong> – An array to specify the sample weight for each example in the auc
+computation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.metrics.MultiClassAUCMetric.value">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#lingvo.core.metrics.MultiClassAUCMetric.value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Current value of this metric.</p>
 </dd></dl>
 
 </dd></dl>

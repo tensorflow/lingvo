@@ -173,10 +173,13 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">activations</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span> <span class="k">as</span> <span class="n">conv_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">var_tmp_wrappers</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.tf2xla.python</span> <span class="kn">import</span> <span class="n">xla</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
@@ -328,16 +331,47 @@
   <span class="sd">&quot;&quot;&quot;A layer that implements pipelining across stages.</span>
 
 <span class="sd">  It creates a loop over microbatches around a loop-body layer. The loop body</span>
-<span class="sd">  has a leading num_stages dimension in the input/output data (required) and</span>
+<span class="sd">  has a leading num_stages dimension in the input/output data (provided by the</span>
+<span class="sd">  user, or created by this layer when Params().num_microbatches is provided) and</span>
 <span class="sd">  weights (to achieve real pipeline parallelism). This leading dimension can</span>
-<span class="sd">  be added in 2 ways:</span>
+<span class="sd">  be added in different ways:</span>
 
 <span class="sd">  1) Defined manually in the wrapped layer Params().stage_parallel_body.</span>
 
-<span class="sd">  2) Automatically vectorized via tf.vectorized_map(). In this case, use</span>
-<span class="sd">  Params().single_stage_body instead to define a single stage. This may fail if</span>
-<span class="sd">  some ops or control flow patterns are not supported by tf.vectorized_map(),</span>
-<span class="sd">  and use the first option in that case.</span>
+<span class="sd">  2) Automatically vectorized via tf.vectorized_map() (or manual-auto sharding</span>
+<span class="sd">  conversion) and VariableShapePrefixContext(). In this case, use</span>
+<span class="sd">  Params().single_stage_body instead to define a single stage. Without</span>
+<span class="sd">  Params().shard_stages_1d, This may fail if some ops or control flow patterns</span>
+<span class="sd">  are not supported by tf.vectorized_map(); with Params().shard_stages_1d, it</span>
+<span class="sd">  instead uses manual-auto sharding conversion and supports all computations.</span>
+
+<span class="sd">  Supported features in different configurations:</span>
+<span class="sd">    1) stage_parallel_body:</span>
+<span class="sd">    Non-trainable variables are supported. This is not compatible with regular</span>
+<span class="sd">    existing layers, and mostly used for testing purpose.</span>
+
+<span class="sd">    2) single_stage_body + per_stage_vars=False + shard_stages_1d=True:</span>
+<span class="sd">    Non-trainable variables are supported. Sharding is added automatically.</span>
+<span class="sd">    Use this option when only pipelining is needed; the implementation is</span>
+<span class="sd">    reliable, because it does not depend on tf.vectorized_map.</span>
+
+<span class="sd">    3) single_stage_body + per_stage_vars=False + shard_stages_1d=False:</span>
+<span class="sd">    tf.vectorized_map will be used. Non-trainable variables are not supported.</span>
+<span class="sd">    Use this option when sharding on multiple dimensions (more than pipelining</span>
+<span class="sd">    stages) is needed.</span>
+
+<span class="sd">    4) single_stage_body + per_stage_vars=True + shard_stages_1d=True:</span>
+<span class="sd">    Non-trainable variables are not supported. Per-stage variables are defined</span>
+<span class="sd">    separately. Sharding is applied differently to per-layer variables and the</span>
+<span class="sd">    stacked variable for all stages, so it has resharding cost. If per-layer</span>
+<span class="sd">    vars are not a hard requirement 2) is a better option.</span>
+
+<span class="sd">    5) single_stage_body + per_stage_vars=True + shard_stages_1d=False:</span>
+<span class="sd">    Non-trainable variables are not supported. Similar to 4), but sharding is</span>
+<span class="sd">    provided by the user, which means the user can shard more than one</span>
+<span class="sd">    dimensions, but also needs to take care of different shardings on per-stage</span>
+<span class="sd">    variables and stacked variables. If per-layer vars are not a hard</span>
+<span class="sd">    requirement 3) is a better option.</span>
 
 <span class="sd">  It can run on a single core, or sharded using GShard annotations. If the stage</span>
 <span class="sd">  dimension is sharded, GShard will produce a cross-core pipelining pattern.</span>
@@ -365,6 +399,18 @@
 <span class="sd">        in_mask = tf.equal(tf.range(num_stages), 0)</span>
 <span class="sd">        stages_in = tf.where(in_mask, padded_input[i],  shifted_state)</span>
 <span class="sd">        state = stage_parallel_body.FProp(theta.body, stages_in)</span>
+
+<span class="sd">  The body&#39;s FProp function takes arguments (theta, args, kwargs). It must</span>
+<span class="sd">  return the same structure as args, while kwargs are shared across all stages.</span>
+
+<span class="sd">  Additionally, FPropFn can take run a specified function of the body, and it</span>
+<span class="sd">  can have per-stage inputs/outputs that are modeled as padded_per_stage_states.</span>
+<span class="sd">  These states must be padded (for bubbles) before calling this function using</span>
+<span class="sd">  PadMicrobatches(), and have shapes [num_microbatches + num_stages - 1,</span>
+<span class="sd">  num_stages, ...]. This allows a typical use case, decoding, to avoid data</span>
+<span class="sd">  formatting inside the decoding loop. Note that the bubble iterations are</span>
+<span class="sd">  located at different offsets across stages and will not be removed, so use</span>
+<span class="sd">  this only when the state is not used outside thie pipelined layers.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -381,42 +427,340 @@
         <span class="s1">&#39;single_stage_body&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;The param for a single stage, which will be automatically vectorized &#39;</span>
         <span class="s1">&#39;into a stage-parallel computation.&#39;</span><span class="p">)</span>
+    <span class="c1"># Only one of num_microbatches and microbatch_size is needed when the input</span>
+    <span class="c1"># needs microbatching.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_microbatches&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If not None, the input is not yet microbatched, and will be reshaped &#39;</span>
+        <span class="s1">&#39;to [num_microbatches, microbatch_size] here.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;microbatch_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If not None, the input is not yet microbatched, and will be reshaped &#39;</span>
+        <span class="s1">&#39;to [num_microbatches, microbatch_size] here.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;shard_stages_1d&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, 1D sharding annotation on num_stages devices will be added, &#39;</span>
+        <span class="s1">&#39;and the implementation will not use vectorized_map (to avoid its &#39;</span>
+        <span class="s1">&#39;limitations), but uses conversion between manual and auto sharding &#39;</span>
+        <span class="s1">&#39;modes. Set to False for sharding on multiple dimensions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;per_stage_vars&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Use separate variables for each stage. With single_stage_body only.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unroll&#39;</span><span class="p">,</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Unroll the layers: never, eval_only, always.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">unroll</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;never&#39;</span><span class="p">,</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">,</span> <span class="s1">&#39;always&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim">[docs]</a>  <span class="k">def</span> <span class="nf">_FindPerStageVarShardingDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Finds a sharding dimension for per-stage variables before stacking.</span>
+
+<span class="sd">    Find a dimension to split variables. Per-stage variables do not have the</span>
+<span class="sd">    leading stage dimension before stacking.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      shape: list of integers of the single-stage variable shape.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An index of the found sharding dimension, or -1 if not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span>
+    <span class="n">split_dim</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">min_padding_ratio</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)):</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
+      <span class="k">if</span> <span class="n">padding</span> <span class="o">&lt;</span> <span class="n">min_padding_ratio</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+        <span class="n">min_padding_ratio</span> <span class="o">=</span> <span class="n">padding</span> <span class="o">/</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">padding</span> <span class="o">&lt;=</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">:</span>
+          <span class="n">split_dim</span> <span class="o">=</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="n">split_dim</span></div>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">):</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">_SplitVar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+          <span class="n">split_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindPerStageVarShardingDim</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">split_dim</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">split_dim</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="k">return</span> <span class="n">v</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">return</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
+              <span class="n">v</span><span class="p">,</span> <span class="n">split_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_SplitVar</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_AddToNonTrainable</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">trainable</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Non-trainable var in pipelined layer: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_AddToNonTrainable</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+          <span class="s1">&#39;When using single_stage_body, non-trainable vars are only supported &#39;</span>
+          <span class="s1">&#39;when per_stage_vars=False and shard_stages_1d=True.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">wrappers</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Wrap non-trainable vars with VarWrapperTrackAssign to track control</span>
+    <span class="c1"># dependencies.</span>
+    <span class="k">def</span> <span class="nf">_WrapWithTracking</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">trainable</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+      <span class="n">wrapper</span> <span class="o">=</span> <span class="n">var_tmp_wrappers</span><span class="o">.</span><span class="n">VarWrapperTrackAssign</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="n">wrappers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wrapper</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">def</span> <span class="nf">_BodyFProp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">TransformVarsTempContext</span><span class="p">(</span><span class="n">_WrapWithTracking</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+          <span class="n">outs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_iter_00000</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
+                                                        <span class="o">**</span><span class="n">x</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">outs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">x</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">wrappers</span><span class="p">:</span>
+          <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">control_after_assigns</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wrappers</span><span class="p">]):</span>
+          <span class="n">control_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">control_out</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">_BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_SingleStageFProp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">theta_args</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">vectorized_map</span><span class="p">(</span>
-        <span class="n">_SingleStageFProp</span><span class="p">,</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">),</span>
-        <span class="n">fallback_to_while_loop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
+      <span class="c1"># Each stage should have its own seed.</span>
+      <span class="n">seeds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetIncStepSeed</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)])</span>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="k">def</span> <span class="nf">_ToManual</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+          <span class="k">return</span> <span class="n">x</span>
+        <span class="n">sharding</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">Sharding</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span>
+        <span class="n">to_manual</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">auto_to_manual_spmd_partition</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">sharding</span><span class="o">.</span><span class="n">proto</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">to_manual</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="n">one_stage_theta_args</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToManual</span><span class="p">,</span> <span class="n">theta_args</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">_ToManual</span><span class="p">(</span><span class="n">seeds</span><span class="p">))</span>
+
+      <span class="k">def</span> <span class="nf">_ToManualReplicate</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+          <span class="k">return</span> <span class="n">x</span>
+        <span class="n">sharding</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">Sharding</span><span class="o">.</span><span class="n">replicate</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">auto_to_manual_spmd_partition</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">sharding</span><span class="o">.</span><span class="n">proto</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span>
+
+      <span class="n">stage_id</span> <span class="o">=</span> <span class="n">_ToManual</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">))</span>
+      <span class="n">microbatch_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+          <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">iteration</span><span class="p">)</span> <span class="o">-</span> <span class="n">stage_id</span><span class="p">,</span>
+          <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">stage_id</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
+
+      <span class="k">def</span> <span class="nf">_KwargSlice</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+          <span class="k">return</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="n">microbatch_id</span><span class="p">]</span>
+
+      <span class="n">one_stage_theta_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_KwargSlice</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+      <span class="c1"># Wrap non-trainable vars with StackedVarWrapperWithManualSharding, in</span>
+      <span class="c1"># case they are accessed directly in FProp (e.g., batch norm vars).</span>
+      <span class="k">def</span> <span class="nf">_WrapWithManual</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">trainable</span><span class="p">:</span>
+          <span class="k">return</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">var_tmp_wrappers</span><span class="o">.</span><span class="n">StackedVarWrapperWithManualSharding</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">TransformVarsTempContext</span><span class="p">(</span><span class="n">_WrapWithManual</span><span class="p">):</span>
+        <span class="c1"># Step seed should be incremented by p.num_stages.</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">StepSeedIncrementContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+          <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span>
+              <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())):</span>
+            <span class="n">one_stage_outputs</span><span class="p">,</span> <span class="n">control_out</span> <span class="o">=</span> <span class="n">_BodyFProp</span><span class="p">(</span><span class="n">one_stage_theta_args</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">_ToAuto</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+          <span class="k">return</span> <span class="n">x</span>
+        <span class="n">full_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">sharding</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">Sharding</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+            <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="n">full_shape</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">manual_to_auto_spmd_partition</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">sharding</span><span class="o">.</span><span class="n">proto</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">(),</span> <span class="n">full_shape</span><span class="o">=</span><span class="n">full_shape</span><span class="p">)</span>
+
+      <span class="c1"># Reset step seed to the last stage&#39;s final seed.</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">_ToAuto</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetStepSeed</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToAuto</span><span class="p">,</span> <span class="n">one_stage_outputs</span><span class="p">),</span> <span class="n">control_out</span>
+
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped</span>
+      <span class="c1"># auto-manual sharding conversion when it is available.</span>
+      <span class="k">def</span> <span class="nf">_AssertNotTensor</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+          <span class="k">return</span> <span class="n">x</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s1">&#39;kwargs only supported with shard_stages_1d=True&#39;</span><span class="p">)</span>
+
+      <span class="n">theta_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_AssertNotTensor</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">vectorized_map</span><span class="p">(</span>
+          <span class="n">_BodyFProp</span><span class="p">,</span> <span class="n">theta_args</span><span class="p">,</span> <span class="n">fallback_to_while_loop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">_body</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A child layer to be used as the loop body.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body_iter_00000</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._unrolled_fprop"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._unrolled_fprop">[docs]</a>  <span class="k">def</span> <span class="nf">_unrolled_fprop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_inputs</span> <span class="o">=</span> <span class="n">args</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+          <span class="n">layer_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer_idx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+
+          <span class="k">def</span> <span class="nf">_Slice</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="n">layer_idx</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">t</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+          <span class="n">layer_theta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_Slice</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
+        <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">layer_theta</span><span class="p">,</span> <span class="o">*</span><span class="n">fprop_inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_inputs</span><span class="p">)</span>
+        <span class="n">fprop_inputs</span> <span class="o">=</span> <span class="n">fprop_outputs</span>
+      <span class="k">return</span> <span class="n">fprop_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">fprop_outputs</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropFn</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;FProp&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">padded_per_stage_states</span><span class="o">=</span><span class="p">[],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.PadMicrobatches"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.PadMicrobatches">[docs]</a>  <span class="k">def</span> <span class="nf">PadMicrobatches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Pads a microbatched input for bubble iterations.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+      <span class="k">return</span> <span class="n">inp</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">padded</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.FPropFn"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FPropFn">[docs]</a>  <span class="k">def</span> <span class="nf">FPropFn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">padded_per_stage_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs forward pass on a specified function.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unroll</span> <span class="o">==</span> <span class="s1">&#39;always&#39;</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">unroll</span> <span class="o">==</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unrolled_fprop</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+      <span class="n">all_iters</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)]</span>
+      <span class="n">theta_body</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">t</span><span class="p">)),</span>
+                                         <span class="o">*</span><span class="n">all_iters</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">_PassthroughVarSharding</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">split_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindPerStageVarShardingDim</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">if</span> <span class="n">split_dim</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># The stacked theta has a leading dim, so we use split_dim + 1.</span>
+          <span class="n">x</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
+              <span class="n">x</span><span class="p">,</span> <span class="n">split_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
+        <span class="c1"># Pass through the per-stage variables&#39; sharding to the stacked theta.</span>
+        <span class="c1"># Later, this will be resharded on the leading stage dim. This explicit</span>
+        <span class="c1"># resharding makes sure that resharding happens after the concat, and</span>
+        <span class="c1"># concat partitioning is trivial on the pass-through dim.</span>
+        <span class="n">theta_body</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_PassthroughVarSharding</span><span class="p">,</span> <span class="n">theta_body</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">theta_body</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span>
+
+    <span class="n">needs_microbatching</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_microbatches</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_microbatches</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">args</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">microbatch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">num_microbatches</span>
+        <span class="k">assert</span> <span class="n">batch_size</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">microbatch_size</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">num_microbatches</span> <span class="o">=</span> <span class="n">batch_size</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">microbatch_size</span>
+        <span class="n">needs_microbatching</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">num_microbatches</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_microbatches</span>
+      <span class="n">needs_microbatching</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">needs_microbatching</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">_ToMicrobatches</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+          <span class="k">return</span> <span class="n">x</span>
+        <span class="n">x_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">x_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="n">num_microbatches</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="c1"># We first put num_microbatches in the inner dimension then transpose</span>
+        <span class="c1"># it. This allows the sharding on the batch (if any) to be propagated</span>
+        <span class="c1"># to the microbatch dimension. We cannot shard the num_microbatches</span>
+        <span class="c1"># dimension, since it&#39;s indexed by the loop iteration.</span>
+        <span class="n">reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">x_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">num_microbatches</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">reshaped</span><span class="p">,</span>
+                            <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">reshaped</span><span class="o">.</span><span class="n">shape</span><span class="p">))))</span>
+
+      <span class="n">args</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToMicrobatches</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToMicrobatches</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Replicate</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">x</span>
+      <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
+      <span class="c1"># Replicate the input as the layer is only sharded on the stage dimension.</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_Replicate</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_Replicate</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">_SplitStages</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="n">theta_body</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_SplitStages</span><span class="p">,</span> <span class="n">theta_body</span><span class="p">)</span>
 
     <span class="c1"># Adds a `stages` dimension after the leading num_microbatches to the inputs</span>
     <span class="c1"># which will be sharded. Also pad the leading num_microbatches dimension by</span>
@@ -426,8 +770,8 @@
     <span class="c1"># Inputs are not the loop state: they are not changed during the loop. The</span>
     <span class="c1"># state (shifting buffer) does not have a num_microbatches dimension.</span>
     <span class="k">def</span> <span class="nf">_PadInput</span><span class="p">(</span><span class="n">inp</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">inp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">inp</span>
       <span class="c1"># Takes input tensor of shape [num_microbatches, ...] and returns padded</span>
       <span class="c1"># tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],</span>
       <span class="c1"># where num_stages is a new dimension.</span>
@@ -437,6 +781,9 @@
       <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">with_new_dim</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">padded</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
       <span class="k">assert</span> <span class="n">padded</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
+        <span class="n">padded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
+            <span class="n">padded</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">padded</span>
 
     <span class="n">padded_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_PadInput</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
@@ -470,8 +817,12 @@
                               <span class="n">shapes</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">arg_list</span>
 
-    <span class="k">def</span> <span class="nf">_CellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_CellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_and_per_stage_states</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Recurrent cell function wrapper of body.FProp.&quot;&quot;&quot;</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs_and_per_stage_states</span><span class="o">.</span><span class="n">inputs</span>
+      <span class="n">per_stage_states</span> <span class="o">=</span> <span class="n">inputs_and_per_stage_states</span><span class="o">.</span><span class="n">per_stage_states</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span>
+                            <span class="n">per_stage_states</span><span class="p">,</span> <span class="n">padded_per_stage_states</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_SelectInput</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">inp</span><span class="p">):</span>
         <span class="c1"># The state is aligned to previous stage. We shift it to the right by 1</span>
@@ -487,59 +838,142 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">shifted_state</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">shifted_state</span><span class="p">)</span>
 
       <span class="n">selected_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
-          <span class="n">_SelectInput</span><span class="p">,</span> <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">state_shapes</span><span class="p">),</span>
+          <span class="n">_SelectInput</span><span class="p">,</span> <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">state_shapes</span><span class="p">),</span>
           <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">state_shapes</span><span class="p">))</span>
-      <span class="c1"># Runs the actual body&#39;s FProp</span>
-      <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">selected_inputs</span><span class="p">)</span>
+
+      <span class="c1"># Restore non-trainable vars to state0, because it can be called in the</span>
+      <span class="c1"># backward pass.</span>
+      <span class="n">assigns</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">s</span><span class="p">),</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="p">,</span>
+                                      <span class="n">state0</span><span class="o">.</span><span class="n">non_trainable_vars</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">assigns</span><span class="p">:</span>
+        <span class="c1"># Group the dependencies int to a single no_op to avoid quadratic number</span>
+        <span class="c1"># of control edges.</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">assigns</span><span class="p">):</span>
+          <span class="n">ctrl_before</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">ctrl_before</span><span class="p">]):</span>
+          <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
+                                               <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
+                                               <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
+                                             <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
+                                             <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
       <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_stage_states</span><span class="p">)</span>
 
       <span class="c1"># Passes fprop outputs to the next layer through state.</span>
-      <span class="n">state1</span> <span class="o">=</span> <span class="n">_ArgsToState</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
+      <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">args</span><span class="o">=</span><span class="n">_ArgsToState</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">)]),</span>
+          <span class="n">per_stage_states</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">):]),</span>
+          <span class="n">iteration</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
+      <span class="c1"># Pass state0.non_trainable_vars or updated values depending on whether</span>
+      <span class="c1"># it is a bubble iteration.</span>
+      <span class="k">def</span> <span class="nf">_NextIterNonTrainableVar</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">v0</span><span class="p">):</span>
+        <span class="n">mb_id</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span>
+        <span class="n">valid_iter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">mb_id</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">mb_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">ctrl</span><span class="p">]):</span>
+          <span class="n">v1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">valid_iter</span><span class="p">,</span>
+                           <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+            <span class="n">v1</span><span class="p">,</span> <span class="n">v0</span><span class="p">)</span>
+
+      <span class="n">state1</span><span class="o">.</span><span class="n">non_trainable_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+          <span class="n">_NextIterNonTrainableVar</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="p">,</span>
+          <span class="n">state0</span><span class="o">.</span><span class="n">non_trainable_vars</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs_nmap</span> <span class="o">=</span> <span class="n">_ArgsToState</span><span class="p">(</span><span class="n">padded_inputs</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_CreateInitState</span><span class="p">(</span><span class="n">inp</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inp</span><span class="p">)[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
       <span class="c1"># Add FProp arg list to state0.</span>
-      <span class="n">state0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_CreateInitState</span><span class="p">,</span> <span class="n">inputs_nmap</span><span class="p">)</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">args</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_CreateInitState</span><span class="p">,</span> <span class="n">inputs_nmap</span><span class="p">),</span>
+          <span class="n">per_stage_states</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_CreateInitState</span><span class="p">,</span>
+                                                 <span class="n">padded_per_stage_states</span><span class="p">),</span>
+          <span class="n">iteration</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+          <span class="n">non_trainable_vars</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="p">))</span>
+      <span class="n">final_non_trainable_var_values</span> <span class="o">=</span> <span class="kc">None</span>
+
+      <span class="k">def</span> <span class="nf">_RestoreVarsToFinal</span><span class="p">():</span>
+        <span class="k">assert</span> <span class="n">final_non_trainable_var_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">assigns</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="p">,</span>
+                                        <span class="n">final_non_trainable_var_values</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">assigns</span><span class="p">):</span>
+          <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()]</span>
+
       <span class="c1"># Runs body.FProp k times using Recurrent where k = dim 0 of inputs_nmap.</span>
-      <span class="n">accum</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span>
+      <span class="n">accum</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">=</span><span class="n">theta_body</span><span class="p">,</span>
           <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
-          <span class="n">inputs</span><span class="o">=</span><span class="n">inputs_nmap</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+              <span class="n">inputs</span><span class="o">=</span><span class="n">inputs_nmap</span><span class="p">,</span> <span class="n">per_stage_states</span><span class="o">=</span><span class="n">padded_per_stage_states</span><span class="p">),</span>
           <span class="n">cell_fn</span><span class="o">=</span><span class="n">_CellFn</span><span class="p">,</span>
-          <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">)</span>
+          <span class="n">extras</span><span class="o">=</span><span class="p">{},</span>
+          <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">,</span>
+          <span class="n">allowed_tensor_captures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="o">+</span> <span class="p">[</span>
+              <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+              <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">))</span>
+          <span class="p">],</span>
+          <span class="n">backward_cleanup</span><span class="o">=</span><span class="p">(</span><span class="n">_RestoreVarsToFinal</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
 
       <span class="c1"># Retrieves fprop outputs.</span>
       <span class="k">def</span> <span class="nf">_ExtractLastStage</span><span class="p">(</span><span class="n">outp</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">outp</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
-      <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ExtractLastStage</span><span class="p">,</span>
-                                             <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">accum</span><span class="p">,</span> <span class="n">padded_shapes</span><span class="p">))</span>
-      <span class="k">return</span> <span class="n">output_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)</span></div></div>
+      <span class="n">final_non_trainable_var_values</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">non_trainable_vars</span>
+      <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+          <span class="n">_ExtractLastStage</span><span class="p">,</span> <span class="n">_StateToArgs</span><span class="p">(</span><span class="n">accum</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">padded_shapes</span><span class="p">))</span>
+      <span class="n">output_per_stage_states</span> <span class="o">=</span> <span class="n">accum</span><span class="o">.</span><span class="n">per_stage_states</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">_RestoreVarsToFinal</span><span class="p">()):</span>
+          <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span> <span class="n">output_tensors</span><span class="p">)</span>
+          <span class="n">output_per_stage_states</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span> <span class="n">output_per_stage_states</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
+        <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_Replicate</span><span class="p">,</span> <span class="n">output_tensors</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">needs_microbatching</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">_ToBatches</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+          <span class="n">x_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+          <span class="n">transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_shape</span><span class="p">))))</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">transposed</span><span class="p">,</span>
+                            <span class="p">[</span><span class="n">num_microbatches</span> <span class="o">*</span> <span class="n">x_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="n">x_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+        <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToBatches</span><span class="p">,</span> <span class="n">output_tensors</span><span class="p">)</span>
+      <span class="n">output_tensors</span> <span class="o">+=</span> <span class="n">output_per_stage_states</span>
+      <span class="k">return</span> <span class="n">output_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span>
+          <span class="n">output_tensors</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="StateLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer">[docs]</a><span class="k">class</span> <span class="nc">StateLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Container for recurrent state for incremental decoding.</span>
+  <span class="sd">&quot;&quot;&quot;Abstract container for recurrent state for incremental decoding.</span>
 
 <span class="sd">  It has two operation modes.</span>
 
-<span class="sd">  During training, it does nothing.</span>
-<span class="sd">  It expects that FProp(x, t) is called with t=None, and returns x unchanged.</span>
+<span class="sd">  During training, it does nothing. FProp(theta, x) is called with theta.t=None,</span>
+<span class="sd">  and returns x unchanged.</span>
 
-<span class="sd">  During decoding, it expects:</span>
+<span class="sd">  During decoding, it expects</span>
 
-<span class="sd">    t: an int32 scalar and</span>
-<span class="sd">    x: a tensor of shape `[batch, 1, ...]`.</span>
+<span class="sd">    theta.t:      an int32 scalar.</span>
+<span class="sd">    theta.state:  a tensor of shape `[batch, max_steps, ...]`.</span>
+<span class="sd">    x:            a tensor of shape `[batch, 1, ...]`.</span>
 
-<span class="sd">  It updates state `x_full[:, t, :] &lt;- x[:, 0, :]` and returns x_full.</span>
-<span class="sd">  The shape of x_full is then `[batch, time, ...]`.</span>
-
-<span class="sd">  The state is stored as theta.state attribute.</span>
+<span class="sd">  Subclass must define the folllowing functions:</span>
+<span class="sd">    NewState(self, shape)</span>
+<span class="sd">    _Step(theta, x).</span>
 
 <span class="sd">  To construct initial state, call InitState classmethod on the root layer.</span>
 <span class="sd">  InitState() will traverse root layer children recursively, will initialize</span>
@@ -557,118 +991,29 @@
 <span class="sd">    state1 = state0.copy()</span>
 <span class="sd">    state1 = StateLayer.UpdateState(dec, theta0, state1)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="StateLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="s1">&#39;batch, time, etc...&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="s1">&#39;batch, max_steps, etc. This is used to get the shape[2:] dims &#39;</span>
+        <span class="s1">&#39;(a.k.a non-spatial dims) in InitState() and NewState(). The &#39;</span>
+        <span class="s1">&#39;first 2 dims are actually ignored.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_xla_dynamic_update_slice&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;internal optimization&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="StateLayer.NewState"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer.NewState">[docs]</a>  <span class="k">def</span> <span class="nf">NewState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      shape: [batch, time] for beam_search_tpu_helper or [batch, beam, time] for</span>
-<span class="sd">        flat_beam_search.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      zero-initialized state tensor with shape [batch, time, ...] for</span>
-<span class="sd">        beam_search_tpu_helper or [time, batch, beam, ...] for flat_beam_search.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: the length of shape is not 2 or 3.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-      <span class="c1"># For use with beam_search_tpu_helper batch_major_compute=1</span>
-      <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
-      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">state</span>
-    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-      <span class="c1"># For use with flat_beam_search</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">True</span>
-      <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">=</span> <span class="n">shape</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
-        <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">*</span> <span class="n">beam</span><span class="p">]</span>
-        <span class="c1"># Need to remember beam_size to correctly map &#39;t&#39; argument of Fprop</span>
-        <span class="c1"># to the combined (max_steps * beam) dimension.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span> <span class="o">=</span> <span class="n">beam</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">]</span>
-      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span><span class="n">state_shape</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">state</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;bad shape: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shape</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="StateLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">x</span>
-    <span class="n">t</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">t</span>
-    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">x</span>
-    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">)</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">state</span>
-
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;p.name=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;state=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;x=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;t=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span><span class="p">:</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">state</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
-          <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">x</span>
-
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
-        <span class="n">state_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
-        <span class="n">update_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">update_slice_size</span> <span class="o">==</span> <span class="n">state_slice_size</span><span class="p">:</span>
-          <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="c1"># With prefix decoding the first call to decoder can have</span>
-          <span class="c1"># sequence length (N * beam_size) with N &gt; 1.</span>
-          <span class="c1"># In this special case state tensor update is implemented as multiple</span>
-          <span class="c1"># InplaceUpdate ops each for a slice [batch_size, beam_size].</span>
-          <span class="n">div</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">update_slice_size</span> <span class="o">/</span> <span class="n">state_slice_size</span><span class="p">)</span>
-          <span class="k">assert</span> <span class="n">update_slice_size</span> <span class="o">==</span> <span class="n">state_slice_size</span> <span class="o">*</span> <span class="n">div</span><span class="p">,</span> <span class="p">(</span>
-              <span class="n">update_slice_size</span><span class="p">,</span> <span class="n">state_slice_size</span><span class="p">)</span>
-          <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">div</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
-            <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x_i</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;state*=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
-        <span class="c1"># [T,B,L,...]</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="c1"># [T, B, L, ...] -&gt; [B, T, L, ...]</span>
-        <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
-        <span class="n">perm</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">perm</span><span class="p">)</span>
-        <span class="c1"># [B, T, L, ...] -&gt; [B, T*L, ...]</span>
-        <span class="n">y_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_shape</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
-        <span class="n">update_index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="n">update_index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">)</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="n">xla</span><span class="o">.</span><span class="n">dynamic_update_slice</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
-                                         <span class="n">update_index</span><span class="p">)</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">state</span>
-
-    <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
-
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;y=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">y</span></div>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;p.shape is used to get the shape[2:] dims (a.k.a non-spatial dims) in &#39;</span>
+        <span class="s1">&#39;InitState() and NewState(), thus is expected to be at least rank2 (&#39;</span>
+        <span class="sa">f</span><span class="s1">&#39;first 2 dims are actually ignored), but is </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="StateLayer.InitState"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer.InitState">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">InitState</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns new state with leading shape=[batch, time].&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Returns new state with leading shape=[batch, max_steps].&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
       <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
@@ -716,7 +1061,213 @@
           <span class="n">Rec</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="n">c_name</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="n">c_name</span><span class="p">])</span>
 
     <span class="n">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">state</span></div></div>
+    <span class="k">return</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="StateLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Step</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StateLayer.NewState"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer.NewState">[docs]</a>  <span class="k">def</span> <span class="nf">NewState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      shape:</span>
+<span class="sd">        - [batch, max_steps] for beam_search_tpu_helper</span>
+<span class="sd">        - [batch, beam, max_steps] for flat_beam_search.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      zero-initialized state tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="StateLayer._Step"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.StateLayer._Step">[docs]</a>  <span class="k">def</span> <span class="nf">_Step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;FProp in decoding mode.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="MultiHeadAttentionStateLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.MultiHeadAttentionStateLayer">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadAttentionStateLayer</span><span class="p">(</span><span class="n">StateLayer</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;StateLayer specialization for multi-head attention.</span>
+
+<span class="sd">  During decoding, it updates state `x_full[:, t, :] &lt;- x[:, 0, :]` and</span>
+<span class="sd">  returns x_full. The shape of x_full is then `[batch, max_steps, ...]`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="MultiHeadAttentionStateLayer.NewState"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.MultiHeadAttentionStateLayer.NewState">[docs]</a>  <span class="k">def</span> <span class="nf">NewState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      shape:</span>
+<span class="sd">        - [batch, max_steps] for beam_search_tpu_helper</span>
+<span class="sd">        - [batch, beam, max_steps] for flat_beam_search.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      zero-initialized state tensor whose shape can be:</span>
+
+<span class="sd">        - [batch, max_steps, ...]: beam_search_tpu_helper.</span>
+<span class="sd">        - [batch, max_steps * beam, ...]: flat_beam_search and</span>
+<span class="sd">          use_xla_dynamic_update_slice is True.</span>
+<span class="sd">        - [max_steps, batch, beam, ...]: flat_beam_search and</span>
+<span class="sd">          use_xla_dynamic_update_slice is False.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: the length of shape is not 2 or 3.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="c1"># For use with beam_search_tpu_helper batch_major_compute=1</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">state</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="c1"># For use with flat_beam_search</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">=</span> <span class="n">shape</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
+        <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">*</span> <span class="n">beam</span><span class="p">]</span>
+        <span class="c1"># Need to remember beam_size to correctly map &#39;t&#39; argument of Fprop</span>
+        <span class="c1"># to the combined (max_steps * beam) dimension.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span> <span class="o">=</span> <span class="n">beam</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">]</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span><span class="n">state_shape</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">state</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;bad shape: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shape</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiHeadAttentionStateLayer._Step"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.MultiHeadAttentionStateLayer._Step">[docs]</a>  <span class="k">def</span> <span class="nf">_Step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">state</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;p.name=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;state=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;x=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;t=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span><span class="p">:</span>
+      <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">state</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">x</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
+      <span class="n">state_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+      <span class="n">update_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">update_slice_size</span> <span class="o">==</span> <span class="n">state_slice_size</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># With prefix decoding the first call to decoder can have</span>
+        <span class="c1"># sequence length (N * beam_size) with N &gt; 1.</span>
+        <span class="c1"># In this special case state tensor update is implemented as multiple</span>
+        <span class="c1"># InplaceUpdate ops each for a slice [batch_size, beam_size].</span>
+        <span class="n">div</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">update_slice_size</span> <span class="o">/</span> <span class="n">state_slice_size</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">update_slice_size</span> <span class="o">==</span> <span class="n">state_slice_size</span> <span class="o">*</span> <span class="n">div</span><span class="p">,</span> <span class="p">(</span><span class="n">update_slice_size</span><span class="p">,</span>
+                                                             <span class="n">state_slice_size</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">div</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+          <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x_i</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;state*=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+      <span class="c1"># [T,B,L,...]</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="c1"># [T, B, L, ...] -&gt; [B, T, L, ...]</span>
+      <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+      <span class="n">perm</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">perm</span><span class="p">)</span>
+      <span class="c1"># [B, T, L, ...] -&gt; [B, T*L, ...]</span>
+      <span class="n">y_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_shape</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">:</span>
+      <span class="n">update_start_index</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">update_start_index</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">)</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">xla</span><span class="o">.</span><span class="n">dynamic_update_slice</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                                       <span class="n">update_start_index</span><span class="p">)</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">state</span>
+
+    <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;y=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">y</span></div></div>
+
+
+<div class="viewcode-block" id="Conv1DStateLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer">[docs]</a><span class="k">class</span> <span class="nc">Conv1DStateLayer</span><span class="p">(</span><span class="n">StateLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Container for recurrent state for incremental decoding of conv1d.</span>
+
+<span class="sd">  At present (06/2021) it only supports flat_beam_search.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Conv1DStateLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;use_xla_dynamic_update_slice&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="Conv1DStateLayer.NewState"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer.NewState">[docs]</a>  <span class="k">def</span> <span class="nf">NewState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      shape: [batch, beam, kernel_size].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      zero-initialized state tensor of shape [batch, kernel_size * beam, ...],</span>
+<span class="sd">      with the underlying layout being the same as</span>
+<span class="sd">      [batch, kernel_size, beam, ...].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">=</span> <span class="n">shape</span>
+    <span class="c1"># Need to remember beam_size to correctly map &#39;t&#39; argument of Fprop</span>
+    <span class="c1"># to the combined (max_steps * beam) dimension.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span> <span class="o">=</span> <span class="n">beam</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">*</span> <span class="n">beam</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="Conv1DStateLayer._Step"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer._Step">[docs]</a>  <span class="k">def</span> <span class="nf">_Step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Single step decode.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap of layer weights.</span>
+<span class="sd">      x:     A Tensor of shape [batch, beam * num_steps, ...] with the</span>
+<span class="sd">        underlying layout being the same as [batch, num_steps, beam, ...].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A Tensor of the same shape as theta.state as returned by NewState(),</span>
+<span class="sd">      a.k.a [batch, kernel_size * beam, ...].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">state</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;p.name=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;state=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;x=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;t=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+    <span class="c1"># left-shift state and append x.</span>
+    <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">:],</span> <span class="n">x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">new_state</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">new_state</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;y=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">y</span></div></div>
 
 
 <div class="viewcode-block" id="OverrideLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.OverrideLayer">[docs]</a><span class="k">class</span> <span class="nc">OverrideLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -757,7 +1308,7 @@
 
 
 <div class="viewcode-block" id="ReshapeInputLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ReshapeInputLayer">[docs]</a><span class="k">class</span> <span class="nc">ReshapeInputLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Reshape input only for training.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Reshape input for MoE for training or using TPU.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ReshapeInputLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ReshapeInputLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -773,17 +1324,19 @@
 <div class="viewcode-block" id="ReshapeInputLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ReshapeInputLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
-    <span class="c1"># input size in tokens</span>
-    <span class="n">input_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">group_size</span> <span class="o">=</span> <span class="n">input_size</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
-    <span class="k">assert</span> <span class="p">(</span><span class="n">group_size</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="o">==</span> <span class="n">input_size</span><span class="p">),</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">input_size</span><span class="p">)</span>
-    <span class="n">model_dims</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dims</span> <span class="ow">or</span> <span class="p">[</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">group_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">model_dims</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;grouped_inputs&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span>
+    <span class="c1"># Only reshape for tpu.</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+      <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+      <span class="c1"># input size in tokens</span>
+      <span class="n">input_size</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">orig_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">orig_inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">group_size</span> <span class="o">=</span> <span class="n">input_size</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
+      <span class="n">model_dims</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dims</span> <span class="ow">or</span> <span class="p">[</span><span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">orig_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">group_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">model_dims</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;grouped_inputs&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span></div></div>
 
@@ -910,6 +1463,141 @@
         <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">avg_loss</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
         <span class="s1">&#39;avg_z_loss_inc&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">avg_z_loss_inc</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
     <span class="p">},</span> <span class="n">per_example_loss</span></div></div>
+
+
+<div class="viewcode-block" id="CausalDepthwiseConv1DLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer">[docs]</a><span class="k">class</span> <span class="nc">CausalDepthwiseConv1DLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Causal depthwise 1d convolution.</span>
+
+<span class="sd">  Only supports the case where channel_multiplier is 1.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CausalDepthwiseConv1DLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;kernel_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Spatial dimension filter size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;model_dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The channel dimension. For compatibility with &#39;</span>
+        <span class="s1">&#39;gshard_builder.MoEBuilder.DepthwiseConvAutoregressive, the &#39;</span>
+        <span class="s1">&#39;layout could be multi-dimensional, the product of which is &#39;</span>
+        <span class="s1">&#39;the effective channel size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;state_layer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Set to Conv1DStateLayer.Params() for &#39;</span>
+        <span class="s1">&#39;single-step fprop (e.g. autoregressive decoding).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;compatible_with_mtf_ckpt&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If creating vars to be compatible with Mesh Tf checkpoint, a.k.a &#39;</span>
+        <span class="s1">&#39;DepthwiseConvAutoregressive() layer. When training new models this &#39;</span>
+        <span class="s1">&#39;should be set to False.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="CausalDepthwiseConv1DLayer._Var"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._Var">[docs]</a>  <span class="k">def</span> <span class="nf">_Var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;For compatibility with Mesh TF ckpt.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">VarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">state_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;state_layer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">state_layer</span><span class="p">)</span>
+
+    <span class="c1"># If required to be compatible with Mesh TF, create VarLayers for vars.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">compatible_with_mtf_ckpt</span><span class="p">:</span>
+      <span class="n">model_dims</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dims</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_dims</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">model_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dims</span><span class="p">]</span>
+
+      <span class="k">def</span> <span class="nf">_GetScaleVar</span><span class="p">(</span><span class="n">shift_distance</span><span class="p">):</span>
+        <span class="n">init_const</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="n">shift_distance</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="n">scale_var_weight_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">init_const</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">model_dims</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shift_distance</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale_var_weight_params</span><span class="p">)])</span>
+
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;w_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">_GetScaleVar</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+<div class="viewcode-block" id="CausalDepthwiseConv1DLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">compatible_with_mtf_ckpt</span><span class="p">:</span>
+      <span class="c1"># vars are created in sub VarLayer layers.</span>
+      <span class="k">return</span>
+
+    <span class="n">model_dims</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dims</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_dims</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="n">model_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dims</span><span class="p">]</span>
+
+    <span class="n">filter_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">model_dims</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_GetScaleInitConst</span><span class="p">(</span><span class="n">shift_distance</span><span class="p">):</span>
+      <span class="c1"># The init vals are the reverse of that of DepthwiseConvAutoregressive()</span>
+      <span class="c1"># since here W[0] is the W[-1] of DepthwiseConvAutoregressive().</span>
+      <span class="n">val</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="n">shift_distance</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span>
+      <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dims</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="c1"># [kernel_size] + model_dims</span>
+    <span class="n">init_const</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">_GetScaleInitConst</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">)],</span>
+                          <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">init_const</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">init_const</span><span class="p">,</span>
+                            <span class="n">filter_shape</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">as_numpy_dtype</span><span class="p">)</span>
+
+    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">filter_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">init_const</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CausalDepthwiseConv1DLayer._DoConv"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._DoConv">[docs]</a>  <span class="k">def</span> <span class="nf">_DoConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">padding</span><span class="p">):</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeight</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+
+    <span class="c1"># [b, t, 1, d]</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">depthwise_conv2d</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span>
+        <span class="n">w</span><span class="p">,</span>
+        <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CausalDepthwiseConv1DLayer._GetWeight"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._GetWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_GetWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a [p.kernel_size, 1, channel_size, 1] rank4 Tensor.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">channel_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dims</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">channel_size</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="n">channel_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">channel_size</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">compatible_with_mtf_ckpt</span><span class="p">:</span>
+      <span class="n">ws</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;w_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">scale</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">)]</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="CausalDepthwiseConv1DLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">dilation</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="o">.</span><span class="n">ComputeExplicitPaddingForCausalConv</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeight</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dilation</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">state_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">state_layer</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">state_layer</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="c1"># Single-step, thus use &#39;VALID&#39; padding.</span>
+          <span class="n">padding</span> <span class="o">=</span> <span class="s1">&#39;VALID&#39;</span>
+
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DoConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Top2GatingOnLogits"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Top2GatingOnLogits">[docs]</a><span class="k">def</span> <span class="nf">Top2GatingOnLogits</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span>

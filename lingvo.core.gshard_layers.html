@@ -297,16 +297,44 @@ layer and its children layers.</p></li>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A layer that implements pipelining across stages.</p>
 <p>It creates a loop over microbatches around a loop-body layer. The loop body
-has a leading num_stages dimension in the input/output data (required) and
+has a leading num_stages dimension in the input/output data (provided by the
+user, or created by this layer when Params().num_microbatches is provided) and
 weights (to achieve real pipeline parallelism). This leading dimension can
-be added in 2 ways:</p>
+be added in different ways:</p>
 <ol class="arabic simple">
 <li><p>Defined manually in the wrapped layer Params().stage_parallel_body.</p></li>
 </ol>
-<p>2) Automatically vectorized via tf.vectorized_map(). In this case, use
-Params().single_stage_body instead to define a single stage. This may fail if
-some ops or control flow patterns are not supported by tf.vectorized_map(),
-and use the first option in that case.</p>
+<p>2) Automatically vectorized via tf.vectorized_map() (or manual-auto sharding
+conversion) and VariableShapePrefixContext(). In this case, use
+Params().single_stage_body instead to define a single stage. Without
+Params().shard_stages_1d, This may fail if some ops or control flow patterns
+are not supported by tf.vectorized_map(); with Params().shard_stages_1d, it
+instead uses manual-auto sharding conversion and supports all computations.</p>
+<dl>
+<dt>Supported features in different configurations:</dt><dd><p>1) stage_parallel_body:
+Non-trainable variables are supported. This is not compatible with regular
+existing layers, and mostly used for testing purpose.</p>
+<p>2) single_stage_body + per_stage_vars=False + shard_stages_1d=True:
+Non-trainable variables are supported. Sharding is added automatically.
+Use this option when only pipelining is needed; the implementation is
+reliable, because it does not depend on tf.vectorized_map.</p>
+<p>3) single_stage_body + per_stage_vars=False + shard_stages_1d=False:
+tf.vectorized_map will be used. Non-trainable variables are not supported.
+Use this option when sharding on multiple dimensions (more than pipelining
+stages) is needed.</p>
+<p>4) single_stage_body + per_stage_vars=True + shard_stages_1d=True:
+Non-trainable variables are not supported. Per-stage variables are defined
+separately. Sharding is applied differently to per-layer variables and the
+stacked variable for all stages, so it has resharding cost. If per-layer
+vars are not a hard requirement 2) is a better option.</p>
+<p>5) single_stage_body + per_stage_vars=True + shard_stages_1d=False:
+Non-trainable variables are not supported. Similar to 4), but sharding is
+provided by the user, which means the user can shard more than one
+dimensions, but also needs to take care of different shardings on per-stage
+variables and stacked variables. If per-layer vars are not a hard
+requirement 3) is a better option.</p>
+</dd>
+</dl>
 <p>It can run on a single core, or sharded using GShard annotations. If the stage
 dimension is sharded, GShard will produce a cross-core pipelining pattern.</p>
 <p>Inputs to LayerwiseShardablePipelinedLayer should have a leading
@@ -332,10 +360,36 @@ manage accumulation buffers):</p>
   <span class="n">state</span> <span class="o">=</span> <span class="n">stage_parallel_body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">stages_in</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>The body’s FProp function takes arguments (theta, args, kwargs). It must
+return the same structure as args, while kwargs are shared across all stages.</p>
+<p>Additionally, FPropFn can take run a specified function of the body, and it
+can have per-stage inputs/outputs that are modeled as padded_per_stage_states.
+These states must be padded (for bubbles) before calling this function using
+PadMicrobatches(), and have shapes [num_microbatches + num_stages - 1,
+num_stages, …]. This allows a typical use case, decoding, to avoid data
+formatting inside the decoding loop. Note that the bubble iterations are
+located at different offsets across stages and will not be removed, so use
+this only when the state is not used outside thie pipelined layers.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params">
 <em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim">
+<span class="sig-name descname"><span class="pre">_FindPerStageVarShardingDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds a sharding dimension for per-stage variables before stacking.</p>
+<p>Find a dimension to split variables. Per-stage variables do not have the
+leading stage dimension before stacking.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shape</strong> – list of integers of the single-stage variable shape.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An index of the found sharding dimension, or -1 if not found.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -355,12 +409,23 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">
-<span class="sig-name descname"><span class="pre">BodyFProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.BodyFProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">BodyFProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.BodyFProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._body">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_body</span></span><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._body" title="Permalink to this definition">¶</a></dt>
+<dd><p>A child layer to be used as the loop body.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._unrolled_fprop">
+<span class="sig-name descname"><span class="pre">_unrolled_fprop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._unrolled_fprop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._unrolled_fprop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp">
-<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp" title="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -391,24 +456,39 @@ layer and its children layers.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.PadMicrobatches">
+<span class="sig-name descname"><span class="pre">PadMicrobatches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.PadMicrobatches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.PadMicrobatches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pads a microbatched input for bubble iterations.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FPropFn">
+<span class="sig-name descname"><span class="pre">FPropFn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padded_per_stage_states</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.FPropFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FPropFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs forward pass on a specified function.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">StateLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>Container for recurrent state for incremental decoding.</p>
+<p>Abstract container for recurrent state for incremental decoding.</p>
 <p>It has two operation modes.</p>
-<p>During training, it does nothing.
-It expects that FProp(x, t) is called with t=None, and returns x unchanged.</p>
-<p>During decoding, it expects:</p>
+<p>During training, it does nothing. FProp(theta, x) is called with theta.t=None,
+and returns x unchanged.</p>
+<p>During decoding, it expects</p>
 <blockquote>
-<div><p>t: an int32 scalar and
-x: a tensor of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">1,</span> <span class="pre">...]</span></code>.</p>
+<div><p>theta.t:      an int32 scalar.
+theta.state:  a tensor of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">max_steps,</span> <span class="pre">...]</span></code>.
+x:            a tensor of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">1,</span> <span class="pre">...]</span></code>.</p>
 </div></blockquote>
-<p>It updates state <code class="xref py py-obj docutils literal notranslate"><span class="pre">x_full[:,</span> <span class="pre">t,</span> <span class="pre">:]</span> <span class="pre">&lt;-</span> <span class="pre">x[:,</span> <span class="pre">0,</span> <span class="pre">:]</span></code> and returns x_full.
-The shape of x_full is then <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">time,</span> <span class="pre">...]</span></code>.</p>
-<p>The state is stored as theta.state attribute.</p>
+<dl class="simple">
+<dt>Subclass must define the folllowing functions:</dt><dd><p>NewState(self, shape)
+_Step(theta, x).</p>
+</dd>
+</dl>
 <p>To construct initial state, call InitState classmethod on the root layer.
 InitState() will traverse root layer children recursively, will initialize
 internal state for each StateLayer instance, and will return a nested
@@ -424,11 +504,6 @@ tuple of states.</p>
 <span class="n">state1</span> <span class="o">=</span> <span class="n">StateLayer</span><span class="o">.</span><span class="n">UpdateState</span><span class="p">(</span><span class="n">dec</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">state1</span><span class="p">)</span>
 </pre></div>
 </div>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer._use_flat_beam_search">
-<span class="sig-name descname"><span class="pre">_use_flat_beam_search</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer._use_flat_beam_search" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.Params">
 <em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.Params" title="Permalink to this definition">¶</a></dt>
@@ -436,25 +511,21 @@ tuple of states.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.NewState">
-<span class="sig-name descname"><span class="pre">NewState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.NewState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.NewState" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns initial state.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>shape</strong> – [batch, time] for beam_search_tpu_helper or [batch, beam, time] for
-flat_beam_search.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>zero-initialized state tensor with shape [batch, time, …] for</dt><dd><p>beam_search_tpu_helper or [time, batch, beam, …] for flat_beam_search.</p>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – the length of shape is not 2 or 3.</p>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.InitState">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">InitState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.InitState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.InitState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns new state with leading shape=[batch, max_steps].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.UpdateTheta">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">UpdateTheta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.UpdateTheta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.UpdateTheta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns theta with state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.UpdateState">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">UpdateState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.UpdateState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.UpdateState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns updated state from theta.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -491,21 +562,127 @@ layer and its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.InitState">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">InitState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.InitState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.InitState" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns new state with leading shape=[batch, time].</p>
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.NewState">
+<span class="sig-name descname"><span class="pre">NewState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.NewState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.NewState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns initial state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shape</strong> – <ul class="simple">
+<li><p>[batch, max_steps] for beam_search_tpu_helper</p></li>
+<li><p>[batch, beam, max_steps] for flat_beam_search.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>zero-initialized state tensor.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.UpdateTheta">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">UpdateTheta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.UpdateTheta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.UpdateTheta" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns theta with state.</p>
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer._Step">
+<span class="sig-name descname"><span class="pre">_Step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer._Step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer._Step" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp in decoding mode.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.MultiHeadAttentionStateLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">MultiHeadAttentionStateLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#MultiHeadAttentionStateLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.MultiHeadAttentionStateLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_layers.StateLayer" title="lingvo.core.gshard_layers.StateLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_layers.StateLayer</span></code></a></p>
+<p>StateLayer specialization for multi-head attention.</p>
+<p>During decoding, it updates state <code class="xref py py-obj docutils literal notranslate"><span class="pre">x_full[:,</span> <span class="pre">t,</span> <span class="pre">:]</span> <span class="pre">&lt;-</span> <span class="pre">x[:,</span> <span class="pre">0,</span> <span class="pre">:]</span></code> and
+returns x_full. The shape of x_full is then <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch,</span> <span class="pre">max_steps,</span> <span class="pre">...]</span></code>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.MultiHeadAttentionStateLayer._use_flat_beam_search">
+<span class="sig-name descname"><span class="pre">_use_flat_beam_search</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#lingvo.core.gshard_layers.MultiHeadAttentionStateLayer._use_flat_beam_search" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.MultiHeadAttentionStateLayer.NewState">
+<span class="sig-name descname"><span class="pre">NewState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#MultiHeadAttentionStateLayer.NewState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.MultiHeadAttentionStateLayer.NewState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns initial state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shape</strong> – <ul class="simple">
+<li><p>[batch, max_steps] for beam_search_tpu_helper</p></li>
+<li><p>[batch, beam, max_steps] for flat_beam_search.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>[batch, max_steps, …]: beam_search_tpu_helper.</p></li>
+<li><p>[batch, max_steps * beam, …]: flat_beam_search and
+use_xla_dynamic_update_slice is True.</p></li>
+<li><p>[max_steps, batch, beam, …]: flat_beam_search and
+use_xla_dynamic_update_slice is False.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>zero-initialized state tensor whose shape can be</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – the length of shape is not 2 or 3.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.gshard_layers.StateLayer.UpdateState">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">UpdateState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#StateLayer.UpdateState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.StateLayer.UpdateState" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns updated state from theta.</p>
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.MultiHeadAttentionStateLayer._Step">
+<span class="sig-name descname"><span class="pre">_Step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#MultiHeadAttentionStateLayer._Step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.MultiHeadAttentionStateLayer._Step" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp in decoding mode.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.Conv1DStateLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">Conv1DStateLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#Conv1DStateLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.Conv1DStateLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_layers.StateLayer" title="lingvo.core.gshard_layers.StateLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_layers.StateLayer</span></code></a></p>
+<p>Container for recurrent state for incremental decoding of conv1d.</p>
+<p>At present (06/2021) it only supports flat_beam_search.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.Conv1DStateLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#Conv1DStateLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.Conv1DStateLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.Conv1DStateLayer.NewState">
+<span class="sig-name descname"><span class="pre">NewState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#Conv1DStateLayer.NewState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.Conv1DStateLayer.NewState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns initial state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>shape</strong> – [batch, beam, kernel_size].</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>zero-initialized state tensor of shape [batch, kernel_size * beam, …],
+with the underlying layout being the same as
+[batch, kernel_size, beam, …].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.Conv1DStateLayer._Step">
+<span class="sig-name descname"><span class="pre">_Step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#Conv1DStateLayer._Step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.Conv1DStateLayer._Step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Single step decode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer weights.</p></li>
+<li><p><strong>x</strong> – A Tensor of shape [batch, beam * num_steps, …] with the
+underlying layout being the same as [batch, num_steps, beam, …].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of the same shape as theta.state as returned by NewState(),
+a.k.a [batch, kernel_size * beam, …].</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -583,7 +760,7 @@ layer and its children layers.</p></li>
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.ReshapeInputLayer">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">ReshapeInputLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ReshapeInputLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ReshapeInputLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>Reshape input only for training.</p>
+<p>Reshape input for MoE for training or using TPU.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.ReshapeInputLayer.Params">
 <em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ReshapeInputLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ReshapeInputLayer.Params" title="Permalink to this definition">¶</a></dt>
@@ -678,6 +855,78 @@ layer and its children layers.</p></li>
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.ComputeLoss">
 <span class="sig-name descname"><span class="pre">ComputeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#SharedEmbeddingSoftmaxLayer.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.SharedEmbeddingSoftmaxLayer.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">CausalDepthwiseConv1DLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Causal depthwise 1d convolution.</p>
+<p>Only supports the case where channel_multiplier is 1.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._Var">
+<span class="sig-name descname"><span class="pre">_Var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer._Var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._Var" title="Permalink to this definition">¶</a></dt>
+<dd><p>For compatibility with Mesh TF ckpt.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._DoConv">
+<span class="sig-name descname"><span class="pre">_DoConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer._DoConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._DoConv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._GetWeight">
+<span class="sig-name descname"><span class="pre">_GetWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer._GetWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._GetWeight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a [p.kernel_size, 1, channel_size, 1] rank4 Tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp" title="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp" title="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

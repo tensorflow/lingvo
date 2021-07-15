@@ -211,7 +211,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._ShouldStop">
-<span class="sig-name descname"><span class="pre">_ShouldStop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ShouldStop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ShouldStop" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_ShouldStop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ShouldStop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ShouldStop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if the runner should stop.</p>
 </dd></dl>
 
@@ -229,7 +229,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._FindNewCheckpoint">
-<span class="sig-name descname"><span class="pre">_FindNewCheckpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prev_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._FindNewCheckpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._FindNewCheckpoint" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_FindNewCheckpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processed_ckpts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._FindNewCheckpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._FindNewCheckpoint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the path to a new checkpoint, or raises RuntimeError.</p>
 </dd></dl>
 
@@ -345,6 +345,56 @@ been enqueued.</p></li>
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._ExportMetrics">
 <span class="sig-name descname"><span class="pre">_ExportMetrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ExportMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ExportMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Exports metrics externally.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._TrainerFinished">
+<span class="sig-name descname"><span class="pre">_TrainerFinished</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._TrainerFinished"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._TrainerFinished" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infer if training finished using the latest training checkpoint.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._GetProcessedCheckpoints">
+<span class="sig-name descname"><span class="pre">_GetProcessedCheckpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._GetProcessedCheckpoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._GetProcessedCheckpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the list of checkpoints previously processed by this runner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._UpdateProcessedCheckpoints">
+<span class="sig-name descname"><span class="pre">_UpdateProcessedCheckpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runner_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ckpt_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._UpdateProcessedCheckpoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._UpdateProcessedCheckpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Denotes ‘ckpt_path’ as having been processed by this runner.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._RunOnLatestCheckpoints">
+<span class="sig-name descname"><span class="pre">_RunOnLatestCheckpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runner_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runner_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._RunOnLatestCheckpoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._RunOnLatestCheckpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes ‘runner_fn’ on the latest checkpoints produced by the Trainer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – the session to compute the metrics in.</p></li>
+<li><p><strong>runner_fn</strong> – a callable taking a session and a checkpoint path to apply to
+checkpoints saved by the Trainer.</p></li>
+<li><p><strong>runner_dir</strong> – the log directory for this runner.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._RunOnAllCheckpoints">
+<span class="sig-name descname"><span class="pre">_RunOnAllCheckpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runner_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runner_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._RunOnAllCheckpoints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._RunOnAllCheckpoints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executes ‘runner_fn’ on all checkpoints produced by the Trainer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – the session to compute the metrics in.</p></li>
+<li><p><strong>runner_fn</strong> – a callable taking a session and a checkpoint path to apply to
+checkpoints saved by the Trainer.</p></li>
+<li><p><strong>runner_dir</strong> – the log directory for this runner.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

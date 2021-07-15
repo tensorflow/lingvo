@@ -196,7 +196,7 @@ OCD, second-pass deliberation.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">
-<span class="sig-name descname"><span class="pre">Sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoder_theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_state_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_step_callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">Sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoder_theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_state_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_step_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Samples target sequences, one target sequence per source sequence.</p>
 <p>(Please see beam_search_helper.py for description of decoder callbacks.)</p>
 <dl class="field-list simple">
@@ -210,6 +210,7 @@ callbacks.</p></li>
 <li><p><strong>init_state_callback</strong> – decoder._InitBeamSearchStateCallback.</p></li>
 <li><p><strong>pre_step_callback</strong> – decoder._PreBeamSearchStepCallback.</p></li>
 <li><p><strong>post_step_callback</strong> – decoder._PostBeamSearchStepCallback.</p></li>
+<li><p><strong>init_step_ids</strong> – [batch], optional init step ids, default to SOS.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

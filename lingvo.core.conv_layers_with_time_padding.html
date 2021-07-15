@@ -212,8 +212,8 @@
 <li><p><strong>window</strong> – The size of the windows.</p></li>
 <li><p><strong>stride</strong> – The time-stride between adjacent windows.</p></li>
 <li><p><strong>padding_algorithm</strong> – ‘SAME’ or ‘VALID’.</p></li>
-<li><p><strong>v2_padding</strong> – Prefer setting to True. The default implementation is buggy for</p></li>
-<li><p><strong>convolutions.</strong> (<em>strided</em>) – </p></li>
+<li><p><strong>v2_padding</strong> – Prefer setting to True. The default implementation is buggy for
+strided convolutions.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -442,6 +442,55 @@ width dimension as in images.</p></li>
 <dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
 <dl class="simple">
 <dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding.zero_state">
+<span class="sig-name descname"><span class="pre">zero_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalConv2DLayerWithPadding.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – the batch size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A NestedMap of tensors including:</dt><dd><ul class="simple">
+<li><p>context: A Tensor of shape [b, filter_shape[0]-1, 1, c].</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>state0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding.StreamStep">
+<span class="sig-name descname"><span class="pre">StreamStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalConv2DLayerWithPadding.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding.StreamStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a singele step of convolution to input_tensor.</p>
+<p>Only supports 1d causal convolution. Doesn’t support dilation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer params.</p></li>
+<li><p><strong>inputs</strong> – A Tensor of shape [b, t, 1, c]</p></li>
+<li><p><strong>paddings</strong> – A 0/1 valued tensor of shape [b, t].</p></li>
+<li><p><strong>state0</strong> – A NestedMap of tensors of the same struct as returned by
+zero_state().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [b, t, 1, c]
+padding: the same as input paddings.
+state1: A NestedMap of the same struct as input state</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
 </dd>
 </dl>
 </dd></dl>

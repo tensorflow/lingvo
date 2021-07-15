@@ -261,34 +261,6 @@ above).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.attention_util.RelPositionBias">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">RelPositionBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#RelPositionBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.RelPositionBias" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute relative position bias.</p>
-<p>This is a subroutine used by variants of self-attentions with relative
-positional embedding.</p>
-<p>B: batch size
-T: sequence length
-N: num of attention heads.
-H: per-head attention dimension.</p>
-<p>output[b][n][i][j] = content[b][i][n] x abs_pos_emb[i-j+T-1][n]</p>
-<p>Notice padding is supposed to be masked by the caller of this function.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
-<li><p><strong>content</strong> – [N, H] if skip_term_b else [B, T, N, H]</p></li>
-<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H], the absolute positional embedding.
-abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
-<li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.attention_util.AttenLogits">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">AttenLogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention logits.</p>
@@ -325,13 +297,25 @@ abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.attention_util._AttenLogitsXL">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">_AttenLogitsXL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#_AttenLogitsXL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util._AttenLogitsXL" title="Permalink to this definition">¶</a></dt>
-<dd><p>Attention logits from …</p>
-<p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
-self attention with relative position embedding.</p>
-<p>Notice padding is supposed to be masked by the caller of this function.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">PositionalAttenLogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<p>Implementation of the positional attention logit computation from …</p>
+<ul class="simple">
+<li><p>‘Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context’
+<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a> section 3.3</p></li>
+<li><p>‘Self-Attention with Relative Position Representations’
+<a class="reference external" href="https://arxiv.org/pdf/1803.02155.pdf">https://arxiv.org/pdf/1803.02155.pdf</a> section 3</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits.RelPositionBias">
+<span class="sig-name descname"><span class="pre">RelPositionBias</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits.RelPositionBias"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits.RelPositionBias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute relative position bias.</p>
+<p>This is a subroutine used by variants of self-attentions with relative
+positional embedding.</p>
+<p>output[b][n][i][j] = content[b][i][n] x abs_pos_emb[i-j+T-1][n]</p>
+<p>Padding should be masked by the caller of this function.</p>
 <p>B: batch size
 T: sequence length
 N: num of attention heads.
@@ -339,12 +323,42 @@ H: per-head attention dimension.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
+<li><p><strong>shapes</strong> (<em>tensors of the following</em>) – </p></li>
+<li><p><strong>content</strong> – [N, H] if skip_term_b else [B, T, N, H]</p></li>
+<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H], the absolute positional embedding.
+abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
+<li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits._ValidateBiases">
+<span class="sig-name descname"><span class="pre">_ValidateBiases</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits._ValidateBiases"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits._ValidateBiases" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits._AttenLogits">
+<span class="sig-name descname"><span class="pre">_AttenLogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits._AttenLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention logits from TransformerXL and Self Attention RPE.</p>
+<p>Padding should be masked by the caller of this function.</p>
+<p>B: batch size
+T: sequence length
+N: num of attention heads.
+H: per-head attention dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shapes</strong> (<em>tensors of the following</em>) – </p></li>
 <li><p><strong>query</strong> – [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – [B, T, N, H]</p></li>
-<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The sinusoid positional embedding from</p></li>
-<li><p><strong>https</strong> – //arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative</p></li>
-<li><p><strong>i -</strong> (<em>distance</em>) – </p></li>
+<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The sinusoid positional embedding from
+‘Attention Is All You Need’ (<a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>).
+abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
 <li><p><strong>content_bias</strong> – [N, H] or None</p></li>
 <li><p><strong>positional_bias</strong> – [N, H] or None</p></li>
 <li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation.</p></li>
@@ -356,13 +370,13 @@ H: per-head attention dimension.</p>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.attention_util.AttenLogitsTransformerXL">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">AttenLogitsTransformerXL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsTransformerXL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsTransformerXL" title="Permalink to this definition">¶</a></dt>
-<dd><p>Attention logits from …</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsXL">
+<span class="sig-name descname"><span class="pre">AttenLogitsXL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits.AttenLogitsXL"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsXL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention logits from Transformer-XL.</p>
 <p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
 self attention with relative position embedding.</p>
-<p>Notice padding is supposed to be masked by the caller of this function.</p>
+<p>Padding should be masked by the caller of this function.</p>
 <p>B: batch size
 T: sequence length
 N: num of attention heads.
@@ -370,14 +384,14 @@ H: per-head attention dimension.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
+<li><p><strong>shapes</strong> (<em>tensors of the following</em>) – </p></li>
 <li><p><strong>query</strong> – [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – [B, T, N, H]</p></li>
-<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The sinusoid positional embedding from</p></li>
-<li><p><strong>https</strong> – //arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative</p></li>
-<li><p><strong>i -</strong> (<em>distance</em>) – </p></li>
-<li><p><strong>content_bias</strong> – [N, H]</p></li>
-<li><p><strong>positional_bias</strong> – [N, H]</p></li>
+<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The sinusoid positional embedding from
+‘Attention Is All You Need’ (<a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>).
+abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
+<li><p><strong>content_bias</strong> – [N, H] or None</p></li>
+<li><p><strong>positional_bias</strong> – [N, H] or None</p></li>
 <li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation.</p></li>
 </ul>
 </dd>
@@ -387,12 +401,12 @@ H: per-head attention dimension.</p>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.attention_util.AttenLogitsRPE">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">AttenLogitsRPE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsRPE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsRPE" title="Permalink to this definition">¶</a></dt>
-<dd><p>Attention logits from …</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsRPE">
+<span class="sig-name descname"><span class="pre">AttenLogitsRPE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits.AttenLogitsRPE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsRPE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention logits for Relative Position Representations.</p>
 <p><a class="reference external" href="https://arxiv.org/pdf/1803.02155.pdf">https://arxiv.org/pdf/1803.02155.pdf</a> with trainable rel position emb.</p>
-<p>Notice padding is supposed to be masked by the caller of this function.</p>
+<p>Padding should be masked by the caller of this function.</p>
 <p>B: batch size
 T: sequence length
 N: num of attention heads.
@@ -400,7 +414,7 @@ H: per-head attention dimension.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
+<li><p><strong>shapes</strong> (<em>tensors of the following</em>) – </p></li>
 <li><p><strong>query</strong> – [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – [B, T, N, H]</p></li>
 <li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The trainable embdding. abs_pos_emb[i] is
@@ -411,6 +425,56 @@ the emb of relative distance i - (T-1).</p></li>
 <dd class="field-even"><p>The attention logits tensor. [B, N, T, T]</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsXLOneStep">
+<span class="sig-name descname"><span class="pre">AttenLogitsXLOneStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positional_bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_term_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits.AttenLogitsXLOneStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsXLOneStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer-XL attention logits for one single target (query) step.</p>
+<p>B: batch size
+S: sequence length
+N: num of attention heads.
+H: per-head attention dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> – [B, N, H].</p></li>
+<li><p><strong>key</strong> – [S, B, N, H] or [S, B, N*H/128, 128].</p></li>
+<li><p><strong>abs_pos_emb</strong> – [B, S, N, H] or [S, N, H]</p></li>
+<li><p><strong>content_bias</strong> – [N, H] or None</p></li>
+<li><p><strong>positional_bias</strong> – [N, H] or None</p></li>
+<li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation of the
+TransformerXL paper.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [S, B, N]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsRPEOneStep">
+<span class="sig-name descname"><span class="pre">AttenLogitsRPEOneStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">abs_pos_emb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#PositionalAttenLogits.AttenLogitsRPEOneStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.PositionalAttenLogits.AttenLogitsRPEOneStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>RPE attention logits for one single target (query) step.</p>
+<p>B: batch size
+S: sequence length
+N: num of attention heads.
+H: per-head attention dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> – [B, N, H].</p></li>
+<li><p><strong>key</strong> – [S, B, N, H] or [S, B, N*H/128, 128].</p></li>
+<li><p><strong>abs_pos_emb</strong> – [S, 1, N, H]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [S, B, N]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -518,7 +582,7 @@ is reserved to mean paddings, distinct from the value (S-1).</p>
 dimension, this degenerates to the original full attention.</p>
 <p>We require that ‘sparsity_indices’ does not contain duplicates (except for -1
 to indicate paddings), but we do not require ‘sparsity_indices’ to be sorted.</p>
-<p>Note that this implementation is flexible and geneic but is not optimized for
+<p>Note that this implementation is flexible and generic but is not optimized for
 time or space complexity. Please consider grouping queries that attend to the
 same subset of values first for efficiency.</p>
 <dl class="field-list simple">

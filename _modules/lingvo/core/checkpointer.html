@@ -228,6 +228,8 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_seconds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_interval_seconds</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_interval_steps</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span>
@@ -289,12 +291,20 @@
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetUninitializedVarNames</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">,</span> <span class="n">uninitialized_var_names</span></div>
 
-<div class="viewcode-block" id="Checkpointer.ShouldSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.ShouldSave">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldSave</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns if it&#39;s time to save a checkpoint.&quot;&quot;&quot;</span>
-    <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span><span class="p">:</span>
+<div class="viewcode-block" id="Checkpointer.ShouldSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.ShouldSave">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if a checkpoint should be saved.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Always save the first checkpoint.</span>
       <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="kc">False</span></div>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">==</span> <span class="n">gsteps</span><span class="p">:</span>
+      <span class="c1"># Don&#39;t rewrite the same checkpoint.</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_steps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Use save_interval_steps if it is specified by the user.</span>
+      <span class="k">return</span> <span class="n">gsteps</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_steps</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Use save_interval_seconds otherwise.</span>
+      <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span></div>
 
 <div class="viewcode-block" id="Checkpointer.MaybeSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.MaybeSave">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If it&#39;s time to save, save the checkpoint.</span>
@@ -305,9 +315,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Whether a checkpoint was saved.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">():</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span><span class="n">gsteps</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span>
       <span class="k">return</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="kc">False</span></div>
 
@@ -321,6 +330,7 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint&#39;</span><span class="p">)</span>
     <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="n">gsteps</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Checkpointer._UpdateNextSaveTime"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._UpdateNextSaveTime">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateNextSaveTime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -332,6 +342,7 @@
     <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># path=.../ckpt-step</span>
       <span class="k">return</span> <span class="n">path</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 

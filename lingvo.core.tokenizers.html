@@ -483,6 +483,56 @@ the corresponding position is padded.</p></li>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.tokenizers.SentencePieceTokenizer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tokenizers.</span></span><span class="sig-name descname"><span class="pre">SentencePieceTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SentencePieceTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.SentencePieceTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<p>SentencePiece tokenizer (<a class="reference external" href="https://arxiv.org/abs/1808.06226">https://arxiv.org/abs/1808.06226</a>).</p>
+<p>This is a wrapper around tf_text.SentencepieceTokenizer.</p>
+<p>NOTE: this tokenizer is incompatible with GenericInput (b/191804185).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tokenizers.SentencePieceTokenizer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SentencePieceTokenizer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.SentencePieceTokenizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params for tokenizers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tokenizers.SentencePieceTokenizer.StringsToIds">
+<span class="sig-name descname"><span class="pre">StringsToIds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_append_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SentencePieceTokenizer.StringsToIds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.SentencePieceTokenizer.StringsToIds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tokenize strs into vocab ids.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tokenizers.SentencePieceTokenizer._StringsToIdsImpl">
+<span class="sig-name descname"><span class="pre">_StringsToIdsImpl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_eos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SentencePieceTokenizer._StringsToIdsImpl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.SentencePieceTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tokenizers.SentencePieceTokenizer.IdsToStrings">
+<span class="sig-name descname"><span class="pre">IdsToStrings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SentencePieceTokenizer.IdsToStrings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.SentencePieceTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts ids back to strings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> – A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample’s
+ids.</p></li>
+<li><p><strong>lens</strong> – A vector of shape [batch]. lens[i] is the sequence length of the
+i-th sample. Only the first lens[i] tokens in ids[i, :] are valid tokens
+for the i-th sequence.</p></li>
+<li><p><strong>languages</strong> – A vector of strings of shape [batch].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>sequences - A vector of shape [batch]. The converted string sequence.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If unknown token type.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

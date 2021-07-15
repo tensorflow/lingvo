@@ -174,7 +174,6 @@
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">heapq</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">nested_map</span>
@@ -204,19 +203,9 @@
           <span class="n">InfeedContext</span><span class="p">(</span><span class="n">infeed_host_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.MakeDeviceString">[docs]</a><span class="k">def</span> <span class="nf">MakeDeviceString</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">):</span>
-  <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/replica:0/task:</span><span class="si">%d</span><span class="s1">/device:</span><span class="si">%s</span><span class="s1">:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span>
-                                                <span class="n">device_id</span><span class="p">)</span></div>
-
-
-<span class="n">_uuid</span> <span class="o">=</span> <span class="kc">None</span>
-
-
-<div class="viewcode-block" id="GetProcessUUID"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.GetProcessUUID">[docs]</a><span class="k">def</span> <span class="nf">GetProcessUUID</span><span class="p">():</span>
-  <span class="k">global</span> <span class="n">_uuid</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">_uuid</span><span class="p">:</span>
-    <span class="n">_uuid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
-  <span class="k">return</span> <span class="n">_uuid</span></div>
+<div class="viewcode-block" id="MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.MakeDeviceString">[docs]</a><span class="k">def</span> <span class="nf">MakeDeviceString</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">replica_id</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">):</span>
+  <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/replica:</span><span class="si">%d</span><span class="s1">/task:</span><span class="si">%d</span><span class="s1">/device:</span><span class="si">%s</span><span class="s1">:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">replica_id</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span>
+                                                 <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">)</span></div>
 
 
 <span class="n">_CLUSTER_STACK</span> <span class="o">=</span> <span class="n">thread_local_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
@@ -398,7 +387,13 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ListDevices: InitDevices was not called.&#39;</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">replicas</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">devices_per_replica</span><span class="p">):</span>
-          <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">device_type</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;evaler&#39;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;decoder&#39;</span><span class="p">:</span>
+            <span class="c1"># For multi-task models, evaler and decoder actually have multiple</span>
+            <span class="c1"># replicas if we specify --model_task_names=[&#39;task_a&#39;,&#39;task_b&#39;,</span>
+            <span class="c1"># ...].</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">device_type</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">device_type</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ListDevices(</span><span class="si">{</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">): </span><span class="si">{</span><span class="n">ret</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 

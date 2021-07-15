@@ -182,16 +182,27 @@
 <dd><p>Whether we should create embedding tables and run lookup on tpu.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers._RemovePrivateVar">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_embedding_layers.</span></span><span class="sig-name descname"><span class="pre">_RemovePrivateVar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#_RemovePrivateVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers._RemovePrivateVar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a variable by name from <code class="xref py py-obj docutils literal notranslate"><span class="pre">layer</span></code>.</p>
+<p>This is usually used to avoid copying the variable to TPU, for example, by the
+tf.cast when accessing layer.theta.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer</strong> – The layer to remove the variable from.</p></li>
+<li><p><strong>var_name</strong> – The name of the variable to remove.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_embedding_layers.</span></span><span class="sig-name descname"><span class="pre">TpuEmbeddingCollection</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Manage various TPU embedding related ops and tensors.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.GRAPH_COLLECTION_NAME">
-<span class="sig-name descname"><span class="pre">GRAPH_COLLECTION_NAME</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'__tpu_embedding_collection'</span></em><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.GRAPH_COLLECTION_NAME" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.Get">
 <em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.Get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.Get" title="Permalink to this definition">¶</a></dt>
@@ -216,18 +227,13 @@
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddLoadOps">
-<span class="sig-name descname"><span class="pre">AddLoadOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">load_ops</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.AddLoadOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddLoadOps" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddLoadRetrieveOps">
+<span class="sig-name descname"><span class="pre">AddLoadRetrieveOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_ops</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">retrieve_ops</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.AddLoadRetrieveOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddLoadRetrieveOps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.load_ops">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">load_ops</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.load_ops" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddRetrieveOps">
-<span class="sig-name descname"><span class="pre">AddRetrieveOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">retrieve_ops</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.AddRetrieveOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddRetrieveOps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
@@ -237,12 +243,12 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddActivations">
-<span class="sig-name descname"><span class="pre">AddActivations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.AddActivations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddActivations" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">AddActivations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_call_scope</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.AddActivations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddActivations" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.activations_by_task">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">activations_by_task</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.activations_by_task" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.GetActivations">
+<span class="sig-name descname"><span class="pre">GetActivations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_call_scope</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.GetActivations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.GetActivations" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -260,10 +266,41 @@
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">feature_names</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.feature_names" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py property">
-<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.gradient_multiplier_schedule">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">gradient_multiplier_schedule</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.gradient_multiplier_schedule" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.SetGradientMultiplierSchedule">
+<span class="sig-name descname"><span class="pre">SetGradientMultiplierSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">multiplier_schedule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.SetGradientMultiplierSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.SetGradientMultiplierSchedule" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.SetTaskMode">
+<span class="sig-name descname"><span class="pre">SetTaskMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_call_scope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.SetTaskMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.SetTaskMode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.ShouldStopGradient">
+<span class="sig-name descname"><span class="pre">ShouldStopGradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_call_scope</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.ShouldStopGradient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.ShouldStopGradient" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.ApplyGradients">
+<span class="sig-name descname"><span class="pre">ApplyGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_call_scope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_to_gradient_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TpuEmbeddingCollection.ApplyGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.ApplyGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply tpu embedding gradient updates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_call_scope</strong> – The current task call scope name.</p></li>
+<li><p><strong>feature_to_gradient_dict</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">py_utils.NestedMap</span></code> of: tpu embedding feature
+name -&gt; gradient tensor for the embedding feature.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The gradient update op and a dict of eval metrics.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – if gradients have been applied before for the current task.</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -287,7 +324,7 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer.CreateSlotVariablesAndOps">
 <span class="sig-name descname"><span class="pre">CreateSlotVariablesAndOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tpu_embedding_table</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#_TPUEmbeddingOptimizer.CreateSlotVariablesAndOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer.CreateSlotVariablesAndOps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create slot variables and infeed/retrieval ops.</p>
+<dd><p>Create slot variables and load/retrieve ops.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -318,7 +355,7 @@ List of retrieve ops</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps">
 <span class="sig-name descname"><span class="pre">CreateSlotVariablesAndOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tpu_embedding_table</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create slot variables and infeed/retrieval ops.</p>
+<dd><p>Create slot variables and load/retrieve ops.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -355,7 +392,81 @@ List of retrieve ops</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps">
 <span class="sig-name descname"><span class="pre">CreateSlotVariablesAndOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tpu_embedding_table</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create slot variables and infeed/retrieval ops.</p>
+<dd><p>Create slot variables and load/retrieve ops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_vars</strong> – A list of all embedding table shard variables.</p></li>
+<li><p><strong>tpu_embedding_table</strong> – Parent TPUEmbeddingTable layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of load ops
+List of retrieve ops</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_embedding_layers.</span></span><span class="sig-name descname"><span class="pre">TPUEmbeddingAdamOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingAdamOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer" title="lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer</span></code></a></p>
+<p>Adam optimizer for TPUEmbeddingLayer, TPUEmbeddingTable.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingAdamOptimizer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer.CreateOptimizerParameters">
+<span class="sig-name descname"><span class="pre">CreateOptimizerParameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingAdamOptimizer.CreateOptimizerParameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer.CreateOptimizerParameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create TPUEmbedding API optimzier parameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer.CreateSlotVariablesAndOps">
+<span class="sig-name descname"><span class="pre">CreateSlotVariablesAndOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tpu_embedding_table</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingAdamOptimizer.CreateSlotVariablesAndOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer.CreateSlotVariablesAndOps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create slot variables and load/retrieve ops.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_vars</strong> – A list of all embedding table shard variables.</p></li>
+<li><p><strong>tpu_embedding_table</strong> – Parent TPUEmbeddingTable layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of load ops
+List of retrieve ops</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tpu_embedding_layers.</span></span><span class="sig-name descname"><span class="pre">TPUEmbeddingFTRLOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingFTRLOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer" title="lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer</span></code></a></p>
+<p>FTRL optimizer for TPUEmbeddingLayer, TPUEmbeddingTable.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingFTRLOptimizer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer.CreateOptimizerParameters">
+<span class="sig-name descname"><span class="pre">CreateOptimizerParameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingFTRLOptimizer.CreateOptimizerParameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer.CreateOptimizerParameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create TPUEmbedding API optimzier parameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer.CreateSlotVariablesAndOps">
+<span class="sig-name descname"><span class="pre">CreateSlotVariablesAndOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tpu_embedding_table</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingFTRLOptimizer.CreateSlotVariablesAndOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingFTRLOptimizer.CreateSlotVariablesAndOps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create slot variables and load/retrieve ops.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -413,16 +524,6 @@ List of retrieve ops</p>
 <dd></dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.retrieve_op_list">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">retrieve_op_list</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.retrieve_op_list" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.load_op_list">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">load_op_list</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.load_op_list" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.input_keys">
 <em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">input_keys</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.input_keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -434,57 +535,55 @@ List of retrieve ops</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._SequenceEmbLookup">
-<span class="sig-name descname"><span class="pre">_SequenceEmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dense_ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable._SequenceEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._SequenceEmbLookup" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_SequenceEmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dense_ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable._SequenceEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._SequenceEmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sequence embedding lookup.</p>
 <p>Note that we do not support padding ids in sequence embeddings.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dense_ids</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.</p></li>
+<li><p><strong>dense_ids</strong> – An int Tensor of shape [batch, sequence].</p></li>
 <li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor of dimension [batch,
-max_sequence_length, embedding_dim]</p>
+<dd class="field-even"><p>A float32 activations Tensor of shape
+[batch, max_sequence_length, embedding_dim].</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._CombinerEmbLookup">
-<span class="sig-name descname"><span class="pre">_CombinerEmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sparse_ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.sparse_tensor.SparseTensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable._CombinerEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._CombinerEmbLookup" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_CombinerEmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sparse_ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.sparse_tensor.SparseTensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable._CombinerEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._CombinerEmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combiner embedding lookup.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sparse_ids</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int32
-SparseTensor.</p></li>
+<li><p><strong>sparse_ids</strong> – An int SparseTensor of shape [batch, …].</p></li>
 <li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor of dimension [batch, 1,
-embedding_dim]</p>
+<dd class="field-even"><p>A float32 activations Tensor of shape [batch, 1, embedding_dim].</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup">
-<span class="sig-name descname"><span class="pre">CpuEmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">CpuEmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>CPU evaluation embedding lookup for dense tensors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
-For sequence embeddings, -1 is used as a padding id. Non-sequence
-embeddings do not support padded ids.</p></li>
+<li><p><strong>ids_map</strong> – A NestedMap of nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence]
+int Tensor. For sequence embeddings, -1 is used as a padding id.
+Non-sequence embeddings do not support padded ids.</p></li>
 <li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor.
+<dd class="field-even"><p>An activations NestedMap of nested string -&gt; float32 Tensor.
 For non-sequence embeddings: [batch, 1, embedding_dim]
 For sequence embeddings: [batch, max_sequence_length, embedding_dim]</p>
 </dd>
@@ -493,17 +592,18 @@ For sequence embeddings: [batch, max_sequence_length, embedding_dim]</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookupSparse">
-<span class="sig-name descname"><span class="pre">CpuEmbLookupSparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.sparse_tensor.SparseTensor</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookupSparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookupSparse" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">CpuEmbLookupSparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">partition_strategy</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingTable.CpuEmbLookupSparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CpuEmbLookupSparse" title="Permalink to this definition">¶</a></dt>
 <dd><p>CPU evaluation embedding lookup for SparseTensors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int32 SparseTensor.</p></li>
+<li><p><strong>ids_map</strong> – A NestedMap of nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int
+SparseTensor.</p></li>
 <li><p><strong>partition_strategy</strong> – See TPUEmbeddingLayer partition_strategy param.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An activations dict of string -&gt; float32 Tensor.
+<dd class="field-even"><p>An activations NestedMap of nested string -&gt; float32 Tensor.
 For non-sequence embeddings: [batch, 1, embedding_dim]
 For sequence embeddings: [batch, max_sequence_length, embedding_dim]</p>
 </dd>
@@ -559,13 +659,13 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup">
-<span class="sig-name descname"><span class="pre">_TpuEmbLookup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer._TpuEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_TpuEmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer._TpuEmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._TpuEmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>TPU Embedding lookup.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup">
-<span class="sig-name descname"><span class="pre">EmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.EmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">EmbLookup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.EmbLookup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Looks up embedding vectors for each entry in dense Tensor ids_map.</p>
 <p>Since the TPUEmbedding is monolothic, and consulted once per
 FProp/BProp, we must centralize the lookup. Thus, for multiple
@@ -573,12 +673,13 @@ features, we contain them into a single-lookup rather than allowing
 the caller to call Lookup multiple times.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
+<dd class="field-odd"><p><strong>ids_map</strong> – A NestedMap of nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int
+Tensor.
 For sequence embeddings, -1 is used as a padding id. Non-sequence
 embeddings do not support padded ids.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Activations dict of string -&gt;
+<dd class="field-even"><p>Activations NestedMap of nested string -&gt;
 For non-sequence embeddings:  [batch, 1, embedding_dim],
 For sequence embeddings: [batch, max_sequence_length, embedding_dim]
 float32 Tensor.</p>
@@ -588,7 +689,7 @@ float32 Tensor.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookupSparse">
-<span class="sig-name descname"><span class="pre">EmbLookupSparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.sparse_tensor.SparseTensor</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.EmbLookupSparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookupSparse" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">EmbLookupSparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_map</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.EmbLookupSparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookupSparse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Looks up embedding vectors for each entry in SparseTensor ids_map.</p>
 <p>Since the TPUEmbedding is monolothic, and consulted once per
 FProp/BProp, we must centralize the lookup. Thus, for multiple
@@ -596,10 +697,13 @@ features, we contain them into a single-lookup rather than allowing
 the caller to call Lookup multiple times.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int32 SparseTensor.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids_map</strong> – A NestedMap of nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, …] int</p></li>
+<li><p><strong>SparseTensor.</strong> – </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Activations dict of string -&gt;
+<dd class="field-even"><p>Activations NestedMap of nested string -&gt;
 For non-sequence embeddings:  [batch, 1, embedding_dim],
 For sequence embeddings: [batch, max_sequence_length, embedding_dim]
 float32 Tensor.</p>

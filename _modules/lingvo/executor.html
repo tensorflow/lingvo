@@ -182,6 +182,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">task_scheduler</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_embedding_layers</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_runner</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
@@ -190,6 +191,14 @@
     <span class="s1">&#39;disable_meta_optimizer_in_executor&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Disabling the grappler meta_optimizer improves start-up time.&#39;</span><span class="p">)</span>
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="UnsetUnusedTrainParams"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.UnsetUnusedTrainParams">[docs]</a><span class="k">def</span> <span class="nf">UnsetUnusedTrainParams</span><span class="p">(</span><span class="n">task_params</span><span class="p">):</span>
+  <span class="c1"># Remove misleading train params</span>
+  <span class="n">task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">if</span> <span class="s1">&#39;task&#39;</span> <span class="ow">in</span> <span class="n">task_params</span><span class="p">:</span>
+    <span class="n">task_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">return</span> <span class="n">task_params</span></div>
 
 
 <div class="viewcode-block" id="GetExecutorParams"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.GetExecutorParams">[docs]</a><span class="k">def</span> <span class="nf">GetExecutorParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">cluster_params</span><span class="p">,</span> <span class="n">model_registry</span><span class="p">):</span>
@@ -205,6 +214,9 @@
 
 <span class="sd">    - ps_params_dict: High-level task name -&gt; ProgramScheduleParams</span>
 <span class="sd">    - train_cfg: A SingleTaskModelParams or MultiTaskModelParams.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError if the model params is invalid.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">ps_params_dict</span> <span class="o">=</span> <span class="p">{}</span>
@@ -213,8 +225,22 @@
     <span class="n">train_cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
     <span class="n">train_cfg</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_params</span>
 
+    <span class="c1"># Remove misleading train params</span>
+    <span class="n">train_cfg</span> <span class="o">=</span> <span class="n">UnsetUnusedTrainParams</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
       <span class="n">multi_task_train_cfg</span> <span class="o">=</span> <span class="n">train_cfg</span>
+
+      <span class="k">if</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Check that all subtasks use the same ema settings.</span>
+        <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()):</span>
+          <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="s1">&#39;ema_decay_moving_vars&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="o">!=</span>
+                <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">)):</span>
+              <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Params did not match for field </span><span class="si">%s</span><span class="s1"> in task </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                               <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">task_name</span><span class="p">))</span>
+
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">share_model_object</span><span class="p">:</span>
           <span class="c1"># Create MultiTaskSubModel params from a MultiTaskModelParams.</span>
@@ -251,6 +277,8 @@
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
               <span class="n">k</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">eval_dataset_name</span> <span class="o">+</span> <span class="s1">&#39;_executor_eval_task&#39;</span><span class="p">)</span>
           <span class="n">eval_task_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">cluster</span>
+          <span class="n">eval_task_params</span> <span class="o">=</span> <span class="n">UnsetUnusedTrainParams</span><span class="p">(</span><span class="n">eval_task_params</span><span class="p">)</span>
+
           <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span>
               <span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_task_params</span>
         <span class="n">ps_params_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">program_schedule_params</span>
@@ -260,8 +288,9 @@
       <span class="k">for</span> <span class="n">eval_dataset_name</span> <span class="ow">in</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
         <span class="n">task_eval_params</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span>
                                                     <span class="n">eval_dataset_name</span><span class="p">)</span>
-        <span class="n">task_eval_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">cluster</span>
+        <span class="n">task_eval_params</span> <span class="o">=</span> <span class="n">UnsetUnusedTrainParams</span><span class="p">(</span><span class="n">task_eval_params</span><span class="p">)</span>
         <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_eval_params</span>
+
       <span class="n">ps_params_dict</span><span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">program_schedule_params</span>
 
   <span class="k">return</span> <span class="n">ps_params_dict</span><span class="p">,</span> <span class="n">train_cfg</span></div>
@@ -363,17 +392,22 @@
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">dummy_graph</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
           <span class="n">topology</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tpu_initialize_system_op</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_computation_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">computation_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span><span class="n">num_devices_per_split</span><span class="p">,</span>
+                                                        <span class="n">topology</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">computation_shape</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_computation_shape</span>
+          <span class="k">assert</span> <span class="n">num_devices_per_split</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">computation_shape</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
               <span class="n">topology</span><span class="p">,</span>
-              <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span>
-                  <span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">topology</span><span class="p">),</span>
+              <span class="n">computation_shape</span><span class="o">=</span><span class="n">computation_shape</span><span class="p">,</span>
               <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
               <span class="n">topology</span><span class="p">,</span>
-              <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span>
-                  <span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">topology</span><span class="p">),</span>
+              <span class="n">computation_shape</span><span class="o">=</span><span class="n">computation_shape</span><span class="p">,</span>
               <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
               <span class="n">device_order_mode</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span><span class="p">)</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
@@ -416,10 +450,24 @@
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_programs: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">))</span>
 
+    <span class="c1"># When running in a vizier trainer, the executor reports infeasiable runs</span>
+    <span class="c1"># in case of errors. The programs report metrics and normal completions.</span>
+    <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">program</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="kc">True</span>
+
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
-          <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+          <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+          <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+              <span class="c1"># Create a global ExponentialMovingAverage object and share it</span>
+              <span class="c1"># across all subtasks.</span>
+              <span class="n">ema</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">(</span>
+                  <span class="n">decay</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="n">num_updates</span><span class="o">=</span><span class="n">global_step</span><span class="p">)</span>
+              <span class="n">py_utils</span><span class="o">.</span><span class="n">SetExponentialMovingAverage</span><span class="p">(</span><span class="n">ema</span><span class="p">)</span>
+
           <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
             <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">ClearTpuSummaryTensors</span><span class="p">()</span>
@@ -517,20 +565,21 @@
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">():</span>
+        <span class="k">def</span> <span class="nf">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+          <span class="c1"># Run TPU embedding retrieve ops.</span>
+          <span class="c1"># NOTE: this is expensive, so only run it when we&#39;re checkpointing.</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
+          <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
+          <span class="c1"># Save program state first, so it&#39;s recoverable after we restore</span>
+          <span class="c1"># from checkpoint.</span>
+          <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
+            <span class="n">program</span><span class="o">.</span><span class="n">SaveProgramState</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="c1"># Save the checkpoints.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
-          <span class="k">def</span> <span class="nf">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
-            <span class="c1"># Run TPU embedding retrieve ops.</span>
-            <span class="c1"># NOTE: this is expensive, so only run it when we&#39;re checkpointing.</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
-            <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
-            <span class="c1"># Save program state first, so it&#39;s recoverable after we restore</span>
-            <span class="c1"># from checkpoint.</span>
-            <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
-              <span class="n">program</span><span class="o">.</span><span class="n">SaveProgramState</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-            <span class="c1"># Save the checkpoints.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span>
+            <span class="n">global_step</span><span class="p">):</span>
 
           <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">:</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint asynchronously AT YOUR OWN RISK.&#39;</span><span class="p">)</span>
@@ -553,6 +602,7 @@
 
         <span class="n">done</span> <span class="o">=</span> <span class="n">program_schedule</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span> <span class="ow">and</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">):</span>
           <span class="n">saver_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 
@@ -566,9 +616,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
-              <span class="n">program</span><span class="o">.</span><span class="n">SaveProgramState</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+            <span class="n">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Shutting down programs.&#39;</span><span class="p">)</span>
           <span class="n">program_schedule</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
           <span class="k">return</span></div></div>

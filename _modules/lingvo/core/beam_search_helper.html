@@ -214,8 +214,8 @@
 <span class="n">BeamSearchDecodeOutput</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
     <span class="s1">&#39;BeamSearchDecodeOutput&#39;</span><span class="p">,</span>
     <span class="p">[</span>
-        <span class="s1">&#39;done_hyps&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_hyps&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_ids&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_lens&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_scores&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;topk_decoded&#39;</span><span class="p">,</span> <span class="s1">&#39;other_states&#39;</span>
+        <span class="s1">&#39;topk_hyps&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_ids&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_lens&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_scores&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_decoded&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;other_states&#39;</span>
     <span class="p">],</span>
 <span class="p">)</span>
 <span class="c1"># Make the last attribute default to None.</span>
@@ -232,7 +232,106 @@
 <span class="p">]</span>
 
 
-<div class="viewcode-block" id="BeamSearchHelper"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchHelper</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+<div class="viewcode-block" id="BeamSearchSharedParams"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchSharedParams">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchSharedParams</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Class defining common beam search params.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BeamSearchSharedParams.Params"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchSharedParams.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_hyps_per_beam&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span>
+             <span class="s1">&#39;Num of hyps to keep per beam during decoding.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;target_seq_length_ratio&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Ratio of the average target sequence length over the average &#39;</span>
+        <span class="s1">&#39;source sequence length. Affects coverage penalty.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;length_normalization&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Beam search length normalization factor, typically in [0, 1]. &#39;</span>
+        <span class="s1">&#39;This is the exponent on (len+5)/5 used to normalize &#39;</span>
+        <span class="s1">&#39;global score. The larger this value is, the more likely &#39;</span>
+        <span class="s1">&#39;longer sequences are produced. This value is alpha &#39;</span>
+        <span class="s1">&#39;in https://arxiv.org/abs/1609.08144, equation 14.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;coverage_penalty&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;Beam search coverage penalty. This value is beta in &#39;</span>
+        <span class="s1">&#39;https://arxiv.org/abs/1609.08144, equation 14. The higher this &#39;</span>
+        <span class="s1">&#39;value is, the more heavily low coverage is penalized.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;valid_eos_max_logit_delta&#39;</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span>
+        <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp only if its &#39;</span>
+        <span class="s1">&#39;logit is no more than than this value away from the logit of the &#39;</span>
+        <span class="s1">&#39;best candidate. The larger this value is, the easier hyps can &#39;</span>
+        <span class="s1">&#39;terminate, and the more likely shorter sequences are produced.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;local_eos_threshold&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.0</span><span class="p">,</span>
+        <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp if the local score &#39;</span>
+        <span class="s1">&#39;for &lt;/s&gt; is greater than local_eos_threshold.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;beam_size&#39;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span>
+        <span class="s1">&#39;The maximum difference between best hyp and the worst in a beam.&#39;</span>
+        <span class="s1">&#39; This allows to prune our search when none of the active hyp is&#39;</span>
+        <span class="s1">&#39; close enough to the current best.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_sos_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Id of the start of sentence token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_eos_id&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Id of the end of sentence token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;target_eoc_id&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;Id of the end of chunk token. Used by neural transducer only.&#39;</span>
+        <span class="s1">&#39; Set this id to a non-negative value only for NT.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Maximum allowed target seq length. Note &#39;</span>
+        <span class="s1">&#39;that decoding terminates if an end of sentence token &#39;</span>
+        <span class="s1">&#39;is not emitted after target_seq_len decode steps.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;merge_paths&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If true, hyps which are identical when &#39;</span>
+        <span class="s1">&#39;epsilons are removed will be combined into a single hyp.  The &#39;</span>
+        <span class="s1">&#39;probability for that combined hyp will be the sum of the &#39;</span>
+        <span class="s1">&#39;probabilities of the component hyps.  This can only be applied &#39;</span>
+        <span class="s1">&#39;for epsilon-emitting models (RNN-T and NT).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;force_eos_in_top_k&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to always consider the eos token to be among the top k tokens &#39;</span>
+        <span class="s1">&#39;for every step. When False, hyps can only terminate if the eos token &#39;</span>
+        <span class="s1">&#39;is part of the top k. Note that p.valid_eos_max_logit_delta and &#39;</span>
+        <span class="s1">&#39;p.local_eos_threshold always apply regardless of this.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;batch_major_state&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If True, we use batch as the major &#39;</span>
+        <span class="s1">&#39;dimension of the hyp states. Otherwise, timing becomes the major &#39;</span>
+        <span class="s1">&#39;dimension, and the gathers are performed along the second-to-major &#39;</span>
+        <span class="s1">&#39;dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;batch_major_compute&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, the target batch dimension &#39;</span>
+        <span class="s1">&#39;is organized as num_beams by num_hyps_per_beam during the &#39;</span>
+        <span class="s1">&#39;ExtendStep computation and the cache is stored following this order. &#39;</span>
+        <span class="s1">&#39;So the topk indices into the cache for ReOrderHyps needs to be &#39;</span>
+        <span class="s1">&#39;reordered before usage. Otherwise, the indices will be directly used &#39;</span>
+        <span class="s1">&#39;without extra transformation. &#39;</span>
+        <span class="s1">&#39;Setting batch_major_compute=True does not change the ordering of &#39;</span>
+        <span class="s1">&#39;ids and logits of beam search callbacks. &#39;</span>
+        <span class="s1">&#39;The target_batch dim for those tensors will remain num_hyps_per_beam &#39;</span>
+        <span class="s1">&#39;* num_beams.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;short_seq_limit&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;An integer, the sequence length limit for using early stop &#39;</span>
+        <span class="s1">&#39;method in attention layer (batch-major implementation). The sequence &#39;</span>
+        <span class="s1">&#39;is always treated as the default long sequence for decoding when the &#39;</span>
+        <span class="s1">&#39;limit is set to 0. For typical mt transformer config &#39;</span>
+        <span class="s1">&#39;(batch 16, sequence length 150), the break even point is around 40 &#39;</span>
+        <span class="s1">&#39;on TPU V3, and 50 on TPU V2. This may slightly change for &#39;</span>
+        <span class="s1">&#39;different batch size and sequence length, which requires more &#39;</span>
+        <span class="s1">&#39;experiments to set the value.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;terminate_beams_independently&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether each beam in the same batch can independently terminate. &#39;</span>
+        <span class="s1">&#39;This controls whether the search termination criteria set by params &#39;</span>
+        <span class="s1">&#39;like `p.beam_size` or `p.ensure_full_beam` are applied collectively &#39;</span>
+        <span class="s1">&#39;to all beams, or individually to each beam. When False, all beams &#39;</span>
+        <span class="s1">&#39;continue the search until each and every beam meets the termination &#39;</span>
+        <span class="s1">&#39;criteria. When True, each beam individually, independent of each &#39;</span>
+        <span class="s1">&#39;other, decides whether to terminate the search.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="BeamSearchHelper"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchHelper</span><span class="p">(</span><span class="n">BeamSearchSharedParams</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Helper class for performing beam search.</span>
 
 <span class="sd">  The user of this helper class needs to implement three callbacks.</span>
@@ -332,46 +431,6 @@
 <div class="viewcode-block" id="BeamSearchHelper.Params"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_hyps_per_beam&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span>
-             <span class="s1">&#39;Num of hyps to keep per beam during decoding.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;target_seq_length_ratio&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
-        <span class="s1">&#39;Ratio of the average target sequence length over the average &#39;</span>
-        <span class="s1">&#39;source sequence length.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;length_normalization&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="s1">&#39;Beam search length normalization factor, typically in [0, 1]. &#39;</span>
-        <span class="s1">&#39;This is the exponent on (len+5)/5 used to normalize &#39;</span>
-        <span class="s1">&#39;global score. The larger this value is, the more likely &#39;</span>
-        <span class="s1">&#39;longer sequences are produced.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;coverage_penalty&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Beam search coverage penalty.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;valid_eos_max_logit_delta&#39;</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span>
-        <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp only if its &#39;</span>
-        <span class="s1">&#39;logit is no more than than this value away from the logit of the &#39;</span>
-        <span class="s1">&#39;best candidate. The larger this value is, the easier hyps can &#39;</span>
-        <span class="s1">&#39;terminate, and the more likely shorter sequences are produced.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;beam_size&#39;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span>
-        <span class="s1">&#39;The maximum difference between best hyp and the worst in a beam.&#39;</span>
-        <span class="s1">&#39; This allows to prune our search when none of the active hyp is&#39;</span>
-        <span class="s1">&#39; close enough to the current best.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_sos_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Id of the start of sentence token.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_eos_id&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Id of the end of sentence token.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;target_eoc_id&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="s1">&#39;Id of the end of chunk token. Used by neural transducer only.&#39;</span>
-        <span class="s1">&#39; Set this id to a non-negative value only for NT.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Maximum allowed target seq length. Note &#39;</span>
-        <span class="s1">&#39;that decoding terminates if an end of sentence token &#39;</span>
-        <span class="s1">&#39;is not emitted after target_seq_len decode steps.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;merge_paths&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If true, hyps which are identical when &#39;</span>
-        <span class="s1">&#39;epsilons are removed will be combined into a single hyp.  The &#39;</span>
-        <span class="s1">&#39;probability for that combined hyp will be the sum of the &#39;</span>
-        <span class="s1">&#39;probabilities of the component hyps.  This can only be applied &#39;</span>
-        <span class="s1">&#39;for epsilon-emitting models (RNN-T and NT).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;allow_empty_terminated_hyp&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether it is okay to consider a &#39;</span>
         <span class="s1">&#39;hyp that consists only of epsilons as terminated.  By default this &#39;</span>
@@ -382,7 +441,7 @@
         <span class="s1">&#39;empty, so this flag has no effect for non-epsilon-emitting models.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;ensure_full_beam&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, we will not terminate the search &#39;</span>
-        <span class="s1">&#39;until both of these conditions are satisfied: we have found &#39;</span>
+        <span class="s1">&#39;until both of these conditions are satisfied: we have found at least &#39;</span>
         <span class="s1">&#39;num_hyps_per_beam terminated hyps AND no active hyps have a score &#39;</span>
         <span class="s1">&#39;within beam_size of the best terminated hyp.  If False, only the &#39;</span>
         <span class="s1">&#39;second condition must be satisfied.  Note that in either case, we can &#39;</span>
@@ -393,36 +452,6 @@
         <span class="s1">&#39;force_eos_in_last_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;For all active hyps that are still on the beam after target_seq_len &#39;</span>
         <span class="s1">&#39;steps, return partial hyps with EOS set as the last token.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;batch_major_state&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If True, we use batch as the major &#39;</span>
-        <span class="s1">&#39;dimension of the hyp states. Otherwise, timing becomes the major &#39;</span>
-        <span class="s1">&#39;dimension, and the gathers are performed along the second-to-major &#39;</span>
-        <span class="s1">&#39;dimension.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;batch_major_compute&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, the target batch dimension &#39;</span>
-        <span class="s1">&#39;is organized as num_beams by num_hyps_per_beam during the &#39;</span>
-        <span class="s1">&#39;ExtendStep computation and the cache is stored following this order. &#39;</span>
-        <span class="s1">&#39;So the topk indices into the cache for ReOrderHyps needs to be &#39;</span>
-        <span class="s1">&#39;reordered before usage. Otherwise, the indices will be directly used &#39;</span>
-        <span class="s1">&#39;without extra transformation. &#39;</span>
-        <span class="s1">&#39;Setting batch_major_compute=True does not change the ordering of &#39;</span>
-        <span class="s1">&#39;ids and logits of beam search callbacks. &#39;</span>
-        <span class="s1">&#39;The target_batch dim for those tensors will remain num_hyps_per_beam &#39;</span>
-        <span class="s1">&#39;* num_beams.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;short_seq_limit&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="s1">&#39;An integer, the sequence length limit for using early stop &#39;</span>
-        <span class="s1">&#39;method in attention layer (batch-major implementation). The sequence &#39;</span>
-        <span class="s1">&#39;is always treated as the default long sequence for decoding when the &#39;</span>
-        <span class="s1">&#39;limit is set to 0. For typical mt transformer config &#39;</span>
-        <span class="s1">&#39;(batch 16, sequence length 150), the break even point is around 40 &#39;</span>
-        <span class="s1">&#39;on TPU V3, and 50 on TPU V2. This may slightly change for &#39;</span>
-        <span class="s1">&#39;different batch size and sequence length, which requires more &#39;</span>
-        <span class="s1">&#39;experiments to set the value.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;local_eos_threshold&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.0</span><span class="p">,</span>
-        <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp if the local score &#39;</span>
-        <span class="s1">&#39;for &lt;/s&gt; is greater than local_eos_threshold.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;beam_search&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -475,10 +504,10 @@
         <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
 
     <span class="p">(</span><span class="n">best_scores</span><span class="p">,</span> <span class="n">cumulative_scores</span><span class="p">,</span> <span class="n">in_scores</span><span class="p">,</span> <span class="n">in_hyps</span><span class="p">,</span> <span class="n">in_prev_hyps</span><span class="p">,</span>
-     <span class="n">in_done_hyps</span><span class="p">,</span> <span class="n">in_atten_probs</span><span class="p">)</span> <span class="o">=</span> <span class="n">core_bs_states</span>
+     <span class="n">in_done_hyps</span><span class="p">,</span> <span class="n">in_atten_probs</span><span class="p">,</span> <span class="n">in_beam_done</span><span class="p">)</span> <span class="o">=</span> <span class="n">core_bs_states</span>
 
     <span class="p">(</span><span class="n">out_best_scores</span><span class="p">,</span> <span class="n">out_cumulative_scores</span><span class="p">,</span> <span class="n">out_scores</span><span class="p">,</span> <span class="n">out_hyps</span><span class="p">,</span>
-     <span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">out_done_hyps</span><span class="p">,</span> <span class="n">out_atten_probs</span><span class="p">,</span>
+     <span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">out_done_hyps</span><span class="p">,</span> <span class="n">out_atten_probs</span><span class="p">,</span> <span class="n">out_beam_done</span><span class="p">,</span>
      <span class="n">all_done</span><span class="p">)</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">beam_search_step</span><span class="p">(</span>
          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
@@ -489,6 +518,7 @@
          <span class="n">in_prev_hyps</span><span class="p">,</span>
          <span class="n">in_done_hyps</span><span class="p">,</span>
          <span class="n">in_atten_probs</span><span class="p">,</span>
+         <span class="n">in_beam_done</span><span class="p">,</span>
          <span class="n">bs_results</span><span class="o">.</span><span class="n">is_last_chunk</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_uses_eoc_id</span> <span class="k">else</span> <span class="p">[],</span>
          <span class="n">cur_step</span><span class="p">,</span>
          <span class="n">eoc_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span><span class="p">,</span>
@@ -500,7 +530,9 @@
          <span class="n">allow_empty_terminated_hyp</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_empty_terminated_hyp</span><span class="p">,</span>
          <span class="n">ensure_full_beam</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ensure_full_beam</span><span class="p">,</span>
          <span class="n">force_eos_in_last_step</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_last_step</span><span class="p">,</span>
-         <span class="n">local_eos_threshold</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">local_eos_threshold</span><span class="p">)</span>
+         <span class="n">force_eos_in_top_k</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_top_k</span><span class="p">,</span>
+         <span class="n">local_eos_threshold</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">local_eos_threshold</span><span class="p">,</span>
+         <span class="n">beam_independence</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">terminate_beams_independently</span><span class="p">)</span>
 
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out_hyps</span><span class="p">[</span><span class="n">cur_step</span><span class="p">,</span> <span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">))</span>
     <span class="n">new_step_ids</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">step_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
@@ -524,7 +556,8 @@
           <span class="n">old_hyp_ids_in_cache_order</span> <span class="o">//</span> <span class="n">num_beams</span><span class="p">)</span>
 
     <span class="n">new_bs_states</span> <span class="o">=</span> <span class="p">(</span><span class="n">out_best_scores</span><span class="p">,</span> <span class="n">out_cumulative_scores</span><span class="p">,</span> <span class="n">out_scores</span><span class="p">,</span>
-                     <span class="n">out_hyps</span><span class="p">,</span> <span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">out_done_hyps</span><span class="p">,</span> <span class="n">out_atten_probs</span><span class="p">)</span>
+                     <span class="n">out_hyps</span><span class="p">,</span> <span class="n">out_prev_hyps</span><span class="p">,</span> <span class="n">out_done_hyps</span><span class="p">,</span> <span class="n">out_atten_probs</span><span class="p">,</span>
+                     <span class="n">out_beam_done</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">ReOrderHyps</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">x_in</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Reorders x_in based on prev hyp ids.&quot;&quot;&quot;</span>
@@ -616,10 +649,11 @@
         <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">,</span>
          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">initial_results</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">beam_done</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_beams</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
     <span class="n">cur_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">all_done</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
     <span class="n">core_bs_states</span> <span class="o">=</span> <span class="p">(</span><span class="n">best_scores</span><span class="p">,</span> <span class="n">cumulative_scores</span><span class="p">,</span> <span class="n">in_scores</span><span class="p">,</span> <span class="n">in_hyps</span><span class="p">,</span>
-                      <span class="n">in_prev_hyps</span><span class="p">,</span> <span class="n">in_done_hyps</span><span class="p">,</span> <span class="n">bs_atten_probs</span><span class="p">)</span>
+                      <span class="n">in_prev_hyps</span><span class="p">,</span> <span class="n">in_done_hyps</span><span class="p">,</span> <span class="n">bs_atten_probs</span><span class="p">,</span> <span class="n">beam_done</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">LoopContinue</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">all_done</span><span class="p">,</span> <span class="n">unused_step_ids</span><span class="p">,</span> <span class="n">unused_core_bs_states</span><span class="p">,</span>
                      <span class="n">unused_other_states_list</span><span class="p">):</span>
@@ -689,9 +723,8 @@
     <span class="c1"># [num_beams, num_hyps_per_beam].</span>
     <span class="n">topk_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">))</span>
 
-    <span class="k">return</span> <span class="n">BeamSearchDecodeOutput</span><span class="p">(</span><span class="n">final_done_hyps</span><span class="p">,</span> <span class="n">topk_hyps</span><span class="p">,</span> <span class="n">topk_ids</span><span class="p">,</span>
-                                  <span class="n">topk_lens</span><span class="p">,</span> <span class="n">topk_scores</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-                                  <span class="n">final_other_states</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">BeamSearchDecodeOutput</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">,</span> <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">,</span> <span class="n">topk_scores</span><span class="p">,</span>
+                                  <span class="kc">None</span><span class="p">,</span> <span class="n">final_other_states</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="_GetShapes"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper._GetShapes">[docs]</a><span class="k">def</span> <span class="nf">_GetShapes</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">none_shapes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>

@@ -369,10 +369,22 @@
         <span class="s1">&#39;change the shape of conv variables. For checkpoint backward &#39;</span>
         <span class="s1">&#39;compatibility only, deprecated soon. If True, the variable shape &#39;</span>
         <span class="s1">&#39;of _LNConv will be based on model_dim_reshape_segment&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_fused_depthwise_conv_autoregressive&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, use CausalDepthwiseConv for &#39;</span>
+        <span class="s1">&#39;DepthwiseConvAutoregressive.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_no_scale&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Override Builder._LN with Builder._LNNoScale.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_dim_reshape_segments&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Size of N when reshaping model dimension M to Nm&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_xla_dynamic_update_slice&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;internal optimization&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="MoEBuilder.SetFPropDtype"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SetFPropDtype">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetFPropDtype</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
+    <span class="k">if</span> <span class="n">fprop_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">attention_logits_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@property</span>
@@ -601,24 +613,89 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span><span class="p">,</span>
                             <span class="k">lambda</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">EncoderLayer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">layer</span><span class="o">=</span><span class="n">p</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.DecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">name</span><span class="p">,</span>
+                   <span class="n">layer</span><span class="p">,</span>
+                   <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">norm_type</span><span class="o">=</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span>
+                   <span class="n">norm_policy</span><span class="o">=</span><span class="s1">&#39;pre&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A decoder layer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: Layer name.</span>
+<span class="sd">      layer: Layer logic added to the compute graph.</span>
+<span class="sd">      conv_kernel_size: The width of the kernel when convolution is added to</span>
+<span class="sd">        layer norm.</span>
+<span class="sd">      norm_type: String that describes the normalization type. Currently only</span>
+<span class="sd">        supports &#39;ln&#39;.</span>
+<span class="sd">      norm_policy: String that describes the policy for applying normalzation.</span>
+<span class="sd">        Currently only supports &#39;pre&#39; for pre-transformation normalzation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Compute graph of decoder layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(davidso): Expand the options for norm_type and norm_policy when</span>
+    <span class="c1">#                making Primer public.</span>
+    <span class="c1"># END GOOGLE-INTERNAL</span>
     <span class="k">if</span> <span class="n">conv_kernel_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">norm_type</span> <span class="o">!=</span> <span class="s1">&#39;ln&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only ln supports conv. </span><span class="si">%s</span><span class="s1"> does not support conv.&#39;</span> <span class="o">%</span>
+                         <span class="n">norm_type</span><span class="p">)</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;ln&#39;</span><span class="p">:</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
+    <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(davidso): Make this public once the Primer paper is released.</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;pn&#39;</span><span class="p">:</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PN</span><span class="p">(</span><span class="s1">&#39;pn&#39;</span><span class="p">)</span>
+    <span class="c1"># END GOOGLE-INTERNAL</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Norm type </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">norm_type</span><span class="p">)</span>
     <span class="n">layer_input_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
     <span class="n">layer_inputs</span> <span class="o">=</span> <span class="s1">&#39;x,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;i.&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">layer_input_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
-        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
-        <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">ln_layer</span><span class="p">),</span>
-        <span class="p">(</span><span class="n">layer_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;y,o.aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
-        <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span>
-                                       <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
-    <span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">norm_policy</span> <span class="o">==</span> <span class="s1">&#39;pre&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+          <span class="n">name</span><span class="p">,</span>
+          <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
+          <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
+          <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+          <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">),</span>
+          <span class="p">(</span><span class="n">layer_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;y,o.aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+          <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+      <span class="p">)</span>
+    <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(davidso): Make this public when Primer paper is released.</span>
+    <span class="k">if</span> <span class="n">norm_policy</span> <span class="o">==</span> <span class="s1">&#39;primer&#39;</span><span class="p">:</span>
+      <span class="n">indx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:])</span>
+      <span class="k">if</span> <span class="n">indx</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
+            <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+            <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">layer_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;y,o.aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;y-&gt;y_dropout&#39;</span><span class="p">,</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+        <span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
+            <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
+            <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+            <span class="p">(</span><span class="n">layer_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;y,o.aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;y-&gt;y_norm&#39;</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+            <span class="p">(</span><span class="s1">&#39;x,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="c1"># END GOOGLE-INTERNAL</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported norm policy: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">norm_policy</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_DecoderLayerInMapKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -632,14 +709,24 @@
                         <span class="n">sub_layers</span><span class="p">,</span>
                         <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                         <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">norm_type</span><span class="o">=</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span>
+                        <span class="n">norm_policy</span><span class="o">=</span><span class="s1">&#39;pre&#39;</span><span class="p">,</span>
                         <span class="n">use_repeat_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                         <span class="n">spmd_pipeline_stages</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                         <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack, similar to EncoderLayerStack.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerStack</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span> <span class="n">spmd_pipeline_stages</span><span class="p">,</span>
-        <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span>
-        <span class="k">lambda</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">conv_kernel_size</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_DecoderLayer</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span>
+          <span class="n">n</span><span class="p">,</span>
+          <span class="n">p</span><span class="p">,</span>
+          <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">conv_kernel_size</span><span class="p">,</span>
+          <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_type</span><span class="p">,</span>
+          <span class="n">norm_policy</span><span class="o">=</span><span class="n">norm_policy</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerStack</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span>
+                            <span class="n">spmd_pipeline_stages</span><span class="p">,</span> <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="n">_DecoderLayer</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.Repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">per_layer_vars</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper to call builder_layers.RepeatLayer.&quot;&quot;&quot;</span>
@@ -648,7 +735,7 @@
         <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
         <span class="n">repeat</span><span class="o">=</span><span class="n">repeat</span><span class="p">,</span>
         <span class="n">per_layer_vars</span><span class="o">=</span><span class="n">per_layer_vars</span><span class="p">,</span>
-        <span class="n">unrolled_in_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+        <span class="n">unroll</span><span class="o">=</span><span class="s1">&#39;eval_only&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.ShardablePipeline"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.ShardablePipeline">[docs]</a>  <span class="k">def</span> <span class="nf">ShardablePipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">stages</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper to call gshard_layers.LayerwiseShardablePipelinedLayer.&quot;&quot;&quot;</span>
@@ -821,12 +908,23 @@
                       <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wo_mesh_split</span><span class="p">))],</span>
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
       <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
     <span class="c1"># Note that dropout is used here, but not in the MoE layer by default.</span>
+
+    <span class="k">if</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
+    <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(davidso): Make this public when Primer paper is released.</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;sqr_relu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="c1"># END GOOGLE-INTERNAL</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Activation </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="n">input_endpoints</span><span class="p">,</span>
@@ -834,8 +932,8 @@
         <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;wi,vec-&gt;h&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">wi</span><span class="p">,</span> <span class="n">vec</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">wi</span><span class="p">,</span> <span class="n">vec</span><span class="p">))),</span>
-        <span class="p">(</span><span class="s1">&#39;h-&gt;h_relu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;h_relu-&gt;h_dropout&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;h-&gt;h_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="n">activation_fn</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_</span><span class="si">%s</span><span class="s1">-&gt;h_dropout&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;wo,h_dropout-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
@@ -1138,8 +1236,8 @@
         <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
         <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;bias_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,bias_full-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
@@ -1328,10 +1426,10 @@
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
         <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;qk_bias,segment_pos,key_segment_pos,relative_bias_weights-&gt;qhk_bias&#39;</span><span class="p">,</span>
@@ -1341,6 +1439,83 @@
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
+
+  <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+  <span class="c1"># TODO(davidso): Make this public once the Primer paper has been released.</span>
+<div class="viewcode-block" id="MoEBuilder.DecMultiDconvHeadAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecMultiDconvHeadAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">DecMultiDconvHeadAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                             <span class="n">name</span><span class="p">,</span>
+                                             <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                             <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                             <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Primer Multi-Dconv-Head Attention with relative attention bias.</span>
+
+<span class="sd">    This follows the same logic as DecSelfAttentionRelativeBias(), with the</span>
+<span class="sd">    Primer multi-head depthwise convolutions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer.</span>
+<span class="sd">      device_mesh: device_mesh for sharding (if specified).</span>
+<span class="sd">      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified).</span>
+<span class="sd">      wo_hdm_mesh_split: mesh split for output weights (if specified).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The layer params.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">collections</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias_shared&#39;</span><span class="p">:</span>
+      <span class="c1"># Collection name is used as a unique ID to retrieve the shared variable.</span>
+      <span class="c1">#</span>
+      <span class="c1"># This name must be different for SelfAttentionRelativeBias (Encoder), and</span>
+      <span class="c1"># must have a suffix matching shared_var_collection_suffix, e.g.</span>
+      <span class="c1"># &#39;shared_var&#39;.</span>
+      <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_dec_self_attention_shared_var&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span>
+
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_weights&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;pre_q,pre_k,pre_v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="c1"># Note: This does not use shared Q and K representations.</span>
+        <span class="p">(</span><span class="s1">&#39;pre_q-&gt;q&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;q_dconv&#39;</span><span class="p">,</span>
+                                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                          <span class="n">model_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+                                                      <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;pre_k-&gt;k&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;k_dconv&#39;</span><span class="p">,</span>
+                                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                          <span class="n">model_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+                                                      <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;pre_v-&gt;v&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;v_dconv&#39;</span><span class="p">,</span>
+                                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                          <span class="n">model_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+                                                      <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
+        <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;qk_bias,segment_pos,key_segment_pos,relative_bias_weights-&gt;qhk_bias&#39;</span><span class="p">,</span>
+         <span class="c1"># Decoder _AddRelativeBias always has bidirectional=False.</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AddRelativeBias</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,qhk_bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+  <span class="c1"># END GOOGLE-INTERNAL</span>
 
 <div class="viewcode-block" id="MoEBuilder._RelativeAttentionBiasWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._RelativeAttentionBiasWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Helper for &#39;-&gt;rb&#39; Graph edge.&quot;&quot;&quot;</span>
@@ -1366,6 +1541,13 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
                     <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)))</span></div>
 
+<div class="viewcode-block" id="MoEBuilder.CausalDepthwiseConv"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.CausalDepthwiseConv">[docs]</a>  <span class="k">def</span> <span class="nf">CausalDepthwiseConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">model_dims</span> <span class="o">=</span> <span class="n">model_dims</span> <span class="ow">or</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span>
+    <span class="n">model_dims</span> <span class="o">=</span> <span class="n">model_dims</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_vars_reshape</span> <span class="k">else</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">model_dims</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">CausalDepthwiseConv1DLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="n">model_dims</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="MoEBuilder.DepthwiseConvAutoregressive"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DepthwiseConvAutoregressive">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Depthwise convolution for autoregressive models.</span>
 
@@ -1389,20 +1571,23 @@
 <span class="sd">      A layer params that computes DepthwiseConvAutoregressive.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_fused_depthwise_conv_autoregressive</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CausalDepthwiseConv</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="p">)</span>
+
     <span class="n">var_shape</span> <span class="o">=</span> <span class="n">model_dims</span> <span class="ow">or</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_GetScaleVar</span><span class="p">(</span><span class="n">shift_distance</span><span class="p">):</span>
       <span class="n">init_const</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="n">shift_distance</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">kernel_size</span>
       <span class="n">scale_var_weight_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">init_const</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">shape</span><span class="o">=</span><span class="n">var_shape</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_vars_reshape</span> <span class="k">else</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">var_shape</span><span class="p">)])</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shift_distance</span><span class="p">,</span>
           <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale_var_weight_params</span><span class="p">)])</span>
 
     <span class="k">def</span> <span class="nf">_Shift</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Shift x to right by 1 in time dim and pad with zeors.&quot;&quot;&quot;</span>
+      <span class="sd">&quot;&quot;&quot;Shift x to right by 1 in time dim and pad with zeros.&quot;&quot;&quot;</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="c1"># Y = W[0] * X + W[1] * Shift(X, 1) + W[2] * Shift(X, 2) + ...</span>
@@ -1469,6 +1654,42 @@
         <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x_norm&#39;</span><span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;scale&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">ln_weight_params</span><span class="p">)])),</span>
         <span class="p">(</span><span class="s1">&#39;x,scale-&gt;x_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">LN</span><span class="p">)))</span></div>
+
+  <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+  <span class="c1"># TODO(davidso): Make this public when the Primer paper is released.</span>
+<div class="viewcode-block" id="MoEBuilder._PN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._PN">[docs]</a>  <span class="k">def</span> <span class="nf">_PN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Primer normalization.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">PN</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+      <span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">layer_norm_epsilon</span>
+      <span class="c1"># BLm Tensor (m=1, reduced model_dim) or BLnm where model dim is split to</span>
+      <span class="c1"># two dims.</span>
+      <span class="n">axis</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="o">+</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)]</span>
+      <span class="n">temp</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">))</span> <span class="o">*</span> <span class="n">x</span>
+      <span class="n">mock_variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">ln_weight_reshape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span>
+        <span class="n">shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">mock_variance</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">shift</span>
+
+    <span class="n">pn_scale_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+    <span class="n">pn_shift_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x_norm&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;scale&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_scale&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">pn_scale_params</span><span class="p">)])),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;shift&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_shift&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;shift&#39;</span><span class="p">,</span> <span class="n">pn_shift_params</span><span class="p">)])),</span>
+        <span class="p">(</span><span class="s1">&#39;x,scale,shift-&gt;x_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;pn&#39;</span><span class="p">,</span> <span class="n">PN</span><span class="p">)))</span></div>
+
+  <span class="c1"># END GOOGLE-INTERNAL</span>
 
 <div class="viewcode-block" id="MoEBuilder.Split"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Split">[docs]</a>  <span class="k">def</span> <span class="nf">Split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets sharding attribute for the Tensor. Split across dim=0.&quot;&quot;&quot;</span>
@@ -1732,10 +1953,14 @@
         <span class="p">(</span><span class="s1">&#39;gating,inputs,reshaped_inputs,wi,wo-&gt;outputs,aux_loss&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="s1">&#39;process_gating&#39;</span><span class="p">)))</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._State"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._State">[docs]</a>  <span class="k">def</span> <span class="nf">_State</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">StateLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+<div class="viewcode-block" id="MoEBuilder._AttentionState"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._AttentionState">[docs]</a>  <span class="k">def</span> <span class="nf">_AttentionState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">MultiHeadAttentionStateLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">use_xla_dynamic_update_slice</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_xla_dynamic_update_slice</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._Override"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Override">[docs]</a>  <span class="k">def</span> <span class="nf">_Override</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span> <span class="ow">or</span> <span class="n">name</span><span class="p">)</span></div>
@@ -2042,6 +2267,15 @@
         <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
 
+  <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+  <span class="c1"># TODO(davidso): Make this public when the Primer paper is released.</span>
+<div class="viewcode-block" id="DenseBuilder.DecMultiDconvHeadAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DecMultiDconvHeadAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">DecMultiDconvHeadAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">DecMultiDconvHeadAttentionRelativeBias</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
+
+  <span class="c1"># END GOOGLE-INTERNAL</span>
+
 <div class="viewcode-block" id="DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.ParallelDecSelfAttentionRelativeBiasFFN">[docs]</a>  <span class="k">def</span> <span class="nf">ParallelDecSelfAttentionRelativeBiasFFN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                               <span class="n">name</span><span class="p">,</span>
                                               <span class="n">activation_fn</span><span class="p">,</span>
@@ -2088,10 +2322,10 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv,wi_0,wi_1-&gt;q,k,v,h1,h2&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVH</span><span class="p">(</span><span class="s1">&#39;qkvh&#39;</span><span class="p">,</span> <span class="n">hidden_dim_reshape_segments</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
         <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
         <span class="c1"># Decoder _AddRelativeBias always has bidirectional=False.</span>
@@ -2338,11 +2572,22 @@
     <span class="n">wo</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">wo1</span><span class="p">,</span> <span class="n">wo2</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;SHDM,BLSHD-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DenseBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="DenseBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
       <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
+
+    <span class="k">if</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
+    <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(davidso): Make this public when Primer paper is released.</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;sqr_relu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="c1"># END GOOGLE-INTERNAL</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Activation </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">)</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Note that dropout is used here, but not in the MoE layer by default.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
@@ -2358,9 +2603,9 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wo_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;wi_reshaped,vec-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;h-&gt;h_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_h_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blh_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;h_split-&gt;h_relu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;h_relu-&gt;h_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span>
-                                            <span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_split-&gt;h_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="n">activation_fn</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_</span><span class="si">%s</span><span class="s1">-&gt;h_dropout&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;wo_reshaped,h_dropout-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="s1">&#39;HM,BLH-&gt;BLM&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span>
@@ -2631,7 +2876,9 @@
                    <span class="n">name</span><span class="p">,</span>
                    <span class="n">activation_fn</span><span class="p">,</span>
                    <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">hidden_dim_reshape_segments</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+                   <span class="n">hidden_dim_reshape_segments</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                   <span class="n">norm_type</span><span class="o">=</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span>
+                   <span class="n">norm_policy</span><span class="o">=</span><span class="s1">&#39;pre&#39;</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">collections</span> <span class="o">=</span> <span class="kc">None</span>
@@ -2646,14 +2893,22 @@
     <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">conv_kernel_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
       <span class="n">d</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_dim</span> <span class="o">//</span> <span class="n">hidden_dim_reshape_segments</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
       <span class="n">model_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">hidden_dim_reshape_segments</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
       <span class="n">optional_conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">conv_kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="n">model_dims</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">ln_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;ln&#39;</span><span class="p">:</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
       <span class="n">optional_conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">)</span>
+    <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(davidso): Make this public once the Primer paper is released.</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;pn&#39;</span><span class="p">:</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PN</span><span class="p">(</span><span class="s1">&#39;pn&#39;</span><span class="p">)</span>
+      <span class="n">optional_conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">)</span>
+    <span class="c1"># END GOOGLE-INTERNAL</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Norm type </span><span class="si">%s</span><span class="s1"> not supported&#39;</span> <span class="o">%</span> <span class="n">norm_type</span><span class="p">)</span>
     <span class="n">num_q</span><span class="p">,</span> <span class="n">num_kv</span><span class="p">,</span> <span class="n">num_wi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_input_proj_weights</span>
     <span class="n">num_weights</span> <span class="o">=</span> <span class="n">num_q</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_kv</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_wi</span>
     <span class="n">wi_str</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;wi_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_weights</span><span class="p">)])</span>
@@ -2671,6 +2926,9 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">o_atten</span><span class="p">,</span> <span class="n">o_ffw</span><span class="p">],</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">blh_split</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;SHDM,BLSHD-&gt;BLM&#39;</span><span class="p">,</span> <span class="n">wo</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">norm_policy</span> <span class="o">!=</span> <span class="s1">&#39;pre&#39;</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Normalization policy </span><span class="si">%s</span><span class="s1"> not supported&#39;</span> <span class="o">%</span> <span class="n">norm_policy</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
@@ -2678,16 +2936,16 @@
         <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
         <span class="p">(</span><span class="s1">&#39;i.segment_id-&gt;o.segment_id&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;segment_id&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;i.segment_pos-&gt;o.segment_pos&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;segment_pos&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">ln_layer</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">wi_str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInputProjWeights</span><span class="p">(</span><span class="s1">&#39;get_w_in&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;relative_bias_ws&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_RelativeAttentionBiasWeights</span><span class="p">(</span><span class="s1">&#39;wrb&#39;</span><span class="p">,</span> <span class="n">collections</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;x,</span><span class="si">%s</span><span class="s1">-&gt;q,k,v,h1,h2&#39;</span> <span class="o">%</span> <span class="n">wi_str</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVH</span><span class="p">(</span><span class="s1">&#39;qkvh&#39;</span><span class="p">,</span> <span class="n">hidden_dim_reshape_segments</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;i.segment_pos-&gt;key_segment_pos&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_State</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;seg_pos&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;i.segment_id,i.segment_pos-&gt;qq_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
             <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ComputeBias</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
@@ -2707,8 +2965,15 @@
   <span class="k">def</span> <span class="nf">_DecoderLayerInMapKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;vec&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">]</span>
 
-<div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode.DecoderLayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode.DecoderLayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderLayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">name</span><span class="p">,</span>
+                        <span class="n">sub_layers</span><span class="p">,</span>
+                        <span class="n">num</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">conv_kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">norm_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">norm_policy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DecoderLayerStack with self attention and feedforward in parallel.&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">norm_type</span><span class="p">,</span> <span class="n">norm_policy</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span>
     <span class="n">stack</span> <span class="o">=</span> <span class="p">[</span>
@@ -2799,6 +3064,20 @@
         <span class="s1">&#39;If &gt; 1, SPMD-shardable pipelining is used with this many stages.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_spmd_pipeline_microbatches&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Number of microbatches when num_spmd_pipeline_stages &gt; 1.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;moe&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;True for Mixture-of-Experts, False for canonical Transformer model, &#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;relu&#39;</span><span class="p">,</span> <span class="s1">&#39;Transformer non-gated FFN activation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_type&#39;</span><span class="p">,</span> <span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="s1">&#39;Type of normalization. Options are: ln.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_policy&#39;</span><span class="p">,</span> <span class="s1">&#39;pre&#39;</span><span class="p">,</span> <span class="s1">&#39;Policy for applying normalization. &#39;</span>
+             <span class="s1">&#39;Options are: pre.&#39;</span><span class="p">)</span>
+    <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(davidso): Expand the options for norm_type and norm_policy when</span>
+    <span class="c1">#                making this public.</span>
+    <span class="c1"># TODO(davidso): Make this public after releasing the Primer paper.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s2">&quot;Whether or not to use Primer&#39;s Mutli-Dconv-Head attention.&quot;</span><span class="p">)</span>
+    <span class="c1"># END GOOGLE-INTERNAL</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2836,30 +3115,54 @@
       <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span>
           <span class="n">b</span><span class="o">.</span><span class="n">Repeat</span><span class="p">(</span>
               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span>
-              <span class="n">body</span><span class="o">=</span><span class="n">b</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span>
-                                  <span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
-                                  <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim_reshape_segments</span><span class="p">),</span>
+              <span class="n">body</span><span class="o">=</span><span class="n">b</span><span class="o">.</span><span class="n">DecoderLayer</span><span class="p">(</span>
+                  <span class="s1">&#39;block&#39;</span><span class="p">,</span>
+                  <span class="n">gated_ffn_activation</span><span class="p">,</span>
+                  <span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
+                  <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim_reshape_segments</span><span class="p">,</span>
+                  <span class="n">norm_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_type</span><span class="p">,</span>
+                  <span class="n">norm_policy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_policy</span><span class="p">),</span>
               <span class="n">repeat</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
               <span class="n">per_layer_vars</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_per_layer_vars_for_recurrent</span><span class="p">)</span>
       <span class="p">]</span>
       <span class="n">dec</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span>
-          <span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="n">decoder_sub_layers</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">)</span>
+          <span class="s1">&#39;decoder&#39;</span><span class="p">,</span>
+          <span class="n">decoder_sub_layers</span><span class="p">,</span>
+          <span class="mi">1</span><span class="p">,</span>
+          <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
+          <span class="n">norm_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_type</span><span class="p">,</span>
+          <span class="n">norm_policy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_policy</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
         <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
+      <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+      <span class="c1"># TODO(davidso): Make this public when the Primer paper is released.</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">multi_dconv_head_att</span><span class="p">:</span>
+        <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecMultiDconvHeadAttentionRelativeBias</span><span class="p">(</span>
+            <span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">)</span>
+      <span class="c1"># END GOOGLE-INTERNAL</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">gated_ffn_activation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDense</span><span class="p">(</span><span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDense</span><span class="p">(</span>
+            <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDenseGated</span><span class="p">(</span>
             <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-      <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">moe</span><span class="p">:</span>
+        <span class="n">moe_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="s1">&#39;moe&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">moe_layer</span><span class="p">,</span> <span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
+        <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">//</span> <span class="mi">2</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
+        <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span>
       <span class="n">dec</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecoderLayerStack</span><span class="p">(</span>
           <span class="s1">&#39;decoder&#39;</span><span class="p">,</span>
           <span class="n">decoder_sub_layers</span><span class="p">,</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span><span class="p">,</span>
+          <span class="n">num_decoder_layers</span><span class="p">,</span>
           <span class="n">conv_kernel_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_kernel_size</span><span class="p">,</span>
+          <span class="n">norm_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_type</span><span class="p">,</span>
+          <span class="n">norm_policy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_policy</span><span class="p">,</span>
           <span class="n">use_repeat_layer</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_repeat_layer</span><span class="p">,</span>
           <span class="n">spmd_pipeline_stages</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_stages</span><span class="p">,</span>
           <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_microbatches</span><span class="p">)</span>

@@ -352,8 +352,122 @@ orthogonal rows.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.chunked_causal_numerator_func">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">chunked_causal_numerator_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#chunked_causal_numerator_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.chunked_causal_numerator_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward pass of not-normalized FAVOR causal attention using chunks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>vs</strong> – value tensor of the shape [L,B,H,D].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Not-normalized FAVOR causal attention A_{masked}V.
+Last prefix sum state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.chunked_causal_numerator_grad">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">chunked_causal_numerator_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sums</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#chunked_causal_numerator_grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.chunked_causal_numerator_grad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Backward pass of not-normalized FAVOR causal attention using chunks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>vs</strong> – value tensor of the shape [L,B,H,D].</p></li>
+<li><p><strong>sums</strong> – last prefix sum state.</p></li>
+<li><p><strong>res_grad</strong> – gradient of the last prefix sum state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Gradient of qs.
+Gradient of ks.
+Gradient of vs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.chunked_causal_numerator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">chunked_causal_numerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#chunked_causal_numerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.chunked_causal_numerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes not-normalized FAVOR causal attention A_{masked}V using chunks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>vs</strong> – value tensor of the shape [L,B,H,D].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Not-normalized FAVOR causal attention A_{masked}V.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.chunked_causal_denominator_func">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">chunked_causal_denominator_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#chunked_causal_denominator_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.chunked_causal_denominator_func" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward pass of FAVOR normalizer in causal attention using chunks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Not-normalized FAVOR causal attention A_{masked}V.
+Last prefix sum state.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.chunked_causal_denominator_grad">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">chunked_causal_denominator_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sums</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">res_grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#chunked_causal_denominator_grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.chunked_causal_denominator_grad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Backward pass of FAVOR normalizer in causal attention using chunks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>sums</strong> – last prefix sum state.</p></li>
+<li><p><strong>res_grad</strong> – last prefix sum state’s grad.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Gradients of qs.
+Gradients of ks.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.favor_attention.chunked_causal_denominator">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">chunked_causal_denominator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#chunked_causal_denominator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.chunked_causal_denominator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes FAVOR normalizer in causal attention using chunks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qs</strong> – query_prime tensor of the shape [L,B,H,M].</p></li>
+<li><p><strong>ks</strong> – key_prime tensor of the shape [L,B,H,M].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>FAVOR normalizer in causal attention.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.favor_attention.favor_attention">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">favor_attention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_transformation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">causal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#favor_attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.favor_attention" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.favor_attention.</span></span><span class="sig-name descname"><span class="pre">favor_attention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_transformation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">causal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_chunked_causal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/favor_attention.html#favor_attention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.favor_attention.favor_attention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes FAVOR normalized attention.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -365,6 +479,7 @@ orthogonal rows.</p></li>
 <li><p><strong>kernel_transformation</strong> – transformation used to get finite kernel features.</p></li>
 <li><p><strong>causal</strong> – whether attention is causal or not.</p></li>
 <li><p><strong>projection_matrix</strong> – projection matrix to be used.</p></li>
+<li><p><strong>use_chunked_causal</strong> – whether to use (faster) chunked causal attention.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
