@@ -21,11 +21,9 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-RecordYielder* ConstructYielder(const string& file_pattern,
-                                const std::vector<float>& input_source_weights,
-                                const BasicRecordYielder::Options& yopts_tpl,
-                                bool require_sequential_order,
-                                int64 repeat_count) {
+std::vector<string> VerifyAndSplitFilePattern(
+    const string& file_pattern,
+    const std::vector<float>& input_source_weights) {
   std::vector<string> file_patterns;
   if (input_source_weights.empty()) {
     LOG(INFO) << "Input source weights are empty, fall back to legacy "
@@ -38,15 +36,13 @@ RecordYielder* ConstructYielder(const string& file_pattern,
         << "input_source_weight per coma-separated value "
         << "in file_pattern.";
   }
-  if (require_sequential_order) {
-    CHECK_EQ(file_patterns.size(), 1)
-        << "require_sequential_order does not support record mixing or "
-        << "chaining.";
-    return SequentialRecordYielder::New(file_patterns.front(), repeat_count);
-  } else {
-    CHECK_EQ(repeat_count, -1) << "Repeat count must not be set unless "
-                                  "require_sequential_order is true.";
-  }
+
+  return file_patterns;
+}
+
+std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
+    const std::vector<string>& file_patterns,
+    const BasicRecordYielder::Options& yopts_tpl) {
   std::vector<BasicRecordYielder::Options> yielder_options;
 
   for (int i = 0; i < file_patterns.size(); ++i) {
@@ -66,6 +62,12 @@ RecordYielder* ConstructYielder(const string& file_pattern,
     yielder_options.push_back(yopts);
   }
 
+  return yielder_options;
+}
+
+RecordYielder* ConstructMixYielderFromOptions(
+    const std::vector<BasicRecordYielder::Options>& yielder_options,
+    const std::vector<float>& input_source_weights, const int64 seed) {
   RecordYielder* yielder = nullptr;
   if (yielder_options.size() == 1) {
     yielder = BasicRecordYielder::New(yielder_options.front());
@@ -75,10 +77,35 @@ RecordYielder* ConstructYielder(const string& file_pattern,
     for (const auto& yopts : yielder_options) {
       yielders.push_back(BasicRecordYielder::New(yopts));
     }
-    yielder = WeightedMixRecordYielder::New(yopts_tpl.seed, yielders,
-                                            input_source_weights);
+    yielder =
+        WeightedMixRecordYielder::New(seed, yielders, input_source_weights);
   }
   return yielder;
+}
+
+RecordYielder* ConstructYielder(const string& file_pattern,
+                                const std::vector<float>& input_source_weights,
+                                const BasicRecordYielder::Options& yopts_tpl,
+                                bool require_sequential_order,
+                                int64 repeat_count) {
+  std::vector<string> file_patterns =
+      VerifyAndSplitFilePattern(file_pattern, input_source_weights);
+
+  if (require_sequential_order) {
+    CHECK_EQ(file_patterns.size(), 1)
+        << "require_sequential_order does not support record mixing or "
+        << "chaining.";
+    return SequentialRecordYielder::New(file_patterns.front(), repeat_count);
+  } else {
+    CHECK_EQ(repeat_count, -1) << "Repeat count must not be set unless "
+                                  "require_sequential_order is true.";
+  }
+
+  std::vector<BasicRecordYielder::Options> yielder_options =
+      CreatePerFileYielderOptions(file_patterns, yopts_tpl);
+
+  return ConstructMixYielderFromOptions(yielder_options, input_source_weights,
+                                        yopts_tpl.seed);
 }
 
 void GetBasicRecordYielderOptions(OpKernelConstruction* ctx,

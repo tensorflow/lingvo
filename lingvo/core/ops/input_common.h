@@ -36,6 +36,12 @@ RecordYielder* ConstructYielder(const string& file_pattern,
                                 bool require_sequential_order,
                                 int64 repeat_count);
 
+// Creates BasicRecordYielder::Options for each file in the file pattern. For
+// use only by ConstructYielder. Exposed to enable testing.
+std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
+    const std::vector<string>& file_patterns,
+    const BasicRecordYielder::Options& yopts_tpl);
+
 void GetBasicRecordYielderOptions(OpKernelConstruction* ctx,
                                   BasicRecordYielder::Options* yopts);
 
