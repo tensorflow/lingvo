@@ -228,6 +228,7 @@
   <span class="n">GATED_GELU</span> <span class="o">=</span> <span class="kc">True</span>
   <span class="n">POSITIONAL_EMBEDDING</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">USE_REPEAT_LAYER</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">TRAIN_STEPS_PER_LOOP</span> <span class="o">=</span> <span class="mi">100</span>
 
 <div class="viewcode-block" id="DenseLmTemplate.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># tokens per batch per replica (~64 cores)</span>
@@ -296,7 +297,7 @@
 <div class="viewcode-block" id="DenseLmTemplate.ProgramSchedule"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLmTemplate.ProgramSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
         <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
-        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">TRAIN_STEPS_PER_LOOP</span><span class="p">,</span>
         <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[],</span>
         <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -312,7 +313,7 @@
 <span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
 <span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \</span>
-<span class="c1"># --ps_replicas=8 --job=executor_tpu</span>
+<span class="c1"># --ps_replicas=8 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm128B8x8"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B8x8">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm128B8x8</span><span class="p">(</span><span class="n">DenseLmTemplate</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;128B params LM model with 2D split.&quot;&quot;&quot;</span>
@@ -340,7 +341,7 @@
 <span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
 <span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B16x16 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \</span>
-<span class="c1"># --ps_replicas=32 --job=executor_tpu</span>
+<span class="c1"># --ps_replicas=32 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm128B16x16"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B16x16">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm128B16x16</span><span class="p">(</span><span class="n">DenseLm128B8x8</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;128B params LM model with 2D split on v3-512.&quot;&quot;&quot;</span>
@@ -367,7 +368,7 @@
 
   <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">2048</span>
   <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">2048</span>
-  <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># Total batch size 1M tokens</span>
+  <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># Total batch size 2M tokens</span>
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
   <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
       <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)),</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span></div>
@@ -394,10 +395,11 @@
 <span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
 <span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B32x32 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \</span>
-<span class="c1"># --ps_replicas=128 --job=executor_tpu</span>
+<span class="c1"># --ps_replicas=128 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm128B32x32"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm128B32x32">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm128B32x32</span><span class="p">(</span><span class="n">DenseLm128B8x8</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;128B params LM model with 2D split on v3-2048.&quot;&quot;&quot;</span>
+  <span class="n">TRAIN_STEPS_PER_LOOP</span> <span class="o">=</span> <span class="mi">20</span>
   <span class="n">SEQUENCE_LENGTH</span> <span class="o">=</span> <span class="mi">1024</span>
   <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">2048</span>
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.25</span>  <span class="c1"># Total batch size 512</span>
@@ -455,7 +457,7 @@
 <span class="c1"># --alsologtostderr \</span>
 <span class="c1"># --model=lm.synthetic_packed_input.DenseLm12kWide41BAdam16x16 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \</span>
-<span class="c1"># --ps_replicas=32 --job=executor_tpu</span>
+<span class="c1"># --ps_replicas=32 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm12kWide41BAdam16x16"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam16x16">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm12kWide41BAdam16x16</span><span class="p">(</span><span class="n">DenseLm128B16x16</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;41B params LM model with 2D split and ADAM optimizer on v3-512.&quot;&quot;&quot;</span>
@@ -490,7 +492,7 @@
 <span class="c1"># --alsologtostderr \</span>
 <span class="c1"># --model=lm.synthetic_packed_input.DenseLm12kWide10BAdam8x8 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \</span>
-<span class="c1"># --ps_replicas=8 --job=executor_tpu</span>
+<span class="c1"># --ps_replicas=8 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm12kWide41BAdam8x8"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide41BAdam8x8">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm12kWide41BAdam8x8</span><span class="p">(</span><span class="n">DenseLm12kWide41BAdam16x16</span><span class="p">):</span>
   <span class="c1"># IF OOM, try 0.25 BATCH_DIM_PER_DEVICE and 8 NUM_MICRO_BATCHES</span>
@@ -506,13 +508,15 @@
 <span class="c1"># --alsologtostderr \</span>
 <span class="c1"># --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam16x16 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \</span>
-<span class="c1"># --ps_replicas=32 --job=executor_tpu</span>
+<span class="c1"># --ps_replicas=32 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm12kWide162BAdam16x16"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdam16x16">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm12kWide162BAdam16x16</span><span class="p">(</span><span class="n">DenseLm12kWide41BAdam16x16</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;162B params LM model with 2D split and ADAM optimizer on v3-512.&quot;&quot;&quot;</span>
 
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.125</span>  <span class="c1"># Total batch size 64</span>
-  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">96</span></div>
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">96</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="DenseLm12kWide162BAdamBS25616x16"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdamBS25616x16">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
@@ -526,11 +530,11 @@
 <span class="c1"># --alsologtostderr \</span>
 <span class="c1"># --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam32x32 \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \</span>
-<span class="c1"># --ps_replicas=128 --job=executor_tpu</span>
+<span class="c1"># --ps_replicas=128 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm12kWide162BAdam32x32"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm12kWide162BAdam32x32">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm12kWide162BAdam32x32</span><span class="p">(</span><span class="n">DenseLm12kWide162BAdam16x16</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;162B params LM model with 2D split and ADAM optimizer on v3-2048.&quot;&quot;&quot;</span>
-
+  <span class="n">TRAIN_STEPS_PER_LOOP</span> <span class="o">=</span> <span class="mi">20</span>
   <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">2048</span>
   <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.125</span>  <span class="c1"># Total batch size 256</span>
   <span class="c1"># NUM_HEADS is 96, so we shard it 32 ways.</span>
