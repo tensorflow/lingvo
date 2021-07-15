@@ -45,7 +45,7 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-rec
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install python 3.8
+# Install python 3.9
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776
 RUN echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/deadsnakes-ppa-bionic.list
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y python3.9 python3.9-distutils python3.9-dev
@@ -95,15 +95,15 @@ ARG pip_dependencies=' \
       sphinx_rtd_theme \
       sympy'
 
-RUN pip3 --no-cache-dir install $pip_dependencies
+RUN python3 -m pip --no-cache-dir install $pip_dependencies
 RUN python3 -m ipykernel.kernelspec
 
 # The latest tensorflow requires CUDA 10 compatible nvidia drivers (410.xx).
 # If you are unable to update your drivers, an alternative is to compile
 # tensorflow from source instead of installing from pip.
 # Ensure we install the correct version by uninstalling first.
-RUN pip3 uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
-RUN pip3 --no-cache-dir install tensorflow tensorflow-datasets \
+RUN python3 -m pip uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
+RUN python3 -m pip --no-cache-dir install tensorflow tensorflow-datasets \
   tensorflow-hub tensorflow-text tensorflow-probability waymo-open-dataset-tf-2-5-0
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws

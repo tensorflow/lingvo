@@ -34,7 +34,7 @@ RUN for python in python3.6 python3.7 python3.8 python3.9; do \
         numpy \
         sympy \
         twine && \
-      $python -m pip install tensorflow tensorflow-datasets; \
+      $python -m pip install tensorflow tensorflow-datasets tensorflow-text; \
     done
 
 WORKDIR "/tmp/lingvo"

@@ -23,6 +23,7 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-rec
         build-essential \
         curl \
         git \
+        gpg-agent \
         less \
         lsof \
         pkg-config \
@@ -44,7 +45,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 10
 
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py && rm get-pip.py
 
-RUN pip3 --no-cache-dir install lingvo
+RUN python3 -m pip --no-cache-dir install lingvo
 
 RUN python3 -m ipykernel.kernelspec
 RUN jupyter serverextension enable --py jupyter_http_over_ws

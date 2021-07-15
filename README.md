@@ -37,6 +37,7 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
+0.9.1        | c1124c5aa7af13d2dd2b6d43293c8ca6d022b008
 0.9.0        | f826e99803d1b51dccbbbed1ef857ba48a2bbefe
 0.8.2        | 93e123c6788e934e6b7b1fd85770371becf1e92e
 0.7.2        | b05642fe386ee79e0d88aa083565c9a93428519e
@@ -59,7 +60,12 @@ guarantees regarding backwards compatibility.**
 
 #### HEAD
 
+Nothing yet.
+
+#### 0.9.1
+
 *   **General**
+    *   Python 3.9 is now supported.
     *   ops.beam_search_step now takes and returns an additional arg
         `beam_done`.
     *   The namedtuple beam_search_helper.BeamSearchDecodeOutput now removes the
@@ -68,6 +74,8 @@ guarantees regarding backwards compatibility.**
 #### 0.9.0
 
 *   **General**
+    *   Tensorflow 2.5 is now the required version.
+    *   Python 3.5 support has been removed.
     *   py_utils.AddGlobalVN and py_utils.AddPerStepVN have been combined into
         py_utils.AddVN.
     *   BaseSchedule().Value() no longer takes a step arg.

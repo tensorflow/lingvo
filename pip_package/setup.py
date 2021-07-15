@@ -22,7 +22,7 @@ from setuptools.command.install import install
 from setuptools.dist import Distribution
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -77,7 +77,7 @@ setup(
     author_email='lingvo-bot@google.com',
     packages=find_packages(include=['lingvo*'], exclude=[]),
     include_package_data=True,
-    python_requires='>=3.6,<=3.9',
+    python_requires='>=3.6,<3.10',
     install_requires=REQUIRED_PACKAGES,
     zip_safe=False,
     cmdclass={
