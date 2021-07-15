@@ -27,6 +27,7 @@ RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-rec
         build-essential \
         curl \
         dirmngr \
+        emacs \
         git \
         gpg-agent \
         less \

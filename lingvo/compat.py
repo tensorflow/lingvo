@@ -299,6 +299,7 @@ data.TFRecordDataset = tf1.data.TFRecordDataset
 device = tf1.device
 Dimension = tf1.Dimension
 disable_eager_execution = tf1.disable_eager_execution
+disable_v2_behavior = tf1.disable_v2_behavior
 div = tf1.div
 enable_eager_execution = tf1.enable_eager_execution
 executing_eagerly_outside_functions = tf1.executing_eagerly_outside_functions

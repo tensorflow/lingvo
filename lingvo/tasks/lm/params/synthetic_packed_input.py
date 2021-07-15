@@ -73,6 +73,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   GATED_GELU = True
   POSITIONAL_EMBEDDING = False
   USE_REPEAT_LAYER = False
+  TRAIN_STEPS_PER_LOOP = 100
 
   def Task(self):
     # tokens per batch per replica (~64 cores)
@@ -141,7 +142,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   def ProgramSchedule(self):
     p = program.SimpleProgramScheduleForTask(
         train_dataset_name='Train',
-        train_steps_per_loop=100,
+        train_steps_per_loop=self.TRAIN_STEPS_PER_LOOP,
         eval_dataset_names=[],
         eval_steps_per_loop=0,
         decode_steps_per_loop=0,
@@ -157,7 +158,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \
-# --ps_replicas=8 --job=executor_tpu
+# --ps_replicas=8 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B8x8(DenseLmTemplate):
   """128B params LM model with 2D split."""
@@ -185,7 +186,7 @@ class DenseLm128B8x8(DenseLmTemplate):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --job=executor_tpu
+# --ps_replicas=32 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B16x16(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-512."""
@@ -212,7 +213,7 @@ class DenseLm175B32x32(DenseLm128B16x16):
 
   SEQUENCE_LENGTH = 2048
   NUM_DEVICES_PER_SPLIT = 2048
-  BATCH_DIM_PER_DEVICE = 0.5  # Total batch size 1M tokens
+  BATCH_DIM_PER_DEVICE = 0.5  # Total batch size 2M tokens
   DEVICE_MESH_SHAPE = [64, 32]
   DEVICE_MESH = np.reshape(
       np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
@@ -239,10 +240,11 @@ class DenseLm1T16x16(DenseLm128B16x16):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B32x32 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
-# --ps_replicas=128 --job=executor_tpu
+# --ps_replicas=128 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B32x32(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-2048."""
+  TRAIN_STEPS_PER_LOOP = 20
   SEQUENCE_LENGTH = 1024
   NUM_DEVICES_PER_SPLIT = 2048
   BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 512
@@ -300,7 +302,7 @@ class ShardedAdam(optimizer.Adam):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide41BAdam16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --job=executor_tpu
+# --ps_replicas=32 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide41BAdam16x16(DenseLm128B16x16):
   """41B params LM model with 2D split and ADAM optimizer on v3-512."""
@@ -335,7 +337,7 @@ class DenseLm12kWide41BAdam16x16(DenseLm128B16x16):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide10BAdam8x8 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \
-# --ps_replicas=8 --job=executor_tpu
+# --ps_replicas=8 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide41BAdam8x8(DenseLm12kWide41BAdam16x16):
   # IF OOM, try 0.25 BATCH_DIM_PER_DEVICE and 8 NUM_MICRO_BATCHES
@@ -351,13 +353,15 @@ class DenseLm12kWide41BAdam8x8(DenseLm12kWide41BAdam16x16):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --job=executor_tpu
+# --ps_replicas=32 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide162BAdam16x16(DenseLm12kWide41BAdam16x16):
   """162B params LM model with 2D split and ADAM optimizer on v3-512."""
 
   BATCH_DIM_PER_DEVICE = 0.125  # Total batch size 64
   NUM_TRANSFORMER_LAYERS = 96
+  DEVICE_MESH_SHAPE = [16, 32]
+  DEVICE_MESH = gshard_utils.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [16, 16, 2])
 
 
 @model_registry.RegisterSingleTaskModel
@@ -371,11 +375,11 @@ class DenseLm12kWide162BAdamBS25616x16(DenseLm12kWide162BAdam16x16):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam32x32 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
-# --ps_replicas=128 --job=executor_tpu
+# --ps_replicas=128 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide162BAdam32x32(DenseLm12kWide162BAdam16x16):
   """162B params LM model with 2D split and ADAM optimizer on v3-2048."""
-
+  TRAIN_STEPS_PER_LOOP = 20
   NUM_DEVICES_PER_SPLIT = 2048
   BATCH_DIM_PER_DEVICE = 0.125  # Total batch size 256
   # NUM_HEADS is 96, so we shard it 32 ways.

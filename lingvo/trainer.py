@@ -171,6 +171,8 @@ tf.flags.DEFINE_bool(
     'add_summary', None,
     'Whether we should output summaries. The default value "None", enables '
     'summaries based on the job type.')
+tf.flags.DEFINE_bool('disable_tf2', False,
+                     'Whether run on Tensorflow without V2 behaviors.')
 
 
 @tf.flags.validator('vizier_reporting_job')
@@ -1637,6 +1639,8 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
+  if FLAGS.disable_tf2:
+    tf.disable_v2_behavior()
   tf.disable_eager_execution()
   tf.flags.mark_flag_as_required('model')
   FLAGS(sys.argv, known_only=True)

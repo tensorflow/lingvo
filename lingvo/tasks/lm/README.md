@@ -70,7 +70,7 @@ sudo docker run --rm -it -v /home/$(whoami)/lingvo:/tmp/lingvo -e TPU_NAME=${TPU
 Inside the docker bash, launch the language model:
 
 ```
-bazel run -c opt //lingvo:trainer -- --mode=sync --alsologtostderr --model=lm.synthetic_packed_input.DenseLm1T16x16 --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 --ps_replicas=32 --job=executor_tpu
+bazel run -c opt //lingvo:trainer -- --mode=sync --alsologtostderr --model=lm.synthetic_packed_input.DenseLm1T16x16 --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 --ps_replicas=32 --job=executor_tpu  --disable_tf2=true
 ```
 
 where worker_split_size should be the number of TPU cores used and ps_replicas
