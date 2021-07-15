@@ -1363,7 +1363,7 @@ class RunnerManager:
       tf.logging.info('Waiting for thread to finish: %s' % t.name)
       while True:
         t.join(1)
-        if not t.isAlive():
+        if not t.is_alive():
           break
     tf.logging.info('All runners done.')
 
