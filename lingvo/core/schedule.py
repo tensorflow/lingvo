@@ -798,6 +798,27 @@ class SqrtDecay(BaseSchedule):
     return learning_rate
 
 
+class SqrtDecayToZero(BaseSchedule):
+  """Sqrt decay to zero schedule."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('warmup_steps', 10000.0, 'Number of warmup steps. Must be > 0.')
+    p.Define('starting_lr', 0.01, 'LR during warmup.')
+    p.Define('final_steps', 100000.0, 'Steps at which LR decays to 0.')
+    return p
+
+  def Value(self):
+    p = self.params
+    step_num = tf.cast(py_utils.GetGlobalStep(), tf.float32)
+    scale = p.starting_lr * tf.math.sqrt(p.warmup_steps * p.final_steps) / (
+        tf.math.sqrt(p.final_steps) - tf.math.sqrt(p.warmup_steps))
+    shift = scale / tf.math.sqrt(p.final_steps)
+    learning_rate = tf.math.rsqrt(tf.maximum(step_num, p.warmup_steps))
+    return learning_rate * scale - shift
+
+
 class CycleSchedule(BaseSchedule):
   """Piecewise schedule composed of sub-schedules in a cycle."""
 

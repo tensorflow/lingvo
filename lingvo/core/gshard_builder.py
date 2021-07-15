@@ -458,24 +458,89 @@ class MoEBuilder(builder.Base):
                             self._EncoderLayerInMapKeys,
                             lambda n, p: self.EncoderLayer(name=n, layer=p))
 
-  def DecoderLayer(self, name, layer, conv_kernel_size=None):
+  def DecoderLayer(self,
+                   name,
+                   layer,
+                   conv_kernel_size=None,
+                   norm_type='ln',
+                   norm_policy='pre'):
+    """A decoder layer.
+
+    Args:
+      name: Layer name.
+      layer: Layer logic added to the compute graph.
+      conv_kernel_size: The width of the kernel when convolution is added to
+        layer norm.
+      norm_type: String that describes the normalization type. Currently only
+        supports 'ln'.
+      norm_policy: String that describes the policy for applying normalzation.
+        Currently only supports 'pre' for pre-transformation normalzation.
+
+    Returns:
+      Compute graph of decoder layer.
+    """
+    # BEGIN GOOGLE-INTERNAL
+    # TODO(davidso): Expand the options for norm_type and norm_policy when
+    #                making Primer public.
+    # END GOOGLE-INTERNAL
     if conv_kernel_size is not None:
-      ln_layer = self._LNConv('ln', conv_kernel_size)
+      if norm_type != 'ln':
+        raise ValueError('Only ln supports conv. %s does not support conv.' %
+                         norm_type)
+      norm_layer = self._LNConv('ln', conv_kernel_size)
+    elif norm_type == 'ln':
+      norm_layer = self._LN('ln')
+    # BEGIN GOOGLE-INTERNAL
+    # TODO(davidso): Make this public once the Primer paper is released.
+    elif norm_type == 'pn':
+      norm_layer = self._PN('pn')
+    # END GOOGLE-INTERNAL
     else:
-      ln_layer = self._LN('ln')
+      raise ValueError('Norm type %s not supported.' % norm_type)
     layer_input_keys = self._DecoderLayerInMapKeys
     layer_inputs = 'x,' + ','.join(['i.' + key for key in layer_input_keys[1:]])
-    return self._Graph(
-        name,
-        ['i'],
-        ['o'],
-        ('i.vec,i.segment_id->input_masked', self.Mask()),
-        ('input_masked->x', ln_layer),
-        (layer_inputs + '->y,o.aux_loss', layer),
-        ('y->y_dropout', self._Dropout('y_dropout',
-                                       1 - self.params.dropout_rate)),
-        ('input_masked,y_dropout->o.vec', self._Add('add')),
-    )
+    if norm_policy == 'pre':
+      return self._Graph(
+          name,
+          ['i'],
+          ['o'],
+          ('i.vec,i.segment_id->input_masked', self.Mask()),
+          ('input_masked->x', norm_layer),
+          (layer_inputs + '->y,o.aux_loss', layer),
+          ('y->y_dropout',
+           self._Dropout('y_dropout', 1 - self.params.dropout_rate)),
+          ('input_masked,y_dropout->o.vec', self._Add('add')),
+      )
+    # BEGIN GOOGLE-INTERNAL
+    # TODO(davidso): Make this public when Primer paper is released.
+    if norm_policy == 'primer':
+      indx = int(name[-3:])
+      if indx % 2 == 0:
+        return self._Graph(
+            name,
+            ['i'],
+            ['o'],
+            ('i.vec,i.segment_id->input_masked', self.Mask()),
+            ('input_masked->x', norm_layer),
+            (layer_inputs + '->y,o.aux_loss', layer),
+            ('y->y_dropout',
+             self._Dropout('y_dropout', 1 - self.params.dropout_rate)),
+            ('input_masked,y_dropout->o.vec', self._Add('add')),
+        )
+      else:
+        return self._Graph(
+            name,
+            ['i'],
+            ['o'],
+            ('i.vec,i.segment_id->x', self.Mask()),
+            (layer_inputs + '->y,o.aux_loss', layer),
+            ('y->y_norm', norm_layer),
+            ('y_norm->y_dropout',
+             self._Dropout('y_dropout', 1 - self.params.dropout_rate)),
+            ('x,y_dropout->o.vec', self._Add('add')),
+        )
+    # END GOOGLE-INTERNAL
+    raise ValueError('Unsupported norm policy: %s' % norm_policy)
 
   @property
   def _DecoderLayerInMapKeys(self):
@@ -489,14 +554,24 @@ class MoEBuilder(builder.Base):
                         sub_layers,
                         num=1,
                         conv_kernel_size=None,
+                        norm_type='ln',
+                        norm_policy='pre',
                         use_repeat_layer=False,
                         spmd_pipeline_stages=1,
                         spmd_pipeline_microbatches=None):
     """Clean DecoderLayerStack, similar to EncoderLayerStack."""
-    return self._LayerStack(
-        name, sub_layers, num, use_repeat_layer, spmd_pipeline_stages,
-        spmd_pipeline_microbatches, self._DecoderLayerInMapKeys,
-        lambda n, p: self.DecoderLayer(n, p, conv_kernel_size=conv_kernel_size))
+
+    def _DecoderLayer(n, p):
+      return self.DecoderLayer(
+          n,
+          p,
+          conv_kernel_size=conv_kernel_size,
+          norm_type=norm_type,
+          norm_policy=norm_policy)
+
+    return self._LayerStack(name, sub_layers, num, use_repeat_layer,
+                            spmd_pipeline_stages, spmd_pipeline_microbatches,
+                            self._DecoderLayerInMapKeys, _DecoderLayer)
 
   def Repeat(self, name, body, repeat=1, per_layer_vars=True):
     """Wrapper to call builder_layers.RepeatLayer."""
@@ -678,12 +753,23 @@ class MoEBuilder(builder.Base):
                       tensor_split_dims_mapping=wo_mesh_split))],
         device_mesh=device_mesh)
 
-  def DenseReluDense(self, name, decoder=False):
+  def DenseReluDense(self, name, decoder=False, activation='relu'):
     if decoder:
       input_endpoints = self._DecoderLayerInMapKeys
     else:
       input_endpoints = self._EncoderLayerInMapKeys
     # Note that dropout is used here, but not in the MoE layer by default.
+
+    if activation == 'relu':
+      activation_fn = tf.nn.relu
+    # BEGIN GOOGLE-INTERNAL
+    # TODO(davidso): Make this public when Primer paper is released.
+    elif activation == 'sqr_relu':
+      activation_fn = lambda x: tf.math.square(tf.nn.relu(x))
+    # END GOOGLE-INTERNAL
+    else:
+      raise ValueError('Activation %s not supported.' % activation)
+
     return self._Graph(
         name,
         input_endpoints,
@@ -691,8 +777,8 @@ class MoEBuilder(builder.Base):
         ('->wi,wo', self._DenseReluDenseWeights('w')),
         ('wi,vec->h',
          self._Fn('wi', fn=lambda wi, vec: tf.einsum('MH,BLM->BLH', wi, vec))),
-        ('h->h_relu', self._Fn('relu', tf.nn.relu)),
-        ('h_relu->h_dropout',
+        ('h->h_%s' % activation, self._Fn(activation, activation_fn)),
+        ('h_%s->h_dropout' % activation,
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
         ('wo,h_dropout->outputs_pre_split',
          self._Fn(
@@ -1199,6 +1285,83 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
+  # BEGIN GOOGLE-INTERNAL
+  # TODO(davidso): Make this public once the Primer paper has been released.
+  def DecMultiDconvHeadAttentionRelativeBias(self,
+                                             name,
+                                             device_mesh=None,
+                                             w_qkv_mhd_mesh_split=None,
+                                             wo_hdm_mesh_split=None):
+    """Primer Multi-Dconv-Head Attention with relative attention bias.
+
+    This follows the same logic as DecSelfAttentionRelativeBias(), with the
+    Primer multi-head depthwise convolutions.
+
+    Args:
+      name: name of the layer.
+      device_mesh: device_mesh for sharding (if specified).
+      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified).
+      wo_hdm_mesh_split: mesh split for output weights (if specified).
+
+    Returns:
+      The layer params.
+    """
+    p = self.params
+    collections = None
+    if p.relative_attention_type == 'bias_shared':
+      # Collection name is used as a unique ID to retrieve the shared variable.
+      #
+      # This name must be different for SelfAttentionRelativeBias (Encoder), and
+      # must have a suffix matching shared_var_collection_suffix, e.g.
+      # 'shared_var'.
+      collections = ['_dec_self_attention_shared_var']
+    else:
+      assert p.relative_attention_type == 'bias', p.relative_attention_type
+
+    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+
+    # pyformat: disable
+    return self._Graph(
+        name, self._DecoderLayerInMapKeys, [
+            'outputs',
+            'aux_loss',
+        ],
+        ('->wq,wk,wv,wo', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
+        ('->relative_bias_weights', self._RelativeAttentionBiasWeights('wrb', collections)),
+        ('vec,wq,wk,wv->pre_q,pre_k,pre_v', self._ComputeQKVCombine('qkv')),
+        # Note: This does not use shared Q and K representations.
+        ('pre_q->q',
+         self.DepthwiseConvAutoregressive('q_dconv',
+                                          kernel_size=3,
+                                          model_dims=[p.attention_num_heads,
+                                                      p.attention_key_value_dim])),
+        ('pre_k->k',
+         self.DepthwiseConvAutoregressive('k_dconv',
+                                          kernel_size=3,
+                                          model_dims=[p.attention_num_heads,
+                                                      p.attention_key_value_dim])),
+        ('pre_v->v',
+         self.DepthwiseConvAutoregressive('v_dconv',
+                                          kernel_size=3,
+                                          model_dims=[p.attention_num_heads,
+                                                      p.attention_key_value_dim])),
+        ('k->k_full', self._AttentionState('k_state', state_shape)),
+        ('v->v_full', self._AttentionState('v_state', state_shape)),
+        ('segment_pos->key_segment_pos',
+         self._AttentionState('seg_pos', [None, None], dtype=tf.int32)),
+        self._DecComputeBiasGraphEdge(),
+        ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
+        ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
+         # Decoder _AddRelativeBias always has bidirectional=False.
+         self._Fn('relative_bias', fn=self._AddRelativeBias)),
+        ('q,k_full,v_full,qhk_bias->o', self.Attention('attention')),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+        ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
+    # pyformat: enable
+
+  # END GOOGLE-INTERNAL
+
   def _RelativeAttentionBiasWeights(self, name, collections=None):
     """Helper for '->rb' Graph edge."""
     p = self.params
@@ -1269,7 +1432,7 @@ class MoEBuilder(builder.Base):
           weights=[('scale', scale_var_weight_params)])
 
     def _Shift(x):
-      """Shift x to right by 1 in time dim and pad with zeors."""
+      """Shift x to right by 1 in time dim and pad with zeros."""
       return tf.concat([tf.zeros_like(x[:, -1:]), x[:, :-1]], axis=1)
 
     # Y = W[0] * X + W[1] * Shift(X, 1) + W[2] * Shift(X, 2) + ...
@@ -1336,6 +1499,42 @@ class MoEBuilder(builder.Base):
         name, ['x'], ['x_norm'],
         ('->scale', self._Var(name='w', weights=[('scale', ln_weight_params)])),
         ('x,scale->x_norm', self._Fn('ln', LN)))
+
+  # BEGIN GOOGLE-INTERNAL
+  # TODO(davidso): Make this public when the Primer paper is released.
+  def _PN(self, name, ln_weight_reshape=None):
+    """Primer normalization."""
+
+    def PN(x, scale, shift):
+      eps = self.params.layer_norm_epsilon
+      # BLm Tensor (m=1, reduced model_dim) or BLnm where model dim is split to
+      # two dims.
+      axis = [d + 2 for d in range(len(x.shape) - 2)]
+      temp = (x - tf.reduce_mean(x, keepdims=True, axis=axis)) * x
+      mock_variance = tf.reduce_mean(temp, keepdims=True, axis=axis)
+      if ln_weight_reshape is not None:
+        scale = tf.reshape(scale, ln_weight_reshape)
+        shift = tf.reshape(shift, ln_weight_reshape)
+      return x * tf.math.rsqrt(mock_variance + eps) * scale + shift
+
+    pn_scale_params = py_utils.WeightParams(
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=self.params.dtype,
+        shape=[self.params.model_dim])
+    pn_shift_params = py_utils.WeightParams(
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=self.params.dtype,
+        shape=[self.params.model_dim])
+
+    return self._Graph(
+        name, ['x'], ['x_norm'],
+        ('->scale',
+         self._Var(name='w_scale', weights=[('scale', pn_scale_params)])),
+        ('->shift',
+         self._Var(name='w_shift', weights=[('shift', pn_shift_params)])),
+        ('x,scale,shift->x_norm', self._Fn('pn', PN)))
+
+  # END GOOGLE-INTERNAL
 
   def Split(self, name):
     """Sets sharding attribute for the Tensor. Split across dim=0."""
@@ -1913,6 +2112,15 @@ class DenseBuilder(MoEBuilder):
         name, self._device_mesh, self.params.mhd_w_split,
         self._attention_output_hdm_w_split)
 
+  # BEGIN GOOGLE-INTERNAL
+  # TODO(davidso): Make this public when the Primer paper is released.
+  def DecMultiDconvHeadAttentionRelativeBias(self, name):
+    return super().DecMultiDconvHeadAttentionRelativeBias(
+        name, self._device_mesh, self.params.mhd_w_split,
+        self._attention_output_hdm_w_split)
+
+  # END GOOGLE-INTERNAL
+
   def ParallelDecSelfAttentionRelativeBiasFFN(self,
                                               name,
                                               activation_fn,
@@ -2209,11 +2417,22 @@ class DenseBuilder(MoEBuilder):
     wo = tf.concat([wo1, wo2], 1)
     return self._EinsumWithModelDim('SHDM,BLSHD->BLM', wo, o) * (2.0**-0.5)
 
-  def DenseReluDense(self, name, decoder=False):
+  def DenseReluDense(self, name, decoder=False, activation='relu'):
     if decoder:
       input_endpoints = self._DecoderLayerInMapKeys
     else:
       input_endpoints = self._EncoderLayerInMapKeys
+
+    if activation == 'relu':
+      activation_fn = tf.nn.relu
+    # BEGIN GOOGLE-INTERNAL
+    # TODO(davidso): Make this public when Primer paper is released.
+    elif activation == 'sqr_relu':
+      activation_fn = lambda x: tf.math.square(tf.nn.relu(x))
+    # END GOOGLE-INTERNAL
+    else:
+      raise ValueError('Activation %s not supported.' % activation)
+
     p = self.params
     # Note that dropout is used here, but not in the MoE layer by default.
     return self._Graph(
@@ -2229,9 +2448,9 @@ class DenseBuilder(MoEBuilder):
          self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
         ('wi_reshaped,vec->h', self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
         ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
-        ('h_split->h_relu', self._Fn('relu', tf.nn.relu)),
-        ('h_relu->h_dropout', self._Dropout('input_dropout',
-                                            1 - p.dropout_rate)),
+        ('h_split->h_%s' % activation, self._Fn(activation, activation_fn)),
+        ('h_%s->h_dropout' % activation,
+         self._Dropout('input_dropout', 1 - p.dropout_rate)),
         ('wo_reshaped,h_dropout->outputs_pre_split',
          self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),
         ('outputs_pre_split->outputs',
@@ -2502,7 +2721,9 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
                    name,
                    activation_fn,
                    conv_kernel_size=None,
-                   hidden_dim_reshape_segments=4):
+                   hidden_dim_reshape_segments=4,
+                   norm_type='ln',
+                   norm_policy='pre'):
     p = self.params
 
     collections = None
@@ -2517,14 +2738,22 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
     state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
 
     if conv_kernel_size is not None:
-      ln_layer = self._LNConv('ln', conv_kernel_size)
+      norm_layer = self._LNConv('ln', conv_kernel_size)
       d = p.ff_dim // hidden_dim_reshape_segments // p.attention_key_value_dim
       model_dims = [hidden_dim_reshape_segments, d, p.attention_key_value_dim]
       optional_conv_layer = self.DepthwiseConvAutoregressive(
           name='conv', kernel_size=conv_kernel_size, model_dims=model_dims)
-    else:
-      ln_layer = self._LN('ln')
+    elif norm_type == 'ln':
+      norm_layer = self._LN('ln')
       optional_conv_layer = self._Identity('conv')
+    # BEGIN GOOGLE-INTERNAL
+    # TODO(davidso): Make this public once the Primer paper is released.
+    elif norm_type == 'pn':
+      norm_layer = self._PN('pn')
+      optional_conv_layer = self._Identity('conv')
+    # END GOOGLE-INTERNAL
+    else:
+      raise ValueError('Norm type %s not supported' % norm_type)
     num_q, num_kv, num_wi = self._num_input_proj_weights
     num_weights = num_q + 2 * num_kv + 2 * num_wi
     wi_str = ','.join(['wi_%d' % i for i in range(num_weights)])
@@ -2542,6 +2771,9 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
           tf.concat([o_atten, o_ffw], -2), p.blh_split + [-1, -1])
       return self._EinsumWithModelDim('SHDM,BLSHD->BLM', wo, o) * (2.0**-0.5)
 
+    if norm_policy != 'pre':
+      raise ValueError('Normalization policy %s not supported' % norm_policy)
+
     return self._Graph(
         name,
         ['i'],
@@ -2549,7 +2781,7 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
         ('i.vec,i.segment_id->input_masked', self.Mask()),
         ('i.segment_id->o.segment_id', self._Identity('segment_id')),
         ('i.segment_pos->o.segment_pos', self._Identity('segment_pos')),
-        ('input_masked->x', ln_layer),
+        ('input_masked->x', norm_layer),
         ('->%s' % wi_str, self._DecoderLayerInputProjWeights('get_w_in')),
         ('->relative_bias_ws',
          self._RelativeAttentionBiasWeights('wrb', collections)),
@@ -2578,8 +2810,15 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
   def _DecoderLayerInMapKeys(self):
     return ['vec', 'segment_id', 'segment_pos']
 
-  def DecoderLayerStack(self, name, sub_layers, num=1, conv_kernel_size=None):
+  def DecoderLayerStack(self,
+                        name,
+                        sub_layers,
+                        num=1,
+                        conv_kernel_size=None,
+                        norm_type=None,
+                        norm_policy=None):
     """DecoderLayerStack with self attention and feedforward in parallel."""
+    del norm_type, norm_policy
     p = self.params
     assert p.deterministic_dropout
     stack = [
@@ -2673,6 +2912,17 @@ class UniTransformer(base_model.BaseTask):
     p.Define(
         'moe', False,
         'True for Mixture-of-Experts, False for canonical Transformer model, ')
+    p.Define('activation', 'relu', 'Transformer non-gated FFN activation.')
+    p.Define('norm_type', 'ln', 'Type of normalization. Options are: ln.')
+    p.Define('norm_policy', 'pre', 'Policy for applying normalization. '
+             'Options are: pre.')
+    # BEGIN GOOGLE-INTERNAL
+    # TODO(davidso): Expand the options for norm_type and norm_policy when
+    #                making this public.
+    # TODO(davidso): Make this public after releasing the Primer paper.
+    p.Define('multi_dconv_head_att', False,
+             "Whether or not to use Primer's Mutli-Dconv-Head attention.")
+    # END GOOGLE-INTERNAL
     return p
 
   def __init__(self, params):
@@ -2710,21 +2960,37 @@ class UniTransformer(base_model.BaseTask):
       decoder_sub_layers = [
           b.Repeat(
               name='blocks',
-              body=b.DecoderLayer('block', gated_ffn_activation,
-                                  p.conv_kernel_size,
-                                  p.hidden_dim_reshape_segments),
+              body=b.DecoderLayer(
+                  'block',
+                  gated_ffn_activation,
+                  p.conv_kernel_size,
+                  p.hidden_dim_reshape_segments,
+                  norm_type=p.norm_type,
+                  norm_policy=p.norm_policy),
               repeat=p.num_transformer_layers,
               per_layer_vars=p.use_per_layer_vars_for_recurrent)
       ]
       dec = b.DecoderLayerStack(
-          'decoder', decoder_sub_layers, 1, conv_kernel_size=p.conv_kernel_size)
+          'decoder',
+          decoder_sub_layers,
+          1,
+          conv_kernel_size=p.conv_kernel_size,
+          norm_type=p.norm_type,
+          norm_policy=p.norm_policy)
     else:
       if p.positional_embedding:
         atten_layer = b.DecSelfAttention('dec_self_attention')
+      # BEGIN GOOGLE-INTERNAL
+      # TODO(davidso): Make this public when the Primer paper is released.
+      elif p.multi_dconv_head_att:
+        atten_layer = b.DecMultiDconvHeadAttentionRelativeBias(
+            'multi_dconv_head_att')
+      # END GOOGLE-INTERNAL
       else:
         atten_layer = b.DecSelfAttentionRelativeBias('dec_self_attention')
       if gated_ffn_activation is None:
-        ffw_layer = b.DenseReluDense('dense_relu_dense', decoder=True)
+        ffw_layer = b.DenseReluDense(
+            'dense_relu_dense', decoder=True, activation=p.activation)
       else:
         ffw_layer = b.DenseReluDenseGated(
             'dense_relu_dense', gated_ffn_activation, decoder=True)
@@ -2740,6 +3006,8 @@ class UniTransformer(base_model.BaseTask):
           decoder_sub_layers,
           num_decoder_layers,
           conv_kernel_size=p.conv_kernel_size,
+          norm_type=p.norm_type,
+          norm_policy=p.norm_policy,
           use_repeat_layer=p.use_repeat_layer,
           spmd_pipeline_stages=p.num_spmd_pipeline_stages,
           spmd_pipeline_microbatches=p.num_spmd_pipeline_microbatches)
