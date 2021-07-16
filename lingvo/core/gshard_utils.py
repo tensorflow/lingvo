@@ -15,16 +15,20 @@
 # ==============================================================================
 """Utilities for applying xla-sharding to a model."""
 
+import contextlib
 from typing import Dict, List, Optional, Sequence
 
 from lingvo import compat as tf
 from lingvo.core import py_utils_flags
+from lingvo.core import thread_local_utils
 import numpy as np
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.xla import xla_data_pb2
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
 # pylint: enable=g-direct-tensorflow-import
+
+ThreadLocalStack = thread_local_utils.ThreadLocalStack
 
 
 def Split(x,
@@ -71,11 +75,17 @@ def Replicate(x, use_sharding_op=True):
   return xla_sharding.replicate(x, use_sharding_op=use_sharding_op)
 
 
+_MESH_SPLIT_DIM_PREFIXES = ThreadLocalStack()
+
+
 def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
   """Wrapper of xla_sharding.mesh_split()."""
   if (not py_utils_flags.use_tpu() or tensor_split_dims_mapping is None or
       device_mesh is None or device_mesh.size <= 1):
     return x
+  # Apply the prefix in the context.
+  tensor_split_dims_mapping = (
+      _MESH_SPLIT_DIM_PREFIXES.stack + tensor_split_dims_mapping)
   num_tiles = np.prod(
       [device_mesh.shape[i] for i in tensor_split_dims_mapping if i >= 0])
   if num_tiles <= 1:
@@ -85,6 +95,22 @@ def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
       device_mesh,
       tensor_split_dims_mapping,
       use_sharding_op=use_sharding_op)
+
+
+@contextlib.contextmanager
+def MeshSplitDimPrefixContext(prefix_mesh_dim):
+  """Adds a prefix mesh dim for tensor_split_dims_mapping in MeshSplit."""
+  if prefix_mesh_dim is not None:
+    _MESH_SPLIT_DIM_PREFIXES.stack.append(prefix_mesh_dim)
+  try:
+    yield
+  finally:
+    if prefix_mesh_dim is not None:
+      _MESH_SPLIT_DIM_PREFIXES.stack.pop()
+
+
+def GetMeshSplitDimPrefixContext():
+  return _MESH_SPLIT_DIM_PREFIXES.stack
 
 
 def ZigzagOrderOnDeviceMesh(device_mesh, zigzag_mesh_dim):
@@ -200,7 +226,7 @@ class TensorShardingSpec:
                     use_sharding_op: bool = True) -> tf.Tensor:
     if self.is_replicated:
       return xla_sharding.replicate(tensor, use_sharding_op=use_sharding_op)
-    return xla_sharding.mesh_split(
+    return MeshSplit(
         tensor,
         self.device_mesh,
         self.split_dims_mapping,
@@ -209,7 +235,7 @@ class TensorShardingSpec:
   def ApplyToVariable(self, variable: tf.Variable) -> tf.Variable:
     if self.is_replicated:
       return xla_sharding.replicate(variable, use_sharding_op=False)
-    return xla_sharding.mesh_split(
+    return MeshSplit(
         variable,
         self.device_mesh,
         self.split_dims_mapping,
@@ -251,8 +277,9 @@ class TensorShardingSpec:
   def ToXlaOpSharding(self) -> xla_data_pb2.OpSharding:
     if self.is_replicated:
       return xla_sharding.Sharding.replicate().proto
+    dims_mapping = _MESH_SPLIT_DIM_PREFIXES.stack + self.split_dims_mapping
     return xla_sharding.mesh_split_sharding(self.device_mesh,
-                                            self.split_dims_mapping).proto
+                                            dims_mapping).proto
 
   @classmethod
   def FromXlaOpSharding(
@@ -267,7 +294,10 @@ class TensorShardingSpec:
         split_dims_mapping = list(range(len(device_mesh_shape) - 1))
       else:
         split_dims_mapping = list(range(len(device_mesh_shape)))
-      return cls(split_dims_mapping, device_mesh)
+      prefix = _MESH_SPLIT_DIM_PREFIXES.stack
+      if prefix:
+        assert split_dims_mapping[:len(prefix)] == prefix
+      return cls(split_dims_mapping[len(prefix):], device_mesh)
     else:
       return cls.ReplicatedSpec()
 

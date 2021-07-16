@@ -2159,6 +2159,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":py_utils_flags",
+        ":thread_local_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

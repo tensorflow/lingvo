@@ -1804,8 +1804,11 @@ def _CreateVariableStateful(name,
   # Shard the variable according to the sharding spec.
   tensor_split_dims_mapping = p.tensor_split_dims_mapping
   if tensor_split_dims_mapping is not None:
-    tensor_split_dims_mapping = ([-1] * len(GetVariableShapePrefixes()) +
-                                 tensor_split_dims_mapping)
+    count = (
+        len(GetVariableShapePrefixes()) + len(shape) -
+        len(tensor_split_dims_mapping) -
+        len(gshard_utils.GetMeshSplitDimPrefixContext()))
+    tensor_split_dims_mapping = [-1] * count + tensor_split_dims_mapping
   var = gshard_utils.MeshSplit(
       var, p.device_mesh, tensor_split_dims_mapping, use_sharding_op=False)
 
@@ -1929,8 +1932,11 @@ def _CreateVariableStateless(name,
   # Shard the variable according to the sharding spec.
   tensor_split_dims_mapping = p.tensor_split_dims_mapping
   if tensor_split_dims_mapping is not None:
-    tensor_split_dims_mapping = ([-1] * len(GetVariableShapePrefixes()) +
-                                 tensor_split_dims_mapping)
+    count = (
+        len(GetVariableShapePrefixes()) + len(shape) -
+        len(tensor_split_dims_mapping) -
+        len(gshard_utils.GetMeshSplitDimPrefixContext()))
+    tensor_split_dims_mapping = [-1] * count + tensor_split_dims_mapping
   var = gshard_utils.MeshSplit(
       var, p.device_mesh, tensor_split_dims_mapping, use_sharding_op=False)
 
