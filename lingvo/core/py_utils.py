@@ -667,6 +667,22 @@ def IsEagerMode():
   return _IS_EAGER_MODE
 
 
+# Maintains a tf.GradientTape stack.
+_GRADIENT_TAPE_STACK = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def GradientTape(*args, **kwargs):
+  """Creates a tf.GradientTape and use it for automatic differentiation."""
+  tape = tf.GradientTape(*args, **kwargs)
+  _GRADIENT_TAPE_STACK.stack.append(tape)
+  try:
+    with tape:
+      yield
+  finally:
+    _GRADIENT_TAPE_STACK.stack.pop()
+
+
 # The tf.train.ExponentialMovingAverage singleton used by all subtasks in
 # multi-task training with ExecutorTpu.
 _EXECUTOR_EMA = None
@@ -2545,6 +2561,23 @@ def ComputeGradientsSimple(loss_or_activations,
                            colocate_gradients_with_ops,
                            gate_gradients,
                            activations_grad=None):
+  """Compute gradients."""
+  tape = _GRADIENT_TAPE_STACK.stack[-1] if _GRADIENT_TAPE_STACK.stack else None
+  if IsEagerMode() and tape:
+    tf.logging.info('ComputeGradientsSimple: using gradient tape.')
+    if activations_grad is not None:
+      raise ValueError('GradientTape does not accept gradient input values.')
+    if grad_aggregation_method or colocate_gradients_with_ops or gate_gradients:
+      tf.logging.warning(
+          'When GradientTape is used, these field will be ignored: '
+          f'grad_aggregation_method ({grad_aggregation_method}), '
+          f'colocate_gradients_with_ops ({colocate_gradients_with_ops}), '
+          f'gate_gradients ({gate_gradients}).')
+    return tape.gradient(
+        loss_or_activations,
+        all_vars,
+        unconnected_gradients=tf.UnconnectedGradients.ZERO)
+
   return tf.gradients(
       loss_or_activations,
       all_vars,
