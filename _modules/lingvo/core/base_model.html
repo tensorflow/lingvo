@@ -861,8 +861,12 @@
                 <span class="n">increment_global_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;global_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">increment_global_steps</span>
 
-    <span class="k">for</span> <span class="n">op_name</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">train_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="k">assert</span> <span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="n">op_name</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="c1"># Some of the values could be a tf.no_op(), which returns None in eager</span>
+      <span class="c1"># mode, so we don&#39;t want to check that when eager is enabled.</span>
+      <span class="k">for</span> <span class="n">op_name</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">train_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Train op </span><span class="si">{</span><span class="n">op_name</span><span class="si">}</span><span class="s1"> is None.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">train_ops</span></div>
 
 <div class="viewcode-block" id="BaseTask._BPropForVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._BPropForVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
