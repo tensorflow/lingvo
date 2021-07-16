@@ -706,8 +706,12 @@ class BaseTask(base_layer.BaseLayer):
                 increment_global_steps, tf.assign_add(self._global_step_var, 1))
         train_ops['global_step'] = increment_global_steps
 
-    for op_name, op in train_ops.items():
-      assert op is not None, op_name
+    if not py_utils.IsEagerMode():
+      # Some of the values could be a tf.no_op(), which returns None in eager
+      # mode, so we don't want to check that when eager is enabled.
+      for op_name, op in train_ops.items():
+        if op is None:
+          raise ValueError(f'Train op {op_name} is None.')
     return train_ops
 
   def _BPropForVariables(self, vmap):
