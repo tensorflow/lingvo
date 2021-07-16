@@ -258,6 +258,9 @@
         <span class="s1">&#39;A list of weights for each file pattern for within-batch mixing. If &#39;</span>
         <span class="s1">&#39;not specified, a default implementation is used (roughly uniform).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;source_id_offset&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;All source_id values from this source will be offset by this value.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bprop_variable_filters&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;An optional list of &#39;</span>
         <span class="s1">&#39;bprop_variariable_filters for each file_pattern.  If not empty, &#39;</span>
         <span class="s1">&#39;expected to have the same length as weights.&#39;</span><span class="p">)</span>
@@ -305,15 +308,20 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">:</span>
       <span class="n">file_patterns</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">file_patterns</span><span class="si">}</span><span class="s1">&#39;</span>
 
+    <span class="n">extra_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">source_id_offset</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">extra_args</span><span class="p">[</span><span class="s1">&#39;input_source_id_offset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_id_offset</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
       <span class="c1"># Within-batch mixing.</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
           <span class="n">file_patterns</span><span class="p">,</span>
-          <span class="n">input_source_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+          <span class="n">input_source_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+          <span class="o">**</span><span class="n">extra_args</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Default.</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
-          <span class="n">file_patterns</span><span class="p">)</span>
+          <span class="n">file_patterns</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_args</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">batch</span></div>
 

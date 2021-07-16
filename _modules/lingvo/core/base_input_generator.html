@@ -1009,13 +1009,21 @@
       <span class="n">datasources</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_entry</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Should explicitly specify weights, got string: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                            <span class="n">input_entry</span><span class="p">)</span>
         <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
         <span class="n">datasources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">))</span>
+
+        <span class="c1"># This is essentially a bug fix, but we only enable it based on this</span>
+        <span class="c1">#  param to maintain backward compatibility.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">all_zero_source_id_without_within_batch_mixing</span><span class="p">:</span>
+          <span class="c1"># SimpleDataSource will output source_id=0. We use source_id_offset</span>
+          <span class="c1"># to correct this.</span>
+          <span class="n">datasources</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">source_id_offset</span><span class="o">=</span><span class="n">source_id</span><span class="p">)</span>
+
         <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
         <span class="n">bprop_variable_filter</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_entry</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
         <span class="n">bprop_variable_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span>
@@ -1093,7 +1101,16 @@
         <span class="s1">&#39;use_within_batch_mixing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to mix records from &#39;</span>
         <span class="s1">&#39;different input sources within batch or across batches (the &#39;</span>
         <span class="s1">&#39;default option). This option only takes effect when file_pattern&#39;</span>
-        <span class="s1">&#39; is a list of file patterns with weights.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39; is a list of file patterns with weights. Note: without mixining, all&#39;</span>
+        <span class="s1">&#39; source_id values for records will be set to 0 unless &#39;</span>
+        <span class="s1">&#39;all_zero_source_id_without_within_batch_mixing is set to False.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;all_zero_source_id_without_within_batch_mixing&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;When set (by default) and use_within_batch_mixing is false, all &#39;</span>
+        <span class="s1">&#39;record.source_id values returned will be 0. This is most likely &#39;</span>
+        <span class="s1">&#39;undesired behavior, but enables backwards compatibility with previous &#39;</span>
+        <span class="s1">&#39;work. Only classes that have _DataSourceFromFilePattern take a &#39;</span>
+        <span class="s1">&#39;input_source_id_offset argument can handle this flag being False.&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -1163,7 +1180,10 @@
   <span class="c1"># TODO(b/139345706): After p.file_pattern is deleted, the following functions</span>
   <span class="c1"># _DataSourceFromFilePattern, _BuildDataSourceWithMetadata, _BuildDataSource</span>
   <span class="c1"># can be deleted and functionality moved to using the DataSource directly.</span>
-<div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">file_pattern</span><span class="p">,</span>
+                                 <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">input_source_id_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return a NestedMap containing an input batch from a string file_pattern.</span>
 
 <span class="sd">    Subclasses should implement this function.</span>
@@ -1174,6 +1194,8 @@
 <span class="sd">        input example mix in the batch. The records will be sampled from inputs</span>
 <span class="sd">        proportionally to these weights. Defaults to None which should be</span>
 <span class="sd">        treated as an empty list.</span>
+<span class="sd">      input_source_id_offset: All source_ids returned from datasource will be</span>
+<span class="sd">        offset by this value.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A `.NestedMap` of tf.Tensors containing a batch of input data with shapes</span>
