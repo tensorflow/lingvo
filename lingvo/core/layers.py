@@ -1676,6 +1676,7 @@ class StackingOverTime(base_layer.BaseLayer):
         out_paddings is of shape [batch, ceil(time / stride), 1]. out_paddings
         will be 0 if any of the corresponding input padding is 0.
     """
+    p = self.params
     if paddings is None:
       paddings = tf.zeros(
           tf.concat([py_utils.GetShape(inputs)[:-1], [1]], 0),
@@ -1692,7 +1693,11 @@ class StackingOverTime(base_layer.BaseLayer):
                 tf.shape(paddings)[:-1])
         ],
         inputs)
-    p = self.params
+
+    # Trivia case.
+    if 0 == p.left_context == p.right_context and 1 == p.stride:
+      return inputs, paddings
+
     with tf.name_scope(p.name):
       outputs = self._ApplyStack(inputs)
 
@@ -1766,6 +1771,9 @@ class StackingOverTime(base_layer.BaseLayer):
       ValueError: if stride > window_size.
     """
     p = self.params
+    if 0 == p.left_context == p.right_context and 1 == p.stride:
+      return stacked
+
     if p.stride > self.window_size:
       raise ValueError(
           "Can't invert StackingOverTime with stride (%d) > window_size (%d)" %
