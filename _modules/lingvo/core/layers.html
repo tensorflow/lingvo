@@ -1831,6 +1831,7 @@
 <span class="sd">        out_paddings is of shape [batch, ceil(time / stride), 1]. out_paddings</span>
 <span class="sd">        will be 0 if any of the corresponding input padding is 0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">),</span>
@@ -1847,7 +1848,11 @@
                 <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="p">],</span>
         <span class="n">inputs</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Trivia case.</span>
+    <span class="k">if</span> <span class="mi">0</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="ow">and</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyStack</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
@@ -1921,6 +1926,9 @@
 <span class="sd">      ValueError: if stride &gt; window_size.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="mi">0</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="ow">and</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">stacked</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s2">&quot;Can&#39;t invert StackingOverTime with stride (</span><span class="si">%d</span><span class="s2">) &gt; window_size (</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span>
