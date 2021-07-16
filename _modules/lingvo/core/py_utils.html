@@ -822,6 +822,22 @@
   <span class="k">return</span> <span class="n">_IS_EAGER_MODE</span></div>
 
 
+<span class="c1"># Maintains a tf.GradientTape stack.</span>
+<span class="n">_GRADIENT_TAPE_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="GradientTape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GradientTape">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">GradientTape</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a tf.GradientTape and use it for automatic differentiation.&quot;&quot;&quot;</span>
+  <span class="n">tape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">GradientTape</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="n">_GRADIENT_TAPE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tape</span><span class="p">:</span>
+      <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_GRADIENT_TAPE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
 <span class="c1"># The tf.train.ExponentialMovingAverage singleton used by all subtasks in</span>
 <span class="c1"># multi-task training with ExecutorTpu.</span>
 <span class="n">_EXECUTOR_EMA</span> <span class="o">=</span> <span class="kc">None</span>
@@ -2700,6 +2716,23 @@
                            <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
                            <span class="n">gate_gradients</span><span class="p">,</span>
                            <span class="n">activations_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute gradients.&quot;&quot;&quot;</span>
+  <span class="n">tape</span> <span class="o">=</span> <span class="n">_GRADIENT_TAPE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_GRADIENT_TAPE_STACK</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span>
+  <span class="k">if</span> <span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="n">tape</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ComputeGradientsSimple: using gradient tape.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">activations_grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;GradientTape does not accept gradient input values.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">grad_aggregation_method</span> <span class="ow">or</span> <span class="n">colocate_gradients_with_ops</span> <span class="ow">or</span> <span class="n">gate_gradients</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;When GradientTape is used, these field will be ignored: &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;grad_aggregation_method (</span><span class="si">{</span><span class="n">grad_aggregation_method</span><span class="si">}</span><span class="s1">), &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;colocate_gradients_with_ops (</span><span class="si">{</span><span class="n">colocate_gradients_with_ops</span><span class="si">}</span><span class="s1">), &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;gate_gradients (</span><span class="si">{</span><span class="n">gate_gradients</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tape</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span>
+        <span class="n">loss_or_activations</span><span class="p">,</span>
+        <span class="n">all_vars</span><span class="p">,</span>
+        <span class="n">unconnected_gradients</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">UnconnectedGradients</span><span class="o">.</span><span class="n">ZERO</span><span class="p">)</span>
+
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
       <span class="n">loss_or_activations</span><span class="p">,</span>
       <span class="n">all_vars</span><span class="p">,</span>
