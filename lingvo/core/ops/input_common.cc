@@ -58,7 +58,8 @@ std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
         ++yopts.seed;
       }
     }
-    yopts.source_id = i;
+    // we use yopts_tpl.source_id as an offset for all yielder source_id values.
+    yopts.source_id = yopts_tpl.source_id + i;
     yielder_options.push_back(yopts);
   }
 
@@ -118,6 +119,8 @@ void GetBasicRecordYielderOptions(OpKernelConstruction* ctx,
       ctx, ctx->GetAttr("num_input_replicas", &(yopts->num_input_replicas)));
   OP_REQUIRES_OK(ctx,
                  ctx->GetAttr("input_replica_id", &(yopts->input_replica_id)));
+
+  OP_REQUIRES_OK(ctx, ctx->GetAttr("source_id_offset", &(yopts->source_id)));
 }
 
 }  // namespace lingvo

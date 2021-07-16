@@ -78,7 +78,7 @@ class InputOp : public OpKernel {
     if (require_sequential_order) {
       num_threads = 1;
     }
-    LOG(INFO) << "Create RecordProcessor";
+    LOG(INFO) << "Create RecordProcessor; source_id: " << yopts.source_id;
     processor_ = new RecordProcessorClass(ctx);
     RecordYielder* yielder = CHECK_NOTNULL(
         ConstructYielder(file_pattern, input_source_weights, yopts,

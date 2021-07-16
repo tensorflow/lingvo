@@ -31,9 +31,10 @@ limitations under the License.
       .Attr("num_threads: int = 1")                   \
       .Attr("require_sequential_order: bool = False") \
       .Attr("repeat_count: int = -1")                 \
-      .Attr("fatal_errors: list(string) = []")           \
+      .Attr("fatal_errors: list(string) = []")        \
       .Attr("num_input_replicas: int = 1")            \
       .Attr("input_replica_id: int = 0")              \
+      .Attr("source_id_offset: int = 0")              \
       .SetIsStateful()
 
 #define INPUT_DOCS \
@@ -72,6 +73,8 @@ fatal_errors: A list of partial error strings to treat as fatal.\
 num_input_replicas: if > 1, input generators run on this number of replicas. \
 input_replica_id: The replica id of the current input generator. Must be in \
   range [0, num_input_replicas).\
+source_id_offset: The source_id for every record will have this offset added \
+  to it.\
 )"
 
 #endif  // LINGVO_CORE_OPS_X_OPS_HELPER_H_

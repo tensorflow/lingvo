@@ -186,6 +186,16 @@ lingvo_cc_library(
     ],
 )
 
+lingvo_cc_test(
+    name = "input_common_test",
+    srcs = ["input_common_test.cc"],
+    deps = [
+        ":input_common",
+        ":yielder_test_helper",
+        # Implicit absl.flags:flag dependency.
+    ],
+)
+
 lingvo_cc_test_library(
     name = "yielder_test_helper",
     srcs = [

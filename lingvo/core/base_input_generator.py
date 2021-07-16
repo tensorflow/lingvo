@@ -854,13 +854,21 @@ def FilePatternToDataSource(p):
       datasources = []
       weights = []
       bprop_variable_filters = []
-      for input_entry in p.file_pattern:
+      for source_id, input_entry in enumerate(p.file_pattern):
         if isinstance(input_entry, str):
           raise ValueError('Should explicitly specify weights, got string: %s' %
                            input_entry)
         file_pattern, weight = input_entry[:2]
         datasources.append(
             datasource.SimpleDataSource.Params().Set(file_pattern=file_pattern))
+
+        # This is essentially a bug fix, but we only enable it based on this
+        #  param to maintain backward compatibility.
+        if not p.all_zero_source_id_without_within_batch_mixing:
+          # SimpleDataSource will output source_id=0. We use source_id_offset
+          # to correct this.
+          datasources[-1].Set(source_id_offset=source_id)
+
         weights.append(weight)
         bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
         bprop_variable_filters.append(bprop_variable_filter)
@@ -938,7 +946,16 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'use_within_batch_mixing', False, 'Whether to mix records from '
         'different input sources within batch or across batches (the '
         'default option). This option only takes effect when file_pattern'
-        ' is a list of file patterns with weights.')
+        ' is a list of file patterns with weights. Note: without mixining, all'
+        ' source_id values for records will be set to 0 unless '
+        'all_zero_source_id_without_within_batch_mixing is set to False.')
+    p.Define(
+        'all_zero_source_id_without_within_batch_mixing', True,
+        'When set (by default) and use_within_batch_mixing is false, all '
+        'record.source_id values returned will be 0. This is most likely '
+        'undesired behavior, but enables backwards compatibility with previous '
+        'work. Only classes that have _DataSourceFromFilePattern take a '
+        'input_source_id_offset argument can handle this flag being False.')
 
     return p
 
@@ -1008,7 +1025,10 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
   # TODO(b/139345706): After p.file_pattern is deleted, the following functions
   # _DataSourceFromFilePattern, _BuildDataSourceWithMetadata, _BuildDataSource
   # can be deleted and functionality moved to using the DataSource directly.
-  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+  def _DataSourceFromFilePattern(self,
+                                 file_pattern,
+                                 input_source_weights=None,
+                                 input_source_id_offset=0):
     """Return a NestedMap containing an input batch from a string file_pattern.
 
     Subclasses should implement this function.
@@ -1019,6 +1039,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         input example mix in the batch. The records will be sampled from inputs
         proportionally to these weights. Defaults to None which should be
         treated as an empty list.
+      input_source_id_offset: All source_ids returned from datasource will be
+        offset by this value.
 
     Returns:
       A `.NestedMap` of tf.Tensors containing a batch of input data with shapes

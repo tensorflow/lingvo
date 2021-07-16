@@ -214,6 +214,23 @@ class BaseInputGeneratorTest(test_utils.TestCase):
       with WithInputTargets(), self.assertRaisesRegex(ValueError, msg):
         p.Instantiate().GetPreprocessedInputBatch()
 
+  def testFilePatternToDataSourceNoMixingSourceIdOffset(self):
+    p = base_input_generator.BaseInputGeneratorFromFiles.Params()
+    p.all_zero_source_id_without_within_batch_mixing = False
+
+    p.file_pattern = [
+        ('fp1', 1),
+        ('fp2', 1, 'arg3'),
+        ('fp3', 1),
+    ]
+    p.use_within_batch_mixing = False
+    ds_params = base_input_generator.FilePatternToDataSource(p)
+    sub_params = ds_params.sub
+
+    self.assertEqual(sub_params[0].source_id_offset, 0)
+    self.assertEqual(sub_params[1].source_id_offset, 1)
+    self.assertEqual(sub_params[2].source_id_offset, 2)
+
 
 class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
 

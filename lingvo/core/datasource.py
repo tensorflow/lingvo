@@ -103,6 +103,9 @@ class SimpleDataSource(DataSource):
         'A list of weights for each file pattern for within-batch mixing. If '
         'not specified, a default implementation is used (roughly uniform).')
     p.Define(
+        'source_id_offset', 0,
+        'All source_id values from this source will be offset by this value.')
+    p.Define(
         'bprop_variable_filters', None, 'An optional list of '
         'bprop_variariable_filters for each file_pattern.  If not empty, '
         'expected to have the same length as weights.')
@@ -150,15 +153,20 @@ class SimpleDataSource(DataSource):
     if p.file_type:
       file_patterns = f'{p.file_type}:{file_patterns}'
 
+    extra_args = dict()
+    if p.source_id_offset != 0:
+      extra_args['input_source_id_offset'] = p.source_id_offset
+
     if p.weights:
       # Within-batch mixing.
       batch = self._input_generator._DataSourceFromFilePattern(  # pylint: disable=protected-access
           file_patterns,
-          input_source_weights=p.weights)
+          input_source_weights=p.weights,
+          **extra_args)
     else:
       # Default.
       batch = self._input_generator._DataSourceFromFilePattern(  # pylint: disable=protected-access
-          file_patterns)
+          file_patterns, **extra_args)
 
     return batch
 
