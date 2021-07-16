@@ -948,12 +948,17 @@ class GroupNormLayer(base_layer.BaseLayer):
         tiled_mean = tf.tile(mean, [1, 1, inputs_shape[2], 1, inputs_shape[4]])
       sum_vv = tf.reduce_sum(
           py_utils.ApplyPadding(
-              paddings, tf.math.square(inputs - tiled_mean), use_select=False),
+              paddings,
+              tf.math.squared_difference(inputs, tiled_mean),
+              use_select=False),
           reduce_over_dims,
           keepdims=True)
     else:
       sum_vv = tf.reduce_sum(
-          py_utils.ApplyPadding(paddings, (inputs - mean)**2, use_select=False),
+          py_utils.ApplyPadding(
+              paddings,
+              tf.math.squared_difference(inputs, mean),
+              use_select=False),
           reduce_over_dims,
           keepdims=True)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
