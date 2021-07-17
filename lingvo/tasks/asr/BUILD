@@ -112,6 +112,7 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:symbolic",
+        "//lingvo/tasks/asr:levenshtein_distance",
         # Implicit six dependency.
     ],
 )
@@ -254,4 +255,10 @@ py_test(
 filegroup(
     name = "wpm_files",
     srcs = ["wpm_16k_librispeech.vocab"],
+)
+
+py_library(
+    name = "levenshtein_distance",
+    srcs = ["levenshtein_distance.py"],
+    srcs_version = "PY3",
 )

@@ -14,11 +14,11 @@
 # limitations under the License.
 """Common utilities for ASR decoders."""
 
-import copy
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import symbolic
 import six
+from lingvo.tasks.asr import levenshtein_distance
 
 
 def _IsSymbolOrPositive(dim):
@@ -99,55 +99,9 @@ def EditDistance(ref_str, hyp_str):
     - del:         number of deletions.
     - total:       total difference length.
   """
-
-  class ErrorStats:
-    """Class to keep track of error counts."""
-
-    def __init__(self, ins, dels, subs, tot):
-      self.ins, self.dels, self.subs, self.total_cost = ins, dels, subs, tot
-
-    def __repr__(self):
-      return 'ErrorStats(ins=%d, dels=%d, subs=%d, tot=%d)' % (
-          self.ins, self.dels, self.subs, self.total_cost)
-
-  # temp sequence to remember error type and stats.
-  e, cur_e = [], []
-  lst_ref = Tokenize(ref_str)
-  for i in range(len(lst_ref) + 1):
-    e.append(ErrorStats(0, i, 0, i))
-    cur_e.append(ErrorStats(0, 0, 0, 0))
-
-  lst_hyp = Tokenize(hyp_str)
-  for hyp_index in range(1, len(lst_hyp) + 1):
-    cur_e[0] = copy.copy(e[0])
-    cur_e[0].ins += 1
-    cur_e[0].total_cost += 1
-
-    for ref_index in range(1, len(lst_ref) + 1):
-      ins_err = e[ref_index].total_cost + 1
-      del_err = cur_e[ref_index - 1].total_cost + 1
-      sub_err = e[ref_index - 1].total_cost
-      if lst_hyp[hyp_index - 1] != lst_ref[ref_index - 1]:
-        sub_err += 1
-
-      if sub_err < ins_err and sub_err < del_err:
-        cur_e[ref_index] = copy.copy(e[ref_index - 1])
-        if lst_hyp[hyp_index - 1] != lst_ref[ref_index - 1]:
-          cur_e[ref_index].subs += 1
-        cur_e[ref_index].total_cost = sub_err
-      elif del_err < ins_err:
-        cur_e[ref_index] = copy.copy(cur_e[ref_index - 1])
-        cur_e[ref_index].total_cost = del_err
-        cur_e[ref_index].dels += 1
-      else:
-        cur_e[ref_index] = copy.copy(e[ref_index])
-        cur_e[ref_index].total_cost = ins_err
-        cur_e[ref_index].ins += 1
-
-    for i in range(len(e)):
-      e[i] = copy.copy(cur_e[i])
-
-  return e[-1].ins, e[-1].subs, e[-1].dels, e[-1].total_cost
+  results = levenshtein_distance.LevenshteinDistance(
+      Tokenize(ref_str), Tokenize(hyp_str))
+  return results.insertions, results.subs, results.deletions, results.total
 
 
 def EditDistanceInIds(ref_ids, hyp_ids):
