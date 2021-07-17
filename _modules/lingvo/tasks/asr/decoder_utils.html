@@ -169,11 +169,11 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Common utilities for ASR decoders.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">levenshtein_distance</span>
 
 
 <div class="viewcode-block" id="_IsSymbolOrPositive"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_utils.html#lingvo.tasks.asr.decoder_utils._IsSymbolOrPositive">[docs]</a><span class="k">def</span> <span class="nf">_IsSymbolOrPositive</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span>
@@ -254,55 +254,9 @@
 <span class="sd">    - del:         number of deletions.</span>
 <span class="sd">    - total:       total difference length.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="k">class</span> <span class="nc">ErrorStats</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Class to keep track of error counts.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ins</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">tot</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">ins</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">=</span> <span class="n">ins</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">tot</span>
-
-    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-      <span class="k">return</span> <span class="s1">&#39;ErrorStats(ins=</span><span class="si">%d</span><span class="s1">, dels=</span><span class="si">%d</span><span class="s1">, subs=</span><span class="si">%d</span><span class="s1">, tot=</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">ins</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_cost</span><span class="p">)</span>
-
-  <span class="c1"># temp sequence to remember error type and stats.</span>
-  <span class="n">e</span><span class="p">,</span> <span class="n">cur_e</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-  <span class="n">lst_ref</span> <span class="o">=</span> <span class="n">Tokenize</span><span class="p">(</span><span class="n">ref_str</span><span class="p">)</span>
-  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lst_ref</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-    <span class="n">e</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ErrorStats</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
-    <span class="n">cur_e</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ErrorStats</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-
-  <span class="n">lst_hyp</span> <span class="o">=</span> <span class="n">Tokenize</span><span class="p">(</span><span class="n">hyp_str</span><span class="p">)</span>
-  <span class="k">for</span> <span class="n">hyp_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst_hyp</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-    <span class="n">cur_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">cur_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ins</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="n">cur_e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="k">for</span> <span class="n">ref_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">lst_ref</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-      <span class="n">ins_err</span> <span class="o">=</span> <span class="n">e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">+</span> <span class="mi">1</span>
-      <span class="n">del_err</span> <span class="o">=</span> <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">+</span> <span class="mi">1</span>
-      <span class="n">sub_err</span> <span class="o">=</span> <span class="n">e</span><span class="p">[</span><span class="n">ref_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span>
-      <span class="k">if</span> <span class="n">lst_hyp</span><span class="p">[</span><span class="n">hyp_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lst_ref</span><span class="p">[</span><span class="n">ref_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
-        <span class="n">sub_err</span> <span class="o">+=</span> <span class="mi">1</span>
-
-      <span class="k">if</span> <span class="n">sub_err</span> <span class="o">&lt;</span> <span class="n">ins_err</span> <span class="ow">and</span> <span class="n">sub_err</span> <span class="o">&lt;</span> <span class="n">del_err</span><span class="p">:</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="n">ref_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">lst_hyp</span><span class="p">[</span><span class="n">hyp_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lst_ref</span><span class="p">[</span><span class="n">ref_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
-          <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span><span class="o">.</span><span class="n">subs</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">=</span> <span class="n">sub_err</span>
-      <span class="k">elif</span> <span class="n">del_err</span> <span class="o">&lt;</span> <span class="n">ins_err</span><span class="p">:</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">=</span> <span class="n">del_err</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span><span class="o">.</span><span class="n">dels</span> <span class="o">+=</span> <span class="mi">1</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">])</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">=</span> <span class="n">ins_err</span>
-        <span class="n">cur_e</span><span class="p">[</span><span class="n">ref_index</span><span class="p">]</span><span class="o">.</span><span class="n">ins</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">e</span><span class="p">)):</span>
-      <span class="n">e</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">cur_e</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-  <span class="k">return</span> <span class="n">e</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ins</span><span class="p">,</span> <span class="n">e</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">subs</span><span class="p">,</span> <span class="n">e</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">dels</span><span class="p">,</span> <span class="n">e</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">total_cost</span></div>
+  <span class="n">results</span> <span class="o">=</span> <span class="n">levenshtein_distance</span><span class="o">.</span><span class="n">LevenshteinDistance</span><span class="p">(</span>
+      <span class="n">Tokenize</span><span class="p">(</span><span class="n">ref_str</span><span class="p">),</span> <span class="n">Tokenize</span><span class="p">(</span><span class="n">hyp_str</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">results</span><span class="o">.</span><span class="n">insertions</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">subs</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">deletions</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">total</span></div>
 
 
 <div class="viewcode-block" id="EditDistanceInIds"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_utils.html#lingvo.tasks.asr.decoder_utils.EditDistanceInIds">[docs]</a><span class="k">def</span> <span class="nf">EditDistanceInIds</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">):</span>

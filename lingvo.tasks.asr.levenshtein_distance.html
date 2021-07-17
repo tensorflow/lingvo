@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>lingvo.tasks.asr package &mdash; Lingvo  documentation</title>
+  <title>lingvo.tasks.asr.levenshtein_distance module &mdash; Lingvo  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.tasks.asr.params namespace" href="lingvo.tasks.asr.params.html" />
-    <link rel="prev" title="lingvo.tasks package" href="lingvo.tasks.html" /> 
+    <link rel="next" title="lingvo.tasks.asr.model module" href="lingvo.tasks.asr.model.html" />
+    <link rel="prev" title="lingvo.tasks.asr.input_generator module" href="lingvo.tasks.asr.input_generator.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -153,13 +153,15 @@
         
           <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
         
-      <li>lingvo.tasks.asr package</li>
+          <li><a href="lingvo.tasks.asr.html">lingvo.tasks.asr package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.levenshtein_distance module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/lingvo.tasks.asr.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/lingvo.tasks.asr.levenshtein_distance.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -172,49 +174,22 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.tasks.asr">
-<span id="lingvo-tasks-asr-package"></span><h1>lingvo.tasks.asr package<a class="headerlink" href="#module-lingvo.tasks.asr" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="subpackages">
-<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.params.html">lingvo.tasks.asr.params namespace</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="lingvo.tasks.asr.params.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.asr.params.librispeech.html">lingvo.tasks.asr.params.librispeech module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.asr.params.params.html">lingvo.tasks.asr.params.params module</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.tools.html">lingvo.tasks.asr.tools package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="lingvo.tasks.asr.tools.html#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.asr.tools.simple_wer.html">lingvo.tasks.asr.tools.simple_wer module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.asr.tools.simple_wer_v2.html">lingvo.tasks.asr.tools.simple_wer_v2 module</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</div>
-</div>
-<div class="section" id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.contextualizer_base.html">lingvo.tasks.asr.contextualizer_base module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.decoder.html">lingvo.tasks.asr.decoder module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.decoder_metrics.html">lingvo.tasks.asr.decoder_metrics module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.decoder_utils.html">lingvo.tasks.asr.decoder_utils module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.encoder.html">lingvo.tasks.asr.encoder module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.frontend.html">lingvo.tasks.asr.frontend module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.fusion.html">lingvo.tasks.asr.fusion module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.input_generator.html">lingvo.tasks.asr.input_generator module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.levenshtein_distance.html">lingvo.tasks.asr.levenshtein_distance module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.model.html">lingvo.tasks.asr.model module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lingvo.tasks.asr.model_test_input_generator.html">lingvo.tasks.asr.model_test_input_generator module</a></li>
-</ul>
-</div>
-</div>
+  <div class="section" id="module-lingvo.tasks.asr.levenshtein_distance">
+<span id="lingvo-tasks-asr-levenshtein-distance-module"></span><h1>lingvo.tasks.asr.levenshtein_distance module<a class="headerlink" href="#module-lingvo.tasks.asr.levenshtein_distance" title="Permalink to this headline">¶</a></h1>
+<p>Common utilities for ASR decoders.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.levenshtein_distance.ErrorStats">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.levenshtein_distance.</span></span><span class="sig-name descname"><span class="pre">ErrorStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tot</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/levenshtein_distance.html#ErrorStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.levenshtein_distance.ErrorStats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class to keep track of error counts.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.levenshtein_distance.LevenshteinDistance">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.levenshtein_distance.</span></span><span class="sig-name descname"><span class="pre">LevenshteinDistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst_ref</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lst_hyp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.tasks.asr.levenshtein_distance.ErrorStats" title="lingvo.tasks.asr.levenshtein_distance.ErrorStats"><span class="pre">lingvo.tasks.asr.levenshtein_distance.ErrorStats</span></a></span></span><a class="reference internal" href="_modules/lingvo/tasks/asr/levenshtein_distance.html#LevenshteinDistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.levenshtein_distance.LevenshteinDistance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes Levenshtein edit distance between reference and hypotheses.</p>
+</dd></dl>
+
 </div>
 
 
@@ -223,8 +198,8 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="lingvo.tasks.asr.params.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.params namespace" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="lingvo.tasks.html" class="btn btn-neutral float-left" title="lingvo.tasks package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lingvo.tasks.asr.model.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.model module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="lingvo.tasks.asr.input_generator.html" class="btn btn-neutral float-left" title="lingvo.tasks.asr.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
