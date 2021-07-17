@@ -134,7 +134,15 @@ class TpuEmbeddingCollection:
   def retrieve_ops(self):
     return self._retrieve_ops_map
 
+  def _ValidateTaskScope(self, task_call_scope):
+    if not task_call_scope:
+      raise ValueError(
+          'It expects a non-empty task call scope name, but get '
+          f'{task_call_scope}. This usually means the current code is not run '
+          'under a py_utils.TaskCallScope() context.')
+
   def AddActivations(self, task_call_scope):
+    self._ValidateTaskScope(task_call_scope)
     if task_call_scope not in self._activations_by_task:
       activations = self._tpu_embedding.get_activations()
       self._activations_by_task[task_call_scope] = activations
@@ -142,6 +150,7 @@ class TpuEmbeddingCollection:
 
   def GetActivations(self, task_call_scope):
     if task_call_scope in self._activations_by_task:
+      self._ValidateTaskScope(task_call_scope)
       return self._activations_by_task[task_call_scope]
     return None
 
@@ -170,11 +179,13 @@ class TpuEmbeddingCollection:
     self._gradient_multiplier_schedule = multiplier_schedule
 
   def SetTaskMode(self, task_call_scope, mode):
+    self._ValidateTaskScope(task_call_scope)
     tf.logging.info(
         f'Setting TPU embedding mode for task {task_call_scope} as {mode}.')
     self._mode_by_task[task_call_scope] = mode
 
   def ShouldStopGradient(self, task_call_scope):
+    self._ValidateTaskScope(task_call_scope)
     if task_call_scope not in self._mode_by_task:
       raise ValueError(
           f'TPU embedding mode for task {task_call_scope} not found.')
@@ -197,8 +208,7 @@ class TpuEmbeddingCollection:
     Raises:
       ValueError: if gradients have been applied before for the current task.
     """
-    # TODO(laigd): we need a way to tell which task needs backprop, and whether
-    # send gradient ops are created for that task.
+    self._ValidateTaskScope(task_call_scope)
     if task_call_scope in self._send_gradient_op_by_task:
       raise ValueError(
           f'Send gradient op for task {task_call_scope} already exist.')

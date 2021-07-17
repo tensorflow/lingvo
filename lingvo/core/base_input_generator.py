@@ -190,6 +190,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
       self._tpu_embedding_mode = 'inference'  # Always disable backprop in eval.
 
     if self.parent:
+      # Set the TPU embedding mode for the task. This need to happen in __init__
+      # so that the mode is available when the bprop graph is built (note that
+      # CreateTpuEmbeddingEnqueueOps() is called *after* building bprop graph).
       tpu_embedding_collection = (
           tpu_embedding_layers.TpuEmbeddingCollection.Get())
       tpu_embedding_collection.SetTaskMode(
@@ -405,7 +408,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           # into the TPU InfeedQueue (and only to TPUEmbedding).
           # TODO(jeffreyzhao): Hack, come up with better solution.
           # Ideally we would like users to override
-          # CreateTpuEmbeddingEnqueueOpsForHost() to modify the input batch
+          # CreateTpuEmbeddingEnqueueOps() to modify the input batch
           # and remove fields they don't want to enqueue onto TPU.
           # However, the TPUEmbedding singleton and TPU embedding enqueue ops
           # are currently constructed after CreateTpuEnqueueOps() is called.
