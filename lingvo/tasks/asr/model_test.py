@@ -207,9 +207,7 @@ class AsrModelTest(test_utils.TestCase):
             # Skips np.array values for ValueError from `inspect` module.
             # mock.call('  top_hyp_ids: %s', np.array([1, 2])),
             mock.call('  %f: %s', 1.0, 'あいうえ'),
-            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 0, 0, 0),
             mock.call('  %f: %s', 0.9, 'あいう'),
-            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 1, 0, 1),
             mock.call('utt_id: %s', 'utt2'),
             mock.call('  ref_str: %s', 'あ'),
             mock.call('  ref_ids: %s', [2, 3, 4]),
@@ -218,9 +216,7 @@ class AsrModelTest(test_utils.TestCase):
             # Skips np.array values for ValueError from `inspect` module.
             # mock.call('  top_hyp_ids: %s', np.array([3, 4, 5, 6])),
             mock.call('  %f: %s', 1.0, 'wrong'),
-            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 1, 0, 1),
             mock.call('  %f: %s', 0.9, ''),
-            mock.call('  ins: %d, subs: %d, del: %d, total: %d', 0, 0, 1, 1)
         ])
 
   def testPostProcessDecodeOutFiltersEpsilonTokensForWER(self):

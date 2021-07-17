@@ -236,11 +236,15 @@ class DecoderMetrics(base_layer.BaseLayer):
     dec_metrics_dict['norm_wer'].Update(
         total_norm_wer_errs / total_norm_wer_words, total_norm_wer_words)
 
+    filtered_transcripts = []
+    filtered_top_hyps = []
     for ref_str, hyps in zip(transcripts, topk_decoded):
       filtered_ref = decoder_utils.FilterNoise(ref_str)
       filtered_ref = decoder_utils.FilterEpsilon(filtered_ref)
+      filtered_transcripts.append(filtered_ref)
       filtered_hyp = decoder_utils.FilterNoise(hyps[0])
       filtered_hyp = decoder_utils.FilterEpsilon(filtered_hyp)
+      filtered_top_hyps.append(filtered_hyp)
       dec_metrics_dict['corpus_bleu'].Update(filtered_ref, filtered_hyp)
 
     total_errs = 0
@@ -272,29 +276,23 @@ class DecoderMetrics(base_layer.BaseLayer):
             ref_ids, top_hyp_ids)
         total_token_errs += token_errs
 
-        filtered_ref = decoder_utils.FilterNoise(ref_str)
-        filtered_ref = decoder_utils.FilterEpsilon(filtered_ref)
+        filtered_ref = filtered_transcripts[i]
         oracle_errs = norm_wer_errors[i][0]
         for n, (score, hyp_str) in enumerate(zip(topk_scores[i], hyps)):
+          oracle_errs = min(oracle_errs, norm_wer_errors[i, n])
           if self.cluster.add_summary:
             tf.logging.info('  %f: %s', score,
                             hyp_str.decode('utf-8') if p.log_utf8 else hyp_str)
-          filtered_hyp = decoder_utils.FilterNoise(hyp_str)
-          filtered_hyp = decoder_utils.FilterEpsilon(filtered_hyp)
-          ins, subs, dels, errs = decoder_utils.EditDistance(
-              filtered_ref, filtered_hyp)
-          # Note that these numbers are not consistent with what is used to
-          # compute normalized WER.  In particular, these numbers will be
-          # inflated when the transcript contains punctuation.
-          tf.logging.info('  ins: %d, subs: %d, del: %d, total: %d', ins, subs,
-                          dels, errs)
           # Only aggregate scores of the top hypothesis.
-          if n == 0:
-            total_errs += errs
-            total_ref_words += len(decoder_utils.Tokenize(filtered_ref))
-            if norm_wer_errors[i, n] == 0:
-              total_accurate_sentences += 1
-          oracle_errs = min(oracle_errs, norm_wer_errors[i, n])
+          if n != 0:
+            continue
+          filtered_hyp = filtered_top_hyps[i]
+          _, _, _, errs = decoder_utils.EditDistance(filtered_ref, filtered_hyp)
+          total_errs += errs
+          total_ref_words += len(decoder_utils.Tokenize(filtered_ref))
+          if norm_wer_errors[i, n] == 0:
+            total_accurate_sentences += 1
+
         total_oracle_errs += oracle_errs
 
       dec_metrics_dict['wer'].Update(total_errs / max(1., total_ref_words),
