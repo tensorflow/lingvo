@@ -345,6 +345,9 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_mode</span> <span class="o">=</span> <span class="s1">&#39;inference&#39;</span>  <span class="c1"># Always disable backprop in eval.</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
+      <span class="c1"># Set the TPU embedding mode for the task. This need to happen in __init__</span>
+      <span class="c1"># so that the mode is available when the bprop graph is built (note that</span>
+      <span class="c1"># CreateTpuEmbeddingEnqueueOps() is called *after* building bprop graph).</span>
       <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">())</span>
       <span class="n">tpu_embedding_collection</span><span class="o">.</span><span class="n">SetTaskMode</span><span class="p">(</span>
@@ -560,7 +563,7 @@
           <span class="c1"># into the TPU InfeedQueue (and only to TPUEmbedding).</span>
           <span class="c1"># TODO(jeffreyzhao): Hack, come up with better solution.</span>
           <span class="c1"># Ideally we would like users to override</span>
-          <span class="c1"># CreateTpuEmbeddingEnqueueOpsForHost() to modify the input batch</span>
+          <span class="c1"># CreateTpuEmbeddingEnqueueOps() to modify the input batch</span>
           <span class="c1"># and remove fields they don&#39;t want to enqueue onto TPU.</span>
           <span class="c1"># However, the TPUEmbedding singleton and TPU embedding enqueue ops</span>
           <span class="c1"># are currently constructed after CreateTpuEnqueueOps() is called.</span>

@@ -289,7 +289,15 @@
   <span class="k">def</span> <span class="nf">retrieve_ops</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops_map</span>
 
+<div class="viewcode-block" id="TpuEmbeddingCollection._ValidateTaskScope"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection._ValidateTaskScope">[docs]</a>  <span class="k">def</span> <span class="nf">_ValidateTaskScope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_call_scope</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">task_call_scope</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;It expects a non-empty task call scope name, but get &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1">. This usually means the current code is not run &#39;</span>
+          <span class="s1">&#39;under a py_utils.TaskCallScope() context.&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TpuEmbeddingCollection.AddActivations"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddActivations">[docs]</a>  <span class="k">def</span> <span class="nf">AddActivations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_call_scope</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateTaskScope</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">task_call_scope</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">:</span>
       <span class="n">activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">get_activations</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">[</span><span class="n">task_call_scope</span><span class="p">]</span> <span class="o">=</span> <span class="n">activations</span>
@@ -297,6 +305,7 @@
 
 <div class="viewcode-block" id="TpuEmbeddingCollection.GetActivations"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.GetActivations">[docs]</a>  <span class="k">def</span> <span class="nf">GetActivations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_call_scope</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">task_call_scope</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateTaskScope</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">[</span><span class="n">task_call_scope</span><span class="p">]</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 
@@ -325,11 +334,13 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span> <span class="o">=</span> <span class="n">multiplier_schedule</span></div>
 
 <div class="viewcode-block" id="TpuEmbeddingCollection.SetTaskMode"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.SetTaskMode">[docs]</a>  <span class="k">def</span> <span class="nf">SetTaskMode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_call_scope</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateTaskScope</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
         <span class="sa">f</span><span class="s1">&#39;Setting TPU embedding mode for task </span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1"> as </span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_mode_by_task</span><span class="p">[</span><span class="n">task_call_scope</span><span class="p">]</span> <span class="o">=</span> <span class="n">mode</span></div>
 
 <div class="viewcode-block" id="TpuEmbeddingCollection.ShouldStopGradient"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.ShouldStopGradient">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStopGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_call_scope</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateTaskScope</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">task_call_scope</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mode_by_task</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="sa">f</span><span class="s1">&#39;TPU embedding mode for task </span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1"> not found.&#39;</span><span class="p">)</span>
@@ -352,8 +363,7 @@
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: if gradients have been applied before for the current task.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># TODO(laigd): we need a way to tell which task needs backprop, and whether</span>
-    <span class="c1"># send gradient ops are created for that task.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateTaskScope</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">task_call_scope</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_gradient_op_by_task</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="sa">f</span><span class="s1">&#39;Send gradient op for task </span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1"> already exist.&#39;</span><span class="p">)</span>
