@@ -4658,12 +4658,26 @@ class StackedTransformerLayers(base_layer.BaseLayer):
              'If set, introduces a second attention layer')
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
     p.Define('num_layers', 0, 'Num of layers in this stack.')
-    p.Define('mdl_dim', 0, 'Model dimension in Transformer layers.')
-    p.Define('hidden_dim', 0,
-             'The hidden layer dimension in Transformer layers.')
-    p.Define('num_atten_heads', 0, 'Num of attention heads.')
-    p.Define('dropout_prob', 0.0,
-             'Apply dropout at this prob at various places.')
+    p.Define(
+        'mdl_dim', None,
+        'Model dimension in Transformer layers. If None, one must set model '
+        'dimension directly in transformer_layer_params_tpl. If set, p.mdl_dim '
+        'will override transformer_layer_params_tpl.')
+    p.Define(
+        'hidden_dim', None,
+        'The hidden layer dimension in Transformer layers. If None, one must '
+        'set model dimension directly in transformer_layer_params_tpl. If set, '
+        'p.hidden_dim will override transformer_layer_params_tpl.')
+    p.Define(
+        'num_atten_heads', None,
+        'Num of attention heads. If None, one must set num_atten_heads '
+        'directly in transformer_layer_params_tpl. If set, p.num_atten_heads '
+        'will override transformer_layer_params_tpl.')
+    p.Define(
+        'dropout_prob', None,
+        'Apply dropout at this prob at various places. If None, dropout values '
+        'in transformer_layer_params_tpl will be used. If set, p.dropout_prob '
+        'will override transformer_layer_params_tpl.')
     p.Define('add_unnormalized_input', True,
              'If set, uses unnormalized input in the residual add.')
     p.Define(
@@ -4703,14 +4717,14 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     p = self.params
 
     assert p.num_layers > 0
-    assert p.mdl_dim > 0
-    assert p.hidden_dim > 0
+    assert p.mdl_dim is None or p.mdl_dim > 0
+    assert p.hidden_dim is None or p.hidden_dim > 0
     if not isinstance(p.num_atten_heads, list):
-      assert p.num_atten_heads > 0
+      assert p.num_atten_heads is None or p.num_atten_heads > 0
     else:
       for num_heads in p.num_atten_heads:
         assert num_heads > 0
-    assert 0.0 <= p.dropout_prob < 1.0
+    assert p.dropout_prob is None or 0.0 <= p.dropout_prob < 1.0
 
     if isinstance(p.transformer_layer_params_tpl, list):
       if p.num_layers % len(p.transformer_layer_params_tpl):
@@ -4751,17 +4765,20 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       p_ii.name = 'layer_%d' % ii
       p_ii.has_aux_atten = p.has_aux_atten
       p_ii.mask_self_atten = p.mask_self_atten
-      p_ii.input_dim = p.mdl_dim
-      p_ii.output_dim = p.mdl_dim
+      p_ii.input_dim = p.mdl_dim or p_ii.input_dim
+      p_ii.output_dim = p.mdl_dim or p_ii.output_dim
       p_ii.packed_input = p.packed_input
-      if not isinstance(p_ii.tr_atten_tpl.num_heads, list):
+      if (not isinstance(p_ii.tr_atten_tpl.num_heads, list) and
+          p.num_atten_heads is not None):
         p_ii.tr_atten_tpl.num_heads = p.num_atten_heads
-      p_ii.tr_atten_tpl.atten_dropout_prob = p.dropout_prob
-      p_ii.tr_atten_tpl.residual_dropout_prob = p.dropout_prob
+      if p.dropout_prob is not None:
+        p_ii.tr_atten_tpl.atten_dropout_prob = p.dropout_prob
+        p_ii.tr_atten_tpl.residual_dropout_prob = p.dropout_prob
+        p_ii.tr_fflayer_tpl.residual_dropout_prob = p.dropout_prob
+        p_ii.tr_fflayer_tpl.relu_dropout_prob = p.dropout_prob
+      if p.hidden_dim is not None:
+        p_ii.tr_fflayer_tpl.hidden_dim = p.hidden_dim
       p_ii.tr_atten_tpl.add_unnormalized_input = p.add_unnormalized_input
-      p_ii.tr_fflayer_tpl.hidden_dim = p.hidden_dim
-      p_ii.tr_fflayer_tpl.residual_dropout_prob = p.dropout_prob
-      p_ii.tr_fflayer_tpl.relu_dropout_prob = p.dropout_prob
       if ii in p.moe_layers:
         p_ii.tr_fflayer_tpl = _MoeLayerParams(p_ii.tr_fflayer_tpl)
       return p_ii
@@ -4771,6 +4788,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     self.CreateChildren('x_layers', layer_params)
 
     if p.final_layer_norm:
+      assert p.mdl_dim
       final_ln_p = p.layernorm_tpl.Copy().Set(
           input_dim=p.mdl_dim, use_fused_layernorm=p.use_fused_layernorm)
       self.CreateChild('final_ln', final_ln_p)
@@ -4792,7 +4810,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
   def FProp(self,
             theta,
             query_vec,
-            paddings,
+            paddings=None,
             aux_vec=None,
             aux_paddings=None,
             per_step_padding_override=None,
@@ -4819,6 +4837,10 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     """
     p = self.params
     x_out = query_vec
+    has_paddings = False if paddings is None else True
+    if paddings is None:
+      batch_size, seq_length, _ = py_utils.GetShape(query_vec)
+      paddings = tf.zeros((batch_size, seq_length), dtype=query_vec.dtype)
 
     with tf.name_scope(p.name):
       for i in range(p.num_layers):
@@ -4837,6 +4859,10 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       # Place on the last device.
       with tf.device(self._GetDeviceOfLayer(p.num_layers - 1)):
         x_out = self.final_ln.FProp(theta.final_ln, x_out)
+
+    if not has_paddings:
+      return x_out
+
     return x_out, paddings
 
   def InitStates(self, theta, *args, **kwargs):
