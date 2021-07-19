@@ -949,7 +949,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'use_within_batch_mixing', False, 'Whether to mix records from '
         'different input sources within batch or across batches (the '
         'default option). This option only takes effect when file_pattern'
-        ' is a list of file patterns with weights. Note: without mixining, all'
+        ' is a list of file patterns with weights. Note: without mixing, all'
         ' source_id values for records will be set to 0 unless '
         'all_zero_source_id_without_within_batch_mixing is set to False.')
     p.Define(
