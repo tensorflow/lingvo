@@ -767,7 +767,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
   def CreateVariable(self,
                      name: str,
-                     var_params: py_utils.WeightParams,
+                     var_params: hyperparams.Params,
                      theta_fn: Optional[Callable[[tf.Tensor],
                                                  tf.Tensor]] = None,
                      **kwargs) -> None:
