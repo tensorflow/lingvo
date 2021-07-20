@@ -1033,7 +1033,7 @@ class InstantiableParams(Params, Generic[InstantiableParamsClsT]):
     super().__init__()
     self.Define('cls', cls, 'Cls that this param object is associated with.')
 
-  def Instantiate(self, **args) -> InstantiableParamsClsT:
+  def Instantiate(self, **kwargs) -> InstantiableParamsClsT:
     """Instantiate an instance that this Params is configured for.
 
     Example:
@@ -1061,7 +1061,7 @@ class InstantiableParams(Params, Generic[InstantiableParamsClsT]):
       obj_b = params.Instantiate(lock=lock)
 
     Args:
-      **args: Additional keyword arguments to pass to the constructor in
+      **kwargs: Additional keyword arguments to pass to the constructor in
         addition to this Params object.
 
     Returns:
@@ -1070,7 +1070,7 @@ class InstantiableParams(Params, Generic[InstantiableParamsClsT]):
     assert self.cls is not None
 
     # The class initializer is expected to support initialization using Params.
-    return self.cls(self, **args)
+    return self.cls(self, **kwargs)
 
   def Copy(self: ParamsT) -> ParamsT:
     """See base class."""
