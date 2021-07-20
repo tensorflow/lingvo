@@ -1188,7 +1188,7 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;Cls that this param object is associated with.&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="InstantiableParams.Instantiate"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Instantiate">[docs]</a>  <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstantiableParamsClsT</span><span class="p">:</span>
+<div class="viewcode-block" id="InstantiableParams.Instantiate"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Instantiate">[docs]</a>  <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstantiableParamsClsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Instantiate an instance that this Params is configured for.</span>
 
 <span class="sd">    Example:</span>
@@ -1216,7 +1216,7 @@
 <span class="sd">      obj_b = params.Instantiate(lock=lock)</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      **args: Additional keyword arguments to pass to the constructor in</span>
+<span class="sd">      **kwargs: Additional keyword arguments to pass to the constructor in</span>
 <span class="sd">        addition to this Params object.</span>
 
 <span class="sd">    Returns:</span>
@@ -1225,7 +1225,7 @@
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="c1"># The class initializer is expected to support initialization using Params.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="InstantiableParams.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;See base class.&quot;&quot;&quot;</span>
