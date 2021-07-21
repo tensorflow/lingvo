@@ -674,3 +674,35 @@ def SphericalCoordinatesTransform(points_xyz):
   # Note: tf.atan2 takes in (y, x).
   phi = tf.atan2(points_xyz[..., 1], points_xyz[..., 0])
   return tf.stack([dist, theta, phi], axis=-1)
+
+
+def TargetTransforms(original_transforms, target_transform):
+  """Compute merged transforms from original 4x4 transforms and target.
+
+  The original_transforms contains the transformation from car to world
+  coordinates.  We then want to transform from world coordinates to the pose of
+  the target frame (using the inverse pose transformation for the selected
+  frame).
+
+  Note that the original_transformations must transform to the same coordinate
+  system as target_transform.
+
+  We compose these transformations into a sequence of transformation matrices
+  that converts from car coordinates of each frame to the car coordinates of the
+  target frame (using batched matmul for efficiency).
+
+  Args:
+    original_transforms: A [num_frames, 4, 4] representing the original pose
+      transform.
+    target_transform: A [4, 4] tensor representing the target pose transform.
+
+  Returns:
+    A tensor of [num_frames, 4, 4] that can be applied to the original scenes
+    to transform the points in those scenes to the target pose.
+  """
+  num_frames = py_utils.GetShape(original_transforms)[0]
+  selected_pose_inv = tf.linalg.inv(target_transform)
+  batched_pose_inv = tf.tile(selected_pose_inv[tf.newaxis, ...],
+                             [num_frames, 1, 1])
+  poses_in_target_frame = tf.matmul(batched_pose_inv, original_transforms)
+  return poses_in_target_frame
