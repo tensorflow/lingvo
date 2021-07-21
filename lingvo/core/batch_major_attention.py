@@ -2362,25 +2362,22 @@ class LocalSelfAttention(MultiHeadedAttention):
           # [Q, S]
           shifted_distance = distance - (p.inference_step_max_length - q)
         # [B, Q, S] or [Q, S]
-        local_atten_per_step_paddings = tf.where(
+        local_atten_per_step_paddings = tf.logical_not(
             tf.logical_and(shifted_distance <= p.left_context - 1,
-                           shifted_distance >= 0),
-            tf.zeros_like(shifted_distance, py_utils.FPropDtype(p)),
-            tf.ones_like(shifted_distance, py_utils.FPropDtype(p)))
+                           shifted_distance >= 0))
         # [1, Q, S] or [B, Q, S]
         if py_utils.GetRank(local_atten_per_step_paddings) < 3:
           local_atten_per_step_paddings = tf.expand_dims(
               local_atten_per_step_paddings, 0)
         # [B, 1, S]
-        expanded_masks = tf.expand_dims(state1.masks, 1)
+        expanded_state_paddings = tf.expand_dims(
+            tf.cast(1 - state1.masks, tf.bool), 1)
 
         # [B, Q, S]
-        final_paddings = tf.logical_or(
-            tf.cast(1 - expanded_masks, tf.bool),
-            tf.cast(local_atten_per_step_paddings, tf.bool))
+        final_paddings = tf.logical_or(expanded_state_paddings,
+                                       local_atten_per_step_paddings)
         # [B, Q, 1, S]
-        final_paddings = tf.expand_dims(
-            tf.cast(final_paddings, logits.dtype), axis=2)
+        final_paddings = tf.expand_dims(final_paddings, axis=2)
 
       # [B, Q, N, S]
       logits = py_utils.ApplyPadding(
@@ -2444,8 +2441,6 @@ class LocalSelfAttention(MultiHeadedAttention):
       state_paddings = tf.concat([1 - state0.masks, paddings],
                                  axis=1,
                                  name='concat_paddings')
-      # t == context_len + q
-      t = py_utils.GetShape(state_paddings)[1]
 
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query, key)
@@ -2461,21 +2456,19 @@ class LocalSelfAttention(MultiHeadedAttention):
         # 1s are masked positions.
         # [Q, T]
         distance = query_indices - target_indices
-        local_atten_per_step_paddings = tf.where(
+        local_atten_per_step_paddings = tf.logical_not(
             tf.logical_and(distance <= p.left_context - 1,
-                           distance >= -p.right_context),
-            tf.zeros([q, t], py_utils.FPropDtype(p)),
-            tf.ones([q, t], py_utils.FPropDtype(p)))
+                           distance >= -p.right_context))
         # [1, Q, T]
         local_atten_per_step_paddings = tf.expand_dims(
             local_atten_per_step_paddings, 0)
         # [B, 1, T]
-        expanded_state_paddings = tf.expand_dims(state_paddings, 1)
+        expanded_state_paddings = tf.expand_dims(
+            tf.cast(state_paddings, tf.bool), 1)
 
         # [B, Q, T]
-        final_paddings = tf.logical_or(
-            tf.cast(expanded_state_paddings, tf.bool),
-            tf.cast(local_atten_per_step_paddings, tf.bool))
+        final_paddings = tf.logical_or(expanded_state_paddings,
+                                       local_atten_per_step_paddings)
         # [B, Q, 1, T]
         final_paddings = tf.expand_dims(final_paddings, axis=2)
 
@@ -2490,7 +2483,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       output = tf.einsum('BQNT,BTNH->BQNH', posteriors, value)
 
       # Post projection.
-      # [B,Q,D]
+      # [B, Q, D]
       output = self.post.FProp(theta.post, output)
 
       state1 = py_utils.NestedMap(
