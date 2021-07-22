@@ -2517,26 +2517,27 @@
           <span class="c1"># [Q, S]</span>
           <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span>
         <span class="c1"># [B, Q, S] or [Q, S]</span>
-        <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">shifted_distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
-                           <span class="n">shifted_distance</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">shifted_distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shifted_distance</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># [1, Q, S] or [B, Q, S]</span>
-        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">local_atten_per_step_paddings</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
-          <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-              <span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">local_atten_per_step_masks</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+          <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+              <span class="n">local_atten_per_step_masks</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># [B, 1, S]</span>
-        <span class="n">expanded_state_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">state1</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">expanded_state_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># [B, Q, S]</span>
-        <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">expanded_state_paddings</span><span class="p">,</span>
-                                       <span class="n">local_atten_per_step_paddings</span><span class="p">)</span>
+        <span class="n">final_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">expanded_state_masks</span><span class="p">,</span>
+                                     <span class="n">local_atten_per_step_masks</span><span class="p">)</span>
         <span class="c1"># [B, Q, 1, S]</span>
-        <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">final_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">final_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">final_masks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
       <span class="c1"># [B, Q, N, S]</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span>
-          <span class="n">final_paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">use_select</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">final_masks</span><span class="p">),</span>
+          <span class="n">logits</span><span class="p">,</span>
+          <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">use_select</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="c1"># [B, Q, N, S]</span>
       <span class="n">posteriors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
           <span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
@@ -2592,10 +2593,10 @@
           <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)],</span>
           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_value&#39;</span><span class="p">)</span>
-      <span class="c1"># [B, T]. 1s are masked positions.</span>
-      <span class="n">state_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">paddings</span><span class="p">],</span>
-                                 <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_paddings&#39;</span><span class="p">)</span>
+      <span class="c1"># [B, T]</span>
+      <span class="n">state_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">],</span>
+                              <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                              <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_masks&#39;</span><span class="p">)</span>
 
       <span class="c1"># [B, Q, N, T]</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamAttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
@@ -2611,25 +2612,23 @@
         <span class="c1"># 1s are masked positions.</span>
         <span class="c1"># [Q, T]</span>
         <span class="n">distance</span> <span class="o">=</span> <span class="n">query_indices</span> <span class="o">-</span> <span class="n">target_indices</span>
-        <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
-                           <span class="n">distance</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">))</span>
+        <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+            <span class="n">distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">distance</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">)</span>
         <span class="c1"># [1, Q, T]</span>
-        <span class="n">local_atten_per_step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-            <span class="n">local_atten_per_step_paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">local_atten_per_step_masks</span><span class="p">,</span>
+                                                    <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># [B, 1, T]</span>
-        <span class="n">expanded_state_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">expanded_state_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state_masks</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># [B, Q, T]</span>
-        <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">expanded_state_paddings</span><span class="p">,</span>
-                                       <span class="n">local_atten_per_step_paddings</span><span class="p">)</span>
+        <span class="n">final_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">expanded_state_masks</span><span class="p">,</span>
+                                     <span class="n">local_atten_per_step_masks</span><span class="p">)</span>
         <span class="c1"># [B, Q, 1, T]</span>
-        <span class="n">final_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">final_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">final_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">final_masks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
       <span class="c1"># [B, Q, N, T]</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">final_paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span>
-                                     <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">final_masks</span><span class="p">),</span> <span class="n">logits</span><span class="p">,</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
 
       <span class="c1"># [B, Q, N, T]</span>
       <span class="n">posteriors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
@@ -2644,7 +2643,7 @@
       <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span>
           <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span>
-          <span class="n">masks</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">state_paddings</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:])</span>
+          <span class="n">masks</span><span class="o">=</span><span class="n">state_masks</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:])</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">out_masks</span> <span class="o">=</span> <span class="n">concat_out_masks</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
