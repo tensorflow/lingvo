@@ -409,7 +409,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         feature_axis=feature_axis,
         expected_scale_shape=expected_scale_shape)
 
-  def FromAqtWeight(self, w_name, out):
+  def FromAqtWeight(self, w_name, out, merge_feature_axes=False):
     """Rescales the output corresponding to AQT style quantized matmul's weight.
 
     Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.
@@ -419,6 +419,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Args:
       w_name: Previously created w_name QWeight to quantize weight.
       out: The tensor to rescale.
+      merge_feature_axes: whether or the feature axes have been reshaped into a
+        single axis in 'out'.
 
     Returns:
       Rescaled output.
@@ -428,6 +430,65 @@ class QuantizableLayer(base_layer.BaseLayer):
          '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
     qd = self._aqt_weights[w_name]
     return qd.FromAqtWeight(w_name, out) if qd else out
+
+  def ToAqtConv(self,
+                w_name,
+                act,
+                weight,
+                w_feature_axis,
+                act_distribution=InputDistribution.SYMMETRIC,
+                w_expected_scale_shape=None):
+    """Quantizes Weights and activations for convolutions.
+
+    Refer to quantizable_layer.ToAqtConv.
+
+    Args:
+      w_name: Previously created w_name QWeight to quantize weight.
+      act: The activation tensor to quantize.
+      weight: The weight tensor to quantizes.
+      w_feature_axis: axis corresponding to output channel/feature for weights.
+      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      w_expected_scale_shape: Optional shape to verify if scale shape is
+        expected. Defaults to None.
+
+    Returns:
+      Quantized act and weight.
+    """
+    assert w_name in self._aqt_weights, (
+        ('Call to ToAqtConv without first calling CreateAqtWeight: %s '
+         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+    qd = self._aqt_weights[w_name]
+    if not qd:
+      return act, weight
+    return qd.ToAqtConv(
+        w_name,
+        act=act,
+        weight=weight,
+        act_distribution=act_distribution,
+        w_feature_axis=w_feature_axis,
+        w_expected_scale_shape=w_expected_scale_shape)
+
+  def FromAqtConv(self, w_name, output, *, is_depthwise=False):
+    """Rescales the output corresponding to AQT quantized convolution.
+
+    Refer to quantizable_layer.FromAqtConv.
+
+    Args:
+      w_name: weight name.
+      output: The tensor to rescale.
+      is_depthwise: Whether or not this follows a DepthwiseConv, which merges
+        the feature axes in the output tensor.
+
+    Returns:
+      Rescaled output.
+    """
+    assert w_name in self._aqt_weights, (
+        ('Call to FromAqtConv without first calling CreateAqtWeight: %s '
+         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+    qd = self._aqt_weights[w_name]
+    if qd is None:
+      return output
+    return qd.FromAqtConv(w_name, output, is_depthwise=is_depthwise)
 
   def ToAqtInputs(self,
                   w_name,
@@ -456,7 +517,7 @@ class QuantizableLayer(base_layer.BaseLayer):
       Quantized act and weight.
     """
     assert w_name in self._aqt_weights, (
-        ('Call to ToAqtWeight without first calling CreateAqtWeight: %s '
+        ('Call to ToAqtInputs without first calling CreateAqtWeight: %s '
          '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
     qd = self._aqt_weights[w_name]
     if not qd:
@@ -1048,6 +1109,49 @@ class QDomain(base_layer.BaseLayer):
     """
     return w
 
+  def ToAqtConv(self,
+                w_name,
+                act,
+                weight,
+                w_feature_axis,
+                act_distribution,
+                w_expected_scale_shape=None):
+    """Quantizes Weights and activations for convolutions.
+
+    Refer to quantizable_layer.ToAqtConv.
+
+    Args:
+      w_name: Previously created w_name QWeight to quantize weight.
+      act: The activation tensor to quantize.
+      weight: The weight tensor to quantizes.
+      w_feature_axis: axis corresponding to output channel/feature for weights.
+      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      w_expected_scale_shape: Optional shape to verify if scale shape is
+        expected. Defaults to None.
+
+    Returns:
+      Quantized act and weight.
+    """
+    del w_feature_axis, w_expected_scale_shape, w_name, act_distribution
+    return act, weight
+
+  def FromAqtConv(self, w_name, output, *, is_depthwise=False):
+    """Rescales the output corresponding to AQT quantized convolution.
+
+    Refer to quantizable_layer.FromAqtConv.
+
+    Args:
+      w_name: weight name.
+      output: The tensor to rescale.
+      is_depthwise: Whether or not this follows a DepthwiseConv, which merges
+        the feature axes in the output tensor.
+
+    Returns:
+      Rescaled output.
+    """
+    del w_name, is_depthwise
+    return output
+
   def ToAqtInputs(self,
                   w_name,
                   act,
@@ -1121,7 +1225,7 @@ class QDomain(base_layer.BaseLayer):
     del feature_axis, expected_scale_shape, w_name
     return w
 
-  def FromAqtWeight(self, w_name, out):
+  def FromAqtWeight(self, w_name, out, merge_feature_axes=False):
     """Rescales the output corresponding to AQT quantized matmuls' weight.
 
     Refer to quantizable_layer.FromAqtWeight.
@@ -1129,6 +1233,8 @@ class QDomain(base_layer.BaseLayer):
     Args:
       w_name: weight name.
       out: The tensor to rescale.
+      merge_feature_axes: whether or the feature axes have been reshaped into a
+        single axis in 'out'.
 
     Returns:
       Rescaled output.

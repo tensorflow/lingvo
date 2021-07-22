@@ -18,11 +18,14 @@
 WARNING: Strided convolutions are buggy. Consider using v2_padding=True.
 """
 
+import copy
+
 import lingvo.compat as tf
 from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import bn_layers
 from lingvo.core import py_utils
+from lingvo.core import quant_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
 
@@ -558,7 +561,8 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 
-class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
+class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
+                           quant_utils.QuantizableLayer):
   """Depthwise conv 2D layer.
 
   paper: https://arxiv.org/abs/1610.02357
@@ -577,6 +581,10 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
         ' channel_multipliers. ')
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.CreateAqtWeight('w_aqt', self._GetWeightShape(), feature_axis=(2, 3))
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -616,12 +624,16 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
   def _GetWeight(self, theta):
     p = self.params
     if p.weight_norm:
-      # Normalize along the last two dims.
-      filter_w = tf.nn.l2_normalize(theta.w, [0, 1]) * tf.reshape(
-          (theta.g + 1.0), [1, 1, p.filter_shape[2], p.filter_shape[3]])
+      # Normalize along the feature dimensions.
+      w_norm = tf.nn.l2_normalize(theta.w, [0, 1])
+      g = tf.reshape((theta.g + 1.0), [1, 1, *p.filter_shape[-2:]])
+      return w_norm * g
     else:
-      filter_w = theta.w
-    return filter_w
+      return theta.w
+
+  def _GetWeightShape(self):
+    """The shape of the filter returned by _GetWeight."""
+    return self.params.filter_shape
 
   def _ApplyConv(self, theta, conv_input):
     out = self._EvaluateConvKernel(theta, conv_input,
@@ -635,13 +647,16 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
     """Apply convolution to inputs."""
     p = self.params
     filter_w = self._GetWeight(theta)
-    return tf.nn.depthwise_conv2d(
+    inputs, filter_w = self.ToAqtConv(
+        'w_aqt', inputs, filter_w, w_feature_axis=(2, 3))
+    output = tf.nn.depthwise_conv2d(
         inputs,
         filter_w,
         strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
         dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
+    return self.FromAqtConv('w_aqt', output, is_depthwise=True)
 
 
 class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
@@ -777,6 +792,13 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     # channels.
     filter_w = tf.tile(filter_w, [1, 1, p.weight_tiling_factor, 1])
     return filter_w
+
+  def _GetWeightShape(self):
+    """The shape of the filter returned by _GetWeight."""
+    p = self.params
+    tiled_shape = copy.deepcopy(p.filter_shape)
+    tiled_shape[2] *= p.weight_tiling_factor
+    return tiled_shape
 
   @classmethod
   def FPropMeta(cls, p, inputs, paddings):
