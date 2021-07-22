@@ -27,3 +27,11 @@ filegroup(
         "en_fr.tfrecord",
     ],
 )
+
+filegroup(
+    name = "doublebatch_tfexample",
+    data = [
+        "wmt14_ende_wpm_32k_doublebatch_test-000-001",
+        "wmt14_ende_wpm_32k_test.vocab",
+    ],
+)

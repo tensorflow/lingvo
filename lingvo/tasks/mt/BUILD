@@ -166,10 +166,12 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
+        "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",
         "//lingvo/core:tokenizers",
         "//lingvo/core/ops",
+        # Implicit tensorflow_probability dependency.
     ],
 )
 
@@ -178,6 +180,7 @@ py_test(
     srcs = ["input_generator_test.py"],
     data = [
         ":wpm_ende",
+        "//lingvo/tasks/mt/testdata:doublebatch_tfexample",
         "//lingvo/tasks/mt/testdata:input_test_data",
         "//lingvo/tasks/mt/testdata:mlperf_tfexample",
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
@@ -186,12 +189,14 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":input_generator",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         "//lingvo/core:tokenizers",
+        # Implicit mock dependency.
         # Implicit numpy dependency.
     ],
 )
@@ -226,6 +231,7 @@ py_library(
     testonly = 1,
     srcs = ["model_test.py"],
     data = [
+        "//lingvo/tasks/mt/testdata:doublebatch_tfexample",
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
     srcs_version = "PY3",

@@ -528,5 +528,97 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
         self.assertEqual(summary.value[2].simple_value, expected_count)
 
 
+class DoubleInputTest(test_utils.TestCase, parameterized.TestCase):
+
+  def _CreateNmtInputParams(self):
+    p = input_generator.NmtDoubleInput.Params()
+    input_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_doublebatch_test-000-001')
+    p.file_pattern = 'tfrecord:' + input_file
+    p.tokenizer.token_vocab_filepath = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_test.vocab')
+    p.file_random_seed = 31415
+    p.file_parallelism = 1
+    p.bucket_upper_bound = [10, 20]
+    p.bucket_batch_limit = [4, 2]
+    p.source_mask_ratio = -1
+    p.source_mask_ratio_beta = '2,6'
+    p.mask_word_id = 31999
+    p.pad_id = 31998
+    p.mask_words_ratio = 0.25
+    p.permutation_distance = 3
+    p.vocab_file = p.tokenizer.token_vocab_filepath
+    p.packed_input = False
+    return p
+
+  def _CreatePackedNmtInputParams(self):
+    p = self._CreateNmtInputParams()
+    p.packed_input = True
+    p.bucket_upper_bound = [10, 20, 40]
+    p.bucket_batch_limit = [4, 2, 1]
+    return p
+
+  def testBasicInput(self):
+    p = self._CreateNmtInputParams()
+    with self.session(use_gpu=False) as sess:
+      inp = p.Instantiate()
+      batch_tensor = inp.GetPreprocessedInputBatch()
+      batch = sess.run(batch_tensor)
+    self.assertAllEqual([2, 20], batch.src.ids.shape)
+    self.assertAllEqual(
+        batch.src.ids,
+        [[
+            30, 23020, 1497, 4593, 3870, 23880, 833, 3, 10311, 7, 1632, 3, 11,
+            2267, 76, 7, 249, 4, 2, 31998
+        ],
+         [
+             125, 2475, 883, 103, 5004, 7, 784, 10182, 1990, 4, 2, 31998, 31998,
+             31998, 31998, 31998, 31998, 31998, 31998, 31998
+         ]])
+    self.assertAllEqual(
+        batch.other_src.ids,
+        [[
+            7499, 31999, 3, 741, 31999, 173, 41, 1354, 3316, 4, 2, 31998, 31998,
+            31998, 31998, 31998, 31998, 31998, 31998, 31998
+        ],
+         [
+             27822, 510, 223, 31999, 46, 9, 13220, 12, 21965, 2241, 35, 31999,
+             4104, 31999, 1179, 235, 31999, 4, 2, 31998
+         ]])
+    self.assertAllEqual(batch.src.source_mask,
+                        [[
+                            0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,
+                            1., 0., 0., 0., 1., 0., 0.
+                        ],
+                         [
+                             1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0.
+                         ]])
+
+  def testPackedInput(self):
+    p = self._CreatePackedNmtInputParams()
+    with self.session(use_gpu=False) as sess:
+      inp = p.Instantiate()
+      batch_tensor = inp.GetPreprocessedInputBatch()
+      for _ in range(7):
+        batch = sess.run(batch_tensor)
+    self.assertAllEqual([1, 40], batch.src.ids.shape)
+    self.assertAllEqual(batch.src.segment_ids, [[
+        1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+        1., 1., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2.,
+        2., 2., 2., 2.
+    ]])
+    self.assertAllEqual(batch.other_src.segment_pos, [[
+        0., 1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.,
+        16., 17., 18., 19., 0., 1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11.,
+        12., 13., 14., 15., 16., 17., 18., 19.
+    ]])
+    self.assertAllEqual(batch.src.source_mask, [[
+        0., 0., 0., 0., 0., 1., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0.
+    ]])
+
+
 if __name__ == '__main__':
   tf.test.main()

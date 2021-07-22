@@ -23,6 +23,7 @@ from lingvo.core import py_utils
 from lingvo.core import summary_utils
 from lingvo.core import tokenizers
 from lingvo.tasks.mt import text_input_pb2
+import tensorflow_probability as tfp
 
 from google.protobuf import descriptor_pb2
 
@@ -1075,3 +1076,375 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
     # Casts floating point tensors to fprop_dtype before returning.
     return ret.Transform(self.Cast)
+
+
+class NmtDoubleInput(NmtInput):
+  """Generator to read datasets where each data contains two sentence pairs.
+
+  Each training example from the dataset consists of two sentence pairs. The
+  second sentence pair can be a monolingual sentence pair if its source and
+  target sentences are the same (i.e. mono_source_id=mono_target_id). This input
+  generator supports adding masking and word permutation noises to the source
+  sentence. The dataset contains tensorflow examples with fields as follows:
+  `source_id`: The source sentence ids.
+  `source_paddings`: The source paddings.
+  `target_id`: The right shift copy of target_label starting with <s> tokens.
+  `target_paddings`:  The target paddings.
+  `target_label`: The target sentence ids.
+  `target_weight`: The target weights.
+  `mono_source_id`: The source sentence ids for another sentence pair.
+  `mono_source_padding`: The source padddings for another sentence pair.
+  `mono_target_id`: The right shift copy of mono_target_label.
+  `mono_target_padding`: The target paddings for another sentence pair.
+  `mono_target_label`: The target sentence ids for another sentence pair.
+  `mono_target_weight`: The target weights for another sentence pair.
+  'natural_order`: Narural order or not, default 1.
+  """
+
+  @classmethod
+  def Params(cls):
+    """Defaults params for NmtInputWithMono."""
+    p = super().Params()
+    p.Define('packed_input', False, 'Whether to pack up data mainly for TPU'
+             'training')
+    p.Define('source_mask_ratio', 0., 'Percentage of source ids being replaced')
+    p.Define(
+        'source_mask_ratio_beta', None,
+        'A comma seperated list to represent two parameters in Beta'
+        'distribution. It will be used when source_mask_ratio <=0')
+    p.Define('permutation_distance', 0, 'Permutation distance for shuffling')
+    p.Define('mask_word_id', 3, '<mask> word id')
+    p.Define('mask_words_ratio', 0., 'Ratio of <mask> words in a sentence')
+    p.Define('pad_id', 4, '<pad> id')
+    p.Define('vocab_file', None, 'Vocabulary file path')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.vocab = []
+    p = self.params
+    if p.vocab_file:
+      with tf.io.gfile.GFile(p.vocab_file, 'r') as fr:
+        for line in fr:
+          ws = line.strip().split('\t')
+          self.vocab.append(ws[0].strip())
+
+  def _DataSourceFromFilePattern(self, file_pattern):
+
+    def Proc(record):
+      """Parses a serialized tf.Example record."""
+      outputs = [
+          ('source_id', tf.io.VarLenFeature(tf.int64)),
+          ('source_padding', tf.io.VarLenFeature(tf.float32)),
+          ('target_id', tf.io.VarLenFeature(tf.int64)),
+          ('target_padding', tf.io.VarLenFeature(tf.float32)),
+          ('target_label', tf.io.VarLenFeature(tf.int64)),
+          ('target_weight', tf.io.VarLenFeature(tf.float32)),
+          ('mono_source_id', tf.io.VarLenFeature(tf.int64)),
+          ('mono_source_padding', tf.io.VarLenFeature(tf.float32)),
+          ('mono_target_id', tf.io.VarLenFeature(tf.int64)),
+          ('mono_target_padding', tf.io.VarLenFeature(tf.float32)),
+          ('mono_target_label', tf.io.VarLenFeature(tf.int64)),
+          ('mono_target_weight', tf.io.VarLenFeature(tf.float32)),
+          ('natural_order', tf.io.VarLenFeature(tf.int64)),
+      ]
+      features = tf.io.parse_single_example(record, dict(outputs))
+      for k, v in features.items():
+        features[k] = v.values
+      bucket_key = tf.cast(
+          tf.maximum(
+              tf.reduce_sum(1.0 - features['source_padding']),
+              tf.reduce_sum(1.0 - features['target_padding'])), tf.int32)
+      return [features[k] for k, _ in outputs], bucket_key
+
+    features, bucket_keys = generic_input.GenericInput(
+        file_pattern=file_pattern,
+        processor=Proc,
+        dynamic_padding_dimensions=[0] * 13,
+        dynamic_padding_constants=[0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+        **self.CommonInputOpArgs())
+
+    return self.BuildInputBatch(
+        batch_size=self.InfeedBatchSize(),
+        features_list=features,
+        bucket_keys=bucket_keys)
+
+  def BuildInputBatch(self, batch_size, features_list, bucket_keys=None):
+    """Builds an input batch.
+
+    Args:
+      batch_size: batch size to use, defaults to infeed batch size.
+      features_list: Use this list to build the batch.
+      bucket_keys: If None, bucket_keys[i] is the bucketing key of the i-th
+        sample.
+
+    Returns:
+      py_utils.NestedMap with feature names as keys and tensors as values.
+    """
+    p = self.params
+
+    ret = py_utils.NestedMap()
+
+    # mono_source_id and mono_target_id could be a parallel sentence pair or
+    # a monolingual sentence pair where mono_target_id = mono_source_id.
+    (src_ids, src_paddings, tgt_ids, tgt_paddings, tgt_labels, tgt_weights,
+     mono_src_ids, mono_src_paddings, mono_tgt_ids, mono_tgt_paddings,
+     mono_tgt_labels, mono_tgt_weights, _) = features_list
+
+    ret.src = py_utils.NestedMap()
+    ret.src.ids = tf.cast(src_ids, dtype=tf.int32)
+    ret.src.paddings = src_paddings
+
+    ret.tgt = py_utils.NestedMap()
+    ret.tgt.ids = tf.cast(tgt_ids, dtype=tf.int32)
+    ret.tgt.labels = tf.cast(tgt_labels, dtype=tf.int32)
+    ret.tgt.weights = tgt_weights
+    ret.tgt.paddings = tgt_paddings
+
+    ret.other_src = py_utils.NestedMap()
+    ret.other_src.ids = tf.cast(tf.roll(mono_src_ids, 1, 0), dtype=tf.int32)
+    ret.other_src.paddings = tf.roll(mono_src_paddings, 1, 0)
+
+    ret.other_tgt = py_utils.NestedMap()
+    ret.other_tgt.ids = tf.cast(tf.roll(mono_tgt_ids, 1, 0), dtype=tf.int32)
+    ret.other_tgt.paddings = tf.roll(mono_tgt_paddings, 1, 0)
+    ret.other_tgt.labels = tf.cast(
+        tf.roll(mono_tgt_labels, 1, 0), dtype=tf.int32)
+    ret.other_tgt.weights = tf.roll(mono_tgt_weights, 1, 0)
+
+    ret = self._ProcessBatch(ret)
+    if p.packed_input:
+      ret = self._Pack(ret)
+
+    if (self.params.fprop_dtype is None or
+        self.params.dtype == self.params.fprop_dtype):
+      return ret
+
+    def _Cast(v):
+      if not v.dtype.is_floating:
+        return v
+      return tf.cast(v, self.params.fprop_dtype)
+
+    return ret.Transform(_Cast)
+
+  def _SelectMaskPositions(self, paddings, ratio=None, sampled_num=None):
+    """Sample ratio * len(sentences) or sampled_num positions from sentences.
+
+    Args:
+      paddings: a paddings tensor of shape [batch, time].
+      ratio: a sampling ratio of a float or a tensor of shape [batch].
+      sampled_num: a tensor of shape [batch] and will be used when ratio=None.
+
+    Returns:
+      mask: a mask tensor with 1 as selected positions and 0 as non-selected
+          positions.
+    """
+    shape = tf.shape(paddings)
+    z = -tf.math.log(-tf.math.log(tf.random.uniform(shape, 0., 1.)))
+    input_length = tf.reduce_sum(1.0 - paddings, 1)
+    input_mask = tf.sequence_mask(
+        tf.cast(input_length - 1, tf.int32), shape[1], dtype=tf.float32)
+    z = z * input_mask + (1.0 - input_mask) * (-1e9)
+    topk = tf.reduce_max(input_length - 1)
+
+    if sampled_num is not None:
+      topk = tf.maximum(sampled_num, 1)
+      topk = tf.reduce_max(topk)
+    elif ratio is not None and isinstance(ratio, float):
+      topk = tf.cast(topk * ratio, tf.int32)
+      topk = tf.maximum(topk, 1)
+      sampled_num = (input_length - 1) * ratio
+    elif ratio is not None and isinstance(ratio, tf.Tensor):
+      topk = tf.cast(topk * ratio, tf.int32)
+      topk = tf.maximum(topk, 1)
+      topk = tf.reduce_max(topk)
+      sampled_num = (input_length - 1) * ratio
+
+    sampled_num = tf.maximum(sampled_num, 1)
+    topk = tf.cast(topk, tf.int32)
+    _, indices = tf.nn.top_k(z, topk)
+
+    seq_mask = tf.sequence_mask(
+        tf.cast(sampled_num, tf.int32), topk, dtype=tf.int32)
+
+    indices = (indices + 1) * seq_mask
+    indices = tf.reshape(indices, [-1])
+    top_id = tf.range(shape[0] * topk) // topk
+    indices = tf.stack([top_id, indices], axis=1)
+
+    mask = tf.sparse_to_dense(
+        indices, (shape[0], shape[1] + 1), 1., 0., validate_indices=False)
+    mask = mask[:, 1:]
+    mask = tf.cast(mask, tf.float32)
+    mask = mask * input_mask
+    return mask
+
+  def _ShuffleWords(self, seq, paddings, permutation_distance):
+    """Locally shuffle words with permutation_distance."""
+    sep_token = b'\xe2\x96\x81'
+    seq_length = tf.reduce_sum(1.0 - paddings, 1)
+    seq_shape = tf.shape(seq)
+    bpe_end = []
+    for word in self.vocab:
+      if word.encode('utf-8').startswith(sep_token):
+        bpe_end.append(True)
+      else:
+        bpe_end.append(False)
+
+    bpe_end = tf.cast(bpe_end, tf.float32)
+    seq_mask = tf.sequence_mask(seq_length, tf.shape(seq)[1], tf.float32)
+    seq_mask_r = tf.sequence_mask(seq_length - 1, tf.shape(seq)[1], tf.float32)
+    noise = tf.random.uniform(seq_shape, minval=0., maxval=permutation_distance)
+    seq_bpe_end = tf.gather(bpe_end, seq)
+    seq_bpe_end = tf.pad(
+        seq_bpe_end, [[0, 0], [0, 1]], constant_values=1.)[:, 1:]
+    seq_bpe_end = seq_bpe_end * seq_mask
+    word_idx = tf.cumsum(seq_bpe_end, axis=1, reverse=True)
+    word_idx = tf.reduce_max(word_idx, axis=1, keepdims=True) - word_idx
+    word_pos_pad = tf.range(seq_shape[0] * seq_shape[1]) // seq_shape[1]
+    word_pos_pad = tf.reshape(word_pos_pad, seq_shape)
+    word_pos = tf.stack([word_pos_pad, tf.cast(word_idx, tf.int32)], axis=2)
+    scores = word_idx + tf.gather_nd(noise, word_pos)
+    scores = scores * seq_mask_r + (1 - seq_mask_r) * 1e6
+    scores = scores + 1e-6 * tf.cast(word_pos_pad, tf.float32)
+    perm_scores = tf.argsort(scores, axis=1, stable=True)
+    word_pos_perm = tf.stack([word_pos_pad, perm_scores], axis=2)
+    new_seq = tf.gather_nd(seq, word_pos_perm)
+    return new_seq
+
+  def _MaskWords(self, seq, paddings, ratio):
+    """Replace ratio*len(seq) words with <mask> words."""
+    p = self.params
+    ratio = p.mask_words_ratio
+    seq_not_keep = self._SelectMaskPositions(paddings, ratio)
+    seq_not_keep = tf.cast(seq_not_keep, tf.int32)
+    mask_words = seq_not_keep * p.mask_word_id
+    new_seq = (1 - seq_not_keep) * seq + mask_words
+    return new_seq
+
+  def _GenerateNoiseSents(self, seq, paddings):
+    """Add noises to seq."""
+    p = self.params
+    if p.permutation_distance > 0:
+      seq = self._ShuffleWords(seq, paddings, p.permutation_distance)
+
+    if p.mask_words_ratio > 0.:
+      seq = self._MaskWords(seq, paddings, p.mask_words_ratio)
+    return seq, paddings
+
+  def _CreateSourceLambdas(self, source_paddings):
+    """Generate a 0/1 tensor where 1 takes up a percentage for each row."""
+    p = self.params
+    if p.source_mask_ratio > 0.:
+      ratio = tf.convert_to_tensor(p.source_mask_ratio, tf.float32)
+    else:
+      source_mask_ratio_beta = [
+          float(a) for a in p.source_mask_ratio_beta.split(',')
+      ]
+
+      beta_dist = tfp.distributions.Beta(source_mask_ratio_beta[0],
+                                         source_mask_ratio_beta[1])
+      ratio = beta_dist.sample(tf.shape(source_paddings)[0])
+      ratio = tf.minimum(ratio, 1.0 - ratio)
+    now_paddings = source_paddings
+    source_mask = self._SelectMaskPositions(now_paddings, ratio)
+    return source_mask
+
+  def _ProcessBatch(self, batch):
+    """Aligns lengths of two source batches and target batch."""
+    p = self._params
+    max_len = tf.shape(batch.tgt.ids)[1]
+    max_len = tf.maximum(max_len, tf.shape(batch.src.ids)[1])
+    max_len = tf.maximum(max_len, tf.shape(batch.other_src.ids)[1])
+    max_len = tf.maximum(max_len, tf.shape(batch.other_tgt.ids)[1])
+
+    def PadBatch(src):
+      for key in src.keys():
+        if key == 'paddings':
+          src[key] = py_utils.PadSequenceDimension(src[key], max_len, 1)
+        else:
+          src[key] = py_utils.PadSequenceDimension(src[key], max_len, 0)
+
+    PadBatch(batch.src)
+    PadBatch(batch.tgt)
+    PadBatch(batch.other_src)
+    PadBatch(batch.other_tgt)
+
+    def RepTokens(ids, paddings):
+      if p.pad_id <= 0:
+        return ids
+      new_ids = tf.where(
+          tf.equal(paddings, 1.0),
+          tf.ones_like(ids) * p.pad_id, ids)
+      return new_ids
+
+    batch.src.ids = RepTokens(batch.src.ids, batch.src.paddings)
+    batch.other_src.ids = RepTokens(batch.other_src.ids,
+                                    batch.other_src.paddings)
+    batch.tgt.ids = RepTokens(batch.tgt.ids, batch.tgt.paddings)
+    batch.other_tgt.ids = RepTokens(batch.other_tgt.ids,
+                                    batch.other_tgt.paddings)
+    batch.tgt.labels = RepTokens(batch.tgt.labels, batch.tgt.paddings)
+    batch.other_tgt.labels = RepTokens(batch.other_tgt.labels,
+                                       batch.other_tgt.paddings)
+    batch.other_src.ids, batch.other_src.paddings = self._GenerateNoiseSents(
+        batch.other_src.ids, batch.other_src.paddings)
+    if p.source_mask_ratio > 0 or p.source_mask_ratio_beta is not None:
+      batch.src.source_mask = self._CreateSourceLambdas(batch.src.paddings)
+    return batch
+
+  def _Pack(self, batch):
+    """Pack up multiple examples into one sequence."""
+    p = self.params
+    bucket_length = tf.shape(batch.src.ids)[1]
+    index = tf.searchsorted(p.bucket_upper_bound, [bucket_length])[0]
+    bs = self.infeed_bucket_batch_limit[-1]
+    split_num = tf.gather(self.infeed_bucket_batch_limit, [index])[0] // bs
+    fdtype = batch.src.paddings.dtype
+
+    def GenerateSegmentPos(ids):
+      segment_pos = tf.range(tf.shape(ids)[1], dtype=fdtype)
+      segment_pos = tf.expand_dims(segment_pos, 0)
+      segment_pos = tf.tile(segment_pos, [tf.shape(ids)[0], 1])
+      return tf.cast(segment_pos, fdtype)
+
+    def GenerateSegmentIds(ids):
+      segment_ids = tf.range(split_num, dtype=fdtype) + 1
+      segment_ids = tf.expand_dims(segment_ids, -1) * tf.ones(
+          (split_num, tf.shape(ids)[1]), fdtype)
+      segment_ids = tf.tile(segment_ids, [bs, 1])
+      return tf.cast(segment_ids, fdtype)
+
+    batch.src.segment_pos = GenerateSegmentPos(batch.src.ids)
+    batch.src.segment_ids = GenerateSegmentIds(batch.src.ids)
+    batch.tgt.segment_pos = GenerateSegmentPos(batch.tgt.ids)
+    batch.tgt.segment_ids = GenerateSegmentIds(batch.tgt.ids)
+    if 'other_src' in batch:
+      batch.other_src.segment_pos = GenerateSegmentPos(batch.other_src.ids)
+      batch.other_src.segment_ids = GenerateSegmentIds(batch.other_src.ids)
+      batch.other_tgt.segment_pos = GenerateSegmentPos(batch.other_tgt.ids)
+      batch.other_tgt.segment_ids = GenerateSegmentIds(batch.other_tgt.ids)
+
+    def ApplyPacking(x):
+      x = tf.reshape(x, [bs, split_num * tf.shape(x)[1]])
+      return x
+
+    batch = batch.Transform(ApplyPacking)
+
+    data_shape = [bs, p.bucket_upper_bound[-1]]
+    max_length = p.bucket_upper_bound[-1]
+
+    def PadBatch(src):
+      for key in src.keys():
+        if key == 'paddings':
+          src[key] = py_utils.PadSequenceDimension(src[key], max_length, 1,
+                                                   data_shape)
+        else:
+          src[key] = py_utils.PadSequenceDimension(src[key], max_length, 0,
+                                                   data_shape)
+
+    PadBatch(batch.src)
+    PadBatch(batch.tgt)
+    PadBatch(batch.other_src)
+    PadBatch(batch.other_tgt)
+    return batch
