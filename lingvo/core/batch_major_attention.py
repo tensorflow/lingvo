@@ -2362,26 +2362,27 @@ class LocalSelfAttention(MultiHeadedAttention):
           # [Q, S]
           shifted_distance = distance - (p.inference_step_max_length - q)
         # [B, Q, S] or [Q, S]
-        local_atten_per_step_paddings = tf.logical_not(
-            tf.logical_and(shifted_distance <= p.left_context - 1,
-                           shifted_distance >= 0))
+        local_atten_per_step_masks = tf.logical_and(
+            shifted_distance <= p.left_context - 1, shifted_distance >= 0)
         # [1, Q, S] or [B, Q, S]
-        if py_utils.GetRank(local_atten_per_step_paddings) < 3:
-          local_atten_per_step_paddings = tf.expand_dims(
-              local_atten_per_step_paddings, 0)
+        if py_utils.GetRank(local_atten_per_step_masks) < 3:
+          local_atten_per_step_masks = tf.expand_dims(
+              local_atten_per_step_masks, 0)
         # [B, 1, S]
-        expanded_state_paddings = tf.expand_dims(
-            tf.cast(1 - state1.masks, tf.bool), 1)
+        expanded_state_masks = tf.expand_dims(tf.cast(state1.masks, tf.bool), 1)
 
         # [B, Q, S]
-        final_paddings = tf.logical_or(expanded_state_paddings,
-                                       local_atten_per_step_paddings)
+        final_masks = tf.logical_and(expanded_state_masks,
+                                     local_atten_per_step_masks)
         # [B, Q, 1, S]
-        final_paddings = tf.expand_dims(final_paddings, axis=2)
+        final_masks = tf.expand_dims(final_masks, axis=2)
 
       # [B, Q, N, S]
       logits = py_utils.ApplyPadding(
-          final_paddings, logits, GetDtypeMin(logits.dtype), use_select=False)
+          tf.logical_not(final_masks),
+          logits,
+          GetDtypeMin(logits.dtype),
+          use_select=False)
       # [B, Q, N, S]
       posteriors = py_utils.Softmax(
           logits, axis=-1, extra_logit=p.atten_extra_logit)
@@ -2437,10 +2438,10 @@ class LocalSelfAttention(MultiHeadedAttention):
           [state0.value, self.value.FProp(theta.value, query_vec)],
           axis=1,
           name='concat_value')
-      # [B, T]. 1s are masked positions.
-      state_paddings = tf.concat([1 - state0.masks, paddings],
-                                 axis=1,
-                                 name='concat_paddings')
+      # [B, T]
+      state_masks = tf.concat([state0.masks, 1 - paddings],
+                              axis=1,
+                              name='concat_masks')
 
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query, key)
@@ -2456,25 +2457,23 @@ class LocalSelfAttention(MultiHeadedAttention):
         # 1s are masked positions.
         # [Q, T]
         distance = query_indices - target_indices
-        local_atten_per_step_paddings = tf.logical_not(
-            tf.logical_and(distance <= p.left_context - 1,
-                           distance >= -p.right_context))
+        local_atten_per_step_masks = tf.logical_and(
+            distance <= p.left_context - 1, distance >= -p.right_context)
         # [1, Q, T]
-        local_atten_per_step_paddings = tf.expand_dims(
-            local_atten_per_step_paddings, 0)
+        local_atten_per_step_masks = tf.expand_dims(local_atten_per_step_masks,
+                                                    0)
         # [B, 1, T]
-        expanded_state_paddings = tf.expand_dims(
-            tf.cast(state_paddings, tf.bool), 1)
+        expanded_state_masks = tf.expand_dims(tf.cast(state_masks, tf.bool), 1)
 
         # [B, Q, T]
-        final_paddings = tf.logical_or(expanded_state_paddings,
-                                       local_atten_per_step_paddings)
+        final_masks = tf.logical_and(expanded_state_masks,
+                                     local_atten_per_step_masks)
         # [B, Q, 1, T]
-        final_paddings = tf.expand_dims(final_paddings, axis=2)
+        final_masks = tf.expand_dims(final_masks, axis=2)
 
       # [B, Q, N, T]
-      logits = py_utils.ApplyPadding(final_paddings, logits,
-                                     GetDtypeMin(logits.dtype))
+      logits = py_utils.ApplyPadding(
+          tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype))
 
       # [B, Q, N, T]
       posteriors = py_utils.Softmax(
@@ -2489,7 +2488,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       state1 = py_utils.NestedMap(
           key=key[:, q:, :, :],
           value=value[:, q:, :, :],
-          masks=1 - state_paddings[:, q:])
+          masks=state_masks[:, q:])
       if p.right_context > 0:
         state1.query = concat_query[:, q:]
         state1.out_masks = concat_out_masks[:, q:]
