@@ -532,7 +532,7 @@ Defaults to None.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight">
-<span class="sig-name descname"><span class="pre">FromAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">FromAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_feature_axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales the output corresponding to AQT style quantized matmul’s weight.</p>
 <p>Uses the same scale used by <a class="reference internal" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight" title="lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ToAqtWeight</span></code></a> and apply its inverse to rescale.</p>
 <p>w_name must have been previously created via CreateAqtWeight.</p>
@@ -541,6 +541,51 @@ Defaults to None.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>w_name</strong> – Previously created w_name QWeight to quantize weight.</p></li>
 <li><p><strong>out</strong> – The tensor to rescale.</p></li>
+<li><p><strong>merge_feature_axes</strong> – whether or the feature axes have been reshaped into a
+single axis in ‘out’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Rescaled output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.ToAqtConv">
+<span class="sig-name descname"><span class="pre">ToAqtConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InputDistribution.SYMMETRIC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quantizes Weights and activations for convolutions.</p>
+<p>Refer to quantizable_layer.ToAqtConv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – Previously created w_name QWeight to quantize weight.</p></li>
+<li><p><strong>act</strong> – The activation tensor to quantize.</p></li>
+<li><p><strong>weight</strong> – The weight tensor to quantizes.</p></li>
+<li><p><strong>w_feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
+<li><p><strong>act_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
+<li><p><strong>w_expected_scale_shape</strong> – Optional shape to verify if scale shape is
+expected. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Quantized act and weight.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.FromAqtConv">
+<span class="sig-name descname"><span class="pre">FromAqtConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_depthwise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.FromAqtConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.FromAqtConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rescales the output corresponding to AQT quantized convolution.</p>
+<p>Refer to quantizable_layer.FromAqtConv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – weight name.</p></li>
+<li><p><strong>output</strong> – The tensor to rescale.</p></li>
+<li><p><strong>is_depthwise</strong> – Whether or not this follows a DepthwiseConv, which merges
+the feature axes in the output tensor.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1124,6 +1169,49 @@ if None.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.ToAqtConv">
+<span class="sig-name descname"><span class="pre">ToAqtConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quantizes Weights and activations for convolutions.</p>
+<p>Refer to quantizable_layer.ToAqtConv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – Previously created w_name QWeight to quantize weight.</p></li>
+<li><p><strong>act</strong> – The activation tensor to quantize.</p></li>
+<li><p><strong>weight</strong> – The weight tensor to quantizes.</p></li>
+<li><p><strong>w_feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
+<li><p><strong>act_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
+<li><p><strong>w_expected_scale_shape</strong> – Optional shape to verify if scale shape is
+expected. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Quantized act and weight.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.FromAqtConv">
+<span class="sig-name descname"><span class="pre">FromAqtConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_depthwise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rescales the output corresponding to AQT quantized convolution.</p>
+<p>Refer to quantizable_layer.FromAqtConv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_name</strong> – weight name.</p></li>
+<li><p><strong>output</strong> – The tensor to rescale.</p></li>
+<li><p><strong>is_depthwise</strong> – Whether or not this follows a DepthwiseConv, which merges
+the feature axes in the output tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Rescaled output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.ToAqtInputs">
 <span class="sig-name descname"><span class="pre">ToAqtInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes weights and activations for (act * w) matmul AQT style.</p>
@@ -1205,7 +1293,7 @@ expected. Defaults to None.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.FromAqtWeight">
-<span class="sig-name descname"><span class="pre">FromAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">FromAqtWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_feature_axes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.FromAqtWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.FromAqtWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rescales the output corresponding to AQT quantized matmuls’ weight.</p>
 <p>Refer to quantizable_layer.FromAqtWeight.</p>
 <dl class="field-list simple">
@@ -1213,6 +1301,8 @@ expected. Defaults to None.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>w_name</strong> – weight name.</p></li>
 <li><p><strong>out</strong> – The tensor to rescale.</p></li>
+<li><p><strong>merge_feature_axes</strong> – whether or the feature axes have been reshaped into a
+single axis in ‘out’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
