@@ -3779,7 +3779,7 @@ def _TransformAndSum(tensor_list, transform):
 
 
 def SumSquared(tensor_list):
-  return _TransformAndSum(tensor_list, lambda v: tf.abs(v)**2)
+  return _TransformAndSum(tensor_list, lambda v: v**2)
 
 
 def SumAbs(tensor_list):
