@@ -514,6 +514,141 @@ The noises are added to the input with probability p.noise_sent_prob.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.input_generator.</span></span><span class="sig-name descname"><span class="pre">NmtDoubleInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.input_generator.NmtInput" title="lingvo.tasks.mt.input_generator.NmtInput"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.input_generator.NmtInput</span></code></a></p>
+<p>Generator to read datasets where each data contains two sentence pairs.</p>
+<p>Each training example from the dataset consists of two sentence pairs. The
+second sentence pair can be a monolingual sentence pair if its source and
+target sentences are the same (i.e. mono_source_id=mono_target_id). This input
+generator supports adding masking and word permutation noises to the source
+sentence. The dataset contains tensorflow examples with fields as follows:
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">source_id</span></code>: The source sentence ids.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">source_paddings</span></code>: The source paddings.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">target_id</span></code>: The right shift copy of target_label starting with &lt;s&gt; tokens.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">target_paddings</span></code>:  The target paddings.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">target_label</span></code>: The target sentence ids.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">target_weight</span></code>: The target weights.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">mono_source_id</span></code>: The source sentence ids for another sentence pair.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">mono_source_padding</span></code>: The source padddings for another sentence pair.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">mono_target_id</span></code>: The right shift copy of mono_target_label.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">mono_target_padding</span></code>: The target paddings for another sentence pair.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">mono_target_label</span></code>: The target sentence ids for another sentence pair.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">mono_target_weight</span></code>: The target weights for another sentence pair.
+‘natural_order`: Narural order or not, default 1.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params for NmtInputWithMono.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._DataSourceFromFilePattern">
+<span class="sig-name descname"><span class="pre">_DataSourceFromFilePattern</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_pattern</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._DataSourceFromFilePattern"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._DataSourceFromFilePattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a NestedMap containing an input batch from a string file_pattern.</p>
+<p>Subclasses should implement this function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_pattern</strong> – A string file pattern.</p></li>
+<li><p><strong>input_source_weights</strong> – A list of float input source weights to control
+input example mix in the batch. The records will be sampled from inputs
+proportionally to these weights. Defaults to None which should be
+treated as an empty list.</p></li>
+<li><p><strong>input_source_id_offset</strong> – All source_ids returned from datasource will be
+offset by this value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensors containing a batch of input data with shapes
+[batch, …].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput.BuildInputBatch">
+<span class="sig-name descname"><span class="pre">BuildInputBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bucket_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput.BuildInputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput.BuildInputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds an input batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> – batch size to use, defaults to infeed batch size.</p></li>
+<li><p><strong>features_list</strong> – Use this list to build the batch.</p></li>
+<li><p><strong>bucket_keys</strong> – If None, bucket_keys[i] is the bucketing key of the i-th
+sample.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>py_utils.NestedMap with feature names as keys and tensors as values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._SelectMaskPositions">
+<span class="sig-name descname"><span class="pre">_SelectMaskPositions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampled_num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._SelectMaskPositions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._SelectMaskPositions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample ratio * len(sentences) or sampled_num positions from sentences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paddings</strong> – a paddings tensor of shape [batch, time].</p></li>
+<li><p><strong>ratio</strong> – a sampling ratio of a float or a tensor of shape [batch].</p></li>
+<li><p><strong>sampled_num</strong> – a tensor of shape [batch] and will be used when ratio=None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>a mask tensor with 1 as selected positions and 0 as non-selected</dt><dd><p>positions.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._ShuffleWords">
+<span class="sig-name descname"><span class="pre">_ShuffleWords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permutation_distance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._ShuffleWords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._ShuffleWords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Locally shuffle words with permutation_distance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._MaskWords">
+<span class="sig-name descname"><span class="pre">_MaskWords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._MaskWords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._MaskWords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace ratio*len(seq) words with &lt;mask&gt; words.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._GenerateNoiseSents">
+<span class="sig-name descname"><span class="pre">_GenerateNoiseSents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._GenerateNoiseSents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._GenerateNoiseSents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add noises to seq.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._CreateSourceLambdas">
+<span class="sig-name descname"><span class="pre">_CreateSourceLambdas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._CreateSourceLambdas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._CreateSourceLambdas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a 0/1 tensor where 1 takes up a percentage for each row.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._ProcessBatch">
+<span class="sig-name descname"><span class="pre">_ProcessBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._ProcessBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._ProcessBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aligns lengths of two source batches and target batch.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.input_generator.NmtDoubleInput._Pack">
+<span class="sig-name descname"><span class="pre">_Pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#NmtDoubleInput._Pack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.NmtDoubleInput._Pack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pack up multiple examples into one sequence.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
