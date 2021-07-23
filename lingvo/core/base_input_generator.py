@@ -1594,6 +1594,20 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     """
     return {}
 
+  def _AdditionalPreprocessInputBatch(self, batch):
+    """Additionally preprocesses input batch from iterator.get_next().
+
+    Args:
+      batch: A NestedMap (or list of NestedMaps when using TPU sharded infeed)
+        containing input tensors in the format returned by
+        _PreprocessInputBatch.
+
+    Returns:
+      A NestedMap containing additionally preprocessed inputs to feed to the
+      model.
+    """
+    return batch
+
   def GetPreprocessedInputBatch(self):
     p = self.params
 
@@ -1629,7 +1643,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
     iterator = dataset.make_one_shot_iterator()
     input_batch = iterator.get_next()
-    return input_batch
+    return self._AdditionalPreprocessInputBatch(input_batch)
 
 
 def DefineTFDataInput(name,
