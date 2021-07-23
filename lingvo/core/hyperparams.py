@@ -17,6 +17,7 @@
 
 import ast
 import copy
+import dataclasses
 import enum
 import importlib
 import inspect
@@ -26,7 +27,6 @@ import sys
 from typing import (Any, Callable, Dict, List, Generator, Generic, Mapping,
                     Optional, Sequence, Tuple, Type, TypeVar, Union)
 
-import dataclasses
 import lingvo.compat as tf
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
@@ -112,6 +112,7 @@ class _Param:
   def __init__(self, name, default_value, description):
     self._name = name
     self._value = default_value
+    self._default_value = default_value
     self._description = description
 
   def __eq__(self, other):
@@ -166,6 +167,9 @@ class _Param:
 
   def Get(self):
     return self._value
+
+  def GetDefault(self):
+    return self._default_value
 
 
 def CopyFieldsTo(from_p, to_p, skip=None):
@@ -685,9 +689,9 @@ class Params:
 
     _Visit('', self)
 
-  def ToText(
-      self,
-      include_types: bool = False) -> Union[str, Tuple[str, Dict[str, str]]]:
+  def ToText(self,
+             include_types: bool = False,
+             separator: str = ':') -> Union[str, Tuple[str, Dict[str, str]]]:
     """Encodes params into a simple text format.
 
     Each param is represented as a single line in the output.  The param
@@ -703,6 +707,7 @@ class Params:
     Args:
       include_types: Should we return types of the values. If True, the types
         dict will be returned as a second val in a return tuple
+      separator: Punctuation symbol used to separate param name and value.
 
     Returns:
       The encoded text or (encoded text, types dict) if include_types is True.
@@ -761,7 +766,7 @@ class Params:
     self.Visit(_Visit, enter_fn=_Enter)
     ret = ''
     for (k, v) in sorted(kv.items()):
-      ret += k + ' : ' + v + '\n'
+      ret += k + f' {separator} ' + v + '\n'
 
     return (ret, types) if include_types else ret
 
