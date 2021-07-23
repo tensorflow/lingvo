@@ -196,18 +196,21 @@ class Builder(builder.Base):
                           filter_shape,
                           stride,
                           dilation,
-                          is_causal):
+                          is_causal,
+                          qdomain=None):
     if is_causal:
       conv_cls = CausalDepthwiseConv2DLayer
     else:
       conv_cls = DepthwiseConv2DLayer
-    return conv_cls.Params().Set(
-        name=name,
-        filter_shape=filter_shape + [in_dim, depth_multiplier],
-        filter_stride=stride,
-        dilation_rate=dilation,
-        weight_norm=self.params.weight_norm,
-        v2_padding=self.params.v2_padding)
+    p = conv_cls.Params()
+    p.name = name
+    p.filter_shape = filter_shape + [in_dim, depth_multiplier]
+    p.filter_stride = stride
+    p.dilation_rate = dilation
+    p.weight_norm = self.params.weight_norm
+    p.v2_padding = self.params.v2_padding
+    p.qdomain.default = qdomain
+    return p
 
   def _GlobalPooling(self, name, pooling_type):
     return GlobalPoolingLayer.Params().Set(name=name, pooling_type=pooling_type)
@@ -254,7 +257,8 @@ class Builder(builder.Base):
                       dilation=None,
                       activation='RELU',
                       conv_last=False,
-                      is_causal=False):
+                      is_causal=False,
+                      qdomain=None):
     if stride is None:
       stride = [1, 1]
     if dilation is None:
@@ -264,14 +268,16 @@ class Builder(builder.Base):
           self._MaybeNorm('bn', in_dim),
           self._Activation('act', activation),
           self._RawDepthwiseConv2D('conv_2d', in_dim, depth_multiplier,
-                                   filter_shape, stride, dilation, is_causal),
+                                   filter_shape, stride, dilation, is_causal,
+                                   qdomain),
           self._Bias('bias', in_dim * depth_multiplier),
           self._Padding('pad')
       ]
     else:
       layers_in_sequence = [
           self._RawDepthwiseConv2D('conv_2d', in_dim, depth_multiplier,
-                                   filter_shape, stride, dilation, is_causal),
+                                   filter_shape, stride, dilation, is_causal,
+                                   qdomain),
           self._NormOrBias('bn_or_bias', in_dim * depth_multiplier),
           self._Activation('act', activation),
           self._Padding('pad')
@@ -339,20 +345,23 @@ class Builder(builder.Base):
                                 in_dim,
                                 dropconnect_prob=0,
                                 deterministic_dropout=False,
-                                is_causal=False):
+                                is_causal=False,
+                                qdomain=None):
     if is_causal:
       conv_cls = CausalNormalizedDepthwiseConv2DLayer
     else:
       conv_cls = NormalizedDepthwiseConv2DLayer
-    return conv_cls.Params().Set(
-        name=name,
-        filter_shape=[kernel_size, 1, num_heads, 1],
-        weight_tiling_factor=in_dim // num_heads,
-        deterministic_dropout=deterministic_dropout,
-        params_init=py_utils.WeightInit.TruncatedGaussian(
-            scale=math.sqrt(2.6 / kernel_size)),  # Fan-out initialization.
-        dropconnect_prob=dropconnect_prob,
-        v2_padding=self.params.v2_padding)
+    p = conv_cls.Params()
+    p.name = name
+    p.filter_shape = [kernel_size, 1, num_heads, 1]
+    p.weight_tiling_factor = in_dim // num_heads
+    p.deterministic_dropout = deterministic_dropout
+    p.params_init = py_utils.WeightInit.TruncatedGaussian(
+        scale=math.sqrt(2.6 / kernel_size))  # Fan-out initialization.
+    p.dropconnect_prob = dropconnect_prob
+    p.v2_padding = self.params.v2_padding
+    p.qdomain.default = qdomain
+    return p
 
   def _Add(self, name, residual_weight=1.0):
     return self._Fn(

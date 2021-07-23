@@ -6008,7 +6008,7 @@ class Builder(builder.Base):
         nested_map_fprop=True,
         num_micro_batches=p.num_micro_batches)
 
-  def _DepthwiseConv2D(self, name, filter_size, is_causal=False):
+  def _DepthwiseConv2D(self, name, filter_size, is_causal=False, qdomain=None):
     """A depthwise convolution block for lightweight conv."""
     p = self.params
     conv_builder_params = conv_layers.Builder.Params()
@@ -6025,7 +6025,8 @@ class Builder(builder.Base):
         activation=p.conv_activation,
         is_causal=is_causal)
 
-  def _NormalizedDepthwiseConv2D(self, name, kernel_size, is_causal=False):
+  def _NormalizedDepthwiseConv2D(self, name, kernel_size, is_causal=False,
+                                 qdomain=None):
     """A depthwise convolution block for lightweight conv."""
     p = self.params
     conv_builder_params = conv_layers.Builder.Params()
@@ -6037,13 +6038,15 @@ class Builder(builder.Base):
         in_dim=p.model_dim,
         dropconnect_prob=p.atten_dropout_prob,
         deterministic_dropout=p.deterministic_dropout,
-        is_causal=is_causal)
+        is_causal=is_causal,
+        qdomain=qdomain)
 
   def LConv(self,
             name,
             kernel_size,
             is_causal=False,
-            convolution_fn=None):
+            convolution_fn=None,
+            conv_qdomain=None):
     """[DEPRECATED] A lightweight convolution block as described in.
 
     Use conv_layers_builder.LConv() instead.
@@ -6060,6 +6063,7 @@ class Builder(builder.Base):
       kernel_size: kernel size used in the conv layer.
       is_causal: is causal padding or not.
       convolution_fn: Convolution to apply, default _NormalizedDepthwiseConv2D.
+      conv_qdomain: The QDomain to pass to convolution_fn.
 
     Returns:
       A LightWeightConvLayerBlock layer params.
@@ -6078,7 +6082,7 @@ class Builder(builder.Base):
              self._Glu('glu'),
              self._ExpandDims('expand'))),
         ('pre_conv,i.paddings->post_conv,o.paddings',
-         convolution_fn('conv', kernel_size, is_causal)),
+         convolution_fn('conv', kernel_size, is_causal, qdomain=conv_qdomain)),
         ('post_conv->after_dropout',
          self._Seq(
              'post_conv',
