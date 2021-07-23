@@ -647,6 +647,11 @@ class EvalProgram(BaseProgram):
     return self._ReportVizierMetrics(global_step,
                                      self._eval_metrics.ToAverageMetrics())
 
+  def RunAsync(self, sess, threadpool):
+    """Same as Run for now as there is no processing that need to run async."""
+    del threadpool  # Not used.
+    self.Run(sess)
+
 
 def _FetchDecodeOut(sess, decode_tensors, cpu_passthrough_tensors):
   """Fetch decoder outputs, combining with CPU passthrough tensors if needed."""
@@ -711,7 +716,8 @@ class DecodeProgram(BaseProgram):
       self._CompileDecodeFn()
     return None
 
-  def Run(self, sess):
+  def _SetupRun(self, sess):
+    """Set up the common objects for the program run."""
     global_step = sess.run(self._model.global_step)
     self.SetStatusMessage(
         f'Executing decode program on dataset {self.params.dataset_name} '
@@ -729,33 +735,43 @@ class DecodeProgram(BaseProgram):
         'postprocess_secs': metrics.AverageMetric(),
     })
     start_time = time.time()
-    buffered_decode_out = []
-    for i in range(self._steps_per_loop):
-      fetch_start = time.time()
-      decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
-      dec_metrics['decode_secs'].Update(time.time() - fetch_start)
-      post_process_start = time.time()
-      decode_out = self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
-      dec_metrics['postprocess_secs'].Update(time.time() - post_process_start)
-      tf.logging.info('step: %d %f' %
-                      (i, dec_metrics['num_samples_in_batch'].total_value))
-      if decode_out:
-        if isinstance(decode_out, dict):
-          decode_out = decode_out.items()
+    return global_step, infeed_future, dec_metrics, start_time
 
-        if i == 0:
-          # Add summaries only for the first batch of data.
-          for key, value in decode_out:
-            if isinstance(value, tf.Summary):
-              tf.logging.info(f'Adding summary {key} with tags '
-                              f'{[x.tag for x in value.value]}.')
-              self._summary_writer.add_summary(value, global_step)
-          self._summary_writer.flush()
+  def _PostProcessStep(self, idx, decode_out_dict, dec_metrics, global_step,
+                       buffered_decode_out):
+    """Run postprocess for a single decode step."""
+    post_process_start = time.time()
+    decode_out = self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
+    dec_metrics['postprocess_secs'].Update(time.time() - post_process_start)
+    tf.logging.info('step: %d %f' %
+                    (idx, dec_metrics['num_samples_in_batch'].total_value))
+    if decode_out:
+      if isinstance(decode_out, dict):
+        decode_out = decode_out.items()
 
-        buffered_decode_out.extend(
-            kv for kv in decode_out if not isinstance(kv[1], tf.Summary))
-    infeed_future.wait()
+      if idx == 0:
+        # Add summaries only for the first batch of data.
+        for key, value in decode_out:
+          if isinstance(value, tf.Summary):
+            tf.logging.info(f'Adding summary {key} with tags '
+                            f'{[x.tag for x in value.value]}.')
+            self._summary_writer.add_summary(value, global_step)
+        self._summary_writer.flush()
 
+      buffered_decode_out.extend(
+          kv for kv in decode_out if not isinstance(kv[1], tf.Summary))
+
+  def _FinalizeDecode(self,
+                      dec_metrics,
+                      start_time,
+                      global_step,
+                      buffered_decode_out,
+                      futures=None):
+    """Finalize and summarize the results of this Decode program run."""
+    if futures:
+      # Wait for all async postprocessing jobs to finish.
+      for future in futures:
+        future.wait()
     num_examples_metric = dec_metrics['num_samples_in_batch']
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
     elapsed_secs = time.time() - start_time
@@ -771,7 +787,52 @@ class DecodeProgram(BaseProgram):
         decode_out_path=decode_out_path, decode_out=buffered_decode_out)
     self._task.DecodeFinalize(decode_finalize_args)
 
-    return self._ReportVizierMetrics(global_step, dec_metrics)
+    # Result is not returned as a signal for "done", unlike for training.
+    self._ReportVizierMetrics(global_step, dec_metrics)
+
+  def Run(self, sess):
+    global_step, infeed_future, dec_metrics, start_time = self._SetupRun(sess)
+    buffered_decode_out = []
+
+    for i in range(self._steps_per_loop):
+      fetch_start = time.time()
+      decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
+      dec_metrics['decode_secs'].Update(time.time() - fetch_start)
+      self._PostProcessStep(i, decode_out_dict, dec_metrics, global_step,
+                            buffered_decode_out)
+    infeed_future.wait()
+
+    self._FinalizeDecode(dec_metrics, start_time, global_step,
+                         buffered_decode_out)
+
+  def RunAsync(self, sess, threadpool):
+    """First finish TPU+host processing, then run CPU postprocessing async."""
+    global_step, infeed_future, dec_metrics, start_time = self._SetupRun(sess)
+    buffered_decode_out = []
+
+    postprocess_futures = []
+    for i in range(self._steps_per_loop):
+      fetch_start = time.time()
+      decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
+      dec_metrics['decode_secs'].Update(time.time() - fetch_start)
+      # Run postprocess on separate CPU thread.
+      postprocess_futures.append(
+          threadpool.apply_async(
+              self._PostProcessStep,
+              args=(i, decode_out_dict, dec_metrics, global_step,
+                    buffered_decode_out)))
+    infeed_future.wait()
+
+    # TPU+host processing is done and can move on to Train.
+    threadpool.apply_async(
+        self._FinalizeDecode,
+        args=(
+            dec_metrics,
+            start_time,
+            global_step,
+            buffered_decode_out,
+            postprocess_futures,
+        ))
 
 
 class ExperimentalDecodeProgram(DecodeProgram):
@@ -903,6 +964,11 @@ class ExperimentalDecodeProgram(DecodeProgram):
         os.path.basename(self._program_dir), global_step, summaries)
 
     return self._ReportVizierMetrics(global_step, dec_metrics)
+
+  def RunAsync(self, sess, threadpool):
+    """Same as Run for now, make async later if performance is slow."""
+    del threadpool  # Not used.
+    self.Run(sess)
 
 
 class MLPerfTrainDecodeProgram(BaseProgram):
@@ -1105,6 +1171,11 @@ class MLPerfTrainDecodeProgram(BaseProgram):
           return True
     return False
 
+  def RunAsync(self, sess, threadpool):
+    """Same as Run for now, make async later if performance is slow."""
+    del threadpool  # Not used.
+    self.Run(sess)
+
 
 class MultiTaskProgramSchedule:
   """Container for ProgramSchedules for a MultiTask model."""
@@ -1137,6 +1208,8 @@ class SimpleProgramSchedule:
     p.Define('eval_programs', [], 'List of eval program params.')
     p.Define('num_splits_per_client', None, '')
     p.Define('dataset_names', [], 'List of all dataset names.')
+    p.Define('async_postprocess', True,
+             'whether to CPU postprocess asynchronously with TPU train')
 
     # TODO(blee): Clean these up.
     p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
@@ -1184,14 +1257,22 @@ class SimpleProgramSchedule:
   def Programs(self):
     return self._programs
 
-  def Run(self, sess):
+  def Run(self, sess, threadpool):
+    """Execute the program schedule."""
     p = self.params
+    start_time = time.time()
     for _ in range(p.train_executions_per_eval):
       done = self.train_program.Run(sess)
       if done:
         break
+    train_finish_time = time.time()
+    tf.logging.info('Train took %f seconds.', train_finish_time - start_time)
     for eval_program in self.eval_programs:
-      eval_program.Run(sess)
+      if p.async_postprocess:
+        eval_program.RunAsync(sess, threadpool)
+      else:
+        eval_program.Run(sess)
+    tf.logging.info('Eval took %f seconds.', time.time() - train_finish_time)
     should_exit = p.train_executions_per_eval == 0
     return should_exit
 
@@ -1209,7 +1290,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  decode_steps_per_loop,
                                  experimental_decoder=False,
                                  train_program_cls=TrainProgram,
-                                 eval_program_cls=EvalProgram):
+                                 eval_program_cls=EvalProgram,
+                                 async_postprocess=True):
   """Convenient helper method for common case.
 
   Args:
@@ -1224,10 +1306,16 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       eval_dataset_names.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
-    train_program_cls: The class to use for training programs.  Defaults
-      to TrainProgram.
+    train_program_cls: The class to use for training programs.  Defaults to
+      TrainProgram.
     eval_program_cls: The class to use for eval programs.  Defaults to
       EvalProgram.
+    async_postprocess: bool. Whether to run CPU postprocessing for Decode in a
+      separate thread to save time (i.e. concurrent with train). This avoids
+      blocking training. But if the CPU postprocessing takes more time compared
+      to Train, then multiple Train loops could complete before Decode finishes
+      for an older global step. Then the latest Decode results do not correspond
+      to the latest trained model.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -1241,6 +1329,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   program_schedule_params.train_program = train_program_params
 
   program_schedule_params.dataset_names = []
+
+  program_schedule_params.async_postprocess = async_postprocess
 
   if isinstance(eval_steps_per_loop, list):
     if len(eval_steps_per_loop) != len(eval_dataset_names):
@@ -1344,7 +1434,8 @@ class MLPerfProgramSchedule:
   def Programs(self):
     return self._programs
 
-  def Run(self, sess):
+  def Run(self, sess, threadpool):
+    del threadpool  # Unused.
     p = self.params
     for _ in range(p.train_executions_per_eval):
       program_done = self.train_program.Run(sess)

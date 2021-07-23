@@ -17,6 +17,7 @@
 
 import multiprocessing.dummy
 import os
+import time
 
 from lingvo import compat as tf
 from lingvo.core import base_model
@@ -407,6 +408,11 @@ class ExecutorTpu(base_runner.BaseRunner):
 
       sess.run(self._load_ops)
       program_schedule = None
+      # Threadpool to run code in programs async with TF Sessions (on TPUs).
+      # This unblocks TPU from waiting for CPU processing on "main" thread, and
+      # saves time for time-consuming CPU steps (e.g. PostProcessDecodeOut).
+      program_threadpool = multiprocessing.dummy.Pool(1)
+      start_time = time.time()
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
 
@@ -445,16 +451,26 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Sampled %s', model_task)
           program_schedule = self._program_schedule_dict[model_task]
 
-        done = program_schedule.Run(sess)
+        done = program_schedule.Run(sess, program_threadpool)
         if (not self._ml_perf_log and
             self.save_only_checkpointer.ShouldSave(global_step) and
             self.save_only_checkpointer.async_checkpointing):
           saver_future.wait()
 
-        if done:
-          tf.logging.info('Program schedule told us to stop.\n'
-                          'Shutting down programs.')
+        def _ShutDown():
+          program_threadpool.close()
+          program_threadpool.join()
+          tf.logging.info(
+              'Program schedule told us to stop.\n'
+              'Shutting down programs after running %f seconds.',
+              time.time() - start_time)
           program_schedule.Shutdown()
+
+        if done:
+          tf.logging.info(
+              'Program done after %f seconds. Waiting for threads to end.',
+              time.time() - start_time)
+          _ShutDown()
           return
 
         global_step = sess.run(py_utils.GetGlobalStep())
@@ -462,6 +478,8 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Training finished.')
           if not self._ml_perf_log:
             RunSave(sess, global_step)
-          tf.logging.info('Shutting down programs.')
-          program_schedule.Shutdown()
+          tf.logging.info(
+              'Program finished after %f seconds. Waiting for threads to end.',
+              time.time() - start_time)
+          _ShutDown()
           return
