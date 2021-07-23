@@ -6163,7 +6163,7 @@
         <span class="n">nested_map_fprop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">num_micro_batches</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Builder._DepthwiseConv2D"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._DepthwiseConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_DepthwiseConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">filter_size</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder._DepthwiseConv2D"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._DepthwiseConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_DepthwiseConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">filter_size</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A depthwise convolution block for lightweight conv.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">conv_builder_params</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="o">.</span><span class="n">Builder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -6180,7 +6180,8 @@
         <span class="n">activation</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">conv_activation</span><span class="p">,</span>
         <span class="n">is_causal</span><span class="o">=</span><span class="n">is_causal</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Builder._NormalizedDepthwiseConv2D"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._NormalizedDepthwiseConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_NormalizedDepthwiseConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder._NormalizedDepthwiseConv2D"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._NormalizedDepthwiseConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_NormalizedDepthwiseConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A depthwise convolution block for lightweight conv.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">conv_builder_params</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="o">.</span><span class="n">Builder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -6192,13 +6193,15 @@
         <span class="n">in_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
         <span class="n">dropconnect_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
         <span class="n">deterministic_dropout</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">,</span>
-        <span class="n">is_causal</span><span class="o">=</span><span class="n">is_causal</span><span class="p">)</span></div>
+        <span class="n">is_causal</span><span class="o">=</span><span class="n">is_causal</span><span class="p">,</span>
+        <span class="n">qdomain</span><span class="o">=</span><span class="n">qdomain</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder.LConv"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.LConv">[docs]</a>  <span class="k">def</span> <span class="nf">LConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">name</span><span class="p">,</span>
             <span class="n">kernel_size</span><span class="p">,</span>
             <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">convolution_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">convolution_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">conv_qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;[DEPRECATED] A lightweight convolution block as described in.</span>
 
 <span class="sd">    Use conv_layers_builder.LConv() instead.</span>
@@ -6215,6 +6218,7 @@
 <span class="sd">      kernel_size: kernel size used in the conv layer.</span>
 <span class="sd">      is_causal: is causal padding or not.</span>
 <span class="sd">      convolution_fn: Convolution to apply, default _NormalizedDepthwiseConv2D.</span>
+<span class="sd">      conv_qdomain: The QDomain to pass to convolution_fn.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A LightWeightConvLayerBlock layer params.</span>
@@ -6233,7 +6237,7 @@
              <span class="bp">self</span><span class="o">.</span><span class="n">_Glu</span><span class="p">(</span><span class="s1">&#39;glu&#39;</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandDims</span><span class="p">(</span><span class="s1">&#39;expand&#39;</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;pre_conv,i.paddings-&gt;post_conv,o.paddings&#39;</span><span class="p">,</span>
-         <span class="n">convolution_fn</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">)),</span>
+         <span class="n">convolution_fn</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">,</span> <span class="n">qdomain</span><span class="o">=</span><span class="n">conv_qdomain</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;post_conv-&gt;after_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
              <span class="s1">&#39;post_conv&#39;</span><span class="p">,</span>

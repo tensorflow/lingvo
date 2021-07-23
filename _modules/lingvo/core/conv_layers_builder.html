@@ -351,18 +351,21 @@
                           <span class="n">filter_shape</span><span class="p">,</span>
                           <span class="n">stride</span><span class="p">,</span>
                           <span class="n">dilation</span><span class="p">,</span>
-                          <span class="n">is_causal</span><span class="p">):</span>
+                          <span class="n">is_causal</span><span class="p">,</span>
+                          <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">is_causal</span><span class="p">:</span>
       <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">CausalDepthwiseConv2DLayer</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">DepthwiseConv2DLayer</span>
-    <span class="k">return</span> <span class="n">conv_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="n">filter_shape</span><span class="o">=</span><span class="n">filter_shape</span> <span class="o">+</span> <span class="p">[</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">],</span>
-        <span class="n">filter_stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
-        <span class="n">dilation_rate</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
-        <span class="n">weight_norm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">,</span>
-        <span class="n">v2_padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">v2_padding</span><span class="p">)</span></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">conv_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span> <span class="o">=</span> <span class="n">filter_shape</span> <span class="o">+</span> <span class="p">[</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span> <span class="o">=</span> <span class="n">stride</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span> <span class="o">=</span> <span class="n">dilation</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weight_norm</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">v2_padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">v2_padding</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">qdomain</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Builder._GlobalPooling"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._GlobalPooling">[docs]</a>  <span class="k">def</span> <span class="nf">_GlobalPooling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">pooling_type</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">GlobalPoolingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">pooling_type</span><span class="o">=</span><span class="n">pooling_type</span><span class="p">)</span></div>
@@ -409,7 +412,8 @@
                       <span class="n">dilation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                       <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
                       <span class="n">conv_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                      <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                      <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                      <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">stride</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">stride</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">dilation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -419,14 +423,16 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeNorm</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_RawDepthwiseConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">,</span>
-                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">,</span>
+                                   <span class="n">qdomain</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">depth_multiplier</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">layers_in_sequence</span> <span class="o">=</span> <span class="p">[</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_RawDepthwiseConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">,</span>
-                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">,</span>
+                                   <span class="n">qdomain</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_NormOrBias</span><span class="p">(</span><span class="s1">&#39;bn_or_bias&#39;</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">depth_multiplier</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
@@ -494,20 +500,23 @@
                                 <span class="n">in_dim</span><span class="p">,</span>
                                 <span class="n">dropconnect_prob</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                                 <span class="n">deterministic_dropout</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                                <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">is_causal</span><span class="p">:</span>
       <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">CausalNormalizedDepthwiseConv2DLayer</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">NormalizedDepthwiseConv2DLayer</span>
-    <span class="k">return</span> <span class="n">conv_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="n">filter_shape</span><span class="o">=</span><span class="p">[</span><span class="n">kernel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-        <span class="n">weight_tiling_factor</span><span class="o">=</span><span class="n">in_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
-        <span class="n">deterministic_dropout</span><span class="o">=</span><span class="n">deterministic_dropout</span><span class="p">,</span>
-        <span class="n">params_init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">TruncatedGaussian</span><span class="p">(</span>
-            <span class="n">scale</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.6</span> <span class="o">/</span> <span class="n">kernel_size</span><span class="p">)),</span>  <span class="c1"># Fan-out initialization.</span>
-        <span class="n">dropconnect_prob</span><span class="o">=</span><span class="n">dropconnect_prob</span><span class="p">,</span>
-        <span class="n">v2_padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">v2_padding</span><span class="p">)</span></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">conv_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">kernel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">weight_tiling_factor</span> <span class="o">=</span> <span class="n">in_dim</span> <span class="o">//</span> <span class="n">num_heads</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span> <span class="o">=</span> <span class="n">deterministic_dropout</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">TruncatedGaussian</span><span class="p">(</span>
+        <span class="n">scale</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.6</span> <span class="o">/</span> <span class="n">kernel_size</span><span class="p">))</span>  <span class="c1"># Fan-out initialization.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">dropconnect_prob</span> <span class="o">=</span> <span class="n">dropconnect_prob</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">v2_padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">v2_padding</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">qdomain</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Builder._Add"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._Add">[docs]</a>  <span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">residual_weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
