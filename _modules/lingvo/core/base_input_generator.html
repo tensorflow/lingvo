@@ -1749,6 +1749,20 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
 
+<div class="viewcode-block" id="BaseDataExampleInputGenerator._AdditionalPreprocessInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator._AdditionalPreprocessInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_AdditionalPreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Additionally preprocesses input batch from iterator.get_next().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      batch: A NestedMap (or list of NestedMaps when using TPU sharded infeed)</span>
+<span class="sd">        containing input tensors in the format returned by</span>
+<span class="sd">        _PreprocessInputBatch.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap containing additionally preprocessed inputs to feed to the</span>
+<span class="sd">      model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">batch</span></div>
+
 <div class="viewcode-block" id="BaseDataExampleInputGenerator.GetPreprocessedInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.GetPreprocessedInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetPreprocessedInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1784,7 +1798,7 @@
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">prefetch</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
     <span class="n">iterator</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">()</span>
     <span class="n">input_batch</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">input_batch</span></div></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdditionalPreprocessInputBatch</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="DefineTFDataInput"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.DefineTFDataInput">[docs]</a><span class="k">def</span> <span class="nf">DefineTFDataInput</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
