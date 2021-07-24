@@ -6090,7 +6090,8 @@
         <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings, segment_mask}</span>
         <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Builder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">is_causal</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -6111,7 +6112,8 @@
              <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">,</span>
                           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                           <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">(</span>
-                              <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span><span class="p">)),</span>
+                              <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span><span class="p">),</span>
+                          <span class="n">qdomain</span><span class="o">=</span><span class="n">qdomain</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;split01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias01&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">,</span>
                         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
@@ -6121,7 +6123,8 @@
              <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear02&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
                           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                           <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">(</span>
-                              <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span><span class="p">)),</span>
+                              <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span><span class="p">),</span>
+                          <span class="n">qdomain</span><span class="o">=</span><span class="n">qdomain</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;split02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
                         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
@@ -6201,6 +6204,7 @@
             <span class="n">kernel_size</span><span class="p">,</span>
             <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">convolution_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">linear_qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">conv_qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;[DEPRECATED] A lightweight convolution block as described in.</span>
 
@@ -6218,6 +6222,7 @@
 <span class="sd">      kernel_size: kernel size used in the conv layer.</span>
 <span class="sd">      is_causal: is causal padding or not.</span>
 <span class="sd">      convolution_fn: Convolution to apply, default _NormalizedDepthwiseConv2D.</span>
+<span class="sd">      linear_qdomain: The QDomain to apply to the linear layers.</span>
 <span class="sd">      conv_qdomain: The QDomain to pass to convolution_fn.</span>
 
 <span class="sd">    Returns:</span>
@@ -6232,7 +6237,7 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
              <span class="s1">&#39;pre_conv&#39;</span><span class="p">,</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">),</span>
-             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">qdomain</span><span class="o">=</span><span class="n">linear_qdomain</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Glu</span><span class="p">(</span><span class="s1">&#39;glu&#39;</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandDims</span><span class="p">(</span><span class="s1">&#39;expand&#39;</span><span class="p">))),</span>
@@ -6242,7 +6247,7 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
              <span class="s1">&#39;post_conv&#39;</span><span class="p">,</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Squeeze</span><span class="p">(</span><span class="s1">&#39;squeeze&#39;</span><span class="p">),</span>
-             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">qdomain</span><span class="o">=</span><span class="n">linear_qdomain</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;i.vec,after_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
@@ -6648,7 +6653,10 @@
                       <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))],</span>
         <span class="n">mesh_split</span><span class="o">=</span><span class="n">mesh_split</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LmBuilder._Linear"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._Linear">[docs]</a>  <span class="k">def</span> <span class="nf">_Linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">mesh_split</span><span class="p">):</span>
+<div class="viewcode-block" id="LmBuilder._Linear"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._Linear">[docs]</a>  <span class="k">def</span> <span class="nf">_Linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">mesh_split</span><span class="p">,</span> <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">qdomain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+          <span class="s1">&#39;Quantization support is not implemented for LmBuilder._Linear.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">],</span>
