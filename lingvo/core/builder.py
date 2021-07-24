@@ -295,15 +295,18 @@ class Base:
               idims,
               odims,
               device_mesh=None,
-              weight_split_dims_mapping=None):
+              weight_split_dims_mapping=None,
+              qdomain=None):
     """Linear layer. y = matmul([..., idims], [idims, odims])."""
-    return builder_layers.LinearLayer.Params().Set(
-        name=name,
-        input_dims=idims,
-        output_dims=odims,
-        fprop_dtype=self.params.fprop_dtype,
-        device_mesh=device_mesh,
-        weight_split_dims_mapping=weight_split_dims_mapping)
+    p = builder_layers.LinearLayer.Params()
+    p.name = name
+    p.input_dims = idims
+    p.output_dims = odims
+    p.fprop_dtype = self.params.fprop_dtype
+    p.device_mesh = device_mesh
+    p.weight_split_dims_mapping = weight_split_dims_mapping
+    p.qdomain.default = qdomain
+    return p
 
   def _Bias(self, name, dims, device_mesh=None, weight_split_dims_mapping=None):
     """Bias layer. The bias is added to the last dimension of the input."""

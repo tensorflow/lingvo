@@ -5935,7 +5935,8 @@ class Builder(builder.Base):
         ['o'],  # output NestedMap with {vec, paddings, segment_mask}
         *sub_list)
 
-  def Feedforward(self, name, is_causal=False, ff_hidden_dim=None):
+  def Feedforward(self, name, is_causal=False, ff_hidden_dim=None,
+                  qdomain=None):
     del is_causal
     p = self.params
     if ff_hidden_dim is None:
@@ -5956,7 +5957,8 @@ class Builder(builder.Base):
              self._Linear('linear01', p.model_dim, ff_hidden_dim,
                           device_mesh=p.device_mesh,
                           weight_split_dims_mapping=(
-                              p.weight_split_dims_mapping.df)),
+                              p.weight_split_dims_mapping.df),
+                          qdomain=qdomain),
              self.MeshSplit('split01', p.activation_split_dims_mapping.blf),
              self._Bias('bias01', ff_hidden_dim,
                         device_mesh=p.device_mesh,
@@ -5966,7 +5968,8 @@ class Builder(builder.Base):
              self._Linear('linear02', ff_hidden_dim, p.model_dim,
                           device_mesh=p.device_mesh,
                           weight_split_dims_mapping=(
-                              p.weight_split_dims_mapping.fd)),
+                              p.weight_split_dims_mapping.fd),
+                          qdomain=qdomain),
              self.MeshSplit('split02', p.activation_split_dims_mapping.bld),
              self._Bias('bias02', p.model_dim,
                         device_mesh=p.device_mesh,
@@ -6046,6 +6049,7 @@ class Builder(builder.Base):
             kernel_size,
             is_causal=False,
             convolution_fn=None,
+            linear_qdomain=None,
             conv_qdomain=None):
     """[DEPRECATED] A lightweight convolution block as described in.
 
@@ -6063,6 +6067,7 @@ class Builder(builder.Base):
       kernel_size: kernel size used in the conv layer.
       is_causal: is causal padding or not.
       convolution_fn: Convolution to apply, default _NormalizedDepthwiseConv2D.
+      linear_qdomain: The QDomain to apply to the linear layers.
       conv_qdomain: The QDomain to pass to convolution_fn.
 
     Returns:
@@ -6077,7 +6082,7 @@ class Builder(builder.Base):
          self._Seq(
              'pre_conv',
              self._DefaultLN('ln'),
-             self._Linear('linear', p.model_dim, p.model_dim * 2),
+             self._Linear('linear', p.model_dim, p.model_dim * 2, qdomain=linear_qdomain),
              self._Bias('bias', p.model_dim * 2),
              self._Glu('glu'),
              self._ExpandDims('expand'))),
@@ -6087,7 +6092,7 @@ class Builder(builder.Base):
          self._Seq(
              'post_conv',
              self._Squeeze('squeeze'),
-             self._Linear('linear', p.model_dim, p.model_dim),
+             self._Linear('linear', p.model_dim, p.model_dim, qdomain=linear_qdomain),
              self._Bias('bias', p.model_dim),
              self._Dropout('dropout', p.residual_dropout_prob))),
         ('i.vec,after_dropout->o.vec', self._Add('add')),
@@ -6493,7 +6498,10 @@ class LmBuilder(Builder):
                       dtype=self.params.dtype))],
         mesh_split=mesh_split)
 
-  def _Linear(self, name, input_dim, output_dim, mesh_split):
+  def _Linear(self, name, input_dim, output_dim, mesh_split, qdomain=None):
+    if qdomain is not None:
+      raise NotImplementedError(
+          'Quantization support is not implemented for LmBuilder._Linear.')
     return self._Graph(
         name,
         ['inputs'],
