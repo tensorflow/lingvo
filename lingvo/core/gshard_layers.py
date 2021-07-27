@@ -289,6 +289,11 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         'limitations), but uses conversion between manual and auto sharding '
         'modes. Set to False for sharding on multiple dimensions.')
     p.Define(
+        'pipeline_stage_mesh_dim', None,
+        'The mesh dimension to shard the pipeline stage dimension. Set '
+        'this only when shard_stages_1d is False. With this option, the '
+        'wrapped body specifies its tensor sharding without the new stage dim.')
+    p.Define(
         'per_stage_vars', False,
         'Use separate variables for each stage. With single_stage_body only.')
     p.Define('unroll', 'eval_only',
@@ -339,16 +344,17 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   def _CreateChildrenVariables(self):
     p = self.params
     with tf.variable_scope(self.params.name):
-      if p.stage_parallel_body is None:
-        if p.per_stage_vars:
-          for i in range(p.num_stages):
-            with tf.variable_scope('iter_%05d' % i):
-              self.children['body_iter_%05d' % i].InstantiateVariables()
+      with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
+        if p.stage_parallel_body is None:
+          if p.per_stage_vars:
+            for i in range(p.num_stages):
+              with tf.variable_scope('iter_%05d' % i):
+                self.children['body_iter_%05d' % i].InstantiateVariables()
+          else:
+            with py_utils.VariableShapePrefixContext(p.num_stages):
+              self.children.body.InstantiateVariables()
         else:
-          with py_utils.VariableShapePrefixContext(p.num_stages):
-            self.children.body.InstantiateVariables()
-      else:
-        super()._CreateChildrenVariables()
+          super()._CreateChildrenVariables()
 
     if p.shard_stages_1d:
 
@@ -379,6 +385,11 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           'when per_stage_vars=False and shard_stages_1d=True.')
 
   def BodyFProp(self, theta, fn_name, iteration, *args, **kwargs):
+    p = self.params
+    with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
+      return self._BodyFPropInternal(theta, fn_name, iteration, *args, **kwargs)
+
+  def _BodyFPropInternal(self, theta, fn_name, iteration, *args, **kwargs):
     p = self.params
     wrappers = []
 
@@ -475,13 +486,16 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     else:
       # TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped
       # auto-manual sharding conversion when it is available.
-      def _AssertNotTensor(x):
+      stage_id = tf.range(p.num_stages)
+      microbatch_id = tf.maximum(iteration - stage_id,
+                                 tf.zeros([p.num_stages], dtype=stage_id.dtype))
+
+      def _KwargSlice(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
           return x
-        raise NotImplementedError(
-            'kwargs only supported with shard_stages_1d=True')
+        return tf.gather(x, microbatch_id)
 
-      theta_args.kwargs = tf.nest.map_structure(_AssertNotTensor, kwargs)
+      theta_args.kwargs = tf.nest.map_structure(_KwargSlice, kwargs)
       return tf.vectorized_map(
           _BodyFProp, theta_args, fallback_to_while_loop=False)
 
