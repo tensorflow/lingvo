@@ -444,6 +444,11 @@
         <span class="s1">&#39;limitations), but uses conversion between manual and auto sharding &#39;</span>
         <span class="s1">&#39;modes. Set to False for sharding on multiple dimensions.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pipeline_stage_mesh_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The mesh dimension to shard the pipeline stage dimension. Set &#39;</span>
+        <span class="s1">&#39;this only when shard_stages_1d is False. With this option, the &#39;</span>
+        <span class="s1">&#39;wrapped body specifies its tensor sharding without the new stage dim.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;per_stage_vars&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Use separate variables for each stage. With single_stage_body only.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unroll&#39;</span><span class="p">,</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">,</span>
@@ -494,16 +499,17 @@
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
-          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
-            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">):</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+      <span class="k">with</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplitDimPrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage_mesh_dim</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+              <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
+          <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
 
@@ -534,6 +540,11 @@
           <span class="s1">&#39;when per_stage_vars=False and shard_stages_1d=True.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplitDimPrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage_mesh_dim</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BodyFPropInternal</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._BodyFPropInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_BodyFPropInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">wrappers</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -630,13 +641,16 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped</span>
       <span class="c1"># auto-manual sharding conversion when it is available.</span>
-      <span class="k">def</span> <span class="nf">_AssertNotTensor</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="n">stage_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span>
+      <span class="n">microbatch_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">iteration</span> <span class="o">-</span> <span class="n">stage_id</span><span class="p">,</span>
+                                 <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">stage_id</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+      <span class="k">def</span> <span class="nf">_KwargSlice</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
           <span class="k">return</span> <span class="n">x</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-            <span class="s1">&#39;kwargs only supported with shard_stages_1d=True&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">microbatch_id</span><span class="p">)</span>
 
-      <span class="n">theta_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_AssertNotTensor</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+      <span class="n">theta_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_KwargSlice</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">vectorized_map</span><span class="p">(</span>
           <span class="n">_BodyFProp</span><span class="p">,</span> <span class="n">theta_args</span><span class="p">,</span> <span class="n">fallback_to_while_loop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
