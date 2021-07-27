@@ -721,11 +721,12 @@
     <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">trainer_finished_at_job_start</span> <span class="ow">and</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span> <span class="ow">in</span> <span class="n">processed_ckpts</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
           <span class="s1">&#39;Training has finished and the final checkpoint has already been &#39;</span>
           <span class="s1">&#39;evaluated. Specify a new eval/decode directory, or set &#39;</span>
           <span class="s1">&#39;p.eval.load_checkpoint_from to the final checkpoint to reanalyze it.&#39;</span>
       <span class="p">)</span>
+      <span class="k">return</span>
 
     <span class="c1"># Process the latest checkpoints produced by the Trainer until the</span>
     <span class="c1"># checkpoint for the final training step has been processed. If training</span>
