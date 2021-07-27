@@ -2987,8 +2987,8 @@ class RecordFormatTest(test_utils.TestCase):
     self.assertEqual(path, '/path/to/bar')
 
     record_format, path = py_utils.RecordFormatFromFilePattern(
-        'custom:/path/to/baz')
-    self.assertEqual(record_format, 'custom')
+        'custom_FORMAT:/path/to/baz')
+    self.assertEqual(record_format, 'custom_FORMAT')
     self.assertEqual(path, '/path/to/baz')
 
 

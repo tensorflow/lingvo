@@ -4710,7 +4710,7 @@ def SigmoidCrossEntropyFocalLoss(logits, labels, alpha=None, gamma=None):
   return loss
 
 
-_RECORD_FORMAT_RE = re.compile('(^[A-Za-z]+):(.*)')
+_RECORD_FORMAT_RE = re.compile('(^[A-Za-z_]+):(.*)')
 
 
 def RecordFormatFromFilePattern(file_pattern):
