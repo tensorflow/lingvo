@@ -566,11 +566,12 @@ class BaseRunner:
     processed_ckpts = set(self._GetProcessedCheckpoints(runner_dir))
     if (trainer_finished_at_job_start and
         tf.train.latest_checkpoint(self._train_dir) in processed_ckpts):
-      raise ValueError(
+      tf.logging.warning(
           'Training has finished and the final checkpoint has already been '
           'evaluated. Specify a new eval/decode directory, or set '
           'p.eval.load_checkpoint_from to the final checkpoint to reanalyze it.'
       )
+      return
 
     # Process the latest checkpoints produced by the Trainer until the
     # checkpoint for the final training step has been processed. If training

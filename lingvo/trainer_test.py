@@ -20,7 +20,6 @@ import pathlib
 import random
 import re
 import shutil
-import unittest
 
 from absl.testing import flagsaver
 from absl.testing import parameterized
@@ -220,18 +219,7 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     score_2_mod_time = pathlib.Path(score_2_path).stat().st_mtime
     with self.subTest(name='DefaultDecoderNoOp'):
       cfg = self._GetSimpleTestConfig()
-      # base_runner uses os._exit to forcibly terminate the program after
-      # encountering the ValueError we expect this to raise. Since it uses
-      # os._exit instead of sys.exit, we cannot use
-      # self.assertRaises(SystemExit) to prevent this termination. Instead, we
-      # use a mock function to indirectly test that the ValueError is raised.
-      # pylint: disable=protected-access
-      _os_exit = os._exit  # pylint: disable=invalid-name
-      os._exit = unittest.mock.MagicMock()
       runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
-      self.assertTrue(os._exit.called)
-      os._exit = _os_exit
-      # pylint: enable=protected-access
 
       dec_files = tf.io.gfile.glob(os.path.join(dec_dir, '*'))
       self.assertFalse(self._HasFile(dec_files, 'score-00000000.txt'))
