@@ -283,6 +283,11 @@ class BaseProgram:
     """
     raise NotImplementedError()
 
+  def RunAsync(self, sess, threadpool):
+    """Same as Run for now as there is no processing that need to run async."""
+    del threadpool  # Not used.
+    self.Run(sess)
+
   def Shutdown(self):
     """Runs any necessary cleanup (potentially blocking)."""
     pass
