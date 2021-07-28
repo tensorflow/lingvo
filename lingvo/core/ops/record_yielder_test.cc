@@ -276,16 +276,17 @@ TEST_P(TfRecordYielderTest, ShufflesShard) {
 }
 
 TEST(RecordYielderDeathTest, Error) {
-  EXPECT_DEATH([](){
-    BasicRecordYielder::Options opts;
-    opts.file_pattern = strings::StrCat(
-        "tfrecord:",
-        io::JoinPath("/tmp", "nothing.*"));
-    auto yielder = BasicRecordYielder::New(opts);
-    Record record;
-    record.source_id = kDefaultSourceId;
-    auto unused = yielder->Yield(&record);
-  }(), "Found no files at .*nothing");
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = strings::StrCat(
+      "tfrecord:", io::JoinPath("/tmp", "nothing.*"));
+  auto yielder = BasicRecordYielder::New(opts);
+  Record record;
+  record.source_id = kDefaultSourceId;
+  auto status = yielder->Yield(&record);
+  EXPECT_FALSE(status.ok());
+  EXPECT_THAT(status.error_message(),
+              ::testing::HasSubstr("Found no files at"));
+  yielder->Close();
 }
 
 TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
