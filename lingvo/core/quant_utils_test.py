@@ -68,6 +68,15 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
       self._testLayerHelper('testLayerWithIdentityQDomain', p,
                             self.NO_QDOMAIN_EXPECTED)
 
+  def testGetQDomainParams(self):
+    p = quant_test_lib.SampleQuantizedProjectionLayer.Params().Set(name='test')
+    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params().Set(bits=3)
+    p.qdomain.test_1 = quant_utils.PassiveAsymQDomain.Params().Set(bits=47)
+    layer = p.Instantiate()
+    self.assertEqual(layer.GetQDomainParams('default').bits, 3)
+    self.assertEqual(layer.GetQDomainParams('test_1').bits, 47)
+    self.assertEqual(layer.GetQDomainParams('test_2').bits, 3)
+
   def testLayerWithPassiveAsymQDomain(self):
     # pyformat: disable
     expected = [

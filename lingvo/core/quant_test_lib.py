@@ -34,6 +34,8 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     p = super().Params()
     p.Define('input_dim', 2, 'Depth of the input.')
     p.Define('output_dim', 3, 'Depth of the output.')
+    p.qdomain.Define('test_1', None, 'Dummy qdomain')
+    p.qdomain.Define('test_2', None, 'Dummy qdomain')
     return p
 
   def __init__(self, params):

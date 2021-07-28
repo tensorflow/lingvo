@@ -615,6 +615,23 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self._qdomains.get('default')
     return qd
 
+  def GetQDomainParams(self, domain):
+    """Gets domain's Params if they're set, and the default Params otherwise.
+
+    Args:
+      domain: User specified domain name.
+
+    Returns:
+      Params for the QDomain matching the requested domain name if they're set,
+      and params for the 'default' QDomain otherwise. Will return None if both
+      p.qdomain.domain and p.qdomain.default are None.
+    """
+    p = self.params
+    qdparams = p.qdomain.Get(domain)
+    if qdparams is None:
+      qdparams = p.qdomain.default
+    return qdparams
+
   def _AddQuantizationFunctions(self):
     """Adds standard quantization functions against the given layer."""
 
