@@ -112,15 +112,21 @@ class Checkpointer:
     do_eval = cluster_factory.Current().do_eval
     if not self._save_only and self._model.ema and do_eval:
       tf.logging.info('Using EMA for evaluation.')
-      return tf.train.Saver(
+      saver = tf.train.Saver(
           self._model.ema.variables_to_restore(self._model.variables_for_ema))
-    return tf.train.Saver(
-        sharded=True,
-        max_to_keep=self._train_params.save_max_to_keep,
-        keep_checkpoint_every_n_hours=(
-            self._train_params.save_keep_checkpoint_every_n_hours),
-        pad_step_number=True,  # %08d
-        write_version=tf.train.SaverDef.V2)
+    else:
+      saver = tf.train.Saver(
+          sharded=True,
+          max_to_keep=self._train_params.save_max_to_keep,
+          keep_checkpoint_every_n_hours=(
+              self._train_params.save_keep_checkpoint_every_n_hours),
+          pad_step_number=True,  # %08d
+          write_version=tf.train.SaverDef.V2)
+    previous_checkpoint_state = tf.train.get_checkpoint_state(self._train_dir)
+    if previous_checkpoint_state is not None:
+      saver.recover_last_checkpoints(
+          previous_checkpoint_state.all_model_checkpoint_paths)
+    return saver
 
   @property
   def async_checkpointing(self):
