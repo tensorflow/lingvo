@@ -287,11 +287,16 @@ class DecoderMetrics(base_layer.BaseLayer):
           if n != 0:
             continue
           filtered_hyp = filtered_top_hyps[i]
-          _, _, _, errs = decoder_utils.EditDistance(filtered_ref, filtered_hyp)
+          ins, subs, dels, errs = decoder_utils.EditDistance(
+              filtered_ref, filtered_hyp)
           total_errs += errs
-          total_ref_words += len(decoder_utils.Tokenize(filtered_ref))
+          ref_words = len(decoder_utils.Tokenize(filtered_ref))
+          total_ref_words += ref_words
           if norm_wer_errors[i, n] == 0:
             total_accurate_sentences += 1
+          tf.logging.info(
+              '  ins: %d, subs: %d, del: %d, total: %d, ref_words: %d, wer: %f',
+              ins, subs, dels, errs, ref_words, errs / max(1, ref_words))
 
         total_oracle_errs += oracle_errs
 
