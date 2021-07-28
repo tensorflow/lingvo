@@ -438,6 +438,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="BaseProgram.RunAsync"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.RunAsync">[docs]</a>  <span class="k">def</span> <span class="nf">RunAsync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Same as Run for now as there is no processing that need to run async.&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">threadpool</span>  <span class="c1"># Not used.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseProgram.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs any necessary cleanup (potentially blocking).&quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
