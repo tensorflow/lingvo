@@ -442,11 +442,16 @@
           <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">continue</span>
           <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">filtered_top_hyps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-          <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+          <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
+              <span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
           <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
-          <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
+          <span class="n">ref_words</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
+          <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="n">ref_words</span>
           <span class="k">if</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">total_accurate_sentences</span> <span class="o">+=</span> <span class="mi">1</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+              <span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">, ref_words: </span><span class="si">%d</span><span class="s1">, wer: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span>
+              <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">,</span> <span class="n">errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">))</span>
 
         <span class="n">total_oracle_errs</span> <span class="o">+=</span> <span class="n">oracle_errs</span>
 
