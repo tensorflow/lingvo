@@ -770,6 +770,23 @@
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">qd</span></div>
 
+<div class="viewcode-block" id="QuantizableLayer.GetQDomainParams"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.GetQDomainParams">[docs]</a>  <span class="k">def</span> <span class="nf">GetQDomainParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">domain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets domain&#39;s Params if they&#39;re set, and the default Params otherwise.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      domain: User specified domain name.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Params for the QDomain matching the requested domain name if they&#39;re set,</span>
+<span class="sd">      and params for the &#39;default&#39; QDomain otherwise. Will return None if both</span>
+<span class="sd">      p.qdomain.domain and p.qdomain.default are None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">qdparams</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">qdparams</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">qdparams</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">return</span> <span class="n">qdparams</span></div>
+
 <div class="viewcode-block" id="QuantizableLayer._AddQuantizationFunctions"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer._AddQuantizationFunctions">[docs]</a>  <span class="k">def</span> <span class="nf">_AddQuantizationFunctions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Adds standard quantization functions against the given layer.&quot;&quot;&quot;</span>
 
