@@ -122,16 +122,15 @@ Status MatchParallelFilePattern(const string& parallel_file_pattern,
     TF_RETURN_IF_ERROR(Env::Default()->GetMatchingPaths(
         expanded_file_pattern, &filenames_per_pattern));
     if (filenames_per_pattern.empty()) {
-      return Status(
-          tensorflow::error::INVALID_ARGUMENT,
-          strings::StrCat("Found no files at ", expanded_file_pattern));
+      return tensorflow::errors::InvalidArgument(
+          "Found no files at ", expanded_file_pattern);
     }
     if (parallel_filenames.empty()) {
       parallel_filenames.swap(filenames_per_pattern);
       continue;
     }
     if (parallel_filenames.size() != filenames_per_pattern.size()) {
-      return Status(tensorflow::error::INVALID_ARGUMENT,
+      return tensorflow::errors::InvalidArgument(
                     "All file patterns in the parallel file pattern do not "
                     "have the same number of elements.");
     }
