@@ -256,6 +256,65 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   formatting inside the decoding loop. Note that the bubble iterations are
   located at different offsets across stages and will not be removed, so use
   this only when the state is not used outside thie pipelined layers.
+
+
+  Circular pipeline feature: set circular_repeat > 1, only supported for
+  single_stage_body + per_stage_vars=False + shard_stages_1d=True. In this case,
+  the layer count is expandec by circular_repeat times, and each variable will
+  have 2 leading dimensions, with shape [num_stages, circular_repeat, ...].
+  Logically, the layers are organized in the following order::
+
+      circular_repeat_000_stage_0
+      circular_repeat_000_stage_1
+      circular_repeat_000_stage_2
+      circular_repeat_000_stage_3
+
+      circular_repeat_001_stage_0
+      circular_repeat_001_stage_1
+      circular_repeat_001_stage_2
+      circular_repeat_001_stage_3
+
+      ...
+
+  This mode requires the number of microbatches to be a multiple of num_stages,
+  and for the same number of microbatches, bubble ratio will be reduced by
+  circular_repeat times, because each microbatch goes through the stages
+  multiple times in a circular pattern.
+
+  Stages communicate data via a rotating buffer of shape [num_stages, ...], in
+  a recurrent loop that runs O(circular_repeat * num_stages) iterations. During
+  each iteration, a circular_repeat ID is picked for each stage based on the
+  iteration counter and the stage ID::
+
+      # Divide num_microbatch into segments of size num_stages, then pad each
+      # segment to circular_repeat * num_stages, so that input data are
+      # interleaved with paddings of size (circular_repeat - 1) * num_stages,
+      # e.g., for num_stages == 2 and circular_repeat 3
+      #   [0, 1, _, _, _, _, 2, 3, _, _, _, _, 4, 5, ...]
+      # These internal paddings correspond to processing data from previous
+      # stages. In the end, add additional num_stages - 1 padding as bubbles.
+
+      iterations = circular_repeat * num_microbatches + num_stages - 1
+      input = ...  # shape: [num_microbatch, ...]
+      padded_input = pad_as_above(input)  # shape [iterations, ...]
+
+      # Insert a num_stages dimension after num_stages:
+      #   [iterations, num_stages, ...]
+      padded_input = pad(expand_dim(padded_input, 1), ...)
+
+      # Rotating buffer
+      state = tf.zeros([num_stages, ...])
+
+      # Recurrent loop
+      for i in range(iterations):
+        # Rotate state to the right by one stage
+        rotated_state = tf.concat([state[-1:], state[:-1]], axis=0)
+        # Only the first stage during the initial num_stages iterations uses the
+        # input data.
+        in_mask = tf.range(num_stages) == 0 and t < num_stages
+        stages_in = tf.where(in_mask, inp, rotated_state)
+        state = body.FProp(CircularRepeatIter(theta.body), stages_in)
+
   """
 
   @classmethod
@@ -296,6 +355,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     p.Define(
         'per_stage_vars', False,
         'Use separate variables for each stage. With single_stage_body only.')
+    p.Define(
+        'circular_repeat', 1,
+        'If > 1, it enables circular pipeline, and this is the number of '
+        'repeats for each stage.')
     p.Define('unroll', 'eval_only',
              'Unroll the layers: never, eval_only, always.')
     return p
@@ -304,6 +367,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
     assert p.unroll in ('never', 'eval_only', 'always')
+    if p.circular_repeat > 1:
+      # Circular pipeline only supported for single_stage_body without per-stage
+      # vars, and with 1D stage sharding.
+      assert p.stage_parallel_body is None and p.shard_stages_1d
     if p.stage_parallel_body is not None:
       assert p.single_stage_body is None
       assert not p.per_stage_vars
@@ -352,7 +419,11 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                 self.children['body_iter_%05d' % i].InstantiateVariables()
           else:
             with py_utils.VariableShapePrefixContext(p.num_stages):
-              self.children.body.InstantiateVariables()
+              if p.circular_repeat > 1:
+                with py_utils.VariableShapePrefixContext(p.circular_repeat):
+                  self.children.body.InstantiateVariables()
+              else:
+                self.children.body.InstantiateVariables()
         else:
           super()._CreateChildrenVariables()
 
@@ -374,6 +445,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     def _AddToNonTrainable(v):
       if not v.trainable:
         tf.logging.info('Non-trainable var in pipelined layer: %s', v.name)
+        # TODO(yuanzx): support non-trainable vars for circular pipeline.
+        assert p.circular_repeat == 1
         self._non_trainable_vars.append(v)
 
     tf.nest.map_structure(_AddToNonTrainable, self.vars)
@@ -444,9 +517,23 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
             x, sharding.proto.SerializeToString())
 
       stage_id = _ToManual(tf.range(p.num_stages))
+
+      def _ManualConst(x):
+        return _ToManualReplicate(tf.constant(x, dtype=stage_id.dtype))
+
       microbatch_id = tf.maximum(
-          _ToManualReplicate(iteration) - stage_id,
-          _ToManualReplicate(tf.zeros([], dtype=stage_id.dtype)))
+          _ToManualReplicate(iteration) - stage_id, _ManualConst(0))
+
+      if p.circular_repeat > 1:
+        repeat_id = tf.math.mod(
+            tf.div(microbatch_id, _ManualConst(p.num_stages)),
+            _ManualConst(p.circular_repeat))
+        one_stage_theta_args.theta = tf.nest.map_structure(
+            lambda x: x[repeat_id], one_stage_theta_args.theta)
+        segment_id = tf.div(microbatch_id,
+                            _ManualConst(p.circular_repeat * p.num_stages))
+        microbatch_id = segment_id * _ManualConst(p.num_stages) + tf.math.mod(
+            microbatch_id, _ManualConst(p.num_stages))
 
       def _KwargSlice(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
@@ -532,13 +619,37 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         theta, 'FProp', *args, padded_per_stage_states=[], **kwargs)
 
   def PadMicrobatches(self, inp):
+    return self._PadMicrobatchesInternal(inp, pad_stages=False)
+
+  def _PadMicrobatchesInternal(self, inp, pad_stages):
     """Pads a microbatched input for bubble iterations."""
     p = self.params
     if not isinstance(inp, (tf.Operation, tf.Tensor)):
       return inp
-    padding = [[0, 0]] * len(inp.shape)
-    padding[0] = [0, p.num_stages - 1]
-    padded = tf.pad(inp, padding)
+    if p.circular_repeat == 1:
+      padding = [[0, 0]] * len(inp.shape)
+      padding[0] = [0, p.num_stages - 1]
+      if pad_stages:
+        padding[1] = [0, p.num_stages - 1]
+      padded = tf.pad(inp, padding)
+    else:
+      # See the class documentation for padding the input for circular pipeline.
+      segmented_shape = [inp.shape[0] // p.num_stages, p.num_stages
+                        ] + inp.shape[1:]
+      segmented = tf.reshape(inp, segmented_shape)
+      padding = [[0, 0]]
+      padding += [[0, p.circular_repeat * p.num_stages - p.num_stages]]
+      if pad_stages:
+        padding += [[0, p.num_stages - 1]]
+      else:
+        padding += [[0, 0]]
+      padding += [[0, 0]] * (len(inp.shape) - 2)
+      padded = tf.pad(segmented, padding)
+      interleaved_shape = [inp.shape[0] * p.circular_repeat, p.num_stages]
+      interleaved_shape += inp.shape[2:]
+      interleaved = tf.reshape(padded, interleaved_shape)
+      bubble_padding = [[0, p.num_stages - 1]] + [[0, 0]] * (len(inp.shape) - 1)
+      padded = tf.pad(interleaved, bubble_padding)
     if p.shard_stages_1d:
       padded = gshard_utils.Split(padded, 1, p.num_stages, use_sharding_op=True)
 
@@ -621,6 +732,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       theta_body = tf.nest.map_structure(_SplitStages, theta_body)
 
+    if p.circular_repeat > 1:
+      assert num_microbatches % p.num_stages == 0
+
     # Adds a `stages` dimension after the leading num_microbatches to the inputs
     # which will be sharded. Also pad the leading num_microbatches dimension by
     # num_stages - 1 to match loop iteration count, which corresponds to the
@@ -632,17 +746,12 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       if not isinstance(inp, (tf.Operation, tf.Tensor)):
         return inp
       # Takes input tensor of shape [num_microbatches, ...] and returns padded
-      # tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],
+      # tensor of shape [num_iterations_with_bubbles, num_stages,  ...],
       # where num_stages is a new dimension.
       with_new_dim = tf.expand_dims(inp, 1)
-      padding = [[0, p.num_stages - 1], [0, p.num_stages - 1]]
-      padding += [[0, 0]] * (len(inp.shape) - 1)
-      padded = tf.pad(with_new_dim, padding)
+      padded = self._PadMicrobatchesInternal(with_new_dim, pad_stages=True)
       assert len(padded.shape) == len(inp.shape) + 1
       assert padded.shape[1] == p.num_stages
-      if p.shard_stages_1d:
-        padded = gshard_utils.Split(
-            padded, 1, p.num_stages, use_sharding_op=True)
       return padded
 
     padded_inputs = tf.nest.map_structure(_PadInput, args)
@@ -684,14 +793,24 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                             per_stage_states, padded_per_stage_states)
 
       def _SelectInput(state, inp):
-        # The state is aligned to previous stage. We shift it to the right by 1
-        # stage. If the stage dimension is partitioned in GShard, this will
-        # cause a collective-permute being added.
-        padding = [[1, 0]] + [[0, 0]] * (len(state.shape) - 1)
-        shifted_state = tf.pad(state, padding)[0:p.num_stages, ...]
-        in_mask = tf.reshape(
-            tf.equal(tf.range(p.num_stages), 0),
-            [p.num_stages] + [1] * (len(inp.shape) - 1))
+        in_mask = tf.equal(tf.range(p.num_stages), 0)
+        if p.circular_repeat == 1:
+          # The state is aligned to previous stage. We shift it to the right by
+          # 1 stage. If the stage dimension is partitioned in GShard, this will
+          # cause a collective-permute being added.
+          padding = [[1, 0]] + [[0, 0]] * (len(state.shape) - 1)
+          shifted_state = tf.pad(state, padding)[0:p.num_stages, ...]
+        else:
+          # Rotate the circular buffer. If the stage dimension is partitioned in
+          # GShard, this will cause a collective-permute being added.
+          shifted_state = tf.concat([state[-1:], state[:-1]], axis=0)
+          in_segment_offset = tf.math.mod(state0.iteration,
+                                          p.circular_repeat * p.num_stages)
+          in_mask = tf.logical_and(in_mask,
+                                   tf.less(in_segment_offset, p.num_stages))
+
+        in_mask = tf.reshape(in_mask,
+                             [p.num_stages] + [1] * (len(inp.shape) - 1))
         return tf.where(
             tf.broadcast_to(in_mask, shifted_state.shape),
             tf.cast(inp, shifted_state.dtype), shifted_state)
@@ -788,7 +907,16 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       # Retrieves fprop outputs.
       def _ExtractLastStage(outp):
-        return outp[p.num_stages - 1:, -1, ...]
+        if p.circular_repeat == 1:
+          return outp[p.num_stages - 1:, -1, ...]
+        else:
+          # See the class documuentation for circular pipeline.
+          bubble_removed = outp[p.num_stages - 1:, -1, ...]
+          segmented = tf.reshape(bubble_removed, [
+              num_microbatches // p.num_stages, p.circular_repeat, p.num_stages
+          ] + outp.shape[2:])
+          return tf.reshape(segmented[:, -1, ...],
+                            [num_microbatches] + outp.shape[2:])
 
       final_non_trainable_var_values = outputs.non_trainable_vars
       output_tensors = tf.nest.map_structure(

@@ -4931,6 +4931,10 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
              'Size of each pipeline microbatch.')
     p.Define('shard_stages_1d', False,
              'Whether to use 1D sharding on pipeline stages.')
+    p.Define(
+        'circular_repeat', 1,
+        'If > 1, it enables circular pipeline, and this is the number of '
+        'repeats for each stage.')
     return p
 
   class WrappedStageClass:
@@ -4977,6 +4981,7 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         microbatch_size=p.pipeline_microbatch_size,
         shard_stages_1d=p.shard_stages_1d,
         per_stage_vars=False,
+        circular_repeat=p.circular_repeat,
         unroll='never')
     self.CreateChild('pipeline', pipeline_params)
     self.pipeline.body = self.WrappedStageClass(self.pipeline.body)
