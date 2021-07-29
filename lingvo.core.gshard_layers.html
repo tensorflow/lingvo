@@ -370,6 +370,62 @@ num_stages, …]. This allows a typical use case, decoding, to avoid data
 formatting inside the decoding loop. Note that the bubble iterations are
 located at different offsets across stages and will not be removed, so use
 this only when the state is not used outside thie pipelined layers.</p>
+<p>Circular pipeline feature: set circular_repeat &gt; 1, only supported for
+single_stage_body + per_stage_vars=False + shard_stages_1d=True. In this case,
+the layer count is expandec by circular_repeat times, and each variable will
+have 2 leading dimensions, with shape [num_stages, circular_repeat, …].
+Logically, the layers are organized in the following order:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">circular_repeat_000_stage_0</span>
+<span class="n">circular_repeat_000_stage_1</span>
+<span class="n">circular_repeat_000_stage_2</span>
+<span class="n">circular_repeat_000_stage_3</span>
+
+<span class="n">circular_repeat_001_stage_0</span>
+<span class="n">circular_repeat_001_stage_1</span>
+<span class="n">circular_repeat_001_stage_2</span>
+<span class="n">circular_repeat_001_stage_3</span>
+
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>This mode requires the number of microbatches to be a multiple of num_stages,
+and for the same number of microbatches, bubble ratio will be reduced by
+circular_repeat times, because each microbatch goes through the stages
+multiple times in a circular pattern.</p>
+<p>Stages communicate data via a rotating buffer of shape [num_stages, …], in
+a recurrent loop that runs O(circular_repeat * num_stages) iterations. During
+each iteration, a circular_repeat ID is picked for each stage based on the
+iteration counter and the stage ID:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Divide num_microbatch into segments of size num_stages, then pad each</span>
+<span class="c1"># segment to circular_repeat * num_stages, so that input data are</span>
+<span class="c1"># interleaved with paddings of size (circular_repeat - 1) * num_stages,</span>
+<span class="c1"># e.g., for num_stages == 2 and circular_repeat 3</span>
+<span class="c1">#   [0, 1, _, _, _, _, 2, 3, _, _, _, _, 4, 5, ...]</span>
+<span class="c1"># These internal paddings correspond to processing data from previous</span>
+<span class="c1"># stages. In the end, add additional num_stages - 1 padding as bubbles.</span>
+
+<span class="n">iterations</span> <span class="o">=</span> <span class="n">circular_repeat</span> <span class="o">*</span> <span class="n">num_microbatches</span> <span class="o">+</span> <span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="nb">input</span> <span class="o">=</span> <span class="o">...</span>  <span class="c1"># shape: [num_microbatch, ...]</span>
+<span class="n">padded_input</span> <span class="o">=</span> <span class="n">pad_as_above</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>  <span class="c1"># shape [iterations, ...]</span>
+
+<span class="c1"># Insert a num_stages dimension after num_stages:</span>
+<span class="c1">#   [iterations, num_stages, ...]</span>
+<span class="n">padded_input</span> <span class="o">=</span> <span class="n">pad</span><span class="p">(</span><span class="n">expand_dim</span><span class="p">(</span><span class="n">padded_input</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="o">...</span><span class="p">)</span>
+
+<span class="c1"># Rotating buffer</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_stages</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+
+<span class="c1"># Recurrent loop</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
+  <span class="c1"># Rotate state to the right by one stage</span>
+  <span class="n">rotated_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span> <span class="n">state</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="c1"># Only the first stage during the initial num_stages iterations uses the</span>
+  <span class="c1"># input data.</span>
+  <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">num_stages</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">num_stages</span>
+  <span class="n">stages_in</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">in_mask</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">rotated_state</span><span class="p">)</span>
+  <span class="n">state</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">CircularRepeatIter</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">),</span> <span class="n">stages_in</span><span class="p">)</span>
+</pre></div>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params">
 <em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params" title="Permalink to this definition">¶</a></dt>
@@ -464,6 +520,11 @@ layer and its children layers.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.PadMicrobatches">
 <span class="sig-name descname"><span class="pre">PadMicrobatches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.PadMicrobatches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.PadMicrobatches" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._PadMicrobatchesInternal">
+<span class="sig-name descname"><span class="pre">_PadMicrobatchesInternal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_stages</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._PadMicrobatchesInternal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._PadMicrobatchesInternal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pads a microbatched input for bubble iterations.</p>
 </dd></dl>
 

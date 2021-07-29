@@ -411,6 +411,65 @@
 <span class="sd">  formatting inside the decoding loop. Note that the bubble iterations are</span>
 <span class="sd">  located at different offsets across stages and will not be removed, so use</span>
 <span class="sd">  this only when the state is not used outside thie pipelined layers.</span>
+
+
+<span class="sd">  Circular pipeline feature: set circular_repeat &gt; 1, only supported for</span>
+<span class="sd">  single_stage_body + per_stage_vars=False + shard_stages_1d=True. In this case,</span>
+<span class="sd">  the layer count is expandec by circular_repeat times, and each variable will</span>
+<span class="sd">  have 2 leading dimensions, with shape [num_stages, circular_repeat, ...].</span>
+<span class="sd">  Logically, the layers are organized in the following order::</span>
+
+<span class="sd">      circular_repeat_000_stage_0</span>
+<span class="sd">      circular_repeat_000_stage_1</span>
+<span class="sd">      circular_repeat_000_stage_2</span>
+<span class="sd">      circular_repeat_000_stage_3</span>
+
+<span class="sd">      circular_repeat_001_stage_0</span>
+<span class="sd">      circular_repeat_001_stage_1</span>
+<span class="sd">      circular_repeat_001_stage_2</span>
+<span class="sd">      circular_repeat_001_stage_3</span>
+
+<span class="sd">      ...</span>
+
+<span class="sd">  This mode requires the number of microbatches to be a multiple of num_stages,</span>
+<span class="sd">  and for the same number of microbatches, bubble ratio will be reduced by</span>
+<span class="sd">  circular_repeat times, because each microbatch goes through the stages</span>
+<span class="sd">  multiple times in a circular pattern.</span>
+
+<span class="sd">  Stages communicate data via a rotating buffer of shape [num_stages, ...], in</span>
+<span class="sd">  a recurrent loop that runs O(circular_repeat * num_stages) iterations. During</span>
+<span class="sd">  each iteration, a circular_repeat ID is picked for each stage based on the</span>
+<span class="sd">  iteration counter and the stage ID::</span>
+
+<span class="sd">      # Divide num_microbatch into segments of size num_stages, then pad each</span>
+<span class="sd">      # segment to circular_repeat * num_stages, so that input data are</span>
+<span class="sd">      # interleaved with paddings of size (circular_repeat - 1) * num_stages,</span>
+<span class="sd">      # e.g., for num_stages == 2 and circular_repeat 3</span>
+<span class="sd">      #   [0, 1, _, _, _, _, 2, 3, _, _, _, _, 4, 5, ...]</span>
+<span class="sd">      # These internal paddings correspond to processing data from previous</span>
+<span class="sd">      # stages. In the end, add additional num_stages - 1 padding as bubbles.</span>
+
+<span class="sd">      iterations = circular_repeat * num_microbatches + num_stages - 1</span>
+<span class="sd">      input = ...  # shape: [num_microbatch, ...]</span>
+<span class="sd">      padded_input = pad_as_above(input)  # shape [iterations, ...]</span>
+
+<span class="sd">      # Insert a num_stages dimension after num_stages:</span>
+<span class="sd">      #   [iterations, num_stages, ...]</span>
+<span class="sd">      padded_input = pad(expand_dim(padded_input, 1), ...)</span>
+
+<span class="sd">      # Rotating buffer</span>
+<span class="sd">      state = tf.zeros([num_stages, ...])</span>
+
+<span class="sd">      # Recurrent loop</span>
+<span class="sd">      for i in range(iterations):</span>
+<span class="sd">        # Rotate state to the right by one stage</span>
+<span class="sd">        rotated_state = tf.concat([state[-1:], state[:-1]], axis=0)</span>
+<span class="sd">        # Only the first stage during the initial num_stages iterations uses the</span>
+<span class="sd">        # input data.</span>
+<span class="sd">        in_mask = tf.range(num_stages) == 0 and t &lt; num_stages</span>
+<span class="sd">        stages_in = tf.where(in_mask, inp, rotated_state)</span>
+<span class="sd">        state = body.FProp(CircularRepeatIter(theta.body), stages_in)</span>
+
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -451,6 +510,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;per_stage_vars&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Use separate variables for each stage. With single_stage_body only.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;circular_repeat&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 1, it enables circular pipeline, and this is the number of &#39;</span>
+        <span class="s1">&#39;repeats for each stage.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unroll&#39;</span><span class="p">,</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">,</span>
              <span class="s1">&#39;Unroll the layers: never, eval_only, always.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -459,6 +522,10 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">unroll</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;never&#39;</span><span class="p">,</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">,</span> <span class="s1">&#39;always&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="c1"># Circular pipeline only supported for single_stage_body without per-stage</span>
+      <span class="c1"># vars, and with 1D stage sharding.</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">single_stage_body</span> <span class="ow">is</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span>
@@ -507,7 +574,11 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+              <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span><span class="p">):</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+              <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
 
@@ -529,6 +600,8 @@
     <span class="k">def</span> <span class="nf">_AddToNonTrainable</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">trainable</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Non-trainable var in pipelined layer: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="c1"># TODO(yuanzx): support non-trainable vars for circular pipeline.</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_AddToNonTrainable</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span>
@@ -599,9 +672,23 @@
             <span class="n">x</span><span class="p">,</span> <span class="n">sharding</span><span class="o">.</span><span class="n">proto</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span>
 
       <span class="n">stage_id</span> <span class="o">=</span> <span class="n">_ToManual</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">))</span>
+
+      <span class="k">def</span> <span class="nf">_ManualConst</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">stage_id</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
       <span class="n">microbatch_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-          <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">iteration</span><span class="p">)</span> <span class="o">-</span> <span class="n">stage_id</span><span class="p">,</span>
-          <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">stage_id</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
+          <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">iteration</span><span class="p">)</span> <span class="o">-</span> <span class="n">stage_id</span><span class="p">,</span> <span class="n">_ManualConst</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">repeat_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">microbatch_id</span><span class="p">,</span> <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)),</span>
+            <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span><span class="p">))</span>
+        <span class="n">one_stage_theta_args</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">repeat_id</span><span class="p">],</span> <span class="n">one_stage_theta_args</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">microbatch_id</span><span class="p">,</span>
+                            <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">))</span>
+        <span class="n">microbatch_id</span> <span class="o">=</span> <span class="n">segment_id</span> <span class="o">*</span> <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span>
+            <span class="n">microbatch_id</span><span class="p">,</span> <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">))</span>
 
       <span class="k">def</span> <span class="nf">_KwargSlice</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
@@ -687,13 +774,37 @@
         <span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;FProp&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">padded_per_stage_states</span><span class="o">=</span><span class="p">[],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.PadMicrobatches"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.PadMicrobatches">[docs]</a>  <span class="k">def</span> <span class="nf">PadMicrobatches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PadMicrobatchesInternal</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">pad_stages</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._PadMicrobatchesInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._PadMicrobatchesInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_PadMicrobatchesInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">pad_stages</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Pads a microbatched input for bubble iterations.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
       <span class="k">return</span> <span class="n">inp</span>
-    <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">pad_stages</span><span class="p">:</span>
+        <span class="n">padding</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># See the class documentation for padding the input for circular pipeline.</span>
+      <span class="n">segmented_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
+                        <span class="p">]</span> <span class="o">+</span> <span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+      <span class="n">segmented</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">segmented_shape</span><span class="p">)</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+      <span class="n">padding</span> <span class="o">+=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]]</span>
+      <span class="k">if</span> <span class="n">pad_stages</span><span class="p">:</span>
+        <span class="n">padding</span> <span class="o">+=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">padding</span> <span class="o">+=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+      <span class="n">padding</span> <span class="o">+=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">segmented</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+      <span class="n">interleaved_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span>
+      <span class="n">interleaved_shape</span> <span class="o">+=</span> <span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+      <span class="n">interleaved</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="n">interleaved_shape</span><span class="p">)</span>
+      <span class="n">bubble_padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">interleaved</span><span class="p">,</span> <span class="n">bubble_padding</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
       <span class="n">padded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -776,6 +887,9 @@
 
       <span class="n">theta_body</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_SplitStages</span><span class="p">,</span> <span class="n">theta_body</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">num_microbatches</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">==</span> <span class="mi">0</span>
+
     <span class="c1"># Adds a `stages` dimension after the leading num_microbatches to the inputs</span>
     <span class="c1"># which will be sharded. Also pad the leading num_microbatches dimension by</span>
     <span class="c1"># num_stages - 1 to match loop iteration count, which corresponds to the</span>
@@ -787,17 +901,12 @@
       <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
         <span class="k">return</span> <span class="n">inp</span>
       <span class="c1"># Takes input tensor of shape [num_microbatches, ...] and returns padded</span>
-      <span class="c1"># tensor of shape [num_microbatches + (num_stages - 1), num_stages,  ...],</span>
+      <span class="c1"># tensor of shape [num_iterations_with_bubbles, num_stages,  ...],</span>
       <span class="c1"># where num_stages is a new dimension.</span>
       <span class="n">with_new_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-      <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]]</span>
-      <span class="n">padding</span> <span class="o">+=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">with_new_dim</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PadMicrobatchesInternal</span><span class="p">(</span><span class="n">with_new_dim</span><span class="p">,</span> <span class="n">pad_stages</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">padded</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
       <span class="k">assert</span> <span class="n">padded</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
-        <span class="n">padded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
-            <span class="n">padded</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">padded</span>
 
     <span class="n">padded_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_PadInput</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
@@ -839,14 +948,24 @@
                             <span class="n">per_stage_states</span><span class="p">,</span> <span class="n">padded_per_stage_states</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_SelectInput</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">inp</span><span class="p">):</span>
-        <span class="c1"># The state is aligned to previous stage. We shift it to the right by 1</span>
-        <span class="c1"># stage. If the stage dimension is partitioned in GShard, this will</span>
-        <span class="c1"># cause a collective-permute being added.</span>
-        <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">shifted_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-        <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="c1"># The state is aligned to previous stage. We shift it to the right by</span>
+          <span class="c1"># 1 stage. If the stage dimension is partitioned in GShard, this will</span>
+          <span class="c1"># cause a collective-permute being added.</span>
+          <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+          <span class="n">shifted_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># Rotate the circular buffer. If the stage dimension is partitioned in</span>
+          <span class="c1"># GShard, this will cause a collective-permute being added.</span>
+          <span class="n">shifted_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span> <span class="n">state</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+          <span class="n">in_segment_offset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
+                                          <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span>
+          <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">in_mask</span><span class="p">,</span>
+                                   <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">in_segment_offset</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">))</span>
+
+        <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">in_mask</span><span class="p">,</span>
+                             <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">in_mask</span><span class="p">,</span> <span class="n">shifted_state</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">shifted_state</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">shifted_state</span><span class="p">)</span>
@@ -943,7 +1062,16 @@
 
       <span class="c1"># Retrieves fprop outputs.</span>
       <span class="k">def</span> <span class="nf">_ExtractLastStage</span><span class="p">(</span><span class="n">outp</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">outp</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="k">return</span> <span class="n">outp</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># See the class documuentation for circular pipeline.</span>
+          <span class="n">bubble_removed</span> <span class="o">=</span> <span class="n">outp</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+          <span class="n">segmented</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bubble_removed</span><span class="p">,</span> <span class="p">[</span>
+              <span class="n">num_microbatches</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
+          <span class="p">]</span> <span class="o">+</span> <span class="n">outp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">segmented</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+                            <span class="p">[</span><span class="n">num_microbatches</span><span class="p">]</span> <span class="o">+</span> <span class="n">outp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
 
       <span class="n">final_non_trainable_var_values</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">non_trainable_vars</span>
       <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
