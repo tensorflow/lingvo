@@ -316,8 +316,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     # Sum masks with appropriate multiplicity.
     if masks_per_frame > 0:
       multiplicity_weights = tf.tile(
-          tf.expand_dims(tf.range(multiplicity, dtype=dtype), 0),
-          [batch_size, 1])
+          tf.expand_dims(
+              tf.cast(
+                  tf.range(
+                      tf.cast(multiplicity, dtype=tf.int32), dtype=tf.int32),
+                  dtype=dtype), 0), [batch_size, 1])
       multiplicity_tensor = masks_per_frame * tf.cast(choose_range, dtype=dtype)
       multiplicity_weights = tf.cast(
           multiplicity_weights < multiplicity_tensor, dtype=dtype)
