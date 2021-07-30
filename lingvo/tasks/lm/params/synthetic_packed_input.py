@@ -158,7 +158,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B8x8 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \
-# --ps_replicas=8 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=16 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B8x8(DenseLmTemplate):
   """128B params LM model with 2D split."""
@@ -186,7 +186,7 @@ class DenseLm128B8x8(DenseLmTemplate):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=64 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B16x16(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-512."""
@@ -224,7 +224,7 @@ class DenseLm175B32x32(DenseLm128B16x16):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm1T16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --job=executor_tpu
+# --ps_replicas=64 --job=executor_tpu
 @model_registry.RegisterSingleTaskModel
 class DenseLm1T16x16(DenseLm128B16x16):
   """1T params LM model with 2D split on v3-512."""
@@ -240,7 +240,7 @@ class DenseLm1T16x16(DenseLm128B16x16):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm128B32x32 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
-# --ps_replicas=128 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=256 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm128B32x32(DenseLm128B8x8):
   """128B params LM model with 2D split on v3-2048."""
@@ -302,7 +302,7 @@ class ShardedAdam(optimizer.Adam):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide41BAdam16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=64 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide41BAdam16x16(DenseLm128B16x16):
   """41B params LM model with 2D split and ADAM optimizer on v3-512."""
@@ -337,7 +337,7 @@ class DenseLm12kWide41BAdam16x16(DenseLm128B16x16):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide10BAdam8x8 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=128 \
-# --ps_replicas=8 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=16 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide41BAdam8x8(DenseLm12kWide41BAdam16x16):
   # IF OOM, try 0.25 BATCH_DIM_PER_DEVICE and 8 NUM_MICRO_BATCHES
@@ -353,7 +353,7 @@ class DenseLm12kWide41BAdam8x8(DenseLm12kWide41BAdam16x16):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam16x16 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=512 \
-# --ps_replicas=32 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=64 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide162BAdam16x16(DenseLm12kWide41BAdam16x16):
   """162B params LM model with 2D split and ADAM optimizer on v3-512."""
@@ -375,7 +375,7 @@ class DenseLm12kWide162BAdamBS25616x16(DenseLm12kWide162BAdam16x16):
 # --alsologtostderr \
 # --model=lm.synthetic_packed_input.DenseLm12kWide162BAdam32x32 \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=2048 \
-# --ps_replicas=128 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=256 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm12kWide162BAdam32x32(DenseLm12kWide162BAdam16x16):
   """162B params LM model with 2D split and ADAM optimizer on v3-2048."""
