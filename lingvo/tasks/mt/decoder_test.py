@@ -1572,5 +1572,153 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
 
 
+class TransformerXDecoderTest(test_utils.TestCase):
+
+  def _DecoderParams(self):
+    p = decoder.TransformerXDecoder.Params()
+    p.name = 'cross_decoder'
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
+    p.token_emb.vocab_size = 64
+    p.token_emb.embedding_dim = 16
+    p.token_emb.max_num_shards = 1
+    p.token_emb.scale_sqrt_depth = True
+    p.token_emb.vn = py_utils.VariationalNoiseParams(1.0, False, False)
+    p.position_emb.embedding_dim = 16
+    p.position_emb.trainable_scaling = False
+    p.model_dim = 16
+    p.source_dim = 16
+    p.num_trans_layers = 6
+    p.trans_tpl.source_dim = p.model_dim
+    p.trans_tpl.tr_atten_tpl.source_dim = p.model_dim
+    p.trans_tpl.tr_atten_tpl.num_attention_heads = 2
+    p.trans_tpl.tr_atten_tpl.atten_hidden_dim = 16
+    p.trans_tpl.tr_atten_tpl.atten_tpl.context_dim = p.model_dim
+    p.trans_tpl.tr_fflayer_tpl.hidden_dim = 5
+    p.trans_tpl.tr_fflayer_tpl.input_dim = p.model_dim
+    p.label_smoothing = layers.UniformLabelSmoother.Params()
+    p.label_smoothing.uncertainty = 0.1
+    p.per_word_avg_loss = True
+    p.softmax.num_classes = 64
+    p.random_seed = 54321
+    return p
+
+  def _Inputs(self, bs, src_seq_len, tgt_seq_len):
+    src_enc = tf.constant(
+        np.random.normal(size=[src_seq_len, bs, 16]), tf.float32)
+    src_enc_padding = tf.zeros([src_seq_len, bs])
+
+    target_labels = tf.constant(
+        np.random.randint(
+            low=0, high=64, size=[bs, tgt_seq_len], dtype=np.int32))
+    target_ids = tf.concat([tf.ones([bs, 1], tf.int32), target_labels],
+                           1)[:, :-1]
+    paddings = []
+    for _ in range(bs):
+      zeros_len = np.random.randint(1, tgt_seq_len + 1)
+      paddings.append([
+          0.,
+      ] * zeros_len + [1.] * (tgt_seq_len - zeros_len))
+    target_paddings = tf.constant(paddings, tf.float32)
+    target_weights = 1.0 - target_paddings
+    targets = py_utils.NestedMap({
+        'ids': target_ids,
+        'labels': target_labels,
+        'weights': target_weights,
+        'paddings': target_paddings
+    })
+
+    encoder_outputs = py_utils.NestedMap(
+        encoded=src_enc,
+        padding=src_enc_padding,
+        segment_id=None,
+        embedded_inputs=None)
+    return (encoder_outputs, targets)
+
+  def testDecoderConstruction(self):
+    p = self._DecoderParams()
+    p.Instantiate()
+
+  def testForwardPassWithSingleBatch(self):
+    with self.session(use_gpu=False) as sess:
+      tf.random.set_seed(8372749040)
+      p = self._DecoderParams()
+      mt_dec = p.Instantiate()
+      bs = 2
+      tgt_seq_len = 16
+      src_seq_len = 10
+      encoder_outputs, targets = self._Inputs(bs, src_seq_len, tgt_seq_len)
+      out = mt_dec.ComputePredictions(mt_dec.theta, encoder_outputs, targets)
+      out_metrics, _ = mt_dec.ComputeLoss(mt_dec.theta, out, targets)
+      dec_out_sum = tf.reduce_sum(out.softmax_input, 0)
+      out_loss = out_metrics['loss'][0]
+      tf.global_variables_initializer().run()
+      actual_dec_out, actual_dec_out_sum, actual_loss = sess.run(
+          [out.softmax_input, dec_out_sum, out_loss])
+      expected_enc_out_sum = [
+          [-23.059402, -32.492645, 9.186216, -48.663956, -43.15247,
+           -18.73859, -19.683437, 3.3179564, 36.15105, 23.998373,
+           40.686966, -0.5539336, -12.252099, 33.48251, -5.5264044,
+           17.28962],
+          [-20.640846, -11.11311, -8.342873, -12.426766, -48.050953,
+           -7.918814, 12.720908, -0.44217646, 15.6574, 12.280106,
+           33.245914, 9.623148, -0.75011516, 19.58214, 3.4654825,
+           21.844471]]  # pyformat: disable
+      expected_loss = 5.2651153
+      self.assertAllEqual([tgt_seq_len, bs, p.model_dim], actual_dec_out.shape)
+      self.assertAllClose(
+          expected_enc_out_sum, actual_dec_out_sum, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_loss, actual_loss, rtol=1e-05, atol=1e-05)
+
+  def testForwardPassWithDoubleBatch(self):
+    with self.session(use_gpu=False) as sess:
+      tf.random.set_seed(8372749040)
+      p = self._DecoderParams()
+      mt_dec = p.Instantiate()
+      bs = 2
+      tgt_seq_len = 16
+      src_seq_len = 10
+      encoder_outputs, targets = self._Inputs(bs, src_seq_len, tgt_seq_len)
+      other_targets = py_utils.NestedMap()
+      other_targets.ids = tf.gather(targets.ids, [1, 0])
+      other_targets.labels = tf.gather(targets.labels, [1, 0])
+      other_targets.weights = tf.gather(targets.weights, [1, 0])
+      other_targets.paddings = tf.gather(targets.paddings, [1, 0])
+      lambdas = np.random.random((bs, tgt_seq_len))
+      lambdas = tf.constant(lambdas, tf.float32)
+      out = mt_dec.ComputePredictions(mt_dec.theta, encoder_outputs, targets,
+                                      other_targets, [lambdas, 1 - lambdas])
+
+      target_probs = np.random.random([bs, tgt_seq_len, 64])
+      target_probs = target_probs / np.sum(target_probs, -1, keepdims=True)
+      target_probs = tf.constant(target_probs, tf.float32)
+      mix_targets = targets
+      target_weights = targets.weights + other_targets.weights
+      target_weights = tf.clip_by_value(target_weights, 0.0, 1.0)
+      mix_targets.weights = target_weights
+
+      out_metrics, _ = mt_dec.ComputeLoss(mt_dec.theta, out, mix_targets,
+                                          target_probs)
+      dec_out_sum = tf.reduce_sum(out.softmax_input, 0)
+      out_loss = out_metrics['loss'][0]
+      tf.global_variables_initializer().run()
+      actual_dec_out, actual_dec_out_sum, actual_loss = sess.run(
+          [out.softmax_input, dec_out_sum, out_loss])
+      print(actual_loss)
+      print(actual_dec_out_sum)
+      expected_enc_out_sum = [
+          [-34.133366, -43.741, -1.8258251, -38.077496, -41.201332,
+           -24.28507, -6.2848973, -7.3005624, 49.394604, 30.846378,
+           36.994316, -7.868125, -0.25746167, 41.251163, -7.427534, 28.979422],
+          [-18.840004, -10.098586, -7.126487, -14.059292, -46.043896,
+           -6.7827044, 12.584265, 1.0161059, 17.472107, 13.747282,
+           31.181364, 6.1263213, 0.2827285, 20.319666, 0.05137509,
+           22.13324]]  # pyformat: disable
+      expected_loss = 5.2481875
+      self.assertAllEqual(actual_dec_out.shape, [tgt_seq_len, bs, p.model_dim])
+      self.assertAllClose(
+          expected_enc_out_sum, actual_dec_out_sum, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_loss, actual_loss, rtol=1e-05, atol=1e-05)
+
+
 if __name__ == '__main__':
   tf.test.main()

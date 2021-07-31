@@ -168,9 +168,10 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       per_sequence_loss = tf.reduce_sum(
           per_example_loss * target_weights, axis=time_axis)
       if p.packed_input:
-        assert target_segment_ids is not None, (
-            'Need target segment ids for '
-            'normalizing loss when training with packed inputs.')
+        if target_segment_ids is not None:
+          raise AssertionError(
+              'Need target segment ids for '
+              'normalizing loss when training with packed inputs.')
         num_samples_per_row = tf.math.reduce_max(
             target_segment_ids, axis=time_axis)
         num_samples = tf.reduce_sum(num_samples_per_row)
@@ -1230,7 +1231,6 @@ class TransformerDecoder(MTBaseDecoder):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-
     if p.softmax.cls == layers.SharedSoftmaxLayer:
       self._token_emb_vocab_size = p.softmax.num_classes
       self._token_emb_dim = p.model_dim
@@ -1243,9 +1243,8 @@ class TransformerDecoder(MTBaseDecoder):
     assert self._token_emb_vocab_size == p.softmax.num_classes
     assert self._token_emb_dim == p.position_emb.embedding_dim
     if p.model_dim != self._token_emb_dim:
-      tf.logging.warning(
-          'token_emb.embedding_dim != model_dim (%s vs. %s), '
-          'creating a projection!')
+      tf.logging.warning('token_emb.embedding_dim != model_dim (%s vs. %s), '
+                         'creating a projection!')
       proj_p = layers.ProjectionLayer.Params().Copy()
       proj_p.name = 'emb_proj'
       proj_p.input_dim = p.token_emb.embedding_dim
@@ -2936,3 +2935,393 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
                                   states):
     # There is nothing to do here.
     return states
+
+
+class TransformerXDecoder(TransformerDecoder):
+  """Transformer Decoder.
+
+  Mainly add a feature to calculate the KL loss with respect to another
+  prediction and support combining two input embeddings with their
+  interpolation vectors.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('use_atten_cl', True, 'Attention is annealed from a flat'
+             'distribution to a sharp one')
+    p.Define('use_normalized_atten', False, 'Use normalized attention')
+    p.per_example_tensors = True
+    return p
+
+  def _FProp(self,
+             theta,
+             encoder_outputs,
+             targets,
+             interpolation_batch=None,
+             lambdas=None):
+    """Decodes `targets` given encoded source.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: a NestedMap computed by encoder. Expected to contain:
+        encoded - source encoding. When `p.is_transparent` is False, it is a
+        tensor of shape [time, batch, depth]. When `p.is_transparent` is True,
+        it is a tensor of shape [time, batch, depth, num_trans_layers] if
+        `self.do_eval` is True, and a list of `num_trans_layers` tensors of
+        shape [time, batch, depth] if `self.do_eval` is False.  padding - source
+        encoding's padding, of shape [time, batch]. segment_id - source segment
+        id, of shape [time, batch].
+      targets: A dict of string to tensors representing the targets one try to
+        predict. Each tensor in targets is of shape [batch, time].
+      interpolation_batch: Same as targets of shape [batch, time, emb_dim]
+      lambdas: A pair of float tensors to combine embeddings of two inputs.
+
+    Returns:
+      A `.NestedMap` containing output of last decoder layer and attention probs
+
+      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      - attention: `.NestedMap` of attention distributions of shape
+        [batch, target_length, source_length].
+      - source_embs: Tensor of shape [batch, time, emb_dim].
+      - target_embs: Tensor of shape [batch, time, emb_dim].
+    """
+
+    p = self.params
+    source_encs = encoder_outputs.encoded
+    source_paddings = encoder_outputs.padding
+    src_segment_id = getattr(encoder_outputs, 'segment_id', None)
+    time, batch = py_utils.GetShape(source_paddings, 2)
+
+    source_encs = py_utils.HasShape(source_encs, [time, batch, p.source_dim])
+    source_encs = [source_encs] * p.num_trans_layers
+    with tf.name_scope(p.name):
+      # [batch, time]
+      target_ids = targets.ids
+      # [time, batch]
+      target_paddings = tf.transpose(targets.paddings)
+      target_segment_pos = None
+      target_segment_id = None
+      if p.packed_input:
+        target_segment_id = tf.transpose(targets.segment_ids)
+        target_segment_pos = targets.segment_pos
+        if src_segment_id is not None:
+          raise AssertionError('Need to provide src_segment_id '
+                               'for packed input.')
+
+      # Embedding layer
+      # [batch, time, model_dim]
+      if not self._share_sm_emb:
+        token_embs = self.token_emb.EmbLookup(theta.token_emb, target_ids)
+      else:
+        token_embs = self.softmax.EmbLookup(theta.softmax, target_ids)
+
+      if interpolation_batch is not None:
+        other_target_ids = interpolation_batch.ids
+        target_paddings = tf.transpose(target_paddings)
+        other_target_paddings = interpolation_batch.paddings
+        if not self._share_sm_emb:
+          other_token_embs = self.token_emb.EmbLookup(theta.token_emb,
+                                                      other_target_ids)
+        else:
+          other_token_embs = self.token_emb.EmbLookup(theta.softmax,
+                                                      other_target_ids)
+        lambdas = [tf.expand_dims(a, -1) for a in lambdas]
+        if 'embs' in targets and targets.embs is not None:
+          token_embs = targets.embs
+        if 'embs' in interpolation_batch and interpolation_batch.embs is not None:
+          other_token_embs = interpolation_batch.embs
+        token_embs = lambdas[0] * token_embs + lambdas[1] * other_token_embs
+
+        target_paddings = target_paddings + other_target_paddings - 1.0
+        target_paddings = tf.clip_by_value(target_paddings, 0.0, 1.0)
+        target_paddings = tf.transpose(target_paddings)
+
+      orig_input_embs = token_embs
+      atten_idx = None
+      if p.task_emb:
+        if p.use_lang_dependent_atten:
+          atten_idx = targets.task_ids
+          # Works for both packed and unpacked inputs.
+          atten_idx = tf.reshape(tf.transpose(atten_idx), [-1])
+
+        if interpolation_batch is None:
+          token_embs += self.task_emb.EmbLookup(theta.task_emb,
+                                                targets.task_ids)
+        else:
+          task_embs = self.task_emb.EmbLookup(theta.task_emb, targets.task_ids)
+          other_task_embs = self.task_emb.EmbLookup(
+              theta.task_emb, interpolation_batch.task_ids)
+          task_embs = lambdas[0] * task_embs + lambdas[1] * other_task_embs
+          token_embs += task_embs
+
+      target_time = py_utils.GetShape(target_ids)[1]
+
+      # [1, time, model_dim]
+      if p.packed_input:
+        posit_embs = self.position_emb.FPropWithPosition(
+            theta.position_emb, target_segment_pos)
+      else:
+        posit_embs = tf.expand_dims(
+            self.position_emb.FProp(theta.position_emb, target_time), 0)
+
+      # [time, batch, model_dim]
+      input_embs = token_embs + posit_embs
+
+      if p.model_dim != self._token_emb_dim:
+        input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
+
+      input_embs = tf.transpose(input_embs, [1, 0, 2])
+      input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
+
+      if not p.packed_input:
+        src_enc_len = tf.reduce_sum(1 - source_paddings, axis=0)
+        num_hyps_per_beam = tf.div(
+            py_utils.GetShape(target_paddings)[1],
+            py_utils.GetShape(source_paddings)[1])
+        src_enc_len = self._ExpandToNumHyps(src_enc_len, num_hyps_per_beam)
+
+      layer_in = input_embs
+      per_layer_attn_probs = []
+
+      for i, (layer, layer_theta) in enumerate(zip(self.trans, theta.trans)):
+        # [time, batch, model_dim]
+        layer_out, probs = layer.FProp(
+            layer_theta,
+            layer_in,
+            target_paddings,
+            source_encs[i],
+            source_paddings,
+            source_segment_id=target_segment_id,
+            aux_segment_id=src_segment_id,
+            atten_idx=atten_idx)
+        layer_in = layer_out
+        pl_probs = tf.transpose(probs, [1, 0, 2])
+        if p.packed_input:
+          # For packed inputs we are currently not removing the EOS token.
+          if p.use_normalized_atten:
+            pl_probs = self._NormalizeAttention(p, probs, source_paddings,
+                                                target_paddings, src_segment_id,
+                                                target_segment_id)
+          per_layer_attn_probs.append(pl_probs)
+        else:
+          # Remove attention weight on last (EOS) token and re-normalize
+          # so that last dimension sums to 1. See b/129097156.
+          # Original probs shape: [trg time, batch, src time]
+          norma_atten_probs_3d = self._RemoveEOSProbs(p, pl_probs, src_enc_len)
+          if p.use_normalized_atten:
+            per_layer_attn_probs.append(norma_atten_probs_3d)
+          else:
+            per_layer_attn_probs.append(pl_probs)
+
+      if p.ln_output:
+        layer_out = self.layer_norm_out.FProp(theta.layer_norm_out, layer_out)
+
+      # per_layer_attn_probs shape: [batch, trg time, src time]
+      self._AddAttenProbsSummary(source_paddings, targets, per_layer_attn_probs)
+
+      # Aggregate per-layer attention probs.
+      aggregated_atten_probs = (
+          tf.math.add_n(per_layer_attn_probs) / len(per_layer_attn_probs))
+
+      if p.use_atten_cl:
+        cur_step = tf.cast(py_utils.GetOrCreateGlobalStepVar(), tf.int32)
+        temp = tf.cast(cur_step, py_utils.FPropDtype(p)) / 20000
+        temp = tf.minimum(temp, 2)
+        aggregated_atten_probs = tf.math.exp(
+            tf.math.log(aggregated_atten_probs + 1e-6) * temp) * tf.expand_dims(
+                1.0 - targets.paddings, -1) + 1e-6
+        aggregated_atten_probs = aggregated_atten_probs / tf.reduce_sum(
+            aggregated_atten_probs, -1, keepdims=True)
+      attention_map = py_utils.NestedMap(probs=aggregated_atten_probs)
+      return py_utils.NestedMap(
+          softmax_input=layer_out,
+          attention=attention_map,
+          source_embs=encoder_outputs.embedded_inputs,
+          target_embs=orig_input_embs)
+
+  def ComputePredictions(self,
+                         theta,
+                         encoder_outputs,
+                         targets,
+                         interpolation_batch=None,
+                         lambdas=None):
+    """Decodes `targets` given encoded source.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: a NestedMap computed by encoder. Expected to contain:
+        encoded - source encoding, of shape [time, batch, depth]. Can be [time,
+        batch, depth, num_layers] if is_transparent is set.  padding - source
+        encoding's padding, of shape [time, batch]. segment_id - source segment
+        id, of shape [time, batch].
+      targets: A dict of string to tensors representing the targets one try to
+        predict. Each tensor in targets is of shape [batch, time].
+      interpolation_batch: Same as targets of shape [batch, time, emb_dim]
+      lambdas: A pair of float tensors to combine embeddings of two inputs.
+
+    Returns:
+      A `.NestedMap` containing output of last decoder layer and attention probs
+
+      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      - attention: `.NestedMap` of attention distributions of shape
+        [batch, time, source_len].
+      - source_embs: Tensor of shape [batch, time, emb_dim].
+      - target_embs: Tensor of shape [batch, time, emb_dim].
+
+    """
+    return self._FProp(theta, encoder_outputs, targets, interpolation_batch,
+                       lambdas)
+
+  def _FPropSoftmax(self,
+                    theta,
+                    softmax_input,
+                    target_labels,
+                    target_weights,
+                    target_paddings,
+                    target_segment_ids=None,
+                    ref_probs=None):
+    """Computes cross-entropy loss given the softmax input, labels and weights.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      softmax_input: A tensor of shape [time, batch, p.softmax.input_dim].
+      target_labels: A matrix of tf.int32. [time, batch].
+      target_weights: A matrix of params.dtype. [time, batch].
+      target_paddings: A matrix of params.dtype. [time, batch].
+      target_segment_ids: A matrix of params.dtype. [time, batch].
+      ref_probs: A tesnor of shape [batch, time, vocab_size]
+
+    Returns:
+      A tuple (metrics, per_example_tensors).
+        metrics:
+          A dictionary containing metrics for the xent loss and prediction
+          accuracy.
+        per_example_tensors:
+          A dictionary of per-example tensors.
+    """
+    p = self.params
+    softmax_input = tf.reshape(softmax_input, [-1, p.softmax.input_dim])
+    assert p.label_smoothing is not None
+
+    if p.label_smoothing is None:
+      xent_loss = self.softmax.FProp(
+          theta.softmax, [softmax_input],
+          class_weights=tf.reshape(target_weights, [-1, 1]),
+          class_ids=tf.reshape(target_labels, [-1, 1]))
+    else:
+      # [time, batch, num_classes]
+      # target_probs = tf.transpose(
+      target_probs = self.smoother.FProp(
+          theta.smoother,
+          tf.transpose(target_paddings),
+          tf.transpose(target_labels),
+          target_ids=None)
+      target_hard_probs = target_probs
+      target_probs = tf.transpose(target_probs, [1, 0, 2])
+
+      if ref_probs is not None:
+        target_probs = tf.stop_gradient(ref_probs)
+        target_probs = tf.transpose(target_probs, [1, 0, 2])
+
+      xent_loss = self.softmax.FProp(
+          theta.softmax, [softmax_input],
+          class_weights=tf.reshape(target_weights, [-1, 1]),
+          class_probabilities=tf.reshape(target_probs,
+                                         [-1, p.softmax.num_classes]))
+
+    if p.per_word_avg_loss:
+      final_loss = tf.identity(xent_loss.avg_xent, name='loss')
+      loss_weight = tf.identity(xent_loss.total_weight, name='num_predictions')
+    else:
+      # NOTE: Per-sequence loss is the sum of each example's loss.  The
+      # final loss for a training batch is the mean loss of sequences in
+      # the batch.
+      # [time, batch]
+      per_example_loss = tf.reshape(xent_loss.per_example_xent,
+                                    py_utils.GetShape(target_weights))
+      per_sequence_loss = tf.reduce_sum(per_example_loss * target_weights, 0)
+      if p.packed_input:
+        if target_segment_ids is not None:
+          raise AssertionError(
+              'Need target segment ids for '
+              'normalizing loss when training with packed inputs.')
+        num_samples = tf.cast(
+            tf.reduce_sum(
+                tf.reduce_max(target_segment_ids, 0) -
+                tf.reduce_min(target_segment_ids, 0) + 1),
+            dtype=per_sequence_loss.dtype)
+        final_loss = tf.reduce_sum(per_sequence_loss) / num_samples
+      else:
+        final_loss = tf.reduce_mean(per_sequence_loss)
+      loss_weight = py_utils.GetShape(per_sequence_loss)[0]
+
+    metrics = {
+        'loss': (final_loss, loss_weight),
+        'log_pplx': (xent_loss.avg_xent, xent_loss.total_weight),
+    }
+
+    per_example_tensors = {}
+    if p.per_example_tensors:
+      per_example_tensors['per_example_loss'] = tf.reshape(
+          xent_loss.per_example_xent, py_utils.GetShape(target_weights))
+      per_example_tensors['per_sequence_loss'] = tf.reduce_sum(
+          per_example_tensors['per_example_loss'] * target_weights, 0)
+      per_example_tensors['loss'] = per_example_tensors['per_sequence_loss']
+      per_example_tensors['logits'] = tf.reshape(
+          xent_loss.logits,
+          tf.concat([py_utils.GetShape(target_weights), [-1]], 0))
+      per_example_tensors['log_probs'] = tf.reshape(
+          xent_loss.log_probs,
+          tf.concat([py_utils.GetShape(target_weights), [-1]], 0))
+      per_example_tensors['reshape_probs'] = tf.transpose(
+          tf.exp(per_example_tensors['log_probs']), [1, 0, 2])
+      per_example_tensors['target_hard_probs'] = target_hard_probs
+
+    # NOTE: tf.argmax is not implemented for the JF backend, see b/36093673
+    # Skip the fraction_of_correct_next_step_preds during training.
+    if self.do_eval:
+      logits = xent_loss.logits
+      correct_preds = tf.cast(
+          tf.equal(
+              tf.cast(tf.reshape(tf.argmax(logits, 1), [-1]), tf.int32),
+              tf.reshape(target_labels, [-1])), p.dtype)
+      correct_next_preds = tf.reduce_sum(
+          correct_preds * tf.reshape(tf.cast(target_weights, p.dtype), [-1]))
+      num_preds = tf.reduce_sum(tf.cast(target_weights, p.dtype))
+      accuracy = tf.identity(
+          correct_next_preds / num_preds,
+          name='fraction_of_correct_next_step_preds')
+      metrics['fraction_of_correct_next_step_preds'] = (accuracy, num_preds)
+    return metrics, per_example_tensors
+
+  def ComputeLoss(self, theta, predictions, targets, ref_probs=None):
+    """Populates a metrics dictionary based on the output of ComputePredictions.
+
+    Args:
+      theta: Nested map describing decoder model parameters.
+      predictions: NestedMap describing the decoding process, requiring:
+        .softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      targets: NestedMap describing the target sequences.
+      ref_probs: A tesnor of shape [batch, time, vocab_size]
+
+    Returns:
+      Two dicts.
+
+        - A map from metric name (a python string) to a tuple (value, weight).
+          Both value and weight are scalar Tensors.
+        - A map from name to arbitrary tensors, where the first dimension must
+          be the batch index.
+    """
+    segment_id = None
+    if self.params.packed_input:
+      segment_id = tf.transpose(targets.segment_ids)
+    if isinstance(predictions, py_utils.NestedMap):
+      predictions = predictions.softmax_input
+    return self._FPropSoftmax(theta, predictions, tf.transpose(targets.labels),
+                              tf.transpose(targets.weights),
+                              tf.transpose(targets.paddings), segment_id,
+                              ref_probs)
