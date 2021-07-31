@@ -747,6 +747,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;source_mask_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Id for masked words in source inputs. &#39;</span>
         <span class="s1">&#39;Only needed when p.apply_source_mask is True.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_input&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to use input ln&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">=</span> <span class="mi">6</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">8</span>
@@ -795,6 +796,12 @@
 
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transformer_stack&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_input</span><span class="p">:</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;enc_ln_input&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm_input&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerEncoder._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerEncoder._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
@@ -883,6 +890,11 @@
         <span class="n">position_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">position_embs</span><span class="p">,</span>
                                    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
       <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">position_embs</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_input</span><span class="p">:</span>
+        <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm_input</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm_input</span><span class="p">,</span>
+                                                 <span class="n">input_embs</span><span class="p">)</span>
+
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
         <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span>
                                               <span class="n">input_batch</span><span class="o">.</span><span class="n">task_ids</span><span class="p">)</span>

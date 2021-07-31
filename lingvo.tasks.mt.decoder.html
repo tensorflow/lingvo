@@ -1369,6 +1369,155 @@ time_step - A scalar, the current decode step, 0-based.</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerXDecoder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.decoder.</span></span><span class="sig-name descname"><span class="pre">TransformerXDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerXDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerXDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.TransformerDecoder" title="lingvo.tasks.mt.decoder.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.TransformerDecoder</span></code></a></p>
+<p>Transformer Decoder.</p>
+<p>Mainly add a feature to calculate the KL loss with respect to another
+prediction and support combining two input embeddings with their
+interpolation vectors.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerXDecoder.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerXDecoder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerXDecoder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerXDecoder._FProp">
+<span class="sig-name descname"><span class="pre">_FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerXDecoder._FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerXDecoder._FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder. Expected to contain:
+encoded - source encoding. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is False, it is a
+tensor of shape [time, batch, depth]. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is True,
+it is a tensor of shape [time, batch, depth, num_trans_layers] if
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is True, and a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">num_trans_layers</span></code> tensors of
+shape [time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.do_eval</span></code> is False.  padding - source
+encoding’s padding, of shape [time, batch]. segment_id - source segment
+id, of shape [time, batch].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [batch, time].</p></li>
+<li><p><strong>interpolation_batch</strong> – Same as targets of shape [batch, time, emb_dim]</p></li>
+<li><p><strong>lambdas</strong> – A pair of float tensors to combine embeddings of two inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing output of last decoder layer and attention probs</p>
+<ul class="simple">
+<li><p>softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</p></li>
+<li><p>attention: <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention distributions of shape
+[batch, target_length, source_length].</p></li>
+<li><p>source_embs: Tensor of shape [batch, time, emb_dim].</p></li>
+<li><p>target_embs: Tensor of shape [batch, time, emb_dim].</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerXDecoder.ComputePredictions">
+<span class="sig-name descname"><span class="pre">ComputePredictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerXDecoder.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerXDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder. Expected to contain:
+encoded - source encoding, of shape [time, batch, depth]. Can be [time,
+batch, depth, num_layers] if is_transparent is set.  padding - source
+encoding’s padding, of shape [time, batch]. segment_id - source segment
+id, of shape [time, batch].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [batch, time].</p></li>
+<li><p><strong>interpolation_batch</strong> – Same as targets of shape [batch, time, emb_dim]</p></li>
+<li><p><strong>lambdas</strong> – A pair of float tensors to combine embeddings of two inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing output of last decoder layer and attention probs</p>
+<ul class="simple">
+<li><p>softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</p></li>
+<li><p>attention: <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention distributions of shape
+[batch, time, source_len].</p></li>
+<li><p>source_embs: Tensor of shape [batch, time, emb_dim].</p></li>
+<li><p>target_embs: Tensor of shape [batch, time, emb_dim].</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerXDecoder._FPropSoftmax">
+<span class="sig-name descname"><span class="pre">_FPropSoftmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">softmax_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_segment_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_probs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerXDecoder._FPropSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerXDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cross-entropy loss given the softmax input, labels and weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>softmax_input</strong> – A tensor of shape [time, batch, p.softmax.input_dim].</p></li>
+<li><p><strong>target_labels</strong> – A matrix of tf.int32. [time, batch].</p></li>
+<li><p><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>target_paddings</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>target_segment_ids</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>ref_probs</strong> – A tesnor of shape [batch, time, vocab_size]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (metrics, per_example_tensors).</dt><dd><dl class="simple">
+<dt>metrics:</dt><dd><p>A dictionary containing metrics for the xent loss and prediction
+accuracy.</p>
+</dd>
+<dt>per_example_tensors:</dt><dd><p>A dictionary of per-example tensors.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerXDecoder.ComputeLoss">
+<span class="sig-name descname"><span class="pre">ComputeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_probs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerXDecoder.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerXDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates a metrics dictionary based on the output of ComputePredictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Nested map describing decoder model parameters.</p></li>
+<li><p><strong>predictions</strong> – NestedMap describing the decoding process, requiring:
+.softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</p></li>
+<li><p><strong>targets</strong> – NestedMap describing the target sequences.</p></li>
+<li><p><strong>ref_probs</strong> – A tesnor of shape [batch, time, vocab_size]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>Two dicts.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A map from metric name (a python string) to a tuple (value, weight).
+Both value and weight are scalar Tensors.</p></li>
+<li><p>A map from name to arbitrary tensors, where the first dimension must
+be the batch index.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
