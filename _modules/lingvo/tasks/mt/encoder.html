@@ -183,6 +183,7 @@
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;transformer_encoder_truncates_inputs&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;Whether TransformerEncoder truncates inputs to max len.&#39;</span><span class="p">)</span>
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
 <div class="viewcode-block" id="MTEncoderV1"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderV1">[docs]</a><span class="k">class</span> <span class="nc">MTEncoderV1</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -839,7 +840,7 @@
       <span class="p">],</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">transformer_encoder_truncates_inputs</span><span class="p">):</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">transformer_encoder_truncates_inputs</span><span class="p">):</span>
         <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -1119,6 +1120,177 @@
           <span class="n">seq_lengths</span><span class="o">=</span><span class="n">seq_lengths</span><span class="p">,</span>  <span class="c1"># used by beam_search_helper.</span>
           <span class="n">segment_id</span><span class="o">=</span><span class="n">segment_ids</span><span class="p">,</span>
           <span class="n">embedded_inputs</span><span class="o">=</span><span class="n">orig_input_embs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TransformerXEncoder"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerXEncoder">[docs]</a><span class="k">class</span> <span class="nc">TransformerXEncoder</span><span class="p">(</span><span class="n">TransformerEncoder</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Transformer Encoder to Interpolate two Sentences.</span>
+
+<span class="sd">  This encoder can be used to combine input embeddings of two sentencs with a</span>
+<span class="sd">  pre-defined interpolation vector (lambdas in FProp).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TransformerXEncoder.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerXEncoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">interpolation_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lambdas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="sd">&quot;&quot;&quot;Interpolates source ids in input_batch and interpolation_batch.</span>
+
+<span class="sd">    Refer to Eq. (4) in paper https://arxiv.org/abs/2106.04060.</span>
+<span class="sd">    It is a standard Transformer Encoder if interpolation_batch != None.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      input_batch: A `.NestedMap` with fields:</span>
+
+<span class="sd">        - ids: The inputs tensor. It is expected to be of shape [batch, time].</span>
+<span class="sd">        - paddings: The paddings tensor. Expected shape [batch, time].</span>
+<span class="sd">        - task_ids: If p.task_emb is provided, must contain per-token task ids</span>
+<span class="sd">          of shape [batch, time].</span>
+<span class="sd">      interpolation_batch: A `.NestedMap` with fields:</span>
+
+<span class="sd">        - ids: The inputs tensor. It is expected to be of shape [batch, time].</span>
+<span class="sd">        - paddings: The paddings tensor. Expected shape [batch, time].</span>
+<span class="sd">        - task_ids: If p.task_emb is provided, must contain per-token task ids</span>
+<span class="sd">          of shape [batch, time].</span>
+<span class="sd">        - embs: Embeddings of ids.</span>
+<span class="sd">      lambdas: A pair of tensors to combine embeddings of ids in input_batch and</span>
+<span class="sd">        interpolation_batch.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap of</span>
+
+<span class="sd">        - encoded: The encoded features, either a tensor of shape</span>
+<span class="sd">          [time, batch, depth], or a list of tensors if is_transparent is set in</span>
+<span class="sd">          transformer_stack.</span>
+<span class="sd">        - padding: of shape [time, batch]</span>
+<span class="sd">        - segment_id: [time, batch] if packed inputs are supported by the model</span>
+<span class="sd">          (and all layers), or None otherwise.</span>
+<span class="sd">        - embedded_inputs: [time, batch, depth] embedded inputs tokens without</span>
+<span class="sd">          positional encodings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pyformat: enable</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">src_segment_id</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="n">src_segment_pos</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="n">input_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">)),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="p">],</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+
+      <span class="n">max_seq_length</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">transformer_encoder_truncates_inputs</span><span class="p">):</span>
+        <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">[:,</span> <span class="n">max_seq_length</span><span class="p">:]</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">))</span>
+        <span class="p">],</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+        <span class="n">input_ids</span> <span class="o">=</span> <span class="n">input_ids</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+          <span class="n">src_segment_id</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
+          <span class="n">src_segment_pos</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">segment_pos</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+          <span class="n">src_segment_id</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">segment_ids</span>
+          <span class="n">src_segment_pos</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">segment_pos</span>
+
+      <span class="n">max_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+      <span class="c1"># Input token embeddings + positional embeddings</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
+        <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">token_emb</span><span class="p">,</span>
+                                              <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span>
+                                            <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+
+      <span class="k">if</span> <span class="n">interpolation_batch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">other_input_ids</span> <span class="o">=</span> <span class="n">interpolation_batch</span><span class="o">.</span><span class="n">ids</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
+          <span class="n">other_input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span>
+              <span class="n">theta</span><span class="o">.</span><span class="n">token_emb</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">other_input_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">other_input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span>
+              <span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">other_input_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">lambdas</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">lambdas</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;embs&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span> <span class="ow">and</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">embs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">input_embs</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">embs</span>
+        <span class="k">if</span> <span class="s1">&#39;embs&#39;</span> <span class="ow">in</span> <span class="n">interpolation_batch</span> <span class="ow">and</span> <span class="n">interpolation_batch</span><span class="o">.</span><span class="n">embs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">other_input_embs</span> <span class="o">=</span> <span class="n">interpolation_batch</span><span class="o">.</span><span class="n">embs</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">input_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+              <span class="n">input_embs</span><span class="p">,</span>
+              <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+          <span class="n">other_input_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+              <span class="n">other_input_embs</span><span class="p">,</span>
+              <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">other_input_ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+        <span class="n">input_embs</span> <span class="o">=</span> <span class="n">lambdas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_embs</span> <span class="o">+</span> <span class="n">lambdas</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">other_input_embs</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings</span> <span class="o">+</span> <span class="n">interpolation_batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">-</span> <span class="mf">1.0</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+      <span class="n">input_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">input_embs</span><span class="p">,</span>
+                              <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+
+      <span class="n">orig_input_embs</span> <span class="o">=</span> <span class="n">input_embs</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">interpolation_batch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">input_embs</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span>
+                                                <span class="n">input_batch</span><span class="o">.</span><span class="n">task_ids</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">task_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span>
+                                              <span class="n">input_batch</span><span class="o">.</span><span class="n">task_ids</span><span class="p">)</span>
+          <span class="n">other_task_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span>
+              <span class="n">theta</span><span class="o">.</span><span class="n">task_emb</span><span class="p">,</span> <span class="n">interpolation_batch</span><span class="o">.</span><span class="n">task_ids</span><span class="p">)</span>
+          <span class="n">task_embs</span> <span class="o">=</span> <span class="n">lambdas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">task_embs</span> <span class="o">+</span> <span class="n">lambdas</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">other_task_embs</span>
+          <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">task_embs</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+        <span class="n">position_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">position_emb</span><span class="p">,</span> <span class="n">src_segment_pos</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">position_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">position_emb</span><span class="p">,</span> <span class="n">max_time</span><span class="p">)</span>
+        <span class="n">position_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">position_embs</span><span class="p">,</span>
+                                   <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+      <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">position_embs</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
+        <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_proj</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
+
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+        <span class="n">src_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">src_segment_id</span><span class="p">)</span>
+
+      <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">input_dropout</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
+
+      <span class="c1"># [time, batch, dim]</span>
+      <span class="n">transformer_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">input_embs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_source_mask</span><span class="p">:</span>
+      <span class="c1"># Augment padding for masked source word positions.</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="n">source_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_mask_id</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="c1"># Make sure padding is between 0 and 1.</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">paddings</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_mask</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span>
+                                  <span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="n">encoded</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">segment_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">,</span> <span class="n">transformer_input</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">src_segment_id</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">encoded</span><span class="o">=</span><span class="n">encoded</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+        <span class="n">segment_id</span><span class="o">=</span><span class="n">segment_id</span><span class="p">,</span>
+        <span class="n">embedded_inputs</span><span class="o">=</span><span class="n">orig_input_embs</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

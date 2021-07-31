@@ -515,6 +515,66 @@ time].</p></li>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.encoder.TransformerXEncoder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.encoder.</span></span><span class="sig-name descname"><span class="pre">TransformerXEncoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/encoder.html#TransformerXEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.encoder.TransformerXEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.encoder.TransformerEncoder" title="lingvo.tasks.mt.encoder.TransformerEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.encoder.TransformerEncoder</span></code></a></p>
+<p>Transformer Encoder to Interpolate two Sentences.</p>
+<p>This encoder can be used to combine input embeddings of two sentencs with a
+pre-defined interpolation vector (lambdas in FProp).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.encoder.TransformerXEncoder.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolation_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/encoder.html#TransformerXEncoder.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.encoder.TransformerXEncoder.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolates source ids in input_batch and interpolation_batch.</p>
+<p>Refer to Eq. (4) in paper <a class="reference external" href="https://arxiv.org/abs/2106.04060">https://arxiv.org/abs/2106.04060</a>.
+It is a standard Transformer Encoder if interpolation_batch != None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights values of this layer and
+its children layers.</p></li>
+<li><p><strong>input_batch</strong> – <p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields:</p>
+<ul>
+<li><p>ids: The inputs tensor. It is expected to be of shape [batch, time].</p></li>
+<li><p>paddings: The paddings tensor. Expected shape [batch, time].</p></li>
+<li><p>task_ids: If p.task_emb is provided, must contain per-token task ids
+of shape [batch, time].</p></li>
+</ul>
+</p></li>
+<li><p><strong>interpolation_batch</strong> – <p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields:</p>
+<ul>
+<li><p>ids: The inputs tensor. It is expected to be of shape [batch, time].</p></li>
+<li><p>paddings: The paddings tensor. Expected shape [batch, time].</p></li>
+<li><p>task_ids: If p.task_emb is provided, must contain per-token task ids
+of shape [batch, time].</p></li>
+<li><p>embs: Embeddings of ids.</p></li>
+</ul>
+</p></li>
+<li><p><strong>lambdas</strong> – A pair of tensors to combine embeddings of ids in input_batch and
+interpolation_batch.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A NestedMap of</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>encoded: The encoded features, either a tensor of shape
+[time, batch, depth], or a list of tensors if is_transparent is set in
+transformer_stack.</p></li>
+<li><p>padding: of shape [time, batch]</p></li>
+<li><p>segment_id: [time, batch] if packed inputs are supported by the model
+(and all layers), or None otherwise.</p></li>
+<li><p>embedded_inputs: [time, batch, depth] embedded inputs tokens without
+positional encodings.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
