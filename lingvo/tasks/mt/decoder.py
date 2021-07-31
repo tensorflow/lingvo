@@ -168,7 +168,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       per_sequence_loss = tf.reduce_sum(
           per_example_loss * target_weights, axis=time_axis)
       if p.packed_input:
-        if target_segment_ids is not None:
+        if target_segment_ids is None:
           raise AssertionError(
               'Need target segment ids for '
               'normalizing loss when training with packed inputs.')
@@ -3021,7 +3021,7 @@ class TransformerXDecoder(TransformerDecoder):
       if p.packed_input:
         target_segment_id = tf.transpose(targets.segment_ids)
         target_segment_pos = targets.segment_pos
-        if src_segment_id is not None:
+        if src_segment_id is None:
           raise AssertionError('Need to provide src_segment_id '
                                'for packed input.')
 
@@ -3260,7 +3260,7 @@ class TransformerXDecoder(TransformerDecoder):
                                     py_utils.GetShape(target_weights))
       per_sequence_loss = tf.reduce_sum(per_example_loss * target_weights, 0)
       if p.packed_input:
-        if target_segment_ids is not None:
+        if target_segment_ids is None:
           raise AssertionError(
               'Need target segment ids for '
               'normalizing loss when training with packed inputs.')
