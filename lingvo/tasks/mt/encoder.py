@@ -28,6 +28,7 @@ from lingvo.tasks.mt import layers as mt_layers
 
 tf.flags.DEFINE_bool('transformer_encoder_truncates_inputs', False,
                      'Whether TransformerEncoder truncates inputs to max len.')
+FLAGS = tf.flags.FLAGS
 
 
 class MTEncoderV1(base_layer.BaseLayer):
@@ -684,7 +685,7 @@ class TransformerEncoder(base_layer.BaseLayer):
       ], input_batch.ids)
 
       if (not py_utils.use_tpu() and
-          tf.flags.FLAGS.transformer_encoder_truncates_inputs):
+          FLAGS.transformer_encoder_truncates_inputs):
         max_seq_length = tf.cast(
             tf.reduce_max(tf.reduce_sum(1.0 - input_batch.paddings, 1)),
             tf.int32)
@@ -964,3 +965,174 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
           seq_lengths=seq_lengths,  # used by beam_search_helper.
           segment_id=segment_ids,
           embedded_inputs=orig_input_embs)
+
+
+class TransformerXEncoder(TransformerEncoder):
+  """Transformer Encoder to Interpolate two Sentences.
+
+  This encoder can be used to combine input embeddings of two sentencs with a
+  pre-defined interpolation vector (lambdas in FProp).
+  """
+
+  def FProp(self, theta, input_batch, interpolation_batch=None, lambdas=None):
+    # pyformat: disable
+    """Interpolates source ids in input_batch and interpolation_batch.
+
+    Refer to Eq. (4) in paper https://arxiv.org/abs/2106.04060.
+    It is a standard Transformer Encoder if interpolation_batch != None.
+
+    Args:
+      theta: A `.NestedMap` object containing weights values of this layer and
+        its children layers.
+      input_batch: A `.NestedMap` with fields:
+
+        - ids: The inputs tensor. It is expected to be of shape [batch, time].
+        - paddings: The paddings tensor. Expected shape [batch, time].
+        - task_ids: If p.task_emb is provided, must contain per-token task ids
+          of shape [batch, time].
+      interpolation_batch: A `.NestedMap` with fields:
+
+        - ids: The inputs tensor. It is expected to be of shape [batch, time].
+        - paddings: The paddings tensor. Expected shape [batch, time].
+        - task_ids: If p.task_emb is provided, must contain per-token task ids
+          of shape [batch, time].
+        - embs: Embeddings of ids.
+      lambdas: A pair of tensors to combine embeddings of ids in input_batch and
+        interpolation_batch.
+
+    Returns:
+      A NestedMap of
+
+        - encoded: The encoded features, either a tensor of shape
+          [time, batch, depth], or a list of tensors if is_transparent is set in
+          transformer_stack.
+        - padding: of shape [time, batch]
+        - segment_id: [time, batch] if packed inputs are supported by the model
+          (and all layers), or None otherwise.
+        - embedded_inputs: [time, batch, depth] embedded inputs tokens without
+          positional encodings.
+    """
+    # pyformat: enable
+
+    p = self.params
+    with tf.name_scope(p.name):
+      src_segment_id = None
+      src_segment_pos = None
+      input_ids = py_utils.with_dependencies([
+          py_utils.assert_shape_match(
+              tf.shape(input_batch.ids), tf.shape(input_batch.paddings)),
+          py_utils.assert_equal(tf.rank(input_batch.ids), 2)
+      ], input_batch.ids)
+
+      max_seq_length = None
+      if (not py_utils.use_tpu() and
+          FLAGS.transformer_encoder_truncates_inputs):
+        max_seq_length = tf.cast(
+            tf.reduce_max(tf.reduce_sum(1.0 - input_batch.paddings, 1)),
+            tf.int32)
+        paddings = py_utils.with_dependencies([
+            py_utils.assert_equal(
+                tf.constant(True, tf.bool),
+                tf.reduce_all(input_batch.paddings[:, max_seq_length:] > 0.5))
+        ], input_batch.paddings)
+        input_ids = input_ids[:, :max_seq_length]
+        paddings = paddings[:, :max_seq_length]
+        if p.packed_input:
+          src_segment_id = input_batch.segment_ids[:, :max_seq_length]
+          src_segment_pos = input_batch.segment_pos[:, :max_seq_length]
+      else:
+        paddings = input_batch.paddings
+        if p.packed_input:
+          src_segment_id = input_batch.segment_ids
+          src_segment_pos = input_batch.segment_pos
+
+      max_time = tf.shape(input_ids)[1]
+
+      # Input token embeddings + positional embeddings
+      if not p.shared_emb:
+        input_embs = self.token_emb.EmbLookup(theta.token_emb,
+                                              tf.reshape(input_ids, [-1]))
+      else:
+        input_embs = self.softmax.EmbLookup(theta.softmax,
+                                            tf.reshape(input_ids, [-1]))
+
+      if interpolation_batch is not None:
+        other_input_ids = interpolation_batch.ids
+        if not p.shared_emb:
+          other_input_embs = self.token_emb.EmbLookup(
+              theta.token_emb, tf.reshape(other_input_ids, [-1]))
+        else:
+          other_input_embs = self.softmax.EmbLookup(
+              theta.softmax, tf.reshape(other_input_ids, [-1]))
+        lambdas = [tf.expand_dims(a, -1) for a in lambdas]
+        if 'embs' in input_batch and input_batch.embs is not None:
+          input_embs = input_batch.embs
+        if 'embs' in interpolation_batch and interpolation_batch.embs is not None:
+          other_input_embs = interpolation_batch.embs
+        else:
+          input_embs = tf.reshape(
+              input_embs,
+              [-1, tf.shape(input_ids)[1], p.token_emb.embedding_dim])
+          other_input_embs = tf.reshape(
+              other_input_embs,
+              [-1, tf.shape(other_input_ids)[1], p.token_emb.embedding_dim])
+        input_embs = lambdas[0] * input_embs + lambdas[1] * other_input_embs
+        paddings = paddings + interpolation_batch.paddings - 1.0
+        paddings = tf.clip_by_value(paddings, 0.0, 1.0)
+
+      input_embs = tf.reshape(input_embs,
+                              [-1, max_time, p.token_emb.embedding_dim])
+
+      orig_input_embs = input_embs
+      if p.task_emb:
+        if interpolation_batch is None:
+          input_embs += self.task_emb.EmbLookup(theta.task_emb,
+                                                input_batch.task_ids)
+        else:
+          task_embs = self.task_emb.EmbLookup(theta.task_emb,
+                                              input_batch.task_ids)
+          other_task_embs = self.task_emb.EmbLookup(
+              theta.task_emb, interpolation_batch.task_ids)
+          task_embs = lambdas[0] * task_embs + lambdas[1] * other_task_embs
+          input_embs += task_embs
+
+      if p.packed_input:
+        position_embs = self.position_emb.FPropWithPosition(
+            theta.position_emb, src_segment_pos)
+      else:
+        position_embs = self.position_emb.FProp(theta.position_emb, max_time)
+        position_embs = tf.reshape(position_embs,
+                                   [1, max_time, p.token_emb.embedding_dim])
+      input_embs += position_embs
+
+      if p.model_dim != p.token_emb.embedding_dim:
+        input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
+
+      paddings = tf.cast(tf.transpose(paddings), py_utils.FPropDtype(p))
+      if p.packed_input:
+        src_segment_id = tf.transpose(src_segment_id)
+
+      input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
+
+      # [time, batch, dim]
+      transformer_input = tf.transpose(input_embs, [1, 0, 2])
+
+    if not self.do_eval and p.apply_source_mask:
+      # Augment padding for masked source word positions.
+      dtype = paddings.dtype
+      source_mask = tf.where(
+          tf.equal(input_ids, p.source_mask_id),
+          tf.ones_like(input_ids, dtype=dtype),
+          tf.zeros_like(input_ids, dtype=dtype))
+      # Make sure padding is between 0 and 1.
+      paddings = tf.clip_by_value(paddings + tf.transpose(source_mask), 0.0,
+                                  1.0)
+
+    encoded, padding, segment_id = self.transformer_stack.FProp(
+        theta.transformer_stack, transformer_input, paddings, src_segment_id)
+
+    return py_utils.NestedMap(
+        encoded=encoded,
+        padding=padding,
+        segment_id=segment_id,
+        embedded_inputs=orig_input_embs)

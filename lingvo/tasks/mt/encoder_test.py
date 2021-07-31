@@ -566,5 +566,108 @@ class TransformerBatchMajorEncoderTest(test_utils.TestCase):
     self.assertLen(flatten_vars, 91)
 
 
+class TransformerXEncoderTest(test_utils.TestCase):
+
+  def _EncoderParams(self):
+    p = encoder.TransformerXEncoder.Params()
+    p.name = 'cross_encoder'
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
+    p.token_emb.vocab_size = 64
+    p.token_emb.embedding_dim = 16
+    p.token_emb.max_num_shards = 1
+    p.token_emb.scale_sqrt_depth = True
+    p.token_emb.vn = py_utils.VariationalNoiseParams(1.0, False, False)
+    p.position_emb.embedding_dim = 16
+    p.position_emb.trainable_scaling = False
+    p.model_dim = 16
+    ts = p.transformer_stack
+    ts.model_dim = 16
+    ts.num_transformer_layers = 6
+    ts.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+    ts.transformer_tpl.tr_fflayer_tpl.hidden_dim = 5
+    p.random_seed = 54321
+    return p
+
+  def testEncoderConstruction(self):
+    p = self._EncoderParams()
+    p.Instantiate()
+
+  def testForwardPassWithSingleBatch(self):
+    with self.session(use_gpu=False) as sess:
+      p = self._EncoderParams()
+      bs = 2
+      seq_len = 16
+      tf.random.set_seed(8372749040)
+      mt_enc = p.Instantiate()
+      batch = py_utils.NestedMap()
+      batch.ids = tf.constant(
+          np.random.randint(low=0, high=63, size=[bs, seq_len], dtype=np.int32))
+      batch.paddings = tf.zeros([bs, seq_len])
+      out = mt_enc.FPropDefaultTheta(batch)
+      enc_out_sum = tf.reduce_sum(out.encoded, 0)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+      expected_enc_out_sum = [
+          [-32.978672, -10.379181, 8.519216, -38.483955, -50.17593,
+           8.633557, 31.622324, 20.088394, 26.17001, 26.835281,
+           13.492112, -20.732882, 3.8693893, 47.24115, -31.376581,
+           16.140488],
+          [-40.31649, -12.325925, -0.41645133, -44.82979, -48.05,
+           -2.8912444, 20.666195, 9.539089, 38.2287, 32.584393,
+           18.059973, -25.717854, 6.607798, 51.795433, -28.735636,
+           22.340008]]  # pyformat: disable
+
+      self.assertAllEqual([seq_len, bs, p.model_dim], actual_enc_out.shape)
+      self.assertAllClose(
+          expected_enc_out_sum, actual_enc_out_sum, rtol=1e-05, atol=1e-05)
+
+  def testForwardPassWithDoubleBatch(self):
+    with self.session(use_gpu=False) as sess:
+      p = self._EncoderParams()
+      bs = 2
+      seq_len = 16
+      tf.random.set_seed(8372749040)
+      mt_enc = p.Instantiate()
+      batch = py_utils.NestedMap()
+      batch.ids = tf.constant(
+          np.random.randint(low=0, high=63, size=[bs, seq_len], dtype=np.int32))
+      paddings = []
+      for _ in range(bs):
+        zeros_len = np.random.randint(1, seq_len + 1)
+        paddings.append([
+            0.,
+        ] * zeros_len + [1.] * (seq_len - zeros_len))
+      batch.paddings = tf.zeros([bs, seq_len])
+
+      other_batch = py_utils.NestedMap()
+      other_batch.ids = tf.gather(batch.ids, [1, 0])
+      other_batch.paddings = tf.gather(batch.paddings, [1, 0])
+      lambdas = np.random.random((bs, seq_len))
+      lambdas = tf.constant(lambdas, tf.float32)
+      out = mt_enc.FProp(
+          mt_enc.theta,
+          batch,
+          interpolation_batch=other_batch,
+          lambdas=[lambdas, 1 - lambdas])
+      enc_out_sum = tf.reduce_sum(out.encoded, 0)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+
+      expected_enc_out_sum = [
+          [-38.089085, -22.181915, 3.3765068, -45.2483, -58.186905,
+           -3.4464571, 24.461462, 12.014615, 33.08178, 34.02244,
+           23.391253, -15.515911, 0.72847706, 50.45283, -26.36325, 21.799355],
+          [-37.716507, -12.993027, 7.148979, -39.70747, -57.864025,
+           2.2049172, 29.571432, 18.955816, 30.406136, 33.270325,
+           21.685469, -17.21592, 1.3697424, 49.33187, -30.023928,
+           22.915518]]  # pyformat: disable
+
+      self.assertAllEqual([seq_len, bs, p.model_dim], actual_enc_out.shape)
+      self.assertAllClose(
+          expected_enc_out_sum, actual_enc_out_sum, rtol=1e-05, atol=1e-05)
+
+
 if __name__ == '__main__':
   tf.test.main()
