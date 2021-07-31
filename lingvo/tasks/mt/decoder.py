@@ -1201,6 +1201,7 @@ class TransformerDecoder(MTBaseDecoder):
 
     p.Define('zero_token_embs_first_time_step', False,
              'If True, the first time step uses zeros as the post-emb lookup.')
+    p.Define('ln_input', None, 'Whether to use input ln')
 
     # Default config for the token embedding.
     p.token_emb.vocab_size = 32000
@@ -1296,6 +1297,12 @@ class TransformerDecoder(MTBaseDecoder):
 
     p.softmax.input_dim = p.model_dim
     self.CreateChild('softmax', p.softmax)
+
+    if p.ln_input:
+      params = p.ln_tpl.Copy()
+      params.name = 'dec_ln_input'
+      params.input_dim = p.model_dim
+      self.CreateChild('layer_norm_input', params)
 
   def _CreateChildrenVariables(self):
     if self._share_sm_emb:
@@ -1471,6 +1478,10 @@ class TransformerDecoder(MTBaseDecoder):
           atten_idx = tf.reshape(tf.transpose(atten_idx), [-1])
         input_embs += self.task_emb.EmbLookup(theta.task_emb, targets.task_ids)
 
+      if p.ln_input:
+        input_embs = self.layer_norm_input.FProp(theta.layer_norm_input,
+                                                 input_embs)
+
       if p.model_dim != self._token_emb_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)
 
@@ -1619,6 +1630,10 @@ class TransformerDecoder(MTBaseDecoder):
         if p.use_lang_dependent_atten:
           atten_idx = task_ids
         input_embs += self.task_emb.EmbLookup(theta.task_emb, task_ids)
+
+      if p.ln_input:
+        input_embs = self.layer_norm_input.FProp(theta.layer_norm_input,
+                                                 input_embs)
 
       if p.model_dim != self._token_emb_dim:
         input_embs = self.emb_proj.FProp(theta.emb_proj, input_embs)

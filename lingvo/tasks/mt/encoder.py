@@ -592,6 +592,7 @@ class TransformerEncoder(base_layer.BaseLayer):
     p.Define(
         'source_mask_id', 0, 'Id for masked words in source inputs. '
         'Only needed when p.apply_source_mask is True.')
+    p.Define('ln_input', None, 'Whether to use input ln')
 
     p.transformer_stack.num_transformer_layers = 6
     p.transformer_stack.transformer_tpl.tr_atten_tpl.num_attention_heads = 8
@@ -640,6 +641,12 @@ class TransformerEncoder(base_layer.BaseLayer):
 
     p.transformer_stack.name = p.name
     self.CreateChild('transformer_stack', p.transformer_stack)
+
+    if p.ln_input:
+      params = p.transformer_stack.ln_tpl.Copy()
+      params.name = 'enc_ln_input'
+      params.input_dim = p.model_dim
+      self.CreateChild('layer_norm_input', params)
 
   def _CreateChildrenVariables(self):
     if self.params.shared_emb:
@@ -728,6 +735,11 @@ class TransformerEncoder(base_layer.BaseLayer):
         position_embs = tf.reshape(position_embs,
                                    [1, max_time, p.token_emb.embedding_dim])
       input_embs += position_embs
+
+      if p.ln_input:
+        input_embs = self.layer_norm_input.FProp(theta.layer_norm_input,
+                                                 input_embs)
+
       if p.task_emb:
         input_embs += self.task_emb.EmbLookup(theta.task_emb,
                                               input_batch.task_ids)
