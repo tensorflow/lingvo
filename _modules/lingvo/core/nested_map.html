@@ -268,6 +268,27 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">x</span></div>
 
+<div class="viewcode-block" id="NestedMap.ToNestedDict"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.ToNestedDict">[docs]</a>  <span class="k">def</span> <span class="nf">ToNestedDict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Converts every NestedMap in nested structure to a &#39;dict&#39; instance.</span>
+
+<span class="sd">    This is relevant for code that checks a dictionary&#39;s exact type, instead of</span>
+<span class="sd">    isinstance (e.g. parts of tf.data). In those cases, we need a &#39;dict&#39; object,</span>
+<span class="sd">    not NestedMap.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      &#39;dict&#39; instance where nested NestedMaps are also converted to &#39;dict&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_ToNestedDict</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+      <span class="sd">&quot;&quot;&quot;Function used to recursively convert dictionaries/lists/tuples.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>  <span class="c1"># NestedMap is a &#39;dict&#39;, will match here too.</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_ToNestedDict</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">_ToNestedDict</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">return</span> <span class="n">_ToNestedDict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="NestedMap.CheckKey"><a class="viewcode-back" href="../../../lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap.CheckKey">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Asserts that key is valid NestedMap key.&quot;&quot;&quot;</span>
