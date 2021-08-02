@@ -372,7 +372,7 @@ located at different offsets across stages and will not be removed, so use
 this only when the state is not used outside thie pipelined layers.</p>
 <p>Circular pipeline feature: set circular_repeat &gt; 1, only supported for
 single_stage_body + per_stage_vars=False + shard_stages_1d=True. In this case,
-the layer count is expandec by circular_repeat times, and each variable will
+the layer count is expanded by circular_repeat times, and each variable will
 have 2 leading dimensions, with shape [num_stages, circular_repeat, …].
 Logically, the layers are organized in the following order:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">circular_repeat_000_stage_0</span>
@@ -388,8 +388,7 @@ Logically, the layers are organized in the following order:</p>
 <span class="o">...</span>
 </pre></div>
 </div>
-<p>This mode requires the number of microbatches to be a multiple of num_stages,
-and for the same number of microbatches, bubble ratio will be reduced by
+<p>For the same number of microbatches, this mode reduces bubble ratio by
 circular_repeat times, because each microbatch goes through the stages
 multiple times in a circular pattern.</p>
 <p>Stages communicate data via a rotating buffer of shape [num_stages, …], in
@@ -465,12 +464,17 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">
-<span class="sig-name descname"><span class="pre">BodyFProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.BodyFProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">BodyFProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_microbatches</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.BodyFProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFPropNoMicrobatching">
+<span class="sig-name descname"><span class="pre">BodyFPropNoMicrobatching</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.BodyFPropNoMicrobatching"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFPropNoMicrobatching" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal">
-<span class="sig-name descname"><span class="pre">_BodyFPropInternal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._BodyFPropInternal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_BodyFPropInternal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_microbatches</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._BodyFPropInternal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">

@@ -415,7 +415,7 @@
 
 <span class="sd">  Circular pipeline feature: set circular_repeat &gt; 1, only supported for</span>
 <span class="sd">  single_stage_body + per_stage_vars=False + shard_stages_1d=True. In this case,</span>
-<span class="sd">  the layer count is expandec by circular_repeat times, and each variable will</span>
+<span class="sd">  the layer count is expanded by circular_repeat times, and each variable will</span>
 <span class="sd">  have 2 leading dimensions, with shape [num_stages, circular_repeat, ...].</span>
 <span class="sd">  Logically, the layers are organized in the following order::</span>
 
@@ -431,8 +431,7 @@
 
 <span class="sd">      ...</span>
 
-<span class="sd">  This mode requires the number of microbatches to be a multiple of num_stages,</span>
-<span class="sd">  and for the same number of microbatches, bubble ratio will be reduced by</span>
+<span class="sd">  For the same number of microbatches, this mode reduces bubble ratio by</span>
 <span class="sd">  circular_repeat times, because each microbatch goes through the stages</span>
 <span class="sd">  multiple times in a circular pattern.</span>
 
@@ -612,12 +611,24 @@
           <span class="s1">&#39;When using single_stage_body, non-trainable vars are only supported &#39;</span>
           <span class="s1">&#39;when per_stage_vars=False and shard_stages_1d=True.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplitDimPrefixContext</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage_mesh_dim</span><span class="p">):</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BodyFPropInternal</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BodyFPropInternal</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span>
+                                     <span class="n">num_microbatches</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._BodyFPropInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_BodyFPropInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFPropNoMicrobatching"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFPropNoMicrobatching">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFPropNoMicrobatching</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">fn_name</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>  <span class="c1"># iteration,</span>
+        <span class="mi">1</span><span class="p">,</span>  <span class="c1"># num_microbatches</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._BodyFPropInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_BodyFPropInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">,</span>
+                         <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">wrappers</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -689,6 +700,8 @@
                             <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">))</span>
         <span class="n">microbatch_id</span> <span class="o">=</span> <span class="n">segment_id</span> <span class="o">*</span> <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span>
             <span class="n">microbatch_id</span><span class="p">,</span> <span class="n">_ManualConst</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">))</span>
+
+      <span class="n">microbatch_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">microbatch_id</span><span class="p">,</span> <span class="n">num_microbatches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_KwargSlice</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
@@ -788,6 +801,11 @@
         <span class="n">padding</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
       <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># First pad the input to a multiple of p.num_stages.</span>
+      <span class="k">if</span> <span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">padding</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]]</span>
+        <span class="n">padding</span> <span class="o">+=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">inp</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
       <span class="c1"># See the class documentation for padding the input for circular pipeline.</span>
       <span class="n">segmented_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
                         <span class="p">]</span> <span class="o">+</span> <span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
@@ -887,9 +905,6 @@
 
       <span class="n">theta_body</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_SplitStages</span><span class="p">,</span> <span class="n">theta_body</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">num_microbatches</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">==</span> <span class="mi">0</span>
-
     <span class="c1"># Adds a `stages` dimension after the leading num_microbatches to the inputs</span>
     <span class="c1"># which will be sharded. Also pad the leading num_microbatches dimension by</span>
     <span class="c1"># num_stages - 1 to match loop iteration count, which corresponds to the</span>
@@ -986,11 +1001,12 @@
           <span class="n">ctrl_before</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">ctrl_before</span><span class="p">]):</span>
           <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
+                                               <span class="n">num_microbatches</span><span class="p">,</span>
                                                <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
                                                <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
-                                             <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
+                                             <span class="n">num_microbatches</span><span class="p">,</span> <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
                                              <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
       <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_stage_states</span><span class="p">)</span>
@@ -1067,11 +1083,13 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="c1"># See the class documuentation for circular pipeline.</span>
           <span class="n">bubble_removed</span> <span class="o">=</span> <span class="n">outp</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-          <span class="n">segmented</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bubble_removed</span><span class="p">,</span> <span class="p">[</span>
-              <span class="n">num_microbatches</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
-          <span class="p">]</span> <span class="o">+</span> <span class="n">outp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
-          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">segmented</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-                            <span class="p">[</span><span class="n">num_microbatches</span><span class="p">]</span> <span class="o">+</span> <span class="n">outp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+          <span class="n">num_segments</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_microbatches</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
+          <span class="n">segmented</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+              <span class="n">bubble_removed</span><span class="p">,</span>
+              <span class="p">[</span><span class="n">num_segments</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span> <span class="o">+</span> <span class="n">outp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">segmented</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                                      <span class="o">...</span><span class="p">],</span> <span class="p">[</span><span class="n">num_segments</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">]</span> <span class="o">+</span>
+                            <span class="n">outp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])[:</span><span class="n">num_microbatches</span><span class="p">]</span>
 
       <span class="n">final_non_trainable_var_values</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">non_trainable_vars</span>
       <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
