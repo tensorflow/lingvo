@@ -323,7 +323,7 @@ TEST(PSUtilsTest, TestSeeded) {
 }
 
 void BenchmarkFarthestPoint(benchmark::State& state, PSUtils::Options opts) {
-  testing::SetLabel(strings::Printf("#Centers=%4d #Neighbors=%4d",
+  state.SetLabel(strings::Printf("#Centers=%4d #Neighbors=%4d",
                                     opts.num_centers, opts.num_neighbors));
   PSUtils fu(opts);
   Tensor points;
