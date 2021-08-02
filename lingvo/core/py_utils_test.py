@@ -87,6 +87,17 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(e.ab[0], e.a)
     self.assertEqual(e.ab[1], e.b)
 
+  def testNestedMapToNestedDict(self):
+    a = py_utils.NestedMap(a1=1, a2=2)
+    b = {'b1': 1, 'b2': 2}
+    c = py_utils.NestedMap(a=a, b=b, ab=[a, b])
+    d = c.ToNestedDict()
+    self.assertIsInstance(c, py_utils.NestedMap)
+    self.assertNotIsInstance(d, py_utils.NestedMap)
+    self.assertIsInstance(c.a, py_utils.NestedMap)
+    self.assertNotIsInstance(d['a'], py_utils.NestedMap)
+    self.assertNotIsInstance(d['ab'][0], py_utils.NestedMap)
+
   def testNestedMapGetItem(self):
     nested_map = py_utils.NestedMap()
     nested_map['a'] = py_utils.NestedMap({'x': 3})

@@ -113,6 +113,27 @@ class NestedMap(Dict[str, Any]):
     else:
       return x
 
+  def ToNestedDict(self) -> Mapping[str, Any]:
+    """Converts every NestedMap in nested structure to a 'dict' instance.
+
+    This is relevant for code that checks a dictionary's exact type, instead of
+    isinstance (e.g. parts of tf.data). In those cases, we need a 'dict' object,
+    not NestedMap.
+
+    Returns:
+      'dict' instance where nested NestedMaps are also converted to 'dict'.
+    """
+
+    def _ToNestedDict(x: Any) -> Any:
+      """Function used to recursively convert dictionaries/lists/tuples."""
+      if isinstance(x, dict):  # NestedMap is a 'dict', will match here too.
+        return {k: _ToNestedDict(v) for k, v in x.items()}
+      elif isinstance(x, list):
+        return [_ToNestedDict(v) for v in x]
+      return x
+
+    return _ToNestedDict(self)
+
   @staticmethod
   def CheckKey(key: str) -> None:
     """Asserts that key is valid NestedMap key."""
