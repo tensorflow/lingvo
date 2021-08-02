@@ -4991,12 +4991,8 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
 
   def InitStates(self, theta, *args, **kwargs):
     p = self.params
-    per_stage, _ = self.pipeline.BodyFProp(
-        theta.pipeline.body,
-        'InitStates',
-        tf.zeros([], dtype=tf.int32),  # iteration
-        *args,
-        **kwargs)
+    per_stage, _ = self.pipeline.BodyFPropNoMicrobatching(
+        theta.pipeline.body, 'InitStates', *args, **kwargs)
 
     def _TransposeStageBatch(x):
       """Microbatches the state and applying padding."""

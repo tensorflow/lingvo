@@ -260,7 +260,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
   Circular pipeline feature: set circular_repeat > 1, only supported for
   single_stage_body + per_stage_vars=False + shard_stages_1d=True. In this case,
-  the layer count is expandec by circular_repeat times, and each variable will
+  the layer count is expanded by circular_repeat times, and each variable will
   have 2 leading dimensions, with shape [num_stages, circular_repeat, ...].
   Logically, the layers are organized in the following order::
 
@@ -276,8 +276,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       ...
 
-  This mode requires the number of microbatches to be a multiple of num_stages,
-  and for the same number of microbatches, bubble ratio will be reduced by
+  For the same number of microbatches, this mode reduces bubble ratio by
   circular_repeat times, because each microbatch goes through the stages
   multiple times in a circular pattern.
 
@@ -457,12 +456,24 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           'When using single_stage_body, non-trainable vars are only supported '
           'when per_stage_vars=False and shard_stages_1d=True.')
 
-  def BodyFProp(self, theta, fn_name, iteration, *args, **kwargs):
+  def BodyFProp(self, theta, fn_name, iteration, num_microbatches, *args,
+                **kwargs):
     p = self.params
     with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
-      return self._BodyFPropInternal(theta, fn_name, iteration, *args, **kwargs)
+      return self._BodyFPropInternal(theta, fn_name, iteration,
+                                     num_microbatches, *args, **kwargs)
 
-  def _BodyFPropInternal(self, theta, fn_name, iteration, *args, **kwargs):
+  def BodyFPropNoMicrobatching(self, theta, fn_name, *args, **kwargs):
+    return self.BodyFProp(
+        theta,
+        fn_name,
+        tf.zeros([], dtype=tf.int32),  # iteration,
+        1,  # num_microbatches
+        *args,
+        **kwargs)
+
+  def _BodyFPropInternal(self, theta, fn_name, iteration, num_microbatches,
+                         *args, **kwargs):
     p = self.params
     wrappers = []
 
@@ -534,6 +545,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                             _ManualConst(p.circular_repeat * p.num_stages))
         microbatch_id = segment_id * _ManualConst(p.num_stages) + tf.math.mod(
             microbatch_id, _ManualConst(p.num_stages))
+
+      microbatch_id = tf.minimum(microbatch_id, num_microbatches - 1)
 
       def _KwargSlice(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
@@ -633,6 +646,11 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         padding[1] = [0, p.num_stages - 1]
       padded = tf.pad(inp, padding)
     else:
+      # First pad the input to a multiple of p.num_stages.
+      if inp.shape[0] % p.num_stages != 0:
+        padding = [[0, p.num_stages - inp.shape[0] % p.num_stages]]
+        padding += [[0, 0]] * (len(inp.shape) - 1)
+        inp = tf.pad(inp, padding)
       # See the class documentation for padding the input for circular pipeline.
       segmented_shape = [inp.shape[0] // p.num_stages, p.num_stages
                         ] + inp.shape[1:]
@@ -732,9 +750,6 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       theta_body = tf.nest.map_structure(_SplitStages, theta_body)
 
-    if p.circular_repeat > 1:
-      assert num_microbatches % p.num_stages == 0
-
     # Adds a `stages` dimension after the leading num_microbatches to the inputs
     # which will be sharded. Also pad the leading num_microbatches dimension by
     # num_stages - 1 to match loop iteration count, which corresponds to the
@@ -831,11 +846,12 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           ctrl_before = tf.no_op()
         with tf.control_dependencies([ctrl_before]):
           fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
+                                               num_microbatches,
                                                *selected_inputs,
                                                *per_stage_states, **kwargs)
       else:
         fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
-                                             *selected_inputs,
+                                             num_microbatches, *selected_inputs,
                                              *per_stage_states, **kwargs)
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(selected_inputs) + len(per_stage_states)
@@ -912,11 +928,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         else:
           # See the class documuentation for circular pipeline.
           bubble_removed = outp[p.num_stages - 1:, -1, ...]
-          segmented = tf.reshape(bubble_removed, [
-              num_microbatches // p.num_stages, p.circular_repeat, p.num_stages
-          ] + outp.shape[2:])
-          return tf.reshape(segmented[:, -1, ...],
-                            [num_microbatches] + outp.shape[2:])
+          num_segments = (num_microbatches + p.num_stages - 1) // p.num_stages
+          segmented = tf.reshape(
+              bubble_removed,
+              [num_segments, p.circular_repeat, p.num_stages] + outp.shape[2:])
+          return tf.reshape(segmented[:, -1,
+                                      ...], [num_segments * p.num_stages] +
+                            outp.shape[2:])[:num_microbatches]
 
       final_non_trainable_var_values = outputs.non_trainable_vars
       output_tensors = tf.nest.map_structure(
