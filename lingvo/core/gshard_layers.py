@@ -508,6 +508,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     if p.shard_stages_1d:
       # Each stage should have its own seed.
       seeds = tf.stack([py_utils.GetIncStepSeed() for _ in range(p.num_stages)])
+      seeds = gshard_utils.Replicate(seeds)
 
       def _ToManual(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
