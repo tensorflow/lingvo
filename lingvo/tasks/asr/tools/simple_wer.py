@@ -125,17 +125,17 @@ def _GenerateAlignedHtml(hyp, ref, err_type):
     highlighted_html += '%s ' % hyp
 
   elif err_type == 'sub':
-    highlighted_html += """<span style="background-color: greenyellow">
+    highlighted_html += """<span style="background-color: yellow">
         <del>%s</del></span><span style="background-color: yellow">
         %s </span> """ % (hyp, ref)
 
   elif err_type == 'del':
-    highlighted_html += """<span style="background-color: yellow">
-        %s</span> """ % (
+    highlighted_html += """<span style="background-color: red">
+        %s </span> """ % (
             ref)
 
   elif err_type == 'ins':
-    highlighted_html += """<span style="background-color: greenyellow">
+    highlighted_html += """<span style="background-color: green">
         <del>%s</del> </span> """ % (
             hyp)
 
