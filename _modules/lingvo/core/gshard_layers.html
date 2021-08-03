@@ -663,6 +663,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
       <span class="c1"># Each stage should have its own seed.</span>
       <span class="n">seeds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetIncStepSeed</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)])</span>
+      <span class="n">seeds</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Replicate</span><span class="p">(</span><span class="n">seeds</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_ToManual</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
