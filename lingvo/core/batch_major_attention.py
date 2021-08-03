@@ -4931,6 +4931,13 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
              'Size of each pipeline microbatch.')
     p.Define('shard_stages_1d', False,
              'Whether to use 1D sharding on pipeline stages.')
+    p.Define('final_layer_norm', False,
+             'Whether to add a layer norm after all stages.')
+    p.Define(
+        'final_ln_at_each_stage', False,
+        'If True, a layer norm will be added to the end of each stage instead '
+        'of the end of the whole pipeline. This is to support legacy '
+        'behaviors. Set to False for all new use cases.')
     p.Define(
         'circular_repeat', 1,
         'If > 1, it enables circular pipeline, and this is the number of '
@@ -4958,7 +4965,8 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
     p = self.params
     assert p.num_pipeline_stages > 1
     # Use deterministic droupout in pipelined layers.
-    layer_params = p.pipeline_stage.transformer_layer_params_tpl
+    stage_params = p.pipeline_stage.Copy()
+    layer_params = stage_params.transformer_layer_params_tpl
     layer_params.tr_atten_tpl.dropout_tpl = (
         layers.DeterministicDropoutLayer.Params())
     layer_params.tr_atten_tpl.atten_tpl.dropout_tpl = (
@@ -4972,11 +4980,12 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         layers.DeterministicDropoutLayer.Params())
     layer_params.tr_fflayer_tpl.fflayer_tpl.dropout = (
         layers.DeterministicDropoutLayer.Params())
+    stage_params.final_layer_norm = p.final_ln_at_each_stage
     pipeline_params = gshard_layers.LayerwiseShardablePipelinedLayer.Params(
     ).Set(
         name=p.name,
         num_stages=p.num_pipeline_stages,
-        single_stage_body=p.pipeline_stage,
+        single_stage_body=stage_params,
         num_microbatches=p.num_pipeline_microbatches,
         microbatch_size=p.pipeline_microbatch_size,
         shard_stages_1d=p.shard_stages_1d,
@@ -4986,8 +4995,26 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
     self.CreateChild('pipeline', pipeline_params)
     self.pipeline.body = self.WrappedStageClass(self.pipeline.body)
 
+    if p.final_layer_norm and not p.final_ln_at_each_stage:
+      # Create the final LN layer.
+      assert p.pipeline_stage.mdl_dim
+      final_ln_p = p.pipeline_stage.layernorm_tpl.Copy().Set(
+          input_dim=p.pipeline_stage.mdl_dim,
+          use_fused_layernorm=p.pipeline_stage.use_fused_layernorm)
+      self.CreateChild('final_ln', final_ln_p)
+
+    if not p.final_ln_at_each_stage:
+      p.fprop_dtype = layer_params.fprop_dtype
+    else:
+      p.fprop_dtype = p.pipeline_stage.layernorm_tpl.fprop_dtype
+
   def FProp(self, theta, *args, **kwargs):
-    return self.pipeline.FProp(theta.pipeline, *args, **kwargs)
+    p = self.params
+    args = self._CastToFPropDtype(args)
+    x_out, padding = self.pipeline.FProp(theta.pipeline, *args, **kwargs)
+    if p.final_layer_norm and not p.final_ln_at_each_stage:
+      x_out = self.final_ln.FProp(theta.final_ln, x_out)
+    return x_out, padding
 
   def InitStates(self, theta, *args, **kwargs):
     p = self.params
@@ -5022,8 +5049,10 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
                  time_step,
                  use_short_seq_opt=False,
                  **kwargs):
+    p = self.params
+    query_vec = self._CastToFPropDtype(query_vec)
     # Fix argument order for LayerwiseShardablePipelinedLayer.
-    return self.pipeline.FPropFn(
+    decoder_output, updated_states = self.pipeline.FPropFn(
         theta.pipeline,
         'ExtendStep',
         query_vec,
@@ -5034,6 +5063,10 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
                                   py_utils.GetShape(query_vec)[:1]),
         use_short_seq_opt=use_short_seq_opt,
         **kwargs)
+
+    if p.final_layer_norm and not p.final_ln_at_each_stage:
+      decoder_output = self.final_ln.FProp(theta.final_ln, decoder_output)
+    return decoder_output, updated_states
 
 
 class TransformerFeedForwardLayerWithTaskId(
