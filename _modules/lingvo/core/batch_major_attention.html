@@ -5086,6 +5086,13 @@
              <span class="s1">&#39;Size of each pipeline microbatch.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shard_stages_1d&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to use 1D sharding on pipeline stages.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to add a layer norm after all stages.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;final_ln_at_each_stage&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, a layer norm will be added to the end of each stage instead &#39;</span>
+        <span class="s1">&#39;of the end of the whole pipeline. This is to support legacy &#39;</span>
+        <span class="s1">&#39;behaviors. Set to False for all new use cases.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;circular_repeat&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
         <span class="s1">&#39;If &gt; 1, it enables circular pipeline, and this is the number of &#39;</span>
@@ -5113,7 +5120,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_pipeline_stages</span> <span class="o">&gt;</span> <span class="mi">1</span>
     <span class="c1"># Use deterministic droupout in pipelined layers.</span>
-    <span class="n">layer_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="o">.</span><span class="n">transformer_layer_params_tpl</span>
+    <span class="n">stage_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">layer_params</span> <span class="o">=</span> <span class="n">stage_params</span><span class="o">.</span><span class="n">transformer_layer_params_tpl</span>
     <span class="n">layer_params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
     <span class="n">layer_params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="p">(</span>
@@ -5127,11 +5135,12 @@
         <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
     <span class="n">layer_params</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="n">stage_params</span><span class="o">.</span><span class="n">final_layer_norm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">final_ln_at_each_stage</span>
     <span class="n">pipeline_params</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">LayerwiseShardablePipelinedLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
     <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="n">num_stages</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_pipeline_stages</span><span class="p">,</span>
-        <span class="n">single_stage_body</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="p">,</span>
+        <span class="n">single_stage_body</span><span class="o">=</span><span class="n">stage_params</span><span class="p">,</span>
         <span class="n">num_microbatches</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_pipeline_microbatches</span><span class="p">,</span>
         <span class="n">microbatch_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pipeline_microbatch_size</span><span class="p">,</span>
         <span class="n">shard_stages_1d</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">,</span>
@@ -5141,8 +5150,26 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pipeline&#39;</span><span class="p">,</span> <span class="n">pipeline_params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">WrappedStageClass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">final_ln_at_each_stage</span><span class="p">:</span>
+      <span class="c1"># Create the final LN layer.</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="o">.</span><span class="n">mdl_dim</span>
+      <span class="n">final_ln_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="o">.</span><span class="n">layernorm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="o">.</span><span class="n">mdl_dim</span><span class="p">,</span>
+          <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span> <span class="n">final_ln_p</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">final_ln_at_each_stage</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">layer_params</span><span class="o">.</span><span class="n">fprop_dtype</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pipeline_stage</span><span class="o">.</span><span class="n">layernorm_tpl</span><span class="o">.</span><span class="n">fprop_dtype</span>
+
 <div class="viewcode-block" id="PipelinedTransformerLayers.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PipelinedTransformerLayers.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pipeline</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">x_out</span><span class="p">,</span> <span class="n">padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pipeline</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">final_ln_at_each_stage</span><span class="p">:</span>
+      <span class="n">x_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">x_out</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x_out</span><span class="p">,</span> <span class="n">padding</span></div>
 
 <div class="viewcode-block" id="PipelinedTransformerLayers.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PipelinedTransformerLayers.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -5177,8 +5204,10 @@
                  <span class="n">time_step</span><span class="p">,</span>
                  <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
     <span class="c1"># Fix argument order for LayerwiseShardablePipelinedLayer.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">FPropFn</span><span class="p">(</span>
+    <span class="n">decoder_output</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">FPropFn</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">pipeline</span><span class="p">,</span>
         <span class="s1">&#39;ExtendStep&#39;</span><span class="p">,</span>
         <span class="n">query_vec</span><span class="p">,</span>
@@ -5188,7 +5217,11 @@
         <span class="n">time_step</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">time_step</span><span class="p">,</span>
                                   <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[:</span><span class="mi">1</span><span class="p">]),</span>
         <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="n">use_short_seq_opt</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">final_ln_at_each_stage</span><span class="p">:</span>
+      <span class="n">decoder_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">decoder_output</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">decoder_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerFeedForwardLayerWithTaskId"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerFeedForwardLayerWithTaskId">[docs]</a><span class="k">class</span> <span class="nc">TransformerFeedForwardLayerWithTaskId</span><span class="p">(</span>
