@@ -5011,10 +5011,16 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
   def FProp(self, theta, *args, **kwargs):
     p = self.params
     args = self._CastToFPropDtype(args)
-    x_out, padding = self.pipeline.FProp(theta.pipeline, *args, **kwargs)
-    if p.final_layer_norm and not p.final_ln_at_each_stage:
-      x_out = self.final_ln.FProp(theta.final_ln, x_out)
-    return x_out, padding
+    out = self.pipeline.FProp(theta.pipeline, *args, **kwargs)
+    if not (p.final_layer_norm and not p.final_ln_at_each_stage):
+      return out
+
+    has_paddings = isinstance(out, tuple) and len(out) == 2
+    if has_paddings:
+      x_out, padding = out
+      return self.final_ln.FProp(theta.final_ln, x_out), padding
+    else:
+      return self.final_ln.FProp(theta.final_ln, out)
 
   def InitStates(self, theta, *args, **kwargs):
     p = self.params
