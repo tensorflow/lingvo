@@ -384,15 +384,14 @@ class TFDatasetSource(DataSource):
 
   def Initialize(self, sess):
     if not tf.executing_eagerly():
-      self.Reset(sess)
+      sess.run([it.initializer for it in self._iterator.values()])
     super().Initialize(sess)
 
   def Reset(self, sess):
-    if self._dataset:
-      if tf.executing_eagerly():
-        self._iterator = {key: iter(ds) for key, ds in self._dataset.items()}
-      else:
-        sess.run([it.initializer for it in self._iterator.values()])
+    if tf.executing_eagerly():
+      self._iterator = {key: iter(ds) for key, ds in self._dataset.items()}
+    else:
+      sess.run([it.initializer for it in self._iterator.values()])
 
   def GetNext(self):
     """Returns the next element from the dataset."""
@@ -787,3 +786,8 @@ class TFDataServiceSource(TFDatasetTransform):
         num_consumers=num_consumers)
 
     return dataset
+
+  def Reset(self, sess):
+    # TFDataServiceSource should not be used for eval/decode, as it does not
+    # have at-most-once guarantees for parallel_epochs mode.
+    raise ValueError('TFDataServiceSource does not support reset.')
