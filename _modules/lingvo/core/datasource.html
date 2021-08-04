@@ -539,15 +539,14 @@
 
 <div class="viewcode-block" id="TFDatasetSource.Initialize"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">it</span><span class="o">.</span><span class="n">initializer</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TFDatasetSource.Reset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">it</span><span class="o">.</span><span class="n">initializer</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span></div>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">it</span><span class="o">.</span><span class="n">initializer</span> <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span></div>
 
 <div class="viewcode-block" id="TFDatasetSource.GetNext"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetSource.GetNext">[docs]</a>  <span class="k">def</span> <span class="nf">GetNext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the next element from the dataset.&quot;&quot;&quot;</span>
@@ -941,7 +940,12 @@
         <span class="n">consumer_index</span><span class="o">=</span><span class="n">consumer_index</span><span class="p">,</span>
         <span class="n">num_consumers</span><span class="o">=</span><span class="n">num_consumers</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">dataset</span></div></div>
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+<div class="viewcode-block" id="TFDataServiceSource.Reset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="c1"># TFDataServiceSource should not be used for eval/decode, as it does not</span>
+    <span class="c1"># have at-most-once guarantees for parallel_epochs mode.</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TFDataServiceSource does not support reset.&#39;</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
