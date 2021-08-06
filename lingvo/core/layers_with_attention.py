@@ -2833,3 +2833,86 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
         tf.zeros([1, batch_size], dtype=py_utils.FPropDtype(p)))
     h = tf.squeeze(h, 0)
     return h, atten_prob, new_states
+
+
+class SelfAttentiveLayer(base_layer.BaseLayer):
+  """Self-attentive structure for temporal pooling.
+
+  See https://arxiv.org/abs/1703.03130
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('num_heads', 5, 'Number of attention heads to use.')
+    p.Define('input_dim', 128, 'Dimension of the vectors.')
+    p.Define('hidden_dim', 128, 'Dimension of the hidden vectors.')
+    p.Define('penalty_coef', 1.0, 'Penalisation coefficient.')
+    p.Define(
+        'penalty_terms', 1.0,
+        'A (list of) float values to penalise the attention heads.'
+        '1 and 1/num_heads encourage the heads to be spiky and smooth')
+    p.Define(
+        'input_data_format', 'BTC',
+        'String(enum) specifying the output data format of the encoder. '
+        'Also used for output converters.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if not p.name:
+      raise ValueError('Layer must have a specified name.')
+    assert p.num_heads > 0, 'Number of attention heads must be positive.'
+    assert p.input_dim > 0, 'Input vector dimension must be positive.'
+    assert p.hidden_dim > 0, 'Hidden vector dimension must be positive.'
+    assert p.penalty_coef >= 0.0, 'Penalisation coefficient for attention.'
+    assert p.input_data_format in {'BTC', 'TBC'}, 'Expect TBC or BTC inputs.'
+    if isinstance(p.penalty_terms, float):
+      p.penalty_terms = [p.penalty_terms] * p.num_heads
+    assert isinstance(p.penalty_terms, list)
+    if len(p.penalty_terms) < p.num_heads:
+      term = p.penalty_terms[-1]
+      p.penalty_terms += [term] * (p.num_heads - len(p.penalty_terms))
+    for eachterm in p.penalty_terms:
+      assert eachterm > 0, 'Penalty term {} is not positive'.format(eachterm)
+    # the trainable model parameters
+    w1 = layers.FCLayer.Params().Set(
+        name='self_attentive_layer_w1',
+        input_dim=p.input_dim,
+        output_dim=p.hidden_dim,
+        activation='TANH',
+        params_init=py_utils.WeightInit.Xavier(0.1))
+    self.CreateChild('att_w1', w1)
+    w2 = layers.FCLayer.Params().Set(
+        name='self_attentive_layer_w2',
+        input_dim=p.hidden_dim,
+        output_dim=p.num_heads,
+        activation='NONE',
+        params_init=py_utils.WeightInit.Xavier(0.1))
+    self.CreateChild('att_w2', w2)
+
+  def FProp(self, theta, inputs, paddings=None):
+    p = self.params
+    if p.input_data_format == 'TBC':
+      inputs = tf.transpose(inputs, [1, 0, 2])
+      if paddings is not None:
+        paddings = tf.transpose(paddings, [1, 0])
+    assert inputs.shape[2] == p.input_dim, 'Input vector sizes do not match.'
+
+    hiddens = self.att_w1.FProp(theta.att_w1, inputs, paddings)
+    logits = self.att_w2.FProp(theta.att_w2, hiddens, paddings)
+    values_a = tf.nn.softmax(logits)
+    values_at = tf.transpose(values_a, [0, 2, 1])
+    outputs = tf.matmul(values_at, inputs)
+
+    aux_loss_ctx = AuxLossContext.current()
+    if aux_loss_ctx is not None:
+      penmat = tf.linalg.diag(p.penalty_terms)
+      terms = tf.tile(penmat, [inputs.shape[0], 1])
+      terms = tf.reshape(terms, [inputs.shape[0], p.num_heads, p.num_heads])
+      values = tf.matmul(values_at, values_a)
+      penalty = tf.reduce_sum(tf.square(values - terms), axis=[-2, -1])
+      aux_loss_ctx.add_loss(p.penalty_coef * penalty)
+
+    return outputs

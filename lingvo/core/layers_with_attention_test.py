@@ -2934,5 +2934,39 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_spc, actual_spc, rtol=1e-05, atol=1e-05)
 
 
+class SelfAttentiveLayerTest(test_utils.TestCase):
+
+  def testFPropForTrain(self):
+    with self.session(use_gpu=False) as session:
+      # time = 5, batch = 4, depth = 2
+      features = tf.constant(np.random.normal(size=(5, 4, 2)), dtype=tf.float32)
+      paddings = tf.constant(
+          [[0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0],
+           [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]],
+          dtype=tf.float32)
+      features = tf.transpose(features, [1, 0, 2])
+      paddings = tf.expand_dims(tf.transpose(paddings, [1, 0]), axis=-1)
+      # init parameters for the pooling layer
+      params = layers_with_attention.SelfAttentiveLayer.Params()
+      params.name = 'self_attentive_pooling'
+      params.num_heads = 3
+      params.input_dim = 2
+      params.hidden_dim = 7
+      params.penalty_coef = 1.0
+      params.penalty_terms = [1.0, 0.33, 0.01]
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      # forward through the layer
+      with layers_with_attention.AuxLossContext() as aux_loss_ctx:
+        att_layer = layers_with_attention.SelfAttentiveLayer(params)
+        outputs = att_layer.FProp(att_layer.theta, features, paddings=paddings)
+        tf.global_variables_initializer().run()
+        outputs, aux_loss = session.run([outputs, aux_loss_ctx.aux_losses[0]])
+        # check the shapes of the resulted tensors
+        self.assertEqual(
+            outputs.shape,
+            (features.shape[0], params.num_heads, params.input_dim))
+        self.assertEqual(aux_loss.shape, (features.shape[0],))
+
+
 if __name__ == '__main__':
   tf.test.main()
