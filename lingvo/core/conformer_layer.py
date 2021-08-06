@@ -27,8 +27,10 @@ from lingvo.core import gshard_utils
 from lingvo.core import hyperparams as hparams_lib
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
+from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import recurrent
+from lingvo.core import summary_utils
 
 
 class LConvLayer(base_layer.BaseLayer):
@@ -793,12 +795,12 @@ class ConformerLayer(base_layer.BaseLayer):
     return moe_p
 
   def _SelfAtten(self, theta, inputs, paddings):
-    inputs, _ = self.trans_atten.FProp(
+    inputs, atten_probs = self.trans_atten.FProp(
         theta.trans_atten,
         query_vec=inputs,
         source_vecs=None,
         paddings=paddings)
-    return inputs, paddings
+    return inputs, paddings, atten_probs
 
   def _LConv(self, theta, inputs, paddings):
     assert self.has_lconv and self.params.layer_order != 'mhsa', (
@@ -869,17 +871,18 @@ class ConformerLayer(base_layer.BaseLayer):
       if self.has_fflayer_start:
         in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
       inputs = in_nmap.features
+      atten_probs = None
       if p.layer_order == 'mhsa':
-        inputs, paddings = self._SelfAtten(theta, inputs, paddings)
+        inputs, paddings, atten_probs = self._SelfAtten(theta, inputs, paddings)
       elif p.layer_order == 'conv':
         inputs, paddings = self._LConv(theta, inputs, paddings)
       elif p.layer_order == 'mhsa_before_conv':
-        inputs, paddings = self._SelfAtten(theta, inputs, paddings)
+        inputs, paddings, atten_probs = self._SelfAtten(theta, inputs, paddings)
         inputs, paddings = self._LConv(theta, inputs, paddings)
       else:
         assert p.layer_order == 'conv_before_mhsa'
         inputs, paddings = self._LConv(theta, inputs, paddings)
-        inputs, paddings = self._SelfAtten(theta, inputs, paddings)
+        inputs, paddings, atten_probs = self._SelfAtten(theta, inputs, paddings)
       in_nmap.features = inputs
       in_nmap.paddings = paddings
       in_nmap = self._MoeOrFFLayer(theta, 'fflayer_end', in_nmap)
@@ -890,6 +893,9 @@ class ConformerLayer(base_layer.BaseLayer):
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap.features = inputs
       out_nmap.paddings = paddings
+      # TODO(ankurbpn): plot function wasn't compiling on TPU, why?
+      if not py_utils.use_tpu() and atten_probs is not None:
+        self._AddAttentionSummaries(p.name, atten_probs)
       return out_nmap
 
   def FProp(self, theta, in_nmap):
@@ -982,6 +988,37 @@ class ConformerLayer(base_layer.BaseLayer):
       state1 = py_utils.NestedMap(
           lconv_state=lconv_state1, atten_state=atten_state1)
       return outputs, paddings, state1
+
+  def _AddAttentionSummaries(self, name, atten_probs):
+    # Plots attention prob summaries for joint network.
+    atten_shape = tf.shape(atten_probs)
+    atten_probs = tf.reshape(
+        atten_probs, [atten_shape[0], atten_shape[1], -1, atten_shape[-1]])
+    # Only plots first example of the batch.
+    atten_probs = tf.reduce_mean(atten_probs[0:1, :, :, :], 1)
+    self._AddAttenProbsImageSummary(name, atten_probs)
+    self._AddAttenProbsHistogramSummary(name, atten_probs)
+
+  def _AddAttenProbsHistogramSummary(self, name, atten_probs):
+    """Add histogram summary of attention probs."""
+    summary_utils.histogram(name + '/atten_probs', atten_probs)
+
+  def _AddAttenProbsImageSummary(self, name, atten_probs):
+    """Add image summary of input attention probabilities."""
+
+    def PlotAttention(fig, axes, cur_atten_probs, title):
+      plot.AddImage(fig, axes, cur_atten_probs, title=title)
+      axes.set_ylabel(plot.ToUnicode('Output sequence index'), wrap=True)
+      axes.set_xlabel(plot.ToUnicode('Input sequence index'), wrap=True)
+
+    with plot.MatplotlibFigureSummary(
+        name + '/atten_example',
+        figsize=(10, 10),
+        max_outputs=1,
+        subplot_grid_shape=(1, 1)) as fig:
+      # Extract first entry in batch of attention prob matrices
+      # [tgt_len, src_len]
+      fig.AddSubplot([atten_probs], PlotAttention, title='atten_probs')
 
 
 def ApplyGshard(conformer_tpl,
