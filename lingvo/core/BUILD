@@ -203,8 +203,10 @@ py_library(
         ":hyperparams",
         ":layers",
         ":layers_with_attention",
+        ":plot",
         ":py_utils",
         ":recurrent",
+        ":summary_utils",
         "//lingvo:compat",
     ],
 )
