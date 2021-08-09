@@ -613,8 +613,8 @@ void BasicRecordYielder::ShardLoop(Shard* shard) {
     Rope val;
     while (iter->Next(&key, &val)) {
       ++shard_record_count;
-      LOG_EVERY_N_SEC(INFO, 10)
-          << "Record " << shard_record_count << ": key=" << key;
+      LOG_EVERY_N_SEC(INFO, 10) << "Record " << shard_record_count
+                                << ": key=" << absl::CEscape(key);
       values.emplace_back(val);
       if (values.size() >= kRecordsPerAdd && Add(&values)) {
         LOG(INFO) << "Shard stopped at " << shard_record_count
