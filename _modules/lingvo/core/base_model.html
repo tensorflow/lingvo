@@ -1069,6 +1069,9 @@
         <span class="n">p</span><span class="o">.</span><span class="n">vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># vn.scale is dependent on global_step.</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A value should not be specified for p.vn.scale. &#39;</span>
+                           <span class="s1">&#39;It will be overwritten by p.train.vn_std.&#39;</span><span class="p">)</span>
         <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">&gt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_start_step</span><span class="p">,</span>
                              <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">*</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span></div>
 
