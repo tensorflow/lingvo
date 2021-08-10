@@ -513,6 +513,8 @@ class ConformerLayer(base_layer.BaseLayer):
         'regex. The default value is [] to use the existing data types without '
         'any changes. If a variable name matches the first regex in the list, '
         'the variable data type will be set by the corresponding dtype.')
+    p.Define('allow_attention_summaries', False,
+             'Allow plotting attention histogram and plot summaries.')
     return p
 
   @classmethod
@@ -893,9 +895,7 @@ class ConformerLayer(base_layer.BaseLayer):
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap.features = inputs
       out_nmap.paddings = paddings
-      # TODO(ankurbpn): plot function wasn't compiling on TPU, why?
-      if not py_utils.use_tpu() and atten_probs is not None:
-        self._AddAttentionSummaries(p.name, atten_probs)
+      self._AddAttentionSummaries(p.name, atten_probs)
       return out_nmap
 
   def FProp(self, theta, in_nmap):
@@ -991,13 +991,17 @@ class ConformerLayer(base_layer.BaseLayer):
 
   def _AddAttentionSummaries(self, name, atten_probs):
     # Plots attention prob summaries for joint network.
-    atten_shape = tf.shape(atten_probs)
-    atten_probs = tf.reshape(
-        atten_probs, [atten_shape[0], atten_shape[1], -1, atten_shape[-1]])
-    # Only plots first example of the batch.
-    atten_probs = tf.reduce_mean(atten_probs[0:1, :, :, :], 1)
-    self._AddAttenProbsImageSummary(name, atten_probs)
-    self._AddAttenProbsHistogramSummary(name, atten_probs)
+    # TODO(ankurbpn): Check why op wasn't compiling on TPUs.
+    p = self.params
+    if not py_utils.use_tpu(
+    ) and p.allow_attention_summaries and atten_probs is not None:
+      atten_shape = tf.shape(atten_probs)
+      atten_probs = tf.reshape(
+          atten_probs, [atten_shape[0], atten_shape[1], -1, atten_shape[-1]])
+      # Only plots first example of the batch.
+      atten_probs = tf.reduce_mean(atten_probs[0:1, :, :, :], 1)
+      self._AddAttenProbsImageSummary(name, atten_probs)
+      self._AddAttenProbsHistogramSummary(name, atten_probs)
 
   def _AddAttenProbsHistogramSummary(self, name, atten_probs):
     """Add histogram summary of attention probs."""
