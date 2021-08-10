@@ -5758,3 +5758,58 @@ class CondScaleShiftFFNLayer(base_layer.BaseLayer):
     scale_output = OpWrapper(p.scale_fn, scale_output)
     shift_output = OpWrapper(p.shift_fn, shift_output)
     return scale_output, shift_output
+
+
+class StatisticalPoolingLayer(base_layer.BaseLayer):
+  """A statistical pooling layer that perform sequence pooling.
+
+  Convert a sequence of vectors into their mean and standard deviation vectors.
+  The layer has no trainable parameters.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('has_stddev', True, 'Include standard deviation.')
+    p.Define(
+        'input_data_format', 'BTC',
+        'String(enum) specifying the output data format of the encoder. '
+        'Also used for output converters.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_data_format in {'BTC', 'TBC'}, 'Expect TBC or BTC inputs.'
+
+  def FProp(self, inputs, paddings=None):
+    # transform input features
+    p = self.params
+    if p.input_data_format == 'TBC':
+      inputs = tf.transpose(inputs, [1, 0, 2])
+      if paddings is not None:
+        paddings = tf.transpose(paddings, [1, 0])
+    # process paddings & compute sequence lengths etc.
+    (batch, time, dim) = inputs.shape
+    if paddings is not None:
+      padding_mask = 1 - paddings
+    else:
+      padding_mask = tf.ones([batch, time])
+    seqlens = tf.reduce_sum(padding_mask, axis=1)
+    seqlens = tf.repeat(tf.expand_dims(seqlens, axis=-1), repeats=dim, axis=-1)
+    padding_mask = tf.expand_dims(padding_mask, axis=-1)
+    # compute mean first
+    inputs = inputs * padding_mask
+    mean = tf.math.divide_no_nan(
+        tf.math.reduce_sum(inputs, axis=1, keepdims=False), seqlens)
+    # compute stddev if required
+    if p.has_stddev:
+      values = tf.repeat(tf.expand_dims(mean, axis=1), repeats=time, axis=1)
+      values = tf.math.square(inputs - values) * padding_mask
+      values = tf.math.divide_no_nan(
+          tf.math.reduce_sum(values, axis=1, keepdims=False), seqlens)
+      stddev = tf.math.sqrt(values)
+      return tf.concat([mean, stddev], axis=1)
+    else:
+      return mean

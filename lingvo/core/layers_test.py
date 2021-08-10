@@ -6169,5 +6169,36 @@ class SingleShardSharedEmbeddingSoftmaxLayerTest(test_utils.TestCase):
                                             self.evaluate(embs_sum))
 
 
+class StatisticalPoolingLayerTest(test_utils.TestCase):
+
+  def testFProp(self):
+    with self.session(use_gpu=False) as sess:
+      # time = 5, batch = 4, depth = 2
+      features = tf.constant(np.random.normal(size=(5, 4, 2)), dtype=tf.float32)
+      paddings = tf.constant(
+          [[0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0],
+           [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]],
+          dtype=tf.float32)
+      features = tf.transpose(features, [1, 0, 2])
+      paddings = tf.transpose(paddings, [1, 0])
+      # test fprop with both mean & stddev
+      params = layers.StatisticalPoolingLayer.Params()
+      params.name = 'mean_stddev_pooling'
+      params.has_stddev = True
+      layer1 = layers.StatisticalPoolingLayer(params)
+      results1 = layer1.FProp(features, paddings)
+      # test fprop with only mean
+      params.has_stddev = False
+      params.name = 'mean_pooling'
+      layer2 = layers.StatisticalPoolingLayer(params)
+      results2 = layer2.FProp(features, paddings)
+      # check the results
+      tf.global_variables_initializer().run()
+      results1, results2 = sess.run([results1, results2])
+      self.assertEqual(results1.shape,
+                       (features.shape[0], 2 * features.shape[2]))
+      self.assertEqual(results2.shape, (features.shape[0], features.shape[2]))
+
+
 if __name__ == '__main__':
   test_utils.main()
