@@ -4697,6 +4697,10 @@ class StackedTransformerLayers(base_layer.BaseLayer):
              'Template configuration for the moe feedforward layer.')
     p.Define('num_experts', 0, 'Total number of experts.')
     p.Define('num_groups', 1, 'Num of groups for dispatching.')
+    p.Define(
+        'min_group_size', None,
+        'If not None, num_groups will be adjusted so that there will be at '
+        'least min_group_size tokens in each group.')
     p.Define('moe_layers', [], 'The list of MoE layer indices, e.g. [0, 2, 4].')
     return p
 
@@ -4741,6 +4745,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       moe_p.relu_dropout_prob = ff_p.relu_dropout_prob
       moe_p.dropout_tpl = ff_p.residual_dropout_tpl.Copy()
       moe_p.num_groups = p.num_groups
+      moe_p.min_group_size = p.min_group_size
       moe_p.num_experts = p.num_experts
       # weight_split_dims_mapping and activation_split_dims_mapping should have
       # been set through p.moe_layer_tpl params.

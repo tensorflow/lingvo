@@ -835,6 +835,10 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'Total number of groups for dispatching. num_groups typically'
         ' should be the same as num devices.')
     p.Define(
+        'min_group_size', None,
+        'If not None, num_groups will be adjusted so that there will be at '
+        'least min_group_size tokens in each group.')
+    p.Define(
         'expert_capacity_factor', 1.5,
         'Expert capacity factor. This should be set to a value greater'
         ' than or equal to 1.0. This is the ratio between max allowed'
@@ -1005,6 +1009,10 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       paddings = py_utils.HasShape(paddings, [bs, s_len])
       num_groups = p.num_groups
       assert num_groups
+      if (p.min_group_size is not None and
+          bs * s_len / num_groups < p.min_group_size):
+        num_groups = (bs * s_len + p.min_group_size - 1) // p.min_group_size
+        tf.logging.info('num_groups adjusted to %s.' % num_groups)
       assert (bs * s_len) % num_groups == 0
       g_len = (bs * s_len) // num_groups
       reshaped_inputs = tf.reshape(inputs_normalized,
@@ -1092,7 +1100,8 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
       combined_output = tf.reshape(combined_output, [bs, s_len, p.output_dim])
       # Apply padding.
-      combined_output *= (1.0 - tf.expand_dims(paddings, -1))
+      combined_output *= tf.cast(1.0 - tf.expand_dims(paddings, -1),
+                                 fprop_dtype)
       # Residual dropout.
       after_residual = self.residual_dropout.FProp(theta.residual_dropout,
                                                    combined_output)
