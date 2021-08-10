@@ -639,7 +639,8 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
     e = tf.zeros([d.shape[0], tf.shape(d)[0], tf.shape(d)[1]])
     self.assertEqual(py_utils.GetShape(e)[0], 1)
-    self.assertIsInstance(py_utils.GetShape(e)[1], tf.Tensor)
+    # TODO(b/167426925): re-enable once cl/380675625 is submitted
+    # self.assertEqual(py_utils.GetShape(e)[1], 1)
     self.assertIsInstance(py_utils.GetShape(e)[2], tf.Tensor)
 
     f = tf.placeholder(tf.float32)
