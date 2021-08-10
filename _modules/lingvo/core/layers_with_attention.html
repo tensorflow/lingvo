@@ -990,6 +990,10 @@
         <span class="s1">&#39;Total number of groups for dispatching. num_groups typically&#39;</span>
         <span class="s1">&#39; should be the same as num devices.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;min_group_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If not None, num_groups will be adjusted so that there will be at &#39;</span>
+        <span class="s1">&#39;least min_group_size tokens in each group.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;expert_capacity_factor&#39;</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span>
         <span class="s1">&#39;Expert capacity factor. This should be set to a value greater&#39;</span>
         <span class="s1">&#39; than or equal to 1.0. This is the ratio between max allowed&#39;</span>
@@ -1160,6 +1164,10 @@
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">s_len</span><span class="p">])</span>
       <span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
       <span class="k">assert</span> <span class="n">num_groups</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">min_group_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+          <span class="n">bs</span> <span class="o">*</span> <span class="n">s_len</span> <span class="o">/</span> <span class="n">num_groups</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">min_group_size</span><span class="p">):</span>
+        <span class="n">num_groups</span> <span class="o">=</span> <span class="p">(</span><span class="n">bs</span> <span class="o">*</span> <span class="n">s_len</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">min_group_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">min_group_size</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_groups adjusted to </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">num_groups</span><span class="p">)</span>
       <span class="k">assert</span> <span class="p">(</span><span class="n">bs</span> <span class="o">*</span> <span class="n">s_len</span><span class="p">)</span> <span class="o">%</span> <span class="n">num_groups</span> <span class="o">==</span> <span class="mi">0</span>
       <span class="n">g_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">bs</span> <span class="o">*</span> <span class="n">s_len</span><span class="p">)</span> <span class="o">//</span> <span class="n">num_groups</span>
       <span class="n">reshaped_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs_normalized</span><span class="p">,</span>
@@ -1247,7 +1255,8 @@
 
       <span class="n">combined_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">combined_output</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">s_len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">])</span>
       <span class="c1"># Apply padding.</span>
-      <span class="n">combined_output</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+      <span class="n">combined_output</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                                 <span class="n">fprop_dtype</span><span class="p">)</span>
       <span class="c1"># Residual dropout.</span>
       <span class="n">after_residual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span>
                                                    <span class="n">combined_output</span><span class="p">)</span>
