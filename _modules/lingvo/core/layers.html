@@ -5913,6 +5913,61 @@
     <span class="n">scale_output</span> <span class="o">=</span> <span class="n">OpWrapper</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">scale_fn</span><span class="p">,</span> <span class="n">scale_output</span><span class="p">)</span>
     <span class="n">shift_output</span> <span class="o">=</span> <span class="n">OpWrapper</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shift_fn</span><span class="p">,</span> <span class="n">shift_output</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">scale_output</span><span class="p">,</span> <span class="n">shift_output</span></div></div>
+
+
+<div class="viewcode-block" id="StatisticalPoolingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StatisticalPoolingLayer">[docs]</a><span class="k">class</span> <span class="nc">StatisticalPoolingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A statistical pooling layer that perform sequence pooling.</span>
+
+<span class="sd">  Convert a sequence of vectors into their mean and standard deviation vectors.</span>
+<span class="sd">  The layer has no trainable parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StatisticalPoolingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StatisticalPoolingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;has_stddev&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Include standard deviation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;input_data_format&#39;</span><span class="p">,</span> <span class="s1">&#39;BTC&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;String(enum) specifying the output data format of the encoder. &#39;</span>
+        <span class="s1">&#39;Also used for output converters.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_data_format</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;BTC&#39;</span><span class="p">,</span> <span class="s1">&#39;TBC&#39;</span><span class="p">},</span> <span class="s1">&#39;Expect TBC or BTC inputs.&#39;</span>
+
+<div class="viewcode-block" id="StatisticalPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StatisticalPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># transform input features</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_data_format</span> <span class="o">==</span> <span class="s1">&#39;TBC&#39;</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># process paddings &amp; compute sequence lengths etc.</span>
+    <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">padding_mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">batch</span><span class="p">,</span> <span class="n">time</span><span class="p">])</span>
+    <span class="n">seqlens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">padding_mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">seqlens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">seqlens</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">repeats</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">padding_mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># compute mean first</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">*</span> <span class="n">padding_mask</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">seqlens</span><span class="p">)</span>
+    <span class="c1"># compute stddev if required</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_stddev</span><span class="p">:</span>
+      <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">repeats</span><span class="o">=</span><span class="n">time</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span> <span class="o">*</span> <span class="n">padding_mask</span>
+      <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">seqlens</span><span class="p">)</span>
+      <span class="n">stddev</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">mean</span></div></div>
 </pre></div>
 
            </div>
