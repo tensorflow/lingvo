@@ -914,6 +914,9 @@ class BaseTask(base_layer.BaseLayer):
         p.vn = py_utils.VariationalNoiseParams(None, False, False)
       else:
         # vn.scale is dependent on global_step.
+        if p.vn.scale is not None:
+          raise ValueError('A value should not be specified for p.vn.scale. '
+                           'It will be overwritten by p.train.vn_std.')
         p.vn.scale = tf.cast(self._global_step_var > tp.vn_start_step,
                              py_utils.FPropDtype(p)) * tp.vn_std
 
