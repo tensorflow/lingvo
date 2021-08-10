@@ -988,8 +988,7 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
           eos_scores,
           eos_atten_probs,
           eos_id=2,
-          num_hyps_per_beam=num_hyps_per_beam,
-          fix_hyp_atten_vecs=True)
+          num_hyps_per_beam=num_hyps_per_beam)
       final_done_hyps = sess.run(final_done_hyps)
     self.assertAllEqual(final_done_hyps.shape, [tgt_seq_len, hyp_size])
     # Focusing on hyps of length 3:
