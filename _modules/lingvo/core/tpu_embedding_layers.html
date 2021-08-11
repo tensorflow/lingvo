@@ -183,7 +183,7 @@
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 
-<div class="viewcode-block" id="_ShouldUseTpu"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._ShouldUseTpu">[docs]</a><span class="k">def</span> <span class="nf">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="_IsTpuTraining"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._IsTpuTraining">[docs]</a><span class="k">def</span> <span class="nf">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Whether we should create embedding tables and run lookup on tpu.&quot;&quot;&quot;</span>
   <span class="k">return</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span></div>
 
@@ -907,7 +907,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
                                                        <span class="n">embedding_table_vars</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="c1"># We don&#39;t need this for TrainerTpu, as the vars are not directly</span>
       <span class="c1"># accessed besides in the TPU embeddding load/retrieve ops.</span>
       <span class="c1"># However, this is needed for CPU (eval/decode/controller).</span>
@@ -932,6 +932,9 @@
 
   <span class="c1"># Return device to place sharded variables on.</span>
 <div class="viewcode-block" id="TPUEmbeddingTable.GetDeviceName"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.GetDeviceName">[docs]</a>  <span class="k">def</span> <span class="nf">GetDeviceName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
+      <span class="c1"># This is to place variables on the same device as other variables.</span>
+      <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">return</span> <span class="s1">&#39;/cpu:0&#39;</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1212,7 +1215,7 @@
     <span class="c1"># with &quot;sequence embeddings&quot;.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sequence_features</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">if</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="n">num_cores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span>
       <span class="n">global_batch_size</span> <span class="o">=</span> <span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
@@ -1306,7 +1309,7 @@
             <span class="n">rets</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">table_rets</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
       <span class="k">return</span> <span class="n">rets</span>
 
-    <span class="k">if</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div>
@@ -1348,7 +1351,7 @@
             <span class="n">rets</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">table_rets</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
       <span class="k">return</span> <span class="n">rets</span>
 
-    <span class="k">if</span> <span class="n">_ShouldUseTpu</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">CpuEmbLookupSparse</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div></div>
