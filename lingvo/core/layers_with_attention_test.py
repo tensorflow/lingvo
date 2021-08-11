@@ -2945,7 +2945,7 @@ class SelfAttentiveLayerTest(test_utils.TestCase):
            [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]],
           dtype=tf.float32)
       features = tf.transpose(features, [1, 0, 2])
-      paddings = tf.expand_dims(tf.transpose(paddings, [1, 0]), axis=-1)
+      paddings = tf.transpose(paddings, [1, 0])
       # init parameters for the pooling layer
       params = layers_with_attention.SelfAttentiveLayer.Params()
       params.name = 'self_attentive_pooling'

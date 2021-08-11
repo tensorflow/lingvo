@@ -2909,6 +2909,7 @@ class SelfAttentiveLayer(base_layer.BaseLayer):
         paddings = tf.transpose(paddings, [1, 0])
     assert inputs.shape[2] == p.input_dim, 'Input vector sizes do not match.'
 
+    paddings = tf.expand_dims(paddings, axis=-1)
     hiddens = self.att_w1.FProp(theta.att_w1, inputs, paddings)
     logits = self.att_w2.FProp(theta.att_w2, hiddens, paddings)
     values_a = tf.nn.softmax(logits)
