@@ -3367,10 +3367,19 @@ def AddVN(p, x, per_step=False):
 
   if p.vn.deterministic:
     seeds = GenerateStepSeedPair(p, GetGlobalStep())
+    global_step_seed = seeds[0]
+    op_seed = seeds[1]
     if not p.vn.per_step_vn:
-      # First element of seeds is global step.
-      seeds = tf.stack([tf.zeros_like(seeds[0]), seeds[1]])
-    noises = DeterministicVN(p, seeds, tf.shape(x), mean=0.0, std=1.0)
+      global_step_seed = tf.zeros_like(global_step_seed)
+    if p.vn.seed:
+      op_seed = tf.convert_to_tensor(p.vn.seed, dtype=op_seed.dtype)
+    noises = DeterministicVN(
+        p,
+        tf.stack([global_step_seed, op_seed]),
+        tf.shape(x),
+        mean=0.0,
+        std=1.0)
+    noises = tf.cast(noises, x.dtype)
   else:
     seed = p.vn.seed
     if seed and p.vn.per_step_vn:
