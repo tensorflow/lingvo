@@ -28,7 +28,7 @@ from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 # pylint:enable=g-direct-tensorflow-import
 
 
-def _ShouldUseTpu(p):
+def _IsTpuTraining(p):
   """Whether we should create embedding tables and run lookup on tpu."""
   return not p.is_inference and py_utils.use_tpu()
 
@@ -752,7 +752,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       self._tpu_embedding_collection.AddTableVariables(self.table_name,
                                                        embedding_table_vars)
 
-    if not _ShouldUseTpu(p):
+    if not _IsTpuTraining(p):
       # We don't need this for TrainerTpu, as the vars are not directly
       # accessed besides in the TPU embeddding load/retrieve ops.
       # However, this is needed for CPU (eval/decode/controller).
@@ -777,6 +777,9 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
   # Return device to place sharded variables on.
   def GetDeviceName(self, host_id):
+    if self.params.is_inference:
+      # This is to place variables on the same device as other variables.
+      return None
     if self.do_eval:
       return '/cpu:0'
     else:
@@ -1057,7 +1060,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     # with "sequence embeddings".
     self._sequence_features = {}
 
-    if _ShouldUseTpu(p):
+    if _IsTpuTraining(p):
       num_cores = self.cluster.params.worker.tpus_per_replica
       global_batch_size = (
           self.params.batch_size * self.cluster.num_splits_per_client)
@@ -1151,7 +1154,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             rets.Set(key, table_rets.GetItem(key))
       return rets
 
-    if _ShouldUseTpu(p):
+    if _IsTpuTraining(p):
       return self._TpuEmbLookup(ids_map)
     else:
       return CpuEmbLookup(ids_map)
@@ -1193,7 +1196,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             rets.Set(key, table_rets.GetItem(key))
       return rets
 
-    if _ShouldUseTpu(p):
+    if _IsTpuTraining(p):
       return self._TpuEmbLookup(ids_map)
     else:
       return CpuEmbLookupSparse(ids_map)
