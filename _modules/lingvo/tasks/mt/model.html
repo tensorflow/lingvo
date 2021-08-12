@@ -537,6 +537,305 @@
           <span class="n">target_weights</span><span class="o">=</span><span class="n">canvas_and_targets</span><span class="o">.</span><span class="n">target_weights</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">predictions</span></div></div>
+
+
+<div class="viewcode-block" id="TransformerXEnDecModel"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerXEnDecModel">[docs]</a><span class="k">class</span> <span class="nc">TransformerXEnDecModel</span><span class="p">(</span><span class="n">TransformerModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Implementation of XEnDec.</span>
+
+<span class="sd">  Refer to https://arxiv.org/abs/2106.04060.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TransformerXEnDecModel.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerXEnDecModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerXEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">TransformerXDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;loss_mix_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Weight for mix loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;loss_clean_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Weight for clean loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;loss_mono_weight&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Weight for mono loss&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_atten_drop&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;use attention dropout&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_prob_cl&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;use prob cl&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_prob_drop&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;prob drop out&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_drop&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;attention drop&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TransformerXEnDecModel._CreateTargetLambdas"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerXEnDecModel._CreateTargetLambdas">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTargetLambdas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">atten_probs</span><span class="p">,</span>
+                           <span class="n">source_lambdas_pair</span><span class="p">,</span>
+                           <span class="n">source_paddings_pair</span><span class="p">,</span>
+                           <span class="n">target_paddings_pair</span><span class="p">,</span>
+                           <span class="n">smooth</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute target interpolation ratios.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      atten_probs: A list containing two attention matrics.</span>
+<span class="sd">      source_lambdas_pair: A list containing two source interpolation ratios.</span>
+<span class="sd">      source_paddings_pair: A list containing two source paddings.</span>
+<span class="sd">      target_paddings_pair: A list containing two target paddings</span>
+<span class="sd">      smooth: A real value to smooth target interpolation ratios before</span>
+<span class="sd">        normalization.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      source_lambdas_pair: Source interpolation ratios.</span>
+<span class="sd">      input_lambdas: Interpolation ratios for target input embeddings.</span>
+<span class="sd">      label_lambdas: Interpolation ratios for target labels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">atten_probs_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">atten_probs_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">source_lambdas</span> <span class="o">=</span> <span class="n">source_lambdas_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">other_source_lambdas</span> <span class="o">=</span> <span class="n">source_lambdas_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">lambdas_0</span> <span class="o">=</span> <span class="n">atten_probs_0</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="n">source_lambdas</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">source_paddings_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">lambdas_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">lambdas_0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">lambdas_0</span> <span class="o">=</span> <span class="p">(</span><span class="n">lambdas_0</span> <span class="o">+</span> <span class="n">smooth</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">target_paddings_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">lambdas_1</span> <span class="o">=</span> <span class="n">atten_probs_1</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="n">other_source_lambdas</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">source_paddings_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">lambdas_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">lambdas_1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">lambdas_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">lambdas_1</span> <span class="o">+</span> <span class="n">smooth</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">target_paddings_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">label_lambdas_0</span> <span class="o">=</span> <span class="n">lambdas_0</span> <span class="o">/</span> <span class="p">(</span><span class="n">lambdas_0</span> <span class="o">+</span> <span class="n">lambdas_1</span> <span class="o">+</span> <span class="mf">1e-9</span><span class="p">)</span>
+
+    <span class="n">label_lambdas</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">label_lambdas_0</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">target_paddings_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">label_lambdas_0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">target_paddings_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="p">]</span>
+    <span class="n">input_lambdas_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+        <span class="n">label_lambdas_0</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">constant_values</span><span class="o">=</span><span class="mf">1.</span><span class="p">)[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">input_lambdas</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">input_lambdas_0</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">target_paddings_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_lambdas_0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">target_paddings_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">source_lambdas_pair</span><span class="p">,</span> <span class="n">input_lambdas</span><span class="p">,</span> <span class="n">label_lambdas</span></div>
+
+<div class="viewcode-block" id="TransformerXEnDecModel.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerXEnDecModel.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">theta</span><span class="p">,</span>
+                         <span class="n">batch</span><span class="p">,</span>
+                         <span class="n">other_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">source_lambdas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">target_lambdas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="sd">&quot;&quot;&quot;Compute the model predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      batch: A `.NestedMap`.</span>
+
+<span class="sd">      - src: A `.NestedMap`.</span>
+<span class="sd">        - ids: The source ids, ends in &lt;eos&gt;.</span>
+<span class="sd">        - paddings: The source paddings.</span>
+<span class="sd">        - embs: The source embeddings. It is none when other_batch == None.</span>
+
+<span class="sd">      - tgt: A `.NestedMap`.</span>
+<span class="sd">        - ids: The target ids, ends in &lt;eos&gt;.</span>
+<span class="sd">        - paddings: The target paddings.</span>
+<span class="sd">        - embs: The source embeddings. It is none when other_batch == None.</span>
+
+<span class="sd">      other_batch: Same as batch.</span>
+<span class="sd">      source_lambdas: Interpolation ratios for source embeddings.</span>
+<span class="sd">      target_lambdas: Interpolation ratios for target embeddings.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A `.NestedMap` containg:</span>
+
+<span class="sd">      - encoder_outputs: The contextualized output vectors from encoder.</span>
+<span class="sd">      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">      - attention: `.NestedMap` of attention distributions of shape</span>
+<span class="sd">        [batch, target_length, source_length].</span>
+<span class="sd">      - source_embs: Tensor of shape [batch, time, emb_dim].</span>
+<span class="sd">      - target_embs: Tensor of shape [batch, time, emb_dim].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pyformat: enable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderDevice</span><span class="p">():</span>
+      <span class="n">other_batch_src</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">other_batch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">other_batch_src</span> <span class="o">=</span> <span class="n">other_batch</span><span class="o">.</span><span class="n">src</span>
+      <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">enc</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="n">other_batch_src</span><span class="p">,</span> <span class="n">source_lambdas</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderDevice</span><span class="p">():</span>
+      <span class="n">other_batch_tgt</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">other_batch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">other_batch_tgt</span> <span class="o">=</span> <span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span>
+      <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                                <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">,</span> <span class="n">other_batch_tgt</span><span class="p">,</span>
+                                                <span class="n">target_lambdas</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+        <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;encoder_outputs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoder_outputs</span>
+      <span class="k">return</span> <span class="n">predictions</span></div>
+
+<div class="viewcode-block" id="TransformerXEnDecModel.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerXEnDecModel.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Computes the loss for input_batch.</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderDevice</span><span class="p">():</span>
+      <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;reshape_probs&#39;</span><span class="p">]</span>
+    <span class="n">probs_hard</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;target_hard_probs&#39;</span><span class="p">]</span>
+    <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">probs</span>
+
+    <span class="k">if</span> <span class="s1">&#39;other_src&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span> <span class="ow">and</span> <span class="s1">&#39;other_tgt&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="n">other_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">other_batch</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">other_src</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+      <span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">other_tgt</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">other_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">other_batch</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+      <span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+      <span class="n">other_batch</span> <span class="o">=</span> <span class="n">other_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="n">other_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">other_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">other_probs_hard</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">probs_hard</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">other_predictions</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">other_predictions</span><span class="o">.</span><span class="n">source_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">source_embs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">other_predictions</span><span class="o">.</span><span class="n">target_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">target_embs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Computes the loss for other_batch.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_mono_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">other_predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">other_batch</span><span class="p">)</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderDevice</span><span class="p">():</span>
+        <span class="n">other_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">other_predictions</span><span class="p">,</span>
+                                            <span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">)</span>
+        <span class="n">other_atten_probs</span> <span class="o">=</span> <span class="n">other_predictions</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">probs</span>
+        <span class="n">other_probs</span> <span class="o">=</span> <span class="n">other_result</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;reshape_probs&#39;</span><span class="p">]</span>
+        <span class="n">other_probs_hard</span> <span class="o">=</span> <span class="n">other_result</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;target_hard_probs&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_atten_drop</span><span class="p">:</span>
+      <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_drop</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">other_atten_probs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">other_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">other_atten_probs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_drop</span><span class="p">)</span>
+
+    <span class="c1"># Computes the xendec loss.</span>
+    <span class="n">mix_results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_mix_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">other_atten_probs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_prob_cl</span><span class="p">:</span>
+          <span class="n">cur_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+          <span class="n">cur_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">/</span> <span class="mi">40000</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">)</span>
+          <span class="n">probs_hard</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">probs_hard</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+          <span class="n">other_probs_hard</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">other_probs_hard</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+          <span class="n">prob_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">cur_ratio</span>
+          <span class="n">probs</span> <span class="o">=</span> <span class="n">probs_hard</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">prob_ratio</span><span class="p">)</span> <span class="o">+</span> <span class="n">probs</span> <span class="o">*</span> <span class="n">prob_ratio</span>
+          <span class="n">other_prob_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+                                            <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">cur_ratio</span>
+          <span class="n">other_probs</span> <span class="o">=</span> <span class="n">other_probs_hard</span> <span class="o">*</span> <span class="p">(</span>
+              <span class="mf">1.0</span> <span class="o">-</span> <span class="n">other_prob_ratio</span><span class="p">)</span> <span class="o">+</span> <span class="n">other_probs</span> <span class="o">*</span> <span class="n">other_prob_ratio</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">probs_hard</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+          <span class="n">other_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">other_probs_hard</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+
+      <span class="n">source_paddings_pair</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="n">other_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span>
+      <span class="p">]</span>
+      <span class="n">target_paddings_pair</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span>
+      <span class="p">]</span>
+
+      <span class="n">source_mask</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">source_mask</span>
+      <span class="n">other_lambdas</span> <span class="o">=</span> <span class="n">source_mask</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">source_paddings_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">source_lambdas</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">other_lambdas</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">source_paddings_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="n">source_lambdas</span> <span class="o">=</span> <span class="p">[</span><span class="n">source_lambdas</span><span class="p">,</span> <span class="n">other_lambdas</span><span class="p">]</span>
+
+      <span class="n">source_lambdas</span><span class="p">,</span> <span class="n">input_lambdas</span><span class="p">,</span> <span class="n">label_lambdas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTargetLambdas</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">atten_probs</span><span class="p">,</span> <span class="n">other_atten_probs</span><span class="p">],</span>
+          <span class="n">source_lambdas</span><span class="p">,</span>
+          <span class="n">source_paddings_pair</span><span class="p">,</span>
+          <span class="n">target_paddings_pair</span><span class="p">,</span>
+          <span class="n">smooth</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+
+      <span class="n">mix_tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span>
+      <span class="n">target_weights</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">+</span> <span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span>
+      <span class="n">target_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">target_weights</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="n">mix_tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">target_weights</span>
+
+      <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">embs</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">source_embs</span>
+      <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">embs</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">target_embs</span>
+      <span class="n">other_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">embs</span> <span class="o">=</span> <span class="n">other_predictions</span><span class="o">.</span><span class="n">source_embs</span>
+      <span class="n">other_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">embs</span> <span class="o">=</span> <span class="n">other_predictions</span><span class="o">.</span><span class="n">target_embs</span>
+
+      <span class="n">mix_predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">other_batch</span><span class="p">,</span>
+                                                <span class="n">source_lambdas</span><span class="p">,</span> <span class="n">input_lambdas</span><span class="p">)</span>
+
+      <span class="n">target_probs_0</span> <span class="o">=</span> <span class="n">probs</span>
+      <span class="n">target_probs_1</span> <span class="o">=</span> <span class="n">other_probs</span>
+
+      <span class="n">target_probs</span> <span class="o">=</span> <span class="n">target_probs_0</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="n">label_lambdas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">target_probs_1</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+              <span class="n">label_lambdas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+      <span class="n">target_probs</span> <span class="o">=</span> <span class="n">target_probs</span> <span class="o">+</span> <span class="mf">1e-9</span>
+      <span class="n">target_probs</span> <span class="o">=</span> <span class="n">target_probs</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+          <span class="n">target_probs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderDevice</span><span class="p">():</span>
+        <span class="n">mix_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">mix_predictions</span><span class="p">,</span> <span class="n">mix_tgt</span><span class="p">,</span>
+                                          <span class="n">target_probs</span><span class="p">)</span>
+      <span class="n">mix_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mix_result</span><span class="p">)</span>
+
+    <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">loss_names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">new_metrics</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_clean_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+      <span class="n">loss_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">loss_clean_weight</span><span class="p">)</span>
+      <span class="n">loss_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;clean_loss&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_mono_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">other_result</span><span class="p">)</span>
+      <span class="n">loss_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">loss_mono_weight</span><span class="p">)</span>
+      <span class="n">loss_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;other_loss&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_mix_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">mix_result</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mix_results</span><span class="p">):</span>
+        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mix_result</span><span class="p">)</span>
+        <span class="n">loss_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">loss_mix_weight</span><span class="p">)</span>
+        <span class="n">loss_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;mix_loss_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span>
+
+    <span class="n">loss_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loss_names</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">loss_length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="c1"># Combines three losses.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">loss_names</span><span class="p">)):</span>
+      <span class="n">new_metrics</span><span class="p">[</span><span class="n">loss_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">loss_weights</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                    <span class="n">losses</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">new_metrics</span><span class="p">,</span> <span class="n">losses</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TransformerXEnDecModel._FPropResult"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerXEnDecModel._FPropResult">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropResult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">):</span>
+    <span class="c1"># Adds stats about the input batch.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GlobalBatchSize</span><span class="p">()),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+    <span class="c1"># Generates summaries.</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+    <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FilterPerExampleTensors</span><span class="p">(</span><span class="n">per_example</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">per_example</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddPerExampleTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="c1"># Loss.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s1">&#39;loss&#39;</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">+</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="k">if</span> <span class="s1">&#39;clean_loss&#39;</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;clean_loss&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="s1">&#39;loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span> <span class="o">=</span> <span class="n">dec_metrics</span></div></div>
 </pre></div>
 
            </div>
