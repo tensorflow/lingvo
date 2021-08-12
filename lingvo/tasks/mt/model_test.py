@@ -19,6 +19,7 @@ import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
+from lingvo.core import layers
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import schedule
@@ -685,6 +686,118 @@ class InsertionModelTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       self.evaluate(mdl.loss)
+
+
+class TransformerXEnDecTest(test_utils.TestCase):
+
+  def _InputParams(self):
+    p = input_generator.NmtDoubleInput.Params()
+    input_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_doublebatch_test-000-001')
+    p.file_pattern = 'tfrecord:' + input_file
+    p.tokenizer.token_vocab_filepath = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_test.vocab')
+    p.file_random_seed = 31415
+    p.file_parallelism = 1
+    p.bucket_upper_bound = [10, 20]
+    p.bucket_batch_limit = [4, 2]
+    p.source_mask_ratio = -1
+    p.source_mask_ratio_beta = '2,6'
+    p.mask_word_id = 31999
+    p.pad_id = 31998
+    p.mask_words_ratio = 0.25
+    p.permutation_distance = 3
+    p.vocab_file = p.tokenizer.token_vocab_filepath
+    p.packed_input = False
+    return p
+
+  def _EncoderParams(self):
+    p = encoder.TransformerXEncoder.Params()
+    p.name = 'mix_encoder'
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
+    p.token_emb.vocab_size = 32000
+    p.token_emb.embedding_dim = 4
+    p.token_emb.max_num_shards = 1
+    p.token_emb.scale_sqrt_depth = True
+    p.token_emb.vn = py_utils.VariationalNoiseParams(1.0, False, False)
+    p.position_emb.embedding_dim = 4
+    p.position_emb.trainable_scaling = False
+    p.model_dim = 4
+    ts = p.transformer_stack
+    ts.model_dim = 4
+    ts.num_transformer_layers = 6
+    ts.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+    ts.transformer_tpl.tr_fflayer_tpl.hidden_dim = 4
+    p.random_seed = 54321
+    return p
+
+  def _DecoderParams(self):
+    p = decoder.TransformerXDecoder.Params()
+    p.name = 'mix_decoder'
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
+    p.token_emb.vocab_size = 32000
+    p.token_emb.embedding_dim = 4
+    p.token_emb.max_num_shards = 1
+    p.token_emb.scale_sqrt_depth = True
+    p.token_emb.vn = py_utils.VariationalNoiseParams(1.0, False, False)
+    p.position_emb.embedding_dim = 4
+    p.position_emb.trainable_scaling = False
+    p.model_dim = 4
+    p.source_dim = 4
+    p.num_trans_layers = 6
+    p.trans_tpl.source_dim = p.model_dim
+    p.trans_tpl.tr_atten_tpl.source_dim = p.model_dim
+    p.trans_tpl.tr_atten_tpl.num_attention_heads = 2
+    p.trans_tpl.tr_atten_tpl.atten_hidden_dim = 4
+    p.trans_tpl.tr_atten_tpl.atten_tpl.context_dim = p.model_dim
+    p.trans_tpl.tr_fflayer_tpl.hidden_dim = 4
+    p.trans_tpl.tr_fflayer_tpl.input_dim = p.model_dim
+    p.label_smoothing = layers.UniformLabelSmoother.Params()
+    p.label_smoothing.uncertainty = 0.1
+    p.per_word_avg_loss = True
+    p.softmax.num_classes = 32000
+    p.softmax.num_shards = 1
+    p.random_seed = 54321
+    return p
+
+  def _testParams(self):
+    p = model.TransformerXEnDecModel.Params()
+    p.name = 'xendec'
+    p.input = self._InputParams()
+    p.encoder = self._EncoderParams()
+    p.decoder = self._DecoderParams()
+    p.random_seed = 12345
+    return p
+
+  def testFProp(self, dtype=tf.float32, fprop_dtype=tf.float32):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._testParams()
+      p.dtype = dtype
+      if fprop_dtype:
+        p.fprop_dtype = fprop_dtype
+        p.input.dtype = fprop_dtype
+      mdl = p.Instantiate()
+      dec_metrics, _ = mdl.FPropDefaultTheta()
+      self.evaluate(tf.global_variables_initializer())
+      vals = []
+      print(mdl)
+      for _ in range(5):
+        vals += [
+            self.evaluate(
+                (dec_metrics['clean_loss'][0], dec_metrics['other_loss'][0],
+                 dec_metrics['mix_loss_0'][0], dec_metrics['loss'][0]))
+        ]
+
+      print('actual vals = %s' % np.array_repr(np.array(vals)))
+      self.assertAllClose(
+          vals, [[10.373864, 10.371083, 10.372491, 31.11744],
+                 [10.36428, 10.379262, 10.366394, 31.109936],
+                 [10.369206, 10.372709, 10.369126, 31.111042],
+                 [10.363656, 10.364362, 10.362683, 31.090702],
+                 [10.371622, 10.374066, 10.371591, 31.11728]],
+          rtol=1e-02,
+          atol=1e-02)
 
 
 if __name__ == '__main__':

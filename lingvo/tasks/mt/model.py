@@ -382,3 +382,302 @@ class InsertionModel(MTBaseModel):
           target_weights=canvas_and_targets.target_weights)
 
     return predictions
+
+
+class TransformerXEnDecModel(TransformerModel):
+  """Implementation of XEnDec.
+
+  Refer to https://arxiv.org/abs/2106.04060.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.encoder = encoder.TransformerXEncoder.Params()
+    p.decoder = decoder.TransformerXDecoder.Params()
+    p.Define('loss_mix_weight', 1.0, 'Weight for mix loss')
+    p.Define('loss_clean_weight', 1.0, 'Weight for clean loss')
+    p.Define('loss_mono_weight', 1.0, 'Weight for mono loss')
+    p.Define('use_atten_drop', False, 'use attention dropout')
+    p.Define('use_prob_cl', False, 'use prob cl')
+    p.Define('use_prob_drop', False, 'prob drop out')
+    p.Define('atten_drop', 0.0, 'attention drop')
+    return p
+
+  def _CreateTargetLambdas(self,
+                           atten_probs,
+                           source_lambdas_pair,
+                           source_paddings_pair,
+                           target_paddings_pair,
+                           smooth=0):
+    """Compute target interpolation ratios.
+
+    Args:
+      atten_probs: A list containing two attention matrics.
+      source_lambdas_pair: A list containing two source interpolation ratios.
+      source_paddings_pair: A list containing two source paddings.
+      target_paddings_pair: A list containing two target paddings
+      smooth: A real value to smooth target interpolation ratios before
+        normalization.
+
+    Returns:
+      source_lambdas_pair: Source interpolation ratios.
+      input_lambdas: Interpolation ratios for target input embeddings.
+      label_lambdas: Interpolation ratios for target labels.
+    """
+    atten_probs_0 = tf.stop_gradient(atten_probs[0])
+    atten_probs_1 = tf.stop_gradient(atten_probs[1])
+
+    source_lambdas = source_lambdas_pair[0]
+    other_source_lambdas = source_lambdas_pair[1]
+    lambdas_0 = atten_probs_0 * tf.expand_dims(
+        source_lambdas * (1.0 - source_paddings_pair[0]), 1)
+
+    lambdas_0 = tf.reduce_sum(lambdas_0, -1)
+    lambdas_0 = (lambdas_0 + smooth) * (1.0 - target_paddings_pair[0])
+    lambdas_1 = atten_probs_1 * tf.expand_dims(
+        other_source_lambdas * (1.0 - source_paddings_pair[1]), 1)
+    lambdas_1 = tf.reduce_sum(lambdas_1, -1)
+    lambdas_1 = (lambdas_1 + smooth) * (1.0 - target_paddings_pair[1])
+    label_lambdas_0 = lambdas_0 / (lambdas_0 + lambdas_1 + 1e-9)
+
+    label_lambdas = [
+        label_lambdas_0 * (1. - target_paddings_pair[0]),
+        (1.0 - label_lambdas_0) * (1. - target_paddings_pair[1])
+    ]
+    input_lambdas_0 = tf.pad(
+        label_lambdas_0, [[0, 0], [1, 0]], constant_values=1.)[:, :-1]
+    input_lambdas = [
+        input_lambdas_0 * (1. - target_paddings_pair[0]),
+        (1.0 - input_lambdas_0) * (1. - target_paddings_pair[1])
+    ]
+
+    return source_lambdas_pair, input_lambdas, label_lambdas
+
+  def ComputePredictions(self,
+                         theta,
+                         batch,
+                         other_batch=None,
+                         source_lambdas=None,
+                         target_lambdas=None):
+    # pyformat: disable
+    """Compute the model predictions.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      batch: A `.NestedMap`.
+
+      - src: A `.NestedMap`.
+        - ids: The source ids, ends in <eos>.
+        - paddings: The source paddings.
+        - embs: The source embeddings. It is none when other_batch == None.
+
+      - tgt: A `.NestedMap`.
+        - ids: The target ids, ends in <eos>.
+        - paddings: The target paddings.
+        - embs: The source embeddings. It is none when other_batch == None.
+
+      other_batch: Same as batch.
+      source_lambdas: Interpolation ratios for source embeddings.
+      target_lambdas: Interpolation ratios for target embeddings.
+
+    Returns:
+      A `.NestedMap` containg:
+
+      - encoder_outputs: The contextualized output vectors from encoder.
+      - softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      - attention: `.NestedMap` of attention distributions of shape
+        [batch, target_length, source_length].
+      - source_embs: Tensor of shape [batch, time, emb_dim].
+      - target_embs: Tensor of shape [batch, time, emb_dim].
+    """
+    # pyformat: enable
+    p = self.params
+
+    with self._EncoderDevice():
+      other_batch_src = None
+      if other_batch is not None:
+        other_batch_src = other_batch.src
+      encoder_outputs = (
+          self.enc.FProp(theta.enc, batch.src, other_batch_src, source_lambdas)
+          if p.encoder else None)
+    with self._DecoderDevice():
+      other_batch_tgt = None
+      if other_batch is not None:
+        other_batch_tgt = other_batch.tgt
+      predictions = self.dec.ComputePredictions(theta.dec, encoder_outputs,
+                                                batch.tgt, other_batch_tgt,
+                                                target_lambdas)
+      if isinstance(predictions, py_utils.NestedMap):
+        predictions['encoder_outputs'] = encoder_outputs
+      return predictions
+
+  def ComputeLoss(self, theta, predictions, input_batch):
+    p = self.params
+    # Computes the loss for input_batch.
+    with self._DecoderDevice():
+      result = self.dec.ComputeLoss(theta.dec, predictions, input_batch.tgt)
+      if self.do_eval:
+        return result
+
+    probs = result[1]['reshape_probs']
+    probs_hard = result[1]['target_hard_probs']
+    atten_probs = predictions.attention.probs
+
+    if 'other_src' in input_batch and 'other_tgt' in input_batch:
+      other_batch = py_utils.NestedMap()
+      other_batch.src = input_batch.other_src.DeepCopy()
+      other_batch.tgt = input_batch.other_tgt.DeepCopy()
+    else:
+      other_batch = py_utils.NestedMap()
+      other_batch.src = input_batch.src.DeepCopy()
+      other_batch.tgt = input_batch.tgt.DeepCopy()
+      other_batch = other_batch.Transform(lambda x: tf.roll(x, 1, 0))
+      other_atten_probs = tf.roll(atten_probs, 1, 0)
+      other_probs = tf.roll(probs, 1, 0)
+      other_probs_hard = tf.roll(probs_hard, 1, 0)
+      other_predictions = py_utils.NestedMap()
+      other_predictions.source_embs = tf.roll(predictions.source_embs, 1, 0)
+      other_predictions.target_embs = tf.roll(predictions.target_embs, 1, 0)
+
+    # Computes the loss for other_batch.
+    if p.loss_mono_weight > 0:
+      other_predictions = self.ComputePredictions(theta, other_batch)
+      with self._DecoderDevice():
+        other_result = self.dec.ComputeLoss(theta.dec, other_predictions,
+                                            other_batch.tgt)
+        other_atten_probs = other_predictions.attention.probs
+        other_probs = other_result[1]['reshape_probs']
+        other_probs_hard = other_result[1]['target_hard_probs']
+
+    if p.use_atten_drop:
+      atten_probs = tf.nn.dropout(atten_probs, p.atten_drop)
+      if other_atten_probs is not None:
+        other_atten_probs = tf.nn.dropout(other_atten_probs, p.atten_drop)
+
+    # Computes the xendec loss.
+    mix_results = []
+    if p.loss_mix_weight > 0:
+      if other_atten_probs is not None:
+        if p.use_prob_cl:
+          cur_step = py_utils.GetGlobalStep()
+          cur_ratio = tf.minimum(
+              tf.cast(cur_step, py_utils.FPropDtype(p)) / 40000, 0.8)
+          probs_hard = tf.cast(probs_hard, py_utils.FPropDtype(p))
+          other_probs_hard = tf.cast(other_probs_hard, py_utils.FPropDtype(p))
+          prob_ratio = tf.expand_dims(input_batch.tgt.weights, -1) * cur_ratio
+          probs = probs_hard * (1.0 - prob_ratio) + probs * prob_ratio
+          other_prob_ratio = tf.expand_dims(other_batch.tgt.weights,
+                                            -1) * cur_ratio
+          other_probs = other_probs_hard * (
+              1.0 - other_prob_ratio) + other_probs * other_prob_ratio
+        else:
+          probs = tf.cast(probs_hard, py_utils.FPropDtype(p))
+          other_probs = tf.cast(other_probs_hard, py_utils.FPropDtype(p))
+
+      source_paddings_pair = [
+          input_batch.src.paddings, other_batch.src.paddings
+      ]
+      target_paddings_pair = [
+          input_batch.tgt.paddings, other_batch.tgt.paddings
+      ]
+
+      source_mask = input_batch.src.source_mask
+      other_lambdas = source_mask * (1. - source_paddings_pair[1])
+      source_lambdas = (1. - other_lambdas) * (1. - source_paddings_pair[0])
+      source_lambdas = [source_lambdas, other_lambdas]
+
+      source_lambdas, input_lambdas, label_lambdas = self._CreateTargetLambdas(
+          [atten_probs, other_atten_probs],
+          source_lambdas,
+          source_paddings_pair,
+          target_paddings_pair,
+          smooth=0.001)
+
+      mix_tgt = input_batch.tgt
+      target_weights = input_batch.tgt.weights + other_batch.tgt.weights
+      target_weights = tf.clip_by_value(target_weights, 0.0, 1.0)
+      mix_tgt.weights = target_weights
+
+      input_batch.src.embs = predictions.source_embs
+      input_batch.tgt.embs = predictions.target_embs
+      other_batch.src.embs = other_predictions.source_embs
+      other_batch.tgt.embs = other_predictions.target_embs
+
+      mix_predictions = self.ComputePredictions(theta, input_batch, other_batch,
+                                                source_lambdas, input_lambdas)
+
+      target_probs_0 = probs
+      target_probs_1 = other_probs
+
+      target_probs = target_probs_0 * tf.expand_dims(
+          label_lambdas[0], -1) + target_probs_1 * tf.expand_dims(
+              label_lambdas[1], -1)
+
+      target_probs = target_probs + 1e-9
+      target_probs = target_probs / tf.reduce_sum(
+          target_probs, -1, keepdims=True)
+
+      with self._DecoderDevice():
+        mix_result = self.dec.ComputeLoss(theta.dec, mix_predictions, mix_tgt,
+                                          target_probs)
+      mix_results.append(mix_result)
+
+    losses = []
+    loss_names = []
+    loss_weights = []
+    new_metrics = {}
+
+    if p.loss_clean_weight > 0:
+      losses.append(result)
+      loss_weights.append(p.loss_clean_weight)
+      loss_names.append('clean_loss')
+
+    if p.loss_mono_weight > 0:
+      losses.append(other_result)
+      loss_weights.append(p.loss_mono_weight)
+      loss_names.append('other_loss')
+
+    if p.loss_mix_weight > 0.0:
+      for idx, mix_result in enumerate(mix_results):
+        losses.append(mix_result)
+        loss_weights.append(p.loss_mix_weight)
+        loss_names.append('mix_loss_' + str(idx))
+
+    loss_length = len(loss_names)
+    assert loss_length > 0
+
+    # Combines three losses.
+    for i in range(len(loss_names)):
+      new_metrics[loss_names[i]] = (losses[i][0]['loss'][0] * loss_weights[i],
+                                    losses[i][0]['loss'][1])
+    return new_metrics, losses[0][1]
+
+  def _FPropResult(self, dec_metrics, per_example):
+    # Adds stats about the input batch.
+    p = self.params
+    if p.input is not None:
+      dec_metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
+          self.input_generator.GlobalBatchSize()), tf.constant(1.0))
+    # Generates summaries.
+    for name, (value, weight) in dec_metrics.items():
+      self.AddEvalMetric(name, value, weight)
+    per_example = self.FilterPerExampleTensors(per_example)
+    for name, value in per_example.items():
+      self.AddPerExampleTensor(name, value)
+    # Loss.
+    if self.do_eval:
+      self._loss, self._num_predictions = dec_metrics['loss']
+    else:
+      self._loss = 0
+      for key, value in dec_metrics.items():
+        if 'loss' in key:
+          self._loss = self._loss + value[0]
+          self._num_predictions = value[1]
+      if 'clean_loss' in dec_metrics:
+        self._num_predictions = dec_metrics['clean_loss'][1]
+      dec_metrics['loss'] = (self._loss, self._num_predictions)
+      self.AddEvalMetric('loss', self._loss, self._num_predictions)
+    self._loss = py_utils.CheckNumerics(self._loss)
+    self._metrics = dec_metrics
