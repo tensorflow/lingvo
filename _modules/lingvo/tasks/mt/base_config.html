@@ -662,6 +662,201 @@
   <span class="c1"># Evaluation related</span>
   <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">12000</span>
   <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="SetupXEnDecTransformerParams"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.base_config.html#lingvo.tasks.mt.base_config.SetupXEnDecTransformerParams">[docs]</a><span class="k">def</span> <span class="nf">SetupXEnDecTransformerParams</span><span class="p">(</span><span class="n">p</span><span class="p">,</span>
+                                 <span class="n">name</span><span class="p">,</span>
+                                 <span class="n">vocab_size</span><span class="p">,</span>
+                                 <span class="n">model_dim</span><span class="p">,</span>
+                                 <span class="n">hidden_dim</span><span class="p">,</span>
+                                 <span class="n">num_heads</span><span class="p">,</span>
+                                 <span class="n">num_layers</span><span class="p">,</span>
+                                 <span class="n">learning_rate</span><span class="p">,</span>
+                                 <span class="n">warmup_steps</span><span class="p">,</span>
+                                 <span class="o">*</span><span class="p">,</span>
+                                 <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                                 <span class="n">input_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                 <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                 <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                 <span class="n">label_smoothing_uncertainty</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                                 <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
+                                 <span class="n">add_unnormalized_residuals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                 <span class="n">atten_hidden_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                 <span class="n">use_dim_scale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">num_shard</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Common model setup for different transformer models.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    p: The initial params.</span>
+<span class="sd">    name: An identifier for an instance of a transformer model.</span>
+<span class="sd">    vocab_size: an integer representing the size of the vocabulary, probably</span>
+<span class="sd">      16000 or 32000.</span>
+<span class="sd">    model_dim: dimension of the transformer block (column)</span>
+<span class="sd">    hidden_dim: dimension of Feed-Forward neural network in each layer</span>
+<span class="sd">    num_heads: number of attention heads to use for the transformer</span>
+<span class="sd">    num_layers: number of layers in the transformer</span>
+<span class="sd">    learning_rate: learning rate for Adam. For the base model, we use 1.0; for</span>
+<span class="sd">      the big model, 3.0</span>
+<span class="sd">    warmup_steps: warmup steps for TransformerSchedule. For the base model, we</span>
+<span class="sd">      use 4000; for the big model, 40000</span>
+<span class="sd">    residual_dropout_prob: dropout prob to the output of each sub-layer before</span>
+<span class="sd">      it is added to the sub-layer input</span>
+<span class="sd">    input_dropout_prob: dropout prob to the sums of the token embeddings and the</span>
+<span class="sd">      position embeddings</span>
+<span class="sd">    atten_dropout_prob: dropout prob to the attention weights in each</span>
+<span class="sd">      Transformer attention sub-layer</span>
+<span class="sd">    relu_dropout_prob: dropout prob to the inner layer output (ReLU activation)</span>
+<span class="sd">      in each Transformer feed-forward sub-layer</span>
+<span class="sd">    label_smoothing_uncertainty: if this value is 0, no label smoothing will be</span>
+<span class="sd">      applied</span>
+<span class="sd">    activation: Non-linearity for feed-forward layers.</span>
+<span class="sd">    add_unnormalized_residuals: If set, uses un-normalized residuals in</span>
+<span class="sd">      TransformerAttentionLayer</span>
+<span class="sd">    atten_hidden_dim: Explicitly set attention hidden dim.</span>
+<span class="sd">    use_dim_scale: Whether to enable dim_scale.</span>
+<span class="sd">    num_shard: The number of shards for embedding matrics.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Params object containing the parameters that specify a transformer model</span>
+<span class="sd">    (Vaswani 2017)</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+  <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+  <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+  <span class="n">attention_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">))</span>
+  <span class="n">emb_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">model_dim</span><span class="p">))</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerXEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">max_num_shards</span><span class="o">=</span><span class="n">num_shard</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">emb_params_init</span><span class="p">,</span>
+      <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">scale_sqrt_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">trainable_scaling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="c1"># Encoder TransformerStack params</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">input_dropout_prob</span> <span class="o">=</span> <span class="n">input_dropout_prob</span>
+
+  <span class="n">tr_atten_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span>
+  <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_attention_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">attention_params_init</span><span class="p">,</span>
+      <span class="n">add_unnormalized_input</span><span class="o">=</span><span class="n">add_unnormalized_residuals</span><span class="p">,</span>
+      <span class="n">atten_hidden_dim</span><span class="o">=</span><span class="n">atten_hidden_dim</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_attention_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">enable_ctx_pre_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">enable_ctx_post_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">context_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">attention_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">inner_atten_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">use_dim_scale</span><span class="o">=</span><span class="n">use_dim_scale</span><span class="p">)</span>
+
+  <span class="n">tr_fflayer_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span>
+  <span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">relu_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
+
+  <span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">TransformerXDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">num_trans_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">input_dropout_prob</span> <span class="o">=</span> <span class="n">input_dropout_prob</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">max_num_shards</span><span class="o">=</span><span class="n">num_shard</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">emb_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">scale_sqrt_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">trainable_scaling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">tr_atten_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span>
+  <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">source_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">num_attention_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">attention_params_init</span><span class="p">,</span>
+      <span class="n">add_unnormalized_input</span><span class="o">=</span><span class="n">add_unnormalized_residuals</span><span class="p">,</span>
+      <span class="n">atten_hidden_dim</span><span class="o">=</span><span class="n">atten_hidden_dim</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">enable_ctx_pre_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">enable_ctx_post_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">context_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">attention_params_init</span><span class="p">,</span>
+      <span class="n">enable_per_dim_scale</span><span class="o">=</span><span class="n">use_dim_scale</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">inner_atten_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">use_dim_scale</span><span class="o">=</span><span class="n">use_dim_scale</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">input_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">relu_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_classes</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">emb_params_init</span><span class="p">,</span>
+      <span class="n">num_shards</span><span class="o">=</span><span class="n">num_shard</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">per_word_avg_loss</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">UniformLabelSmoother</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">label_smoothing</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">vocab_size</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">label_smoothing</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">label_smoothing_uncertainty</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">per_example_tensors</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="o">=</span> <span class="kc">False</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">learning_rate</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+      <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">ParamsB</span><span class="p">(),</span>
+      <span class="n">clip_gradient_norm_to_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+      <span class="n">grad_norm_to_clip_to_zero</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+      <span class="n">lr_schedule</span><span class="o">=</span><span class="n">schedule</span><span class="o">.</span><span class="n">TransformerSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">warmup_steps</span><span class="o">=</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">))</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">12000</span>
+  <span class="k">return</span> <span class="n">p</span></div>
 </pre></div>
 
            </div>

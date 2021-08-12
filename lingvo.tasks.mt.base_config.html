@@ -342,6 +342,50 @@ layers.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.mt.base_config.SetupXEnDecTransformerParams">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.base_config.</span></span><span class="sig-name descname"><span class="pre">SetupXEnDecTransformerParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmup_steps</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relu_dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing_uncertainty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'RELU'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_unnormalized_residuals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_dim_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shard</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/base_config.html#SetupXEnDecTransformerParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.base_config.SetupXEnDecTransformerParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Common model setup for different transformer models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – The initial params.</p></li>
+<li><p><strong>name</strong> – An identifier for an instance of a transformer model.</p></li>
+<li><p><strong>vocab_size</strong> – an integer representing the size of the vocabulary, probably
+16000 or 32000.</p></li>
+<li><p><strong>model_dim</strong> – dimension of the transformer block (column)</p></li>
+<li><p><strong>hidden_dim</strong> – dimension of Feed-Forward neural network in each layer</p></li>
+<li><p><strong>num_heads</strong> – number of attention heads to use for the transformer</p></li>
+<li><p><strong>num_layers</strong> – number of layers in the transformer</p></li>
+<li><p><strong>learning_rate</strong> – learning rate for Adam. For the base model, we use 1.0; for
+the big model, 3.0</p></li>
+<li><p><strong>warmup_steps</strong> – warmup steps for TransformerSchedule. For the base model, we
+use 4000; for the big model, 40000</p></li>
+<li><p><strong>residual_dropout_prob</strong> – dropout prob to the output of each sub-layer before
+it is added to the sub-layer input</p></li>
+<li><p><strong>input_dropout_prob</strong> – dropout prob to the sums of the token embeddings and the
+position embeddings</p></li>
+<li><p><strong>atten_dropout_prob</strong> – dropout prob to the attention weights in each
+Transformer attention sub-layer</p></li>
+<li><p><strong>relu_dropout_prob</strong> – dropout prob to the inner layer output (ReLU activation)
+in each Transformer feed-forward sub-layer</p></li>
+<li><p><strong>label_smoothing_uncertainty</strong> – if this value is 0, no label smoothing will be
+applied</p></li>
+<li><p><strong>activation</strong> – Non-linearity for feed-forward layers.</p></li>
+<li><p><strong>add_unnormalized_residuals</strong> – If set, uses un-normalized residuals in
+TransformerAttentionLayer</p></li>
+<li><p><strong>atten_hidden_dim</strong> – Explicitly set attention hidden dim.</p></li>
+<li><p><strong>use_dim_scale</strong> – Whether to enable dim_scale.</p></li>
+<li><p><strong>num_shard</strong> – The number of shards for embedding matrics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Params object containing the parameters that specify a transformer model
+(Vaswani 2017)</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
