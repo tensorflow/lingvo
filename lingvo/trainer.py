@@ -1497,7 +1497,11 @@ class RunnerManager:
     self._model_name = model_name
 
   def WriteInferenceGraph(self):
-    """Generates the inference graphs for a given model."""
+    """Generates the inference graphs for a given model.
+
+    Returns:
+      InferenceGraph proto for cpu.
+    """
     inference_graph_dir = os.path.join(FLAGS.logdir, 'inference_graphs')
     tf.io.gfile.makedirs(inference_graph_dir)
     tf.logging.info('Writing inference graphs to dir: %s', inference_graph_dir)
@@ -1583,6 +1587,8 @@ class RunnerManager:
           tf.io.gfile.makedirs(dir_path)
         with tf.io.gfile.GFile(graph_def_filename, 'w') as f:
           f.write(text_format.MessageToString(inference_graph_proto.graph_def))
+
+    return inference_graph_proto
 
   def RunEvalerOnce(self):
     """Run once evaler."""
