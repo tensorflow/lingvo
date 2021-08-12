@@ -507,3 +507,198 @@ def SetupRNMTParams(p,
   # Evaluation related
   p.eval.samples_per_summary = 12000
   return p
+
+
+def SetupXEnDecTransformerParams(p,
+                                 name,
+                                 vocab_size,
+                                 model_dim,
+                                 hidden_dim,
+                                 num_heads,
+                                 num_layers,
+                                 learning_rate,
+                                 warmup_steps,
+                                 *,
+                                 residual_dropout_prob=0.1,
+                                 input_dropout_prob=0.0,
+                                 atten_dropout_prob=0.0,
+                                 relu_dropout_prob=0.0,
+                                 label_smoothing_uncertainty=0.1,
+                                 activation='RELU',
+                                 add_unnormalized_residuals=True,
+                                 atten_hidden_dim=0,
+                                 use_dim_scale=False,
+                                 num_shard=1):
+  """Common model setup for different transformer models.
+
+  Args:
+    p: The initial params.
+    name: An identifier for an instance of a transformer model.
+    vocab_size: an integer representing the size of the vocabulary, probably
+      16000 or 32000.
+    model_dim: dimension of the transformer block (column)
+    hidden_dim: dimension of Feed-Forward neural network in each layer
+    num_heads: number of attention heads to use for the transformer
+    num_layers: number of layers in the transformer
+    learning_rate: learning rate for Adam. For the base model, we use 1.0; for
+      the big model, 3.0
+    warmup_steps: warmup steps for TransformerSchedule. For the base model, we
+      use 4000; for the big model, 40000
+    residual_dropout_prob: dropout prob to the output of each sub-layer before
+      it is added to the sub-layer input
+    input_dropout_prob: dropout prob to the sums of the token embeddings and the
+      position embeddings
+    atten_dropout_prob: dropout prob to the attention weights in each
+      Transformer attention sub-layer
+    relu_dropout_prob: dropout prob to the inner layer output (ReLU activation)
+      in each Transformer feed-forward sub-layer
+    label_smoothing_uncertainty: if this value is 0, no label smoothing will be
+      applied
+    activation: Non-linearity for feed-forward layers.
+    add_unnormalized_residuals: If set, uses un-normalized residuals in
+      TransformerAttentionLayer
+    atten_hidden_dim: Explicitly set attention hidden dim.
+    use_dim_scale: Whether to enable dim_scale.
+    num_shard: The number of shards for embedding matrics.
+
+  Returns:
+    A Params object containing the parameters that specify a transformer model
+    (Vaswani 2017)
+
+  """
+  p.name = name
+  disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
+  default_params_init = py_utils.WeightInit.Xavier(1.0)
+  attention_params_init = py_utils.WeightInit.Xavier(1.0 * (2**-0.5))
+  emb_params_init = py_utils.WeightInit.Gaussian(1.0 / math.sqrt(model_dim))
+
+  p.encoder = encoder.TransformerXEncoder.Params()
+
+  p.encoder.token_emb.Set(
+      embedding_dim=model_dim,
+      max_num_shards=num_shard,
+      params_init=emb_params_init,
+      vocab_size=vocab_size,
+      vn=disable_vn,
+      scale_sqrt_depth=True)
+
+  p.encoder.position_emb.Set(
+      embedding_dim=model_dim, trainable_scaling=False, vn=disable_vn)
+
+  # Encoder TransformerStack params
+  p.encoder.model_dim = model_dim
+  p.encoder.transformer_stack.model_dim = model_dim
+  p.encoder.transformer_stack.num_transformer_layers = num_layers
+  p.encoder.transformer_stack.mask_self_atten = False
+  p.encoder.input_dropout_prob = input_dropout_prob
+
+  tr_atten_tpl = p.encoder.transformer_stack.transformer_tpl.tr_atten_tpl
+  tr_atten_tpl.Set(
+      num_attention_heads=num_heads,
+      residual_dropout_prob=residual_dropout_prob,
+      atten_dropout_prob=atten_dropout_prob,
+      params_init=attention_params_init,
+      add_unnormalized_input=add_unnormalized_residuals,
+      atten_hidden_dim=atten_hidden_dim,
+      vn=disable_vn)
+
+  tr_atten_tpl.atten_tpl.Set(
+      num_attention_heads=num_heads,
+      enable_ctx_pre_proj=True,
+      enable_ctx_post_proj=True,
+      context_dim=model_dim,
+      params_init=attention_params_init,
+      vn=disable_vn)
+
+  tr_atten_tpl.atten_tpl.inner_atten_params.Set(use_dim_scale=use_dim_scale)
+
+  tr_fflayer_tpl = p.encoder.transformer_stack.transformer_tpl.tr_fflayer_tpl
+  tr_fflayer_tpl.Set(
+      hidden_dim=hidden_dim,
+      residual_dropout_prob=residual_dropout_prob,
+      relu_dropout_prob=relu_dropout_prob,
+      params_init=default_params_init,
+      vn=disable_vn,
+      activation=activation)
+
+  tr_fflayer_tpl.fflayer_tpl.projection.Set(params_init=default_params_init)
+
+  p.decoder = decoder.TransformerXDecoder.Params()
+
+  p.decoder.source_dim = model_dim
+  p.decoder.model_dim = model_dim
+  p.decoder.num_trans_layers = num_layers
+  p.decoder.input_dropout_prob = input_dropout_prob
+
+  p.decoder.token_emb.Set(
+      vocab_size=vocab_size,
+      embedding_dim=model_dim,
+      max_num_shards=num_shard,
+      params_init=emb_params_init,
+      vn=disable_vn,
+      scale_sqrt_depth=True)
+
+  p.decoder.position_emb.Set(
+      embedding_dim=model_dim, trainable_scaling=False, vn=disable_vn)
+
+  p.decoder.trans_tpl.source_dim = model_dim
+  tr_atten_tpl = p.decoder.trans_tpl.tr_atten_tpl
+  tr_atten_tpl.Set(
+      source_dim=model_dim,
+      num_attention_heads=num_heads,
+      residual_dropout_prob=residual_dropout_prob,
+      atten_dropout_prob=atten_dropout_prob,
+      params_init=attention_params_init,
+      add_unnormalized_input=add_unnormalized_residuals,
+      atten_hidden_dim=atten_hidden_dim,
+      vn=disable_vn)
+
+  tr_atten_tpl.atten_tpl.Set(
+      enable_ctx_pre_proj=True,
+      enable_ctx_post_proj=True,
+      context_dim=model_dim,
+      params_init=attention_params_init,
+      enable_per_dim_scale=use_dim_scale,
+      vn=disable_vn)
+
+  tr_atten_tpl.atten_tpl.inner_atten_params.Set(use_dim_scale=use_dim_scale)
+
+  p.decoder.trans_tpl.tr_fflayer_tpl.Set(
+      input_dim=model_dim,
+      hidden_dim=hidden_dim,
+      residual_dropout_prob=residual_dropout_prob,
+      relu_dropout_prob=relu_dropout_prob,
+      params_init=default_params_init,
+      vn=disable_vn,
+      activation=activation)
+
+  p.decoder.trans_tpl.tr_fflayer_tpl.fflayer_tpl.projection.Set(
+      params_init=default_params_init)
+
+  p.decoder.softmax.Set(
+      num_classes=vocab_size,
+      vn=disable_vn,
+      params_init=emb_params_init,
+      num_shards=num_shard)
+
+  p.decoder.per_word_avg_loss = True
+  p.decoder.label_smoothing = layers.UniformLabelSmoother.Params()
+  p.decoder.label_smoothing.num_classes = vocab_size
+  p.decoder.label_smoothing.uncertainty = label_smoothing_uncertainty
+  p.decoder.per_example_tensors = True
+
+  p.decoder.trans_tpl.tr_atten_tpl.pre_layer_norm = False
+  p.decoder.trans_tpl.tr_fflayer_tpl.pre_layer_norm = False
+  p.encoder.transformer_stack.transformer_tpl.tr_atten_tpl.pre_layer_norm = False
+  p.encoder.transformer_stack.transformer_tpl.tr_fflayer_tpl.pre_layer_norm = False
+
+  p.train.Set(
+      learning_rate=learning_rate,
+      optimizer=optimizer.Adam.ParamsB(),
+      clip_gradient_norm_to_value=0.0,
+      grad_norm_to_clip_to_zero=0.0,
+      lr_schedule=schedule.TransformerSchedule.Params().Set(
+          warmup_steps=warmup_steps, worker_replicas=1, model_dim=model_dim))
+
+  p.eval.samples_per_summary = 12000
+  return p
