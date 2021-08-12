@@ -133,8 +133,6 @@ class LayersTestBase(test_utils.TestCase):
       params.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
       params.vn.global_vn = False
       params.vn.per_step_vn = False
-      params.vn.seed = 2938482
-      params.vn.scale = 0.1
       params.num_input_nodes = dims
       params.num_output_nodes = dims // 2 if bi_directional else dims
 
@@ -255,12 +253,12 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       # In case this test ever breaks, you can uncomment the line below, copy
       # out the golden values, and then comment out the line below again.
       #
-      sum_expected = [[-0.46614376, 0.86599183], [-0.63463444, 0.57043159],
-                      [-0.64659989, 0.72516292]]
-      c_expected = [[-0.63455635, 0.76446551], [-0.59985822, 0.6631192],
-                    [-0.63043576, 0.77522433]]
-      m_expected = [[-0.23307188, 0.43299592], [-0.31731722, 0.2852158],
-                    [-0.32329994, 0.36258146]]
+      sum_expected = [[-0.425945, 0.806911], [-0.475438, 0.527589],
+                      [-0.535492, 0.655629]]
+      m_expected = [[-0.212973, 0.403456], [-0.237719, 0.263795],
+                    [-0.267746, 0.327815]]
+      c_expected = [[-0.526309, 0.689612], [-0.400718, 0.605423],
+                    [-0.468905, 0.699011]]
       self.assertAllClose(sum_expected, actual.sum)
       self.assertAllClose(m_expected, actual.m)
       self.assertAllClose(c_expected, actual.c)
@@ -277,7 +275,6 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       rnn_params = rnn_layers.RNN.Params()
       rnn_params.name = 'rnn'
       rnn_params.dtype = tf.float64
-      rnn_params.vn.scale = 0.1
       rnn_params.vn.global_vn = False
       rnn_params.vn.per_step_vn = False
       rnn_params.cell = params
@@ -338,8 +335,6 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       rnn_params = rnn_layers.RNN.Params()
       rnn_params.vn.global_vn = False
       rnn_params.vn.per_step_vn = False
-      rnn_params.vn.seed = 2938482
-      rnn_params.vn.scale = 0.1
       rnn_params.cell = lstm_params
       rnn_params.sequence_length = timesteps
 
@@ -435,9 +430,9 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       # print('final_m', np.array_repr(actual.m))
       # print('final_c', np.array_repr(actual.c))
 
-      sum_expected = [1.59282923, 0.85964835, -1.09797788]
-      m_expected = [0.32634005, 0.38098311, 0.23331133]
-      c_expected = [2.72942424, 2.72087693, 2.97179723]
+      sum_expected = [3.897997, 2.997148, 0.470414]
+      m_expected = [0.651883, 0.698054, 0.34381]
+      c_expected = [4.807753, 3.579708, 4.213521]
       self.assertAllClose(sum_expected, actual.sum)
       self.assertAllClose(m_expected, actual.m)
       self.assertAllClose(c_expected, actual.c)
@@ -523,8 +518,6 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       rnn_params.name = 'rnn'
       rnn_params.vn.global_vn = False
       rnn_params.vn.per_step_vn = False
-      rnn_params.vn.seed = 2938482
-      rnn_params.vn.scale = 0.1
       rnn_params.cell = params
       rnn_params.sequence_length = 10
       rnn = rnn_layers.RNN(rnn_params)
@@ -575,8 +568,6 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       frnn_params.name = 'rnn'
       frnn_params.vn.global_vn = False
       frnn_params.vn.per_step_vn = False
-      frnn_params.vn.seed = 2938482
-      frnn_params.vn.scale = 0.1
       frnn_params.cell = params
       frnn = rnn_layers.FRNN(frnn_params)
 
@@ -780,7 +771,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       rtol = 1e-5
     else:
       rtol = 1e-6
-    self.assertAllClose([175.974121], [np.sum(v1_out * v1_out)], rtol=rtol)
+    self.assertAllClose([238.26003], [np.sum(v1_out * v1_out)], rtol=rtol)
 
   def testStackedFRNNInputOutputDims(self):
     v1_out, _ = self._testStackedFRNNHelper(
@@ -794,7 +785,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       rtol = 1e-5
     else:
       rtol = 1e-6
-    self.assertAllClose([32.743263], [np.sum(v1_out * v1_out)], rtol=rtol)
+    self.assertAllClose([30.043545], [np.sum(v1_out * v1_out)], rtol=rtol)
 
   def testStackedFRNNLayerByLayerGrad(self):
     self._testStackedFRNNGradHelper(rnn_layers.StackedFRNNLayerByLayer)
@@ -872,7 +863,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       rtol = 1e-5
     else:
       rtol = 1e-6
-    self.assertAllClose([305.774384], [np.sum(v1_out * v1_out)], rtol=rtol)
+    self.assertAllClose([223.224], [np.sum(v1_out * v1_out)], rtol=rtol)
 
   def testStackedBiFRNNInputOutputDims(self):
     v1_out = self._testStackedFRNNHelper(
@@ -887,7 +878,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       rtol = 1e-5
     else:
       rtol = 1e-6
-    self.assertAllClose([8.116007], [np.sum(v1_out * v1_out)], rtol=rtol)
+    self.assertAllClose([6.270125], [np.sum(v1_out * v1_out)], rtol=rtol)
 
   def testStackedBiFRNNLayerByLayerGrad(self):
     self._testStackedFRNNGradHelper(
@@ -922,7 +913,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       frnn_params.fwd = lstm_forward.Copy()
       frnn_params.bak = lstm_backward.Copy()
       with tf.variable_scope('frnn'):
-        frnn = rnn_layers.BidirectionalFRNN(frnn_params)
+        frnn = frnn_params.Instantiate()
 
       rnn_params = rnn_layers.BidirectionalRNN.Params()
       rnn_params.name = 'rnn'
@@ -933,7 +924,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       with cluster_factory.Cluster(cluster_params if cluster_params else
                                    cluster_factory.Cluster.Params()):
         with tf.variable_scope('rnn'):
-          rnn = rnn_layers.BidirectionalRNN(rnn_params)
+          rnn = rnn_params.Instantiate()
 
           np.random.seed(12345)
           inputs = tf.constant(
@@ -979,7 +970,6 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       params.params_init = py_utils.WeightInit.Uniform(0.02, 429891685)
       params.vn.global_vn = False
       params.vn.per_step_vn = False
-      params.vn.scale = 0.1
       params.dtype = dtype
       params.num_input_nodes = dims
       params.num_output_nodes = dims

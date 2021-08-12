@@ -280,29 +280,56 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
-  # pyformat: disable
   @parameterized.named_parameters(
-      ('_GlobalNoise', True, False, tf.float32, True, False, 2, 0.,
-       [[0.080182, 0.4585], [0.050852, 0.245296], [0.023557, 0.382329]],
-       [[0.387777, 0.819644], [-0.160634, 0.513716], [-0.179584, 0.862915]]),
-      ('_Double', True, False, tf.float64, True, False, 2, 0.,
-       [[0.3472136, 0.11880029], [0.14214374, 0.33760977],
-        [0.1168568, 0.32053401]],
-       [[1.46477364, 0.43743008], [0.57051592, 0.14892339],
-        [0.6949858, 0.16326128]]),
-      ('_NoOutputNonlinearity', False, False, tf.float64, False, False, 2, 0.,
-       [[0.532625, 0.083511], [0.118662, 0.110532], [0.121542, 0.084161]],
-       [[0.789908, 0.312811], [0.192642, 0.207369], [0.167591, 0.172713]]),
-      ('_ByPass', False, False, tf.float64, False, True, 2, 0., None, None),
-      ('_WithForgetGateBias', True, False, tf.float64, True, False, 2, -1.,
-       [[0.19534954, 0.10979363], [0.02134449, 0.2821926],
-        [-0.02530111, 0.25382254]],
-       [[1.29934979, 0.31769676], [0.41655035, 0.05172589],
-        [0.58909841, -0.00438461]]))
-  # pyformat: enable
-  def testLSTMSimple_P3(self, global_vn, couple_input_forget_gates, dtype,
-                        output_nonlinearity, bypass, num_output_nodes,
-                        forget_gate_bias, m_expected, c_expected):
+      dict(
+          testcase_name='_GlobalNoise',
+          m_expected=[[0.123478, 0.334635], [-0.060803, 0.097732],
+                      [-0.130544, 0.252547]],
+          c_expected=[[0.348711, 0.869925], [-0.121857, 0.320817],
+                      [-0.322398, 0.720299]]),
+      dict(
+          testcase_name='_Double',
+          dtype=tf.float64,
+          m_expected=[[0.339129, 0.051817], [-0.000471, 0.054213],
+                      [-0.083333, 0.0311]],
+          c_expected=[[0.588729, 0.45511], [-0.000811, 0.175916],
+                      [-0.131822, 0.119508]]),
+      dict(
+          testcase_name='_NoOutputNonlinearity',
+          global_vn=False,
+          dtype=tf.float64,
+          output_nonlinearity=False,
+          m_expected=[[0.532625, 0.083511], [0.118662, 0.110532],
+                      [0.121542, 0.084161]],
+          c_expected=[[0.789908, 0.312811], [0.192642, 0.207369],
+                      [0.167591, 0.172713]]),
+      dict(
+          testcase_name='_ByPass',
+          global_vn=False,
+          dtype=tf.float64,
+          output_nonlinearity=False,
+          bypass=True,
+          m_expected=None,
+          c_expected=None),
+      dict(
+          testcase_name='_WithForgetGateBias',
+          dtype=tf.float64,
+          forget_gate_bias=-1.,
+          m_expected=[[0.277512, 0.042677], [-0.082185, 0.016758],
+                      [-0.14941, -0.017745]],
+          c_expected=[[0.463423, 0.36651], [-0.14248, 0.053876],
+                      [-0.239461, -0.06797]]),
+  )
+  def testLSTMSimple_P3(self,
+                        global_vn=True,
+                        couple_input_forget_gates=False,
+                        dtype=tf.float32,
+                        output_nonlinearity=True,
+                        bypass=False,
+                        num_output_nodes=2,
+                        forget_gate_bias=0,
+                        m_expected=None,
+                        c_expected=None):
     params = rnn_cell.LSTMCellSimple.Params().Set(
         name='lstm',
         couple_input_forget_gates=couple_input_forget_gates,
@@ -678,8 +705,8 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
        [0.4144063, 0.88831079, 0.56665027, 0.30154669, 0.2818037],
        [4.72228432, 3.9454143, 3.77556086, 2.76972866, 1.87397099]),
       ('_GlobalNoise', True, True,
-       [0.21634784, 0.40635043, 0.12228709, 0.51806468, 0.02064975],
-       [5.21427298, 4.5560832, 4.24992609, 3.85193706, 2.35372424]))
+       [0.157361, 0.508499, 0.349873, 0.114074, 0.394596],
+       [2.280342, 3.548889, 2.010778, 2.110273, 2.289954]))
   # pyformat: enable
   def testConvLSTM(self, inline, global_vn, m_expected, c_expected):
     params = rnn_cell.ConvLSTMCell.Params().Set(

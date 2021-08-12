@@ -3395,7 +3395,7 @@ def VariationalNoiseParams(scale,
                            global_vn=False,
                            per_step_vn=False,
                            seed=None,
-                           deterministic=False):
+                           deterministic=True):
   """Returns a hyperparams for variational noise."""
   p = hyperparams.Params()
   p.Define(
@@ -3414,12 +3414,7 @@ def VariationalNoiseParams(scale,
 
 
 def DefaultVN():
-  return VariationalNoiseParams(
-      scale=None,
-      global_vn=False,
-      per_step_vn=False,
-      seed=None,
-      deterministic=False)
+  return VariationalNoiseParams(scale=None)
 
 
 # To disable VN of a layer, we use 1.0 in the first input parameter

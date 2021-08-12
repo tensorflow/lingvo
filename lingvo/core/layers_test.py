@@ -2956,7 +2956,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, -7.113163,
+      test_utils.CompareToGoldenSingleFloat(self, -8.539942,
                                             self.evaluate(embs_sum))
 
 
@@ -3048,7 +3048,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, -6.807296,
+      test_utils.CompareToGoldenSingleFloat(self, -8.234072,
                                             self.evaluate(embs_sum))
 
   def _testSimpleEmbeddingLayer(self,
@@ -3888,8 +3888,8 @@ class SoftmaxLayerTest(test_utils.TestCase):
       log_perplexity = self.evaluate(xent_loss.avg_xent)
       print(['testSimpleFullSoftmax_GlobalVN loss', loss])
       print(['testSimpleFullSoftmax_GlobalVN log_perplexity', log_perplexity])
-      self.assertNear(loss, 19.9612, 1e-4)
-      self.assertNear(log_perplexity, 3.46426, 1e-4)
+      self.assertNear(loss, 10.298327, 1e-4)
+      self.assertNear(log_perplexity, 4.681058, 1e-4)
 
   def testSimpleFullSoftmax_PerStepVN(self):
     with self.session(use_gpu=False):
@@ -3915,8 +3915,8 @@ class SoftmaxLayerTest(test_utils.TestCase):
       log_perplexity = self.evaluate(xent_loss.avg_xent)
       print(['testShardedFullSoftmax_PerStepVN loss', loss])
       print(['testShardedFullSoftmax_PerStepVN log_perplexity', log_perplexity])
-      self.assertNear(loss, 19.9612, 1e-4)
-      self.assertNear(log_perplexity, 3.46426, 1e-4)
+      self.assertNear(loss, 10.298327, 1e-4)
+      self.assertNear(log_perplexity, 4.681058, 1e-4)
 
   def testSimpleFullSoftmax_FakeQuantized(self):
     default_qdomain = quant_utils.SymmetricScheduledClipQDomain.Params()

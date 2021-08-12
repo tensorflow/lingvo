@@ -226,8 +226,8 @@ class DecoderTest(test_utils.TestCase):
                       per_sequence_loss_val)
 
       self.assertNotEqual(metrics_val['loss'][0], metrics_val['log_pplx'][0])
-      self.assertAllClose(metrics_val['loss'], (3.484608, 4.0))
-      self.assertAllClose(metrics_val['log_pplx'], (3.496482, 15.0))
+      self.assertAllClose(metrics_val['loss'], (3.438382, 4.0))
+      self.assertAllClose(metrics_val['log_pplx'], (3.415284, 15.0))
       # Target batch size is 4. Therefore, we should expect 4 here.
       self.assertEqual(per_sequence_loss_val.shape, (4,))
 
@@ -310,8 +310,8 @@ class DecoderTest(test_utils.TestCase):
           [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.587372, 15.0], loss_val)
-      self.assertAllClose([14.171288, 9.965696, 10.221684, 19.451914],
+      self.assertAllClose([3.315562, 15.0], loss_val)
+      self.assertAllClose([13.195197, 10.450023, 10.629571, 15.458645],
                           per_sequence_loss_val)
       self.assertEqual(0, global_steps_val)
 
@@ -322,8 +322,8 @@ class DecoderTest(test_utils.TestCase):
           [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.626164, 15.0], loss_val)
-      self.assertAllClose([14.70993, 10.572938, 10.516836, 18.592758],
+      self.assertAllClose([3.52132, 15.0], loss_val)
+      self.assertAllClose([13.917469, 11.405658, 10.467039, 17.029636],
                           per_sequence_loss_val)
       self.assertEqual(1, global_steps_val)
 
