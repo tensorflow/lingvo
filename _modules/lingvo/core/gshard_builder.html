@@ -645,6 +645,8 @@
       <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;ln&#39;</span><span class="p">:</span>
       <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;true_ln&#39;</span><span class="p">:</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrueLN</span><span class="p">(</span><span class="s1">&#39;true_ln&#39;</span><span class="p">)</span>
     <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
     <span class="c1"># TODO(davidso): Make this public once the Primer paper is released.</span>
     <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;pn&#39;</span><span class="p">:</span>
@@ -917,6 +919,8 @@
 
     <span class="k">if</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
       <span class="n">activation_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;gelu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
     <span class="c1"># TODO(davidso): Make this public when Primer paper is released.</span>
     <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;sqr_relu&#39;</span><span class="p">:</span>
@@ -1655,6 +1659,39 @@
         <span class="p">(</span><span class="s1">&#39;-&gt;scale&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">ln_weight_params</span><span class="p">)])),</span>
         <span class="p">(</span><span class="s1">&#39;x,scale-&gt;x_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">LN</span><span class="p">)))</span></div>
 
+<div class="viewcode-block" id="MoEBuilder._TrueLN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._TrueLN">[docs]</a>  <span class="k">def</span> <span class="nf">_TrueLN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;True LN normalization.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">LN</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">shift</span><span class="p">):</span>
+      <span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">layer_norm_epsilon</span>
+      <span class="c1"># BLm Tensor (m=1, reduced model_dim) or BLnm where model dim is split to</span>
+      <span class="c1"># two dims.</span>
+      <span class="n">axis</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="o">+</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)]</span>
+      <span class="n">squared_mean_center</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span>
+          <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)))</span>
+      <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">squared_mean_center</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">ln_weight_reshape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span>
+        <span class="n">shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shift</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">shift</span>
+
+    <span class="n">ln_scale_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+    <span class="n">ln_shift_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x_norm&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;scale&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_scale&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">ln_scale_params</span><span class="p">)])),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;shift&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Var</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;w_shift&#39;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;shift&#39;</span><span class="p">,</span> <span class="n">ln_shift_params</span><span class="p">)])),</span>
+        <span class="p">(</span><span class="s1">&#39;x,scale,shift-&gt;x_norm&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;true_ln&#39;</span><span class="p">,</span> <span class="n">LN</span><span class="p">)))</span></div>
+
   <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
   <span class="c1"># TODO(davidso): Make this public when the Primer paper is released.</span>
 <div class="viewcode-block" id="MoEBuilder._PN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._PN">[docs]</a>  <span class="k">def</span> <span class="nf">_PN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2103,6 +2140,26 @@
                                          <span class="s1">&#39;instead of self._LNNoScale&#39;</span><span class="p">)</span>
     <span class="n">ln_weight_reshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNInternal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span></div>
+
+  <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
+  <span class="c1"># TODO(davidso): Make this public when the Primer paper is released.</span>
+<div class="viewcode-block" id="DenseBuilder._PN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._PN">[docs]</a>  <span class="k">def</span> <span class="nf">_PN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Overriding _PN to consider model_dim_reshape_segments.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_PN</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="n">pn_weight_reshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_PN</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">pn_weight_reshape</span><span class="p">)</span></div>
+
+  <span class="c1"># END GOOGLE-INTERNAL</span>
+
+<div class="viewcode-block" id="DenseBuilder._TrueLN"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._TrueLN">[docs]</a>  <span class="k">def</span> <span class="nf">_TrueLN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Overriding _TrueLN to consider model_dim_reshape_segments.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_TrueLN</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="n">ln_weight_reshape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_TrueLN</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ln_weight_reshape</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_device_mesh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2580,6 +2637,8 @@
 
     <span class="k">if</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
       <span class="n">activation_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;gelu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
     <span class="c1"># TODO(davidso): Make this public when Primer paper is released.</span>
     <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;sqr_relu&#39;</span><span class="p">:</span>
@@ -2900,6 +2959,9 @@
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;conv&#39;</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="n">conv_kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="n">model_dims</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;ln&#39;</span><span class="p">:</span>
       <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)</span>
+      <span class="n">optional_conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;true_ln&#39;</span><span class="p">:</span>
+      <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrueLN</span><span class="p">(</span><span class="s1">&#39;true_ln&#39;</span><span class="p">)</span>
       <span class="n">optional_conv_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;conv&#39;</span><span class="p">)</span>
     <span class="c1"># BEGIN GOOGLE-INTERNAL</span>
     <span class="c1"># TODO(davidso): Make this public once the Primer paper is released.</span>
