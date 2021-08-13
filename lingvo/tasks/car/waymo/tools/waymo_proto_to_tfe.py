@@ -251,31 +251,31 @@ class FrameToTFE(object):
 
   def _get_range_image_pose(self, lasers):
     """Fetches the per-pixel pose information for the range image."""
-    range_image_gbr_pose = None
+    range_image_top_pose = None
     for laser in lasers:
       if laser.name != dataset_pb2.LaserName.TOP:
         continue
       pose_str = zlib.decompress(laser.ri_return1.range_image_pose_compressed)
       # Deserialize from MatrixFloat serialization.
-      range_image_gbr_pose = dataset_pb2.MatrixFloat()
-      range_image_gbr_pose.ParseFromString(pose_str)
+      range_image_top_pose = dataset_pb2.MatrixFloat()
+      range_image_top_pose.ParseFromString(pose_str)
 
-    assert range_image_gbr_pose is not None
-    shape = list(range_image_gbr_pose.shape.dims)
-    range_image_gbr_pose_tensor = np.array(
-        range_image_gbr_pose.data).reshape(shape)
-    range_image_gbr_pose_tensor_rotation = transform_utils.get_rotation_matrix(
-        range_image_gbr_pose_tensor[..., 0],
-        range_image_gbr_pose_tensor[..., 1], range_image_gbr_pose_tensor[...,
+    assert range_image_top_pose is not None
+    shape = list(range_image_top_pose.shape.dims)
+    range_image_top_pose_tensor = np.array(
+        range_image_top_pose.data).reshape(shape)
+    range_image_top_pose_tensor_rotation = transform_utils.get_rotation_matrix(
+        range_image_top_pose_tensor[..., 0],
+        range_image_top_pose_tensor[..., 1], range_image_top_pose_tensor[...,
                                                                          2])
-    range_image_gbr_pose_tensor_translation = range_image_gbr_pose_tensor[...,
+    range_image_top_pose_tensor_translation = range_image_top_pose_tensor[...,
                                                                           3:]
-    range_image_gbr_pose_tensor = transform_utils.get_transform(
-        range_image_gbr_pose_tensor_rotation,
-        range_image_gbr_pose_tensor_translation)
+    range_image_top_pose_tensor = transform_utils.get_transform(
+        range_image_top_pose_tensor_rotation,
+        range_image_top_pose_tensor_translation)
 
-    assert range_image_gbr_pose_tensor.shape == (64, 2650, 4, 4)
-    return range_image_gbr_pose_tensor
+    assert range_image_top_pose_tensor.shape == (64, 2650, 4, 4)
+    return range_image_top_pose_tensor
 
   def _parse_range_image(self, range_image):
     """Parse range_image proto and convert to MatrixFloat form."""
@@ -416,7 +416,7 @@ class FrameToTFE(object):
     Args:
       feature: A tf.Example feature map.
       laser_names: A list of laser names (e.g., 'TOP', 'REAR', 'SIDE_LEFT').
-      range_image_pose: A range image pose Tensor for the GBR.
+      range_image_pose: A range image pose Tensor for the top laser.
     """
     # Stash metadata for laser. These metadata can be useful
     # for reconstructing the range image.
@@ -470,7 +470,7 @@ class FrameToTFE(object):
         # API expects a batch dimension for all inputs.
         batched_pixel_pose = None
         batched_frame_pose = None
-        # At the moment, only the GBR has per-pixel pose.
+        # At the moment, only the top has per-pixel pose.
         if laser_name == 'TOP':
           batched_pixel_pose = range_image_pose[tf.newaxis, ...]
           batched_frame_pose = self.frame_pose[tf.newaxis, ...]
