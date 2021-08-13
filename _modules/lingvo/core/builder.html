@@ -476,29 +476,30 @@
     <span class="sd">&quot;&quot;&quot;Activation layer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">activations</span><span class="o">.</span><span class="n">ActivationLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Base._FC"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._FC">[docs]</a>  <span class="k">def</span> <span class="nf">_FC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Feed-forward fully connected. y = relu(matmul(x, w) + b).&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Base._FC"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._FC">[docs]</a>  <span class="k">def</span> <span class="nf">_FC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">act</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Feed-forward fully connected. y = act(matmul(x, w) + b).&quot;&quot;&quot;</span>
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">act</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Base._MLP"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._MLP">[docs]</a>  <span class="k">def</span> <span class="nf">_MLP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+<div class="viewcode-block" id="Base._MLP"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._MLP">[docs]</a>  <span class="k">def</span> <span class="nf">_MLP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">act</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Multiple layers of feed-forward fully connected.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: The layer name.</span>
 <span class="sd">      dims: A list of int. i-th layer has dims[i] as its input dimension, and</span>
 <span class="sd">        dims[i+1] as its output dimensions.</span>
+<span class="sd">      act:  The activation function.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The param for the composed layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">l</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">dims</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:])):</span>
-      <span class="n">l</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;l</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">o</span><span class="p">)]</span>
+      <span class="n">l</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;l</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">act</span><span class="p">)]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">l</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Base._Conv2D"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Conv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_Conv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">filter_shape</span><span class="p">,</span> <span class="n">filter_stride</span><span class="p">):</span>

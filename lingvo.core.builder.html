@@ -404,13 +404,13 @@ on multiple devices.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.builder.Base._FC">
-<span class="sig-name descname"><span class="pre">_FC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">odims</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._FC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.builder.Base._FC" title="Permalink to this definition">¶</a></dt>
-<dd><p>Feed-forward fully connected. y = relu(matmul(x, w) + b).</p>
+<span class="sig-name descname"><span class="pre">_FC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">odims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'RELU'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._FC"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.builder.Base._FC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Feed-forward fully connected. y = act(matmul(x, w) + b).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.builder.Base._MLP">
-<span class="sig-name descname"><span class="pre">_MLP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._MLP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.builder.Base._MLP" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_MLP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'RELU'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._MLP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.builder.Base._MLP" title="Permalink to this definition">¶</a></dt>
 <dd><p>Multiple layers of feed-forward fully connected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -418,6 +418,7 @@ on multiple devices.</p>
 <li><p><strong>name</strong> – The layer name.</p></li>
 <li><p><strong>dims</strong> – A list of int. i-th layer has dims[i] as its input dimension, and
 dims[i+1] as its output dimensions.</p></li>
+<li><p><strong>act</strong> – The activation function.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
