@@ -321,29 +321,30 @@ class Base:
     """Activation layer."""
     return activations.ActivationLayer.Params().Set(activation=fn, name=name)
 
-  def _FC(self, name, idims, odims):
-    """Feed-forward fully connected. y = relu(matmul(x, w) + b)."""
+  def _FC(self, name, idims, odims, act='RELU'):
+    """Feed-forward fully connected. y = act(matmul(x, w) + b)."""
     # pyformat: disable
     return self._Seq(
         name,
         self._Linear('linear', idims, odims),
         self._Bias('bias', odims),
-        self._Activation('act'))
+        self._Activation('act', fn=act))
 
-  def _MLP(self, name, dims):
+  def _MLP(self, name, dims, act='RELU'):
     """Multiple layers of feed-forward fully connected.
 
     Args:
       name: The layer name.
       dims: A list of int. i-th layer has dims[i] as its input dimension, and
         dims[i+1] as its output dimensions.
+      act:  The activation function.
 
     Returns:
       The param for the composed layer.
     """
     l = []
     for n, (i, o) in enumerate(zip(dims[:-1], dims[1:])):
-      l += [self._FC('l%03d' % n, i, o)]
+      l += [self._FC('l%03d' % n, i, o, act)]
     return self._Seq(name, *l)
 
   def _Conv2D(self, name, filter_shape, filter_stride):
