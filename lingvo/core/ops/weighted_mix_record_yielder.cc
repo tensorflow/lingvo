@@ -27,6 +27,10 @@ WeightedMixRecordYielder::WeightedMixRecordYielder(
       sample_distribution_(input_source_weights.begin(),
                            input_source_weights.end()),
       yielders_(yielders) {
+  if (seed == 0) {
+    LOG(INFO) << "Randomly seed WeightedMixRecordYielder.";
+    rnd_.seed(std::random_device{}());
+  }
   if (yielders.size() != input_source_weights.size()) {
     LOG(FATAL) << "Unable to create WeightedMixRecordYielder: every yielder "
                << "should have a corresponding weight. " << yielders.size()
