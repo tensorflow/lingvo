@@ -490,6 +490,8 @@ class MoEBuilder(builder.Base):
       norm_layer = self._LNConv('ln', conv_kernel_size)
     elif norm_type == 'ln':
       norm_layer = self._LN('ln')
+    elif norm_type == 'true_ln':
+      norm_layer = self._TrueLN('true_ln')
     # BEGIN GOOGLE-INTERNAL
     # TODO(davidso): Make this public once the Primer paper is released.
     elif norm_type == 'pn':
@@ -762,6 +764,8 @@ class MoEBuilder(builder.Base):
 
     if activation == 'relu':
       activation_fn = tf.nn.relu
+    elif activation == 'gelu':
+      activation_fn = lambda x: tf.nn.gelu(x, approximate=True)
     # BEGIN GOOGLE-INTERNAL
     # TODO(davidso): Make this public when Primer paper is released.
     elif activation == 'sqr_relu':
@@ -1500,6 +1504,39 @@ class MoEBuilder(builder.Base):
         ('->scale', self._Var(name='w', weights=[('scale', ln_weight_params)])),
         ('x,scale->x_norm', self._Fn('ln', LN)))
 
+  def _TrueLN(self, name, ln_weight_reshape=None):
+    """True LN normalization."""
+
+    def LN(x, scale, shift):
+      eps = self.params.layer_norm_epsilon
+      # BLm Tensor (m=1, reduced model_dim) or BLnm where model dim is split to
+      # two dims.
+      axis = [d + 2 for d in range(len(x.shape) - 2)]
+      squared_mean_center = tf.math.square(
+          (x - tf.reduce_mean(x, keepdims=True, axis=axis)))
+      variance = tf.reduce_mean(squared_mean_center, keepdims=True, axis=axis)
+      if ln_weight_reshape is not None:
+        scale = tf.reshape(scale, ln_weight_reshape)
+        shift = tf.reshape(shift, ln_weight_reshape)
+      return x * tf.math.rsqrt(variance + eps) * scale + shift
+
+    ln_scale_params = py_utils.WeightParams(
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=self.params.dtype,
+        shape=[self.params.model_dim])
+    ln_shift_params = py_utils.WeightParams(
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=self.params.dtype,
+        shape=[self.params.model_dim])
+
+    return self._Graph(
+        name, ['x'], ['x_norm'],
+        ('->scale',
+         self._Var(name='w_scale', weights=[('scale', ln_scale_params)])),
+        ('->shift',
+         self._Var(name='w_shift', weights=[('shift', ln_shift_params)])),
+        ('x,scale,shift->x_norm', self._Fn('true_ln', LN)))
+
   # BEGIN GOOGLE-INTERNAL
   # TODO(davidso): Make this public when the Primer paper is released.
   def _PN(self, name, ln_weight_reshape=None):
@@ -1948,6 +1985,26 @@ class DenseBuilder(MoEBuilder):
                                          'instead of self._LNNoScale')
     ln_weight_reshape = self._ReshapedModelDims()
     return self._LNInternal(name, ln_weight_reshape)
+
+  # BEGIN GOOGLE-INTERNAL
+  # TODO(davidso): Make this public when the Primer paper is released.
+  def _PN(self, name):
+    """Overriding _PN to consider model_dim_reshape_segments."""
+    if self._model_dim_reshape_segments is None:
+      return super()._PN(name)
+
+    pn_weight_reshape = self._ReshapedModelDims()
+    return super()._PN(name, pn_weight_reshape)
+
+  # END GOOGLE-INTERNAL
+
+  def _TrueLN(self, name):
+    """Overriding _TrueLN to consider model_dim_reshape_segments."""
+    if self._model_dim_reshape_segments is None:
+      return super()._TrueLN(name)
+
+    ln_weight_reshape = self._ReshapedModelDims()
+    return super()._TrueLN(name, ln_weight_reshape)
 
   @property
   def _device_mesh(self):
@@ -2425,6 +2482,8 @@ class DenseBuilder(MoEBuilder):
 
     if activation == 'relu':
       activation_fn = tf.nn.relu
+    elif activation == 'gelu':
+      activation_fn = lambda x: tf.nn.gelu(x, approximate=True)
     # BEGIN GOOGLE-INTERNAL
     # TODO(davidso): Make this public when Primer paper is released.
     elif activation == 'sqr_relu':
@@ -2745,6 +2804,9 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
           name='conv', kernel_size=conv_kernel_size, model_dims=model_dims)
     elif norm_type == 'ln':
       norm_layer = self._LN('ln')
+      optional_conv_layer = self._Identity('conv')
+    elif norm_type == 'true_ln':
+      norm_layer = self._TrueLN('true_ln')
       optional_conv_layer = self._Identity('conv')
     # BEGIN GOOGLE-INTERNAL
     # TODO(davidso): Make this public once the Primer paper is released.
