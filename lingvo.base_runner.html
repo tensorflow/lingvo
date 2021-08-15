@@ -211,8 +211,23 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._ShouldStop">
-<span class="sig-name descname"><span class="pre">_ShouldStop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ShouldStop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ShouldStop" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_ShouldStop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_early_stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ShouldStop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ShouldStop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if the runner should stop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – tf.Session.</p></li>
+<li><p><strong>step</strong> – The current GlobalStep.</p></li>
+<li><p><strong>check_early_stop</strong> – Whether or not we want to check the EarlyStop condition.
+In TPU-training, we don’t want to check this at the every step
+granularity in the enqueue thread, as this may starve the TPU training
+loop which by default operates at the 1000 steps granularity.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether runner should stop.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

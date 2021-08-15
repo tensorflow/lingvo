@@ -242,9 +242,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
 
     <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
+    <span class="c1"># The actual EarlyStop object.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Whether the training thread has decided to early stop.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_should_early_stop</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 
@@ -285,8 +288,20 @@
           <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">jobname</span><span class="p">),</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
           <span class="n">metric_value</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseRunner._ShouldStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Check if the runner should stop.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BaseRunner._ShouldStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_early_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check if the runner should stop.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: tf.Session.</span>
+<span class="sd">      step: The current GlobalStep.</span>
+<span class="sd">      check_early_stop: Whether or not we want to check the EarlyStop condition.</span>
+<span class="sd">        In TPU-training, we don&#39;t want to check this at the every step</span>
+<span class="sd">        granularity in the enqueue thread, as this may starve the TPU training</span>
+<span class="sd">        loop which by default operates at the 1000 steps granularity.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Whether runner should stop.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 
@@ -300,8 +315,15 @@
                       <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">)</span>
       <span class="k">return</span> <span class="kc">True</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">check_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: Early stopping.&#39;</span><span class="p">)</span>
+      <span class="c1"># Signal the enqueue-thread that the training thread has decided to stop.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_should_early_stop</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">check_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_early_stop</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;ShouldStop: Early stopped, early_stop set by other thread.&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="kc">True</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
@@ -533,19 +555,24 @@
           <span class="n">global_steps_with_available_data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">global_enqueue_steps</span> <span class="o">//</span>
                                                  <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">*</span>
                                                  <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">)</span>
+          <span class="c1"># In TPU Training, the training thread in TrainerTpu is responsible</span>
+          <span class="c1"># for checking early stop since it only runs every</span>
+          <span class="c1"># tpu_steps_per_loop.</span>
+          <span class="n">check_early_stop</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">global_steps_with_available_data</span> <span class="o">=</span> <span class="n">global_enqueue_steps</span>
+          <span class="n">check_early_stop</span> <span class="o">=</span> <span class="kc">True</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_steps_with_available_data</span><span class="p">)</span> <span class="ow">or</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)):</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. ShouldStop is True.&#39;</span><span class="p">)</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Enqueue loop sleeping&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_steps_with_available_data</span><span class="p">,</span>
+                             <span class="n">check_early_stop</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">check_early_stop</span><span class="p">)):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Enqueue loop: Done. ShouldStop is True. Sleeping&#39;</span><span class="p">)</span>
           <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
           <span class="k">continue</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
             <span class="n">local_enqueue_steps</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">):</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. train.enqueue_max_steps reached.&#39;</span><span class="p">)</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Enqueue loop sleeping&#39;</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Enqueue loop: Done. train.enqueue_max_steps &#39;</span>
+                          <span class="s1">&#39;reached. Sleeping.&#39;</span><span class="p">)</span>
           <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
           <span class="k">continue</span>
         <span class="n">local_enqueue_steps</span> <span class="o">+=</span> <span class="mi">1</span>
