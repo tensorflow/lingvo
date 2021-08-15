@@ -87,9 +87,12 @@ class BaseRunner:
     self.params.cluster.logdir = logdir
 
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
+    # The actual EarlyStop object.
     self._early_stop = None
+    # Whether the training thread has decided to early stop.
+    self._should_early_stop = False
     if p.train.early_stop and p.train.early_stop.window:
-      self._early_stop = early_stop.EarlyStop(p.train.early_stop)
+      self._early_stop = p.train.early_stop.Instantiate()
       with self._graph.as_default():
         self._early_stop.FProp(None)
 
@@ -130,8 +133,20 @@ class BaseRunner:
           os.path.join(self._logdir, jobname), metric_name, global_step,
           metric_value)
 
-  def _ShouldStop(self, sess, step=None):
-    """Check if the runner should stop."""
+  def _ShouldStop(self, sess, step=None, check_early_stop=True):
+    """Check if the runner should stop.
+
+    Args:
+      sess: tf.Session.
+      step: The current GlobalStep.
+      check_early_stop: Whether or not we want to check the EarlyStop condition.
+        In TPU-training, we don't want to check this at the every step
+        granularity in the enqueue thread, as this may starve the TPU training
+        loop which by default operates at the 1000 steps granularity.
+
+    Returns:
+      Whether runner should stop.
+    """
     if step is None:
       step = sess.run(py_utils.GetGlobalStep())
 
@@ -145,8 +160,15 @@ class BaseRunner:
                       self._max_steps)
       return True
 
-    if self._early_stop and self._early_stop.Stop(sess):
+    if check_early_stop and self._early_stop and self._early_stop.Stop(sess):
       tf.logging.info('ShouldStop: Early stopping.')
+      # Signal the enqueue-thread that the training thread has decided to stop.
+      self._should_early_stop = True
+      return True
+
+    if not check_early_stop and self._should_early_stop:
+      tf.logging.info(
+          'ShouldStop: Early stopped, early_stop set by other thread.')
       return True
 
     if self._trial.ShouldStop():
@@ -378,19 +400,24 @@ class BaseRunner:
           global_steps_with_available_data = int(global_enqueue_steps //
                                                  p.train.tpu_steps_per_loop *
                                                  p.train.tpu_steps_per_loop)
+          # In TPU Training, the training thread in TrainerTpu is responsible
+          # for checking early stop since it only runs every
+          # tpu_steps_per_loop.
+          check_early_stop = False
         else:
           global_steps_with_available_data = global_enqueue_steps
+          check_early_stop = True
 
-        if (self._ShouldStop(sess, global_steps_with_available_data) or
-            self._ShouldStop(sess, global_step)):
-          tf.logging.info('Done. ShouldStop is True.')
-          tf.logging.info('Enqueue loop sleeping')
+        if (self._ShouldStop(sess, global_steps_with_available_data,
+                             check_early_stop) or
+            self._ShouldStop(sess, global_step, check_early_stop)):
+          tf.logging.info('Enqueue loop: Done. ShouldStop is True. Sleeping')
           time.sleep(15)
           continue
         if (p.train.enqueue_max_steps > 0 and
             local_enqueue_steps >= p.train.enqueue_max_steps):
-          tf.logging.info('Done. train.enqueue_max_steps reached.')
-          tf.logging.info('Enqueue loop sleeping')
+          tf.logging.info('Enqueue loop: Done. train.enqueue_max_steps '
+                          'reached. Sleeping.')
           time.sleep(15)
           continue
         local_enqueue_steps += 1

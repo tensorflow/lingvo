@@ -133,7 +133,7 @@ class EarlyStop:
 
   @classmethod
   def Params(cls):
-    p = hyperparams.Params()
+    p = hyperparams.InstantiableParams(cls)
     p.Define('name', 'EarlyStop', '')
     p.Define('metric_history', MetricHistory.Params(), 'Metric history params.')
     p.Define(
