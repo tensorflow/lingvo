@@ -917,8 +917,12 @@ class BaseTask(base_layer.BaseLayer):
         if p.vn.scale is not None:
           raise ValueError('A value should not be specified for p.vn.scale. '
                            'It will be overwritten by p.train.vn_std.')
-        p.vn.scale = tf.cast(self._global_step_var > tp.vn_start_step,
-                             py_utils.FPropDtype(p)) * tp.vn_std
+        if p.vn.start_step:
+          raise ValueError(
+              'A value should not be specified for p.vn.start_step. '
+              'It will be overwritten by p.train.vn_start_step.')
+        p.vn.scale = tp.vn_std
+        p.vn.start_step = tp.vn_start_step
 
   def _GetMaskUpdateOp(self):
     """Returns op to update masks and threshold variables for model pruning."""
