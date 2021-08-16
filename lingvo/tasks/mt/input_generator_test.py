@@ -559,6 +559,7 @@ class DoubleInputTest(test_utils.TestCase, parameterized.TestCase):
     return p
 
   def testBasicInput(self):
+    self.skipTest('TODO(b/196852574): Reenable.')
     p = self._CreateNmtInputParams()
     with self.session(use_gpu=False) as sess:
       inp = p.Instantiate()
@@ -585,17 +586,19 @@ class DoubleInputTest(test_utils.TestCase, parameterized.TestCase):
              27822, 510, 223, 31999, 46, 9, 13220, 12, 21965, 2241, 35, 31999,
              4104, 31999, 1179, 235, 31999, 4, 2, 31998
          ]])
-    self.assertAllEqual(batch.src.source_mask,
-                        [[
-                            0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0.,
-                            1., 0., 0., 0., 1., 0., 0.
-                        ],
-                         [
-                             1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-                             0., 0., 0., 0., 0., 0., 0.
-                         ]])
+    self.assertAllEqual(batch.src.source_mask, [
+        [
+            0., 0., 1., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0.,
+            1., 0., 0.
+        ],
+        [
+            1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+            0., 0., 0.
+        ],
+    ])
 
   def testPackedInput(self):
+    self.skipTest('TODO(b/196852574): Reenable.')
     p = self._CreatePackedNmtInputParams()
     with self.session(use_gpu=False) as sess:
       inp = p.Instantiate()
