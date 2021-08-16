@@ -280,10 +280,8 @@
         <span class="s1">&#39;gamma_zero_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If True, initialize gamma to zeros according to the technique &#39;</span>
         <span class="s1">&#39;introduced in the tech report: https://arxiv.org/abs/1706.02677&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;gamma_one_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;If True, explicitly initialize gamma to one without invoking &#39;</span>
-        <span class="s1">&#39;theta_fn.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gamma_one_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If True, explicitly initialize gamma to one.&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(rpang): remove this hparam, as it is replaced</span>
     <span class="c1"># by p.train.ema_decay_moving_vars.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -335,12 +333,7 @@
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">beta_pc</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_zero_init</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_one_init</span><span class="p">:</span>
-        <span class="c1"># initialization to BN gamma</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">gamma_pc</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">gamma_pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">gamma_pc</span><span class="p">)</span>
 
     <span class="c1"># Two statistics.</span>
     <span class="n">moving_collections</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span>
@@ -396,6 +389,9 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">beta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
       <span class="n">gamma</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_zero_init</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_one_init</span><span class="p">:</span>
+        <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">gamma</span>
     <span class="k">return</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span></div>
 
 <div class="viewcode-block" id="BatchNormLayer.GetCurrentMoments"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer.GetCurrentMoments">[docs]</a>  <span class="k">def</span> <span class="nf">GetCurrentMoments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
@@ -410,10 +406,15 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_variance</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span>
+      <span class="n">beta</span> <span class="o">=</span> <span class="mf">0.0</span>
+      <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_variance</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span>
-              <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span><span class="p">)</span></div>
+      <span class="n">beta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
+      <span class="n">gamma</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_zero_init</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_one_init</span><span class="p">:</span>
+        <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">gamma</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span></div>
 
 <div class="viewcode-block" id="BatchNormLayer.ComputeAndUpdateMoments"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer.ComputeAndUpdateMoments">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeAndUpdateMoments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes moments and updates state.</span>
@@ -600,6 +601,8 @@
     <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">class_emb_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="CategoricalBN._GetBetaGamma"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.CategoricalBN._GetBetaGamma">[docs]</a>  <span class="k">def</span> <span class="nf">_GetBetaGamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="k">assert</span> <span class="s1">&#39;class_emb&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span>
     <span class="n">class_emb</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;class_emb&#39;</span><span class="p">]</span>
 
@@ -610,6 +613,9 @@
     <span class="c1"># sparse inputs.</span>
     <span class="n">beta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">)</span>
     <span class="n">gamma</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_zero_init</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_one_init</span><span class="p">:</span>
+      <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+      <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">gamma</span>
 
     <span class="c1"># Extend to [batch, 1, ... 1, dim]</span>
     <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -702,8 +708,7 @@
         <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
-    <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
 
     <span class="n">moving_collections</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s1">&#39;moving_vars&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">MOVING_AVERAGE_VARIABLES</span><span class="p">,</span>
@@ -829,10 +834,12 @@
             <span class="n">theta</span><span class="o">.</span><span class="n">beta</span><span class="p">))</span>
     <span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+      <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+      <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">batch_normalization</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">moving_mean</span><span class="p">,</span>
                                             <span class="n">theta</span><span class="o">.</span><span class="n">moving_variance</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span>
-                                            <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+                                            <span class="n">gamma</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Moments</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_group_size</span><span class="p">)</span>
         <span class="n">mean</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span>
@@ -840,7 +847,7 @@
         <span class="n">variance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span>
             <span class="n">variance</span><span class="p">,</span> <span class="s1">&#39;variance of </span><span class="si">{}</span><span class="s1"> failed numeric check&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scope</span><span class="p">))</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">batch_normalization</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span>
-                                            <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+                                            <span class="n">gamma</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
       <span class="n">outputs</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">inputs_dtype</span><span class="p">)</span></div>
 
