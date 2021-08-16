@@ -3542,15 +3542,17 @@
       <span class="c1"># seed += GetGlobalStep() * 203984</span>
       <span class="k">pass</span>
     <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-  <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">noises</span>
-  <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noises</span></div>
+
+  <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">GetGlobalStep</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">start_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">noises</span></div>
 
 
 <div class="viewcode-block" id="VariationalNoiseParams"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.VariationalNoiseParams">[docs]</a><span class="k">def</span> <span class="nf">VariationalNoiseParams</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span>
                            <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                           <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                           <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">start_step</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a hyperparams for variational noise.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -3565,6 +3567,9 @@
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
       <span class="s1">&#39;deterministic&#39;</span><span class="p">,</span> <span class="n">deterministic</span><span class="p">,</span> <span class="s1">&#39;If true, generate noise using&#39;</span>
       <span class="s1">&#39;stateless random ops that are compatible with TF functional ops.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;start_step&#39;</span><span class="p">,</span> <span class="n">start_step</span><span class="p">,</span>
+      <span class="s1">&#39;Step starting from which variational noise is added during training.&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
