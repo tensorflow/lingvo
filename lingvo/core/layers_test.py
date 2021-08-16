@@ -299,7 +299,7 @@ class CategoricalBNTest(test_utils.TestCase, parameterized.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.class_emb_dim = 4
 
-      bn_layer = bn_layers.CategoricalBN(params)
+      bn_layer = params.Instantiate()
       in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
@@ -314,7 +314,7 @@ class CategoricalBNTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(0.0, self.evaluate(sig1), atol=1e-5)
       self.assertAllClose(47.8371887, self.evaluate(sig2))
 
-  def testFPropDifferenClasses(self):
+  def testFPropDifferentClasses(self):
     with self.session(use_gpu=True) as sess:
       tf.random.set_seed(398847392)
       np.random.seed(12345)
@@ -324,7 +324,7 @@ class CategoricalBNTest(test_utils.TestCase, parameterized.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.class_emb_dim = 4
 
-      bn_layer = bn_layers.CategoricalBN(params)
+      bn_layer = params.Instantiate()
       in_padding1 = tf.zeros([4, 8, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [4, 8, 3]), dtype=tf.float32)

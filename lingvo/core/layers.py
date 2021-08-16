@@ -16,7 +16,6 @@
 """Common layers."""
 
 import copy
-import functools
 import math
 import numbers
 from typing import Optional, Tuple, Union
@@ -1022,16 +1021,10 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if p.apply_pruning:
       mask_var_name = 'mask'
       threshold_var_name = 'threshold'
-      self.CreateVariable(
-          mask_var_name, mask_w_pc, theta_fn=None, trainable=False)
-      self.CreateVariable(
-          threshold_var_name, threshold_w_pc, theta_fn=None, trainable=False)
+      self.CreateVariable(mask_var_name, mask_w_pc, trainable=False)
+      self.CreateVariable(threshold_var_name, threshold_w_pc, trainable=False)
 
-      def MaskWeightFn(weight):
-        return tf.multiply(
-            self.AddVN(weight), getattr(self.vars, mask_var_name), 'masked_w')
-
-      self.CreateVariable(weights_var_name, w_pc, theta_fn=MaskWeightFn)
+      self.CreateVariable(weights_var_name, w_pc)
       pruning_utils.AddToPruningCollections(
           getattr(self.vars, weights_var_name), getattr(self.vars,
                                                         mask_var_name),
@@ -1170,6 +1163,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """
     p = self.params
     w = theta.w
+    if p.apply_pruning:
+      w = tf.multiply(self.AddVN(w), theta.mask, 'masked_w')
     b = theta.b if p.has_bias else None
     # Cast to fprop_dtype.
     fprop_dtype = py_utils.FPropDtype(p)
@@ -1467,7 +1462,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     for i in range(num_layers):
       out_dim = p.hidden_layer_dims[i]
       proj_out_dim = out_dim
-      name = '%s_%d' % (p.name, i)
+      name = f'{p.name}_{i}'
       params_i = params_proj_layers[i].Copy()
 
       if 'dense_tpl' in params_i:
@@ -2155,14 +2150,10 @@ class EmbeddingLayer(base_layer.BaseLayer):
     emb_vars = []
     emb_shards = []
     for i in range(self._actual_shards):
-      var_name = 'var_%d' % i
+      var_name = f'var_{i}'
       self.CreateVariable(var_name, w_pc)
       emb_vars.append(self.vars[var_name])
-      # NOTE: self.theta[var_name] has transformations such as variational noise
-      # applied via theta_fn in self.CreateVariable. For embedding layer we
-      # apply variational noise explicitly in EmbLookup, so we do not use
-      # self.theta[var_name] here.
-      v = self.vars[var_name]
+      v = self.theta[var_name]
       if not p.on_ps:
         v = tf.identity(v)
       if p.fprop_dtype is not None and p.fprop_dtype != p.dtype:
@@ -2430,18 +2421,14 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       threshold_pc = py_utils.WeightParams([],
                                            py_utils.WeightInit.Constant(0.0),
                                            tf.float32)
-      self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
-      self.CreateVariable(
-          'threshold', threshold_pc, theta_fn=None, trainable=False)
+      self.CreateVariable('mask', mask_pc, trainable=False)
+      self.CreateVariable('threshold', threshold_pc, trainable=False)
 
-      def MaskWeightFn(weight):
-        return tf.multiply(self.AddVN(weight), self.vars.mask, 'masked_weights')
-
-      self.CreateVariable('wm', pc, theta_fn=MaskWeightFn)
+      self.CreateVariable('wm', pc)
       pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
                                             self.vars.threshold)
     else:
-      self.CreateVariable('wm', pc, theta_fn=None)
+      self.CreateVariable('wm', pc)
 
     if pruning_utils.ApplyCompression(p):
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
@@ -2458,7 +2445,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
   def EmbLookupDefaultThetaOnCpu(self, ids):
     """A faster path for CPU inference than the default gather."""
     p = self.params
-    embs = tf.nn.embedding_lookup(self.theta.wm, tf.reshape(ids, [-1]))
+    wm = self.theta.wm
+    if p.apply_pruning:
+      wm = tf.multiply(self.AddVN(wm), self.theta.mask, 'masked_weights')
+    embs = tf.nn.embedding_lookup(wm, tf.reshape(ids, [-1]))
     out_shape = tf.concat([tf.shape(ids), [symbolic.ToStatic(p.embedding_dim)]],
                           0)
     if p.scale_sqrt_depth:
@@ -2488,7 +2478,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
             ids, 0, p.vocab_size, name='vocab_id_validation')
     ], ids)
     flat_ids = tf.reshape(ids, [-1])
-    wm = self.QWeight(theta.wm)
+    wm = theta.wm
+    if p.apply_pruning:
+      wm = self.QWeight(
+          tf.multiply(self.AddVN(wm), theta.mask, 'masked_weights'))
     # TODO(shivaniagrawal): Determine if quantizing flat_ids would be useful.
     wm = self.ToAqtWeight('emb_aqt', wm, feature_axis=-1)
     if self.apply_compression:
@@ -2560,7 +2553,7 @@ class EinsumEmbeddingLayer(base_layer.BaseLayer):
         collections=[self.__class__.__name__ + '_vars'])
     # Apply VN on theta.wm so that this layer can be used within a recurrent
     # loop.
-    self.CreateVariable('wm', pc, theta_fn=self.AddVN)
+    self.CreateVariable('wm', pc)
 
   def EmbLookup(self, theta, ids):
     return self.FProp(theta, ids)
@@ -2578,9 +2571,10 @@ class EinsumEmbeddingLayer(base_layer.BaseLayer):
     """
     p = self.params
     # Emulate tf.nn.embedding_lookup(theta.wm, ids) with tf.einsum.
+    wm = self.AddVN(theta.wm)
     embs_result = py_utils.ProjectLastDim(
         tf.one_hot(ids, p.vocab_size),
-        theta.wm,
+        wm,
         input_dim=p.vocab_size,
         output_dim=p.embedding_dim)
     if p.scale_sqrt_depth:
@@ -3117,31 +3111,20 @@ class SimpleFullSoftmax(SoftmaxLayer):
                                            tf.float32)
 
     for i in range(p.num_shards):
-      weights_var_name = 'weight_%d' % i
+      weights_var_name = f'weight_{i}'
       if p.apply_pruning:
-        mask_var_name = 'mask_%d' % i
-        threshold_var_name = 'threshold_%d' % i
-        self.CreateVariable(
-            mask_var_name, mask_pc, theta_fn=None, trainable=False)
-        self.CreateVariable(
-            threshold_var_name, threshold_pc, theta_fn=None, trainable=False)
-
-        def MaskWeightFn(mask_var_name, weight):
-          return tf.multiply(
-              self.AddVN(weight), getattr(self.vars, mask_var_name),
-              'masked_weights')
-
-        self.CreateVariable(
-            weights_var_name,
-            pc,
-            theta_fn=functools.partial(MaskWeightFn, mask_var_name))
+        mask_var_name = f'mask_{i}'
+        threshold_var_name = f'threshold_{i}'
+        self.CreateVariable(mask_var_name, mask_pc, trainable=False)
+        self.CreateVariable(threshold_var_name, threshold_pc, trainable=False)
+        self.CreateVariable(weights_var_name, pc)
         pruning_utils.AddToPruningCollections(
             getattr(self.vars, weights_var_name),
             getattr(self.vars, mask_var_name),
             getattr(self.vars, threshold_var_name))
 
       else:
-        self.CreateVariable(weights_var_name, pc, self.AddVN)
+        self.CreateVariable(weights_var_name, pc)
         if pruning_utils.ApplyCompression(p):
           # matrix compression path. call ApplyPruning to setup compression op
           pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self,
@@ -3158,7 +3141,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         collections=[self.__class__.__name__ + '_vars'])
     if p.use_bias:
       for i in range(p.num_shards):
-        self.CreateVariable('bias_%d' % i, pc, self.AddVN)
+        self.CreateVariable(f'bias_{i}', pc)
 
     self.TrackQTensor('inputs')
     self.TrackQTensor('logits', domain='logits')
@@ -3179,12 +3162,18 @@ class SimpleFullSoftmax(SoftmaxLayer):
     concat_axis = 1
     if self._transpose_weight_params:
       concat_axis = 0
-    weights = [
-        self.QWeight(theta['weight_%d' % i]) for i in range(p.num_shards)
-    ]
+    weights = []
+    for i in range(p.num_shards):
+      weight = self.AddVN(theta[f'weight_{i}'])
+      if p.apply_pruning:
+        weight = tf.multiply(weight, theta[f'mask_{i}'], 'masked_weights')
+      weights.append(self.QWeight(weight))
     new_theta = py_utils.NestedMap()
     if p.use_bias:
-      biases = [self.QWeight(theta['bias_%d' % i]) for i in range(p.num_shards)]
+      biases = [
+          self.QWeight(self.AddVN(theta[f'bias_{i}']))
+          for i in range(p.num_shards)
+      ]
       new_theta.bias = py_utils.AddVN(
           p, tf.concat(biases, axis=0), per_step=True)
     if p.num_shards == 1:
@@ -3382,9 +3371,9 @@ class SimpleFullSoftmax(SoftmaxLayer):
       # the first dim.
       per_example_xent = tf.nn.sampled_softmax_loss(
           weights=[
-              tf.identity(theta['weight_%d' % i]) for i in range(p.num_shards)
+              tf.identity(theta[f'weight_{i}']) for i in range(p.num_shards)
           ],
-          biases=tf.concat([theta['bias_%d' % i] for i in range(p.num_shards)],
+          biases=tf.concat([theta[f'bias_{i}'] for i in range(p.num_shards)],
                            axis=0),
           labels=tf.reshape(class_ids, [-1, 1]),
           inputs=self._GetInputs(inputs),
@@ -4932,7 +4921,7 @@ class WeightedSumLayer(base_layer.BaseLayer):
 
     if p.add_weight_summaries:
       for i in range(p.num_sources):
-        summary_utils.scalar(p.name + 'weight_%d' % i, w[i])
+        summary_utils.scalar(p.name + f'weight_{i}', w[i])
     w = tf.reshape(w, [p.num_sources, 1, 1, 1])
     output = tf.reduce_sum(inputs * w, axis=0)
 
