@@ -1116,7 +1116,7 @@ class LinearLayer(quant_utils.QuantizableLayer):
     super().__init__(params)
     p = self.params
     self.CreateAqtWeight(
-        'aqt_w', shape=[p.input_dims, p.output_dims], feature_axis=-1)
+        'w', shape=[p.input_dims, p.output_dims], feature_axis=-1)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -1153,9 +1153,9 @@ class LinearLayer(quant_utils.QuantizableLayer):
           tf.cast(symbolic.ToTensor(p.input_dims * p.output_dims), tf.int64) *
           2)
       inputs, w = self.ToAqtInputs(
-          'aqt_w', act=inputs, weight=theta.w, w_feature_axis=-1)
+          'w', act=inputs, weight=theta.w, w_feature_axis=-1)
       ret = py_utils.ProjectLastDim(inputs, w, p.input_dims, p.output_dims)
-      ret = self.FromAqtMatmul('aqt_w', ret)
+      ret = self.FromAqtMatmul('w', ret)
       return ret
 
   @classmethod

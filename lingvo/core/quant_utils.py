@@ -258,7 +258,13 @@ class QuantizableLayer(base_layer.BaseLayer):
       if qd:
         qd.CreateTensor(t_name)
 
-  def CreateAqtWeight(self, w_name, shape, feature_axis, domain='weight'):
+  def CreateAqtWeight(self,
+                      w_name,
+                      shape,
+                      feature_axis,
+                      domain='weight',
+                      *,
+                      legacy_aqt_w_name=None):
     """Creates Quantized weights for later use.
 
     Weight that will later be quantized must be created first, preferably
@@ -270,11 +276,12 @@ class QuantizableLayer(base_layer.BaseLayer):
         limitations
       feature_axis: axis corresponding to output channel/feature for weights.
       domain: Custom domain to match (defaults to 'weight').
+      legacy_aqt_w_name: Used for compatibility with old checkpoints.
     """
     qd = self.GetQDomain(domain)
     self._aqt_weights[w_name] = qd
     if qd:
-      qd.CreateTensorWithShape(w_name, shape, feature_axis)
+      qd.CreateTensorWithShape(w_name, shape, feature_axis, legacy_aqt_w_name)
 
   def QTensor(self, t_name, t, eval_only=False):
     """Quantizes a general tensor input/output in one step.
@@ -400,6 +407,17 @@ class QuantizableLayer(base_layer.BaseLayer):
     assert w_name in self._aqt_weights, (
         ('Call to ToAqtWeight without first calling CreateAqtWeight: %s '
          '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
+
+    # If w is a variable on this layer, then validate that w_name matches the
+    # name given to w in self.CreateVariable.
+    if w.ref() in self.vars:
+      expected_name = w.name.split('/')[-2]  # model/path/layer/weight/var:0
+      if w_name != expected_name:
+        raise ValueError(
+            f'Expected the AQT weight name to match the name of non-AQT '
+            f"weight, but got '{w_name}' and '{expected_name}'."
+            f'\nFull weight info:\n  {w}')
+
     qd = self._aqt_weights[w_name]
     if not qd:
       return w
@@ -1325,13 +1343,18 @@ class QDomain(base_layer.BaseLayer):
     """
     pass
 
-  def CreateTensorWithShape(self, t_name, shape, feature_axis):
+  def CreateTensorWithShape(self,
+                            t_name,
+                            shape,
+                            feature_axis,
+                            legacy_aqt_t_name=None):
     """Creates a QTensor with t_name and given shape.
 
     Args:
       t_name: Unique name (within layer) for this tensor.
       shape: Expected shape of the tensor.
       feature_axis: axis corresponding to output channel/feature for weights.
+      legacy_aqt_t_name: Used for compatibility with old checkpoints.
     """
     pass
 

@@ -933,7 +933,10 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
     self.CreateAqtWeight(
-        'projection_aqt', shape=[p.input_dim, p.output_dim], feature_axis=-1)
+        'w',
+        shape=[p.input_dim, p.output_dim],
+        feature_axis=-1,
+        legacy_aqt_w_name='projection_aqt')
 
     if p.pruning_hparams_dict:
       self.compression_op = None
@@ -1238,8 +1241,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p = self.params
 
     if not p.use_blocked_matmul:
-      inputs, w = self.ToAqtInputs(
-          'projection_aqt', act=inputs, weight=w, w_feature_axis=-1)
+      inputs, w = self.ToAqtInputs('w', act=inputs, weight=w, w_feature_axis=-1)
       if p.use_einsum:
         if self.apply_compression:
           out = pruning_utils.PruningOp.GetProjectLastDim(
@@ -1249,16 +1251,15 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       else:
         out = py_utils.Matmul(
             tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
-      out = self.FromAqtMatmul('projection_aqt', out)
+      out = self.FromAqtMatmul('w', out)
     else:
       x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
       # TODO(shivaniagrawal): There are the following dimmensions: bn, nmk, the
       # the correct thing to do here might be scaling on every m and every k,
       # while we are doing every k only.
-      x, w = self.ToAqtInputs(
-          'projection_aqt', act=x, weight=w, w_feature_axis=-1)
+      x, w = self.ToAqtInputs('w', act=x, weight=w, w_feature_axis=-1)
       out = tf.einsum('bn,nmk->bmk', x, w)
-      out = self.FromAqtMatmul('projection_aqt', out)
+      out = self.FromAqtMatmul('w', out)
       # Create an output layer [b, num_outputs].
       bsz = py_utils.GetShape(out)[0]
       out = tf.reshape(out, [bsz, -1])
@@ -2260,7 +2261,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         'fprop_mode must be one of %r' % valid_fprop_modes)
 
     _, weight_shape = self._GetWeightShape()
-    self.CreateAqtWeight('emb_aqt', shape=weight_shape, feature_axis=-1)
+    self.CreateAqtWeight(
+        'wm', shape=weight_shape, feature_axis=-1, legacy_aqt_w_name='emb_aqt')
     if p.pruning_hparams_dict:
       self.compression_op = None
     self.apply_compression = pruning_utils.ApplyCompression(p)
@@ -2490,14 +2492,14 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     flat_ids = tf.reshape(ids, [-1])
     wm = self.QWeight(theta.wm)
     # TODO(shivaniagrawal): Determine if quantizing flat_ids would be useful.
-    wm = self.ToAqtWeight('emb_aqt', wm, feature_axis=-1)
+    wm = self.ToAqtWeight('wm', wm, feature_axis=-1)
     if self.apply_compression:
       embs_result = pruning_utils.PruningOp.GetEmbeddingLookupResult(
           theta, flat_ids, self._fprop_mode, self)
     else:
       embs_result = self._FpropImpl(wm, flat_ids)
 
-    embs_result = self.FromAqtWeight('emb_aqt', embs_result)
+    embs_result = self.FromAqtWeight('wm', embs_result)
     with tf.name_scope('vn'):
       embs_result = py_utils.AddVN(p, embs_result)
 
@@ -3079,7 +3081,10 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
     if p.num_shards == 1:
       self.CreateAqtWeight(
-          'softmax_aqt', shape=[p.input_dim, p.num_classes], feature_axis=-1)
+          'weight_0',
+          shape=[p.input_dim, p.num_classes],
+          feature_axis=-1,
+          legacy_aqt_w_name='softmax_aqt')
     self.compression_ops = []
 
   def _CreateLayerVariables(self):
@@ -3205,15 +3210,12 @@ class SimpleFullSoftmax(SoftmaxLayer):
         # For this particular case num_classes is the first dimension, transpose
         # of weight would make it last dimension; we scale on the axis
         # corresponding to num_classes.
-        inputs, wm = self.ToAqtInputs(
-            'softmax_aqt',
-            act=inputs,
-            weight=tf.transpose(wm),
-            w_feature_axis=-1)
+        wm = tf.transpose(wm)
+        inputs, wm = self.ToAqtInputs('weight_0', inputs, wm, w_feature_axis=-1)
         wm = tf.transpose(wm)
       else:
         inputs, wm = self.ToAqtInputs(
-            'softmax_aqt', act=inputs, weight=wm, w_feature_axis=-1)
+            'weight_0', act=inputs, weight=wm, w_feature_axis=-1)
 
       if pruning_utils.ApplyCompression(p):
         # compression path. call GetMatmulResult.
@@ -3226,8 +3228,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
       # We used weight's output_dimension, i.e. p.num_classes as feature axis
       # while quantizing weight.
-      logits = self.FromAqtMatmul('softmax_aqt', logits)
-
+      logits = self.FromAqtMatmul('weight_0', logits)
     else:
       logits = py_utils.Matmul(
           inputs, wm, transpose_b=self._transpose_weight_params)

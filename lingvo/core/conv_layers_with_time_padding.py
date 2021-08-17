@@ -584,7 +584,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
 
   def __init__(self, params):
     super().__init__(params)
-    self.CreateAqtWeight('w_aqt', self._GetWeightShape(), feature_axis=(2, 3))
+    self.CreateAqtWeight('w', self._GetWeightShape(), feature_axis=(2, 3))
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -648,7 +648,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
     p = self.params
     filter_w = self._GetWeight(theta)
     inputs, filter_w = self.ToAqtConv(
-        'w_aqt', inputs, filter_w, w_feature_axis=(2, 3))
+        'w', inputs, filter_w, w_feature_axis=(2, 3))
     output = tf.nn.depthwise_conv2d(
         inputs,
         filter_w,
@@ -656,7 +656,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
         dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
-    return self.FromAqtConv('w_aqt', output, is_depthwise=True)
+    return self.FromAqtConv('w', output, is_depthwise=True)
 
 
 class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):

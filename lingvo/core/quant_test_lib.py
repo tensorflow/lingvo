@@ -42,7 +42,10 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     super().__init__(params)
     p = self.params
     self.CreateAqtWeight(
-        'aqt_w', shape=[p.input_dim, p.output_dim], feature_axis=-1)
+        'w',
+        shape=[p.input_dim, p.output_dim],
+        feature_axis=-1,
+        legacy_aqt_w_name='aqt_w')
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -74,7 +77,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
 
     reshaped_inputs = tf.reshape(inputs, [-1, p.input_dim])
     reshaped_inputs, w = self.ToAqtInputs(
-        'aqt_w',
+        'w',
         act=reshaped_inputs,
         weight=w,
         w_feature_axis=-1,
@@ -83,7 +86,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     # Note the use of the qmatmul from the function library. This will
     # automatically track the output against the qtensor 'transformed'.
     out = fns.qmatmul(reshaped_inputs, w, qt='transformed')
-    out = self.FromAqtMatmul('aqt_w', out)
+    out = self.FromAqtMatmul('w', out)
 
     out = tf.reshape(out, tf.concat([tf.shape(inputs)[:-1], [p.output_dim]], 0))
 

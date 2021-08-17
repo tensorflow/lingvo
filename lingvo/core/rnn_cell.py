@@ -1032,7 +1032,7 @@ class LayerNormalizedLSTMCell(RNNCell):
 
     self._timestep = -1
     self.CreateAqtWeight(
-        'rnn_aqt',
+        'wm',
         shape=[
             params.num_input_nodes + params.num_output_nodes,
             4 * params.num_output_nodes
@@ -1121,10 +1121,10 @@ class LayerNormalizedLSTMCell(RNNCell):
     if not isinstance(inputs.act, list):
       raise ValueError('Input activations must be of list type!')
     # TODO(b/172580007): Support weight quantization for RNN. Right now we do
-    # not support checkpointing vars for Recurrent cell, and setting AqtQdomain
+    # not support checkpointing vars for Recurrent cell, and setting AqtQDomain
     # for LayerNormalizedLSTM cell might run into errors.
     act, wm = self.ToAqtInputs(
-        'rnn_aqt', act=inputs.act, weight=theta.wm, w_feature_axis=-1)
+        'wm', act=inputs.act, weight=theta.wm, w_feature_axis=-1)
     concat = tf.concat(act + [state0.m], 1)
     if self.params.apply_pruning:
       wm = self.QWeight(tf.multiply(wm, theta.mask, 'masked_weights'))
@@ -1132,7 +1132,7 @@ class LayerNormalizedLSTMCell(RNNCell):
       out = pruning_utils.PruningOp.GetMixResult(theta, concat, self)
     else:
       out = py_utils.Matmul(concat, wm)
-    return self.FromAqtMatmul('rnn_aqt', out)
+    return self.FromAqtMatmul('wm', out)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""

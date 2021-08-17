@@ -205,9 +205,10 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
     p = self.params
     feature_axis = 0 if p.is_output_projection else (-2, -1)
     self.CreateAqtWeight(
-        'aqt_w',
+        'w',
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
-        feature_axis=feature_axis)
+        feature_axis=feature_axis,
+        legacy_aqt_w_name='aqt_w')
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -302,9 +303,9 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
         out_feature_axis = (-2, -1)
       theta = theta.Transform(lambda x: tf.cast(x, py_utils.FPropDtype(p)))
       inputs, w = self.ToAqtInputs(
-          'aqt_w', act=inputs, weight=theta.w, w_feature_axis=out_feature_axis)
+          'w', act=inputs, weight=theta.w, w_feature_axis=out_feature_axis)
       ret = tf.einsum(eqn, inputs, w)
-      ret = self.FromAqtMatmul('aqt_w', ret)
+      ret = self.FromAqtMatmul('w', ret)
       if p.use_bias:
         ret += theta.b
       return ret
