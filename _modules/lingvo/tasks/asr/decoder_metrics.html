@@ -341,7 +341,12 @@
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">include_auxiliary_metrics</span><span class="p">:</span>
       <span class="n">base_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+          <span class="c1"># TODO(xingwu): fully replace &#39;wer&#39; with &#39;error_rates/wer&#39;.</span>
           <span class="s1">&#39;wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Word error rate.</span>
+          <span class="s1">&#39;error_rates/ins&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Insert error rate</span>
+          <span class="s1">&#39;error_rates/sub&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Substitute error rate</span>
+          <span class="s1">&#39;error_rates/del&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Deletion error rate</span>
+          <span class="s1">&#39;error_rates/wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Word error rate.</span>
           <span class="s1">&#39;sacc&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Sentence accuracy.</span>
           <span class="s1">&#39;ter&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Token error rate.</span>
           <span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
@@ -402,7 +407,7 @@
       <span class="n">filtered_top_hyps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filtered_hyp</span><span class="p">)</span>
       <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;corpus_bleu&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
 
-    <span class="n">total_errs</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_ins</span><span class="p">,</span> <span class="n">total_subs</span><span class="p">,</span> <span class="n">total_dels</span><span class="p">,</span> <span class="n">total_errs</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
     <span class="n">total_oracle_errs</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_ref_words</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">total_token_errs</span> <span class="o">=</span> <span class="mi">0</span>
@@ -444,6 +449,9 @@
           <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">filtered_top_hyps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
           <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
               <span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+          <span class="n">total_ins</span> <span class="o">+=</span> <span class="n">ins</span>
+          <span class="n">total_subs</span> <span class="o">+=</span> <span class="n">subs</span>
+          <span class="n">total_dels</span> <span class="o">+=</span> <span class="n">dels</span>
           <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
           <span class="n">ref_words</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
           <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="n">ref_words</span>
@@ -457,6 +465,14 @@
 
       <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span>
                                      <span class="n">total_ref_words</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/ins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_ins</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span> <span class="n">total_ref_words</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/sub&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_subs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span> <span class="n">total_ref_words</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/del&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_dels</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span> <span class="n">total_ref_words</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span> <span class="n">total_ref_words</span><span class="p">)</span>
       <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
           <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span> <span class="n">total_ref_words</span><span class="p">)</span>
       <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;sacc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
