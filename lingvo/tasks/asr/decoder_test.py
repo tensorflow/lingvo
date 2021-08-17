@@ -57,7 +57,7 @@ def _DecoderParams(vn_config, num_classes=32, num_rnn_layers=1):
 
   # Set up variational noise params.
   p.vn = vn_config
-  p.vn.scale = 0.1
+  p.vn.scale = tf.constant(0.1)
 
   p.target_seq_len = 5
   p.source_dim = 8
@@ -310,8 +310,8 @@ class DecoderTest(test_utils.TestCase):
           [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.421436, 15.0], loss_val)
-      self.assertAllClose([13.483246, 10.423212, 10.355202, 17.05988],
+      self.assertAllClose([3.315562, 15.0], loss_val)
+      self.assertAllClose([13.195197, 10.450023, 10.629571, 15.458645],
                           per_sequence_loss_val)
       self.assertEqual(0, global_steps_val)
 
@@ -322,8 +322,8 @@ class DecoderTest(test_utils.TestCase):
           [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.558285, 15.0], loss_val)
-      self.assertAllClose([14.22378, 10.837114, 10.564018, 17.74937],
+      self.assertAllClose([3.52132, 15.0], loss_val)
+      self.assertAllClose([13.917469, 11.405658, 10.467039, 17.029636],
                           per_sequence_loss_val)
       self.assertEqual(1, global_steps_val)
 

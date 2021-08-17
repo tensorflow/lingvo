@@ -125,8 +125,10 @@ class BatchNormLayer(base_layer.BaseLayer):
         'gamma_zero_init', False,
         'If True, initialize gamma to zeros according to the technique '
         'introduced in the tech report: https://arxiv.org/abs/1706.02677')
-    p.Define('gamma_one_init', False,
-             'If True, explicitly initialize gamma to one.')
+    p.Define(
+        'gamma_one_init', False,
+        'If True, explicitly initialize gamma to one without invoking '
+        'theta_fn.')
     # TODO(rpang): remove this hparam, as it is replaced
     # by p.train.ema_decay_moving_vars.
     p.Define(
@@ -178,7 +180,12 @@ class BatchNormLayer(base_layer.BaseLayer):
 
     if not p.use_moving_avg_in_training:
       self.CreateVariable('beta', beta_pc)
-      self.CreateVariable('gamma', gamma_pc)
+      if p.gamma_zero_init or p.gamma_one_init:
+        # initialization to BN gamma
+        self.CreateVariable('gamma', gamma_pc)
+      else:
+        # Note, The real gamma to use is 1 + gamma.
+        self.CreateVariable('gamma', gamma_pc, lambda x: 1.0 + x)
 
     # Two statistics.
     moving_collections = ['moving_vars', self.__class__.__name__ + '_vars']
@@ -234,9 +241,6 @@ class BatchNormLayer(base_layer.BaseLayer):
     else:
       beta = theta.beta
       gamma = theta.gamma
-      if not p.gamma_zero_init and not p.gamma_one_init:
-        # Note, The real gamma to use is 1 + gamma.
-        gamma = 1.0 + gamma
     return beta, gamma
 
   def GetCurrentMoments(self, theta):
@@ -251,15 +255,10 @@ class BatchNormLayer(base_layer.BaseLayer):
     """
     p = self.params
     if p.use_moving_avg_in_training:
-      beta = 0.0
-      gamma = 1.0
+      return self.vars.moving_mean, self.vars.moving_variance, 0.0, 1.0
     else:
-      beta = theta.beta
-      gamma = theta.gamma
-      if not p.gamma_zero_init and not p.gamma_one_init:
-        # Note, The real gamma to use is 1 + gamma.
-        gamma = 1.0 + gamma
-    return self.vars.moving_mean, self.vars.moving_variance, beta, gamma
+      return (self.vars.moving_mean, self.vars.moving_variance, theta.beta,
+              theta.gamma)
 
   def ComputeAndUpdateMoments(self, theta, inputs, paddings=None, **kwargs):
     """Computes moments and updates state.
@@ -446,8 +445,6 @@ class CategoricalBN(BatchNormLayer):
     return [self.params.class_emb_dim, self.params.dim]
 
   def _GetBetaGamma(self, theta, inputs, **kwargs):
-    p = self.params
-
     assert 'class_emb' in kwargs
     class_emb = kwargs['class_emb']
 
@@ -458,9 +455,6 @@ class CategoricalBN(BatchNormLayer):
     # sparse inputs.
     beta = tf.gather(theta.beta, class_ids)
     gamma = tf.gather(theta.gamma, class_ids)
-    if not p.gamma_zero_init and not p.gamma_one_init:
-      # Note, The real gamma to use is 1 + gamma.
-      gamma = 1.0 + gamma
 
     # Extend to [batch, 1, ... 1, dim]
     batch = py_utils.GetShape(inputs)[0]
@@ -553,7 +547,8 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
         collections=collections)
 
     self.CreateVariable('beta', pc)
-    self.CreateVariable('gamma', pc)
+    # Note, The real gamma to use is 1 + gamma.
+    self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
     moving_collections = [
         'moving_vars', tf.GraphKeys.MOVING_AVERAGE_VARIABLES,
@@ -679,12 +674,10 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
             theta.beta))
     ], inputs)
     with tf.name_scope(p.name) as scope:
-      # Note, The real gamma to use is 1 + gamma.
-      gamma = 1.0 + theta.gamma
       if self.do_eval:
         outputs = tf.nn.batch_normalization(inputs, theta.moving_mean,
                                             theta.moving_variance, theta.beta,
-                                            gamma, p.epsilon)
+                                            theta.gamma, p.epsilon)
       else:
         mean, variance = self._Moments(inputs, p.bn_group_size)
         mean = py_utils.CheckNumerics(
@@ -692,7 +685,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
         variance = py_utils.CheckNumerics(
             variance, 'variance of {} failed numeric check'.format(scope))
         outputs = tf.nn.batch_normalization(inputs, mean, variance, theta.beta,
-                                            gamma, p.epsilon)
+                                            theta.gamma, p.epsilon)
       outputs.set_shape(inputs.get_shape())
       return tf.cast(outputs, inputs_dtype)
 

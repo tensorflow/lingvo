@@ -26,7 +26,7 @@ class EncoderTest(test_utils.TestCase):
   def _EncoderParams(self, vn_config):
     p = encoder.AsrEncoder.Params()
     p.name = 'encoder'
-    vn_config.scale = 0.1
+    vn_config.scale = tf.constant(0.1)
     params_init = py_utils.WeightInit.Uniform(0.05)
 
     rnn_params = p.lstm_tpl
