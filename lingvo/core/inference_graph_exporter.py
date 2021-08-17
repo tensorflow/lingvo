@@ -484,6 +484,17 @@ class InferenceGraphExporter:
     tf.logging.info('Graph contains ops: %r',
                     [op.name for op in graph.get_operations()])
 
+    # Collection defs
+    if not tf.executing_eagerly():
+      meta_graph = tf.train.export_meta_graph(graph=graph)
+      for key in meta_graph.collection_def:
+        tf.logging.info('copying collection %s', key)
+        inference_graph_proto.collection_def[key].CopyFrom(
+            meta_graph.collection_def[key])
+    else:
+      tf.logging.warning('Not exporting collection defs '
+                         'since operating in eager mode.')
+
     # Freezing.
     if freeze_defaults or freeze_checkpoint:
       output_op_names = GetOutputOpNames(

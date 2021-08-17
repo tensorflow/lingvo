@@ -274,6 +274,9 @@ class InferenceGraphExporterLinearModelTest(test_utils.TestCase):
         params, subgraph_filter=['default'])
     self.assertIn('default', inference_graph.subgraphs)
     self.assertEqual(1, len(inference_graph.asset_file_def))
+    # Check the GLOBAL_VARIABLES graph collection which is needed for
+    # eager to lift variables from a GraphDef.
+    self.assertIn('variables', inference_graph.collection_def)
 
   def testExportFreezeDefault(self):
     """Test exporting frozen graph."""
