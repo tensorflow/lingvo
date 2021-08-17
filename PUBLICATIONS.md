@@ -55,7 +55,7 @@ M.&nbsp;Johnson, M.&nbsp;Schuster, Q.&nbsp;V. Le, M.&nbsp;Krikun, Y.&nbsp;Wu, Z.
 A.&nbsp;Eriguchi, M.&nbsp;Johnson, O.&nbsp;Firat, H.&nbsp;Kazawa, and W.&nbsp;Macherey, &ldquo;Zero-shot
   cross-lingual classification using multilingual neural machine translation,&rdquo;
   <em>arXiv preprint arXiv:1809.04686</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/pdf/1809.04686.pdf">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1809.04686">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -127,7 +127,7 @@ J.&nbsp;Kuczmarski and M.&nbsp;Johnson, &ldquo;Gender-aware natural language tra
 <td class="bibtexitem">
 R.&nbsp;Aharoni, M.&nbsp;Johnson, and O.&nbsp;Firat, &ldquo;Massively multilingual neural machine
   translation,&rdquo; 2019.
-[&nbsp;<a href="https://arxiv.org/pdf/1903.00089.pdf">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1903.00089">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -155,7 +155,7 @@ N.&nbsp;Arivazhagan, C.&nbsp;Cherry, W.&nbsp;Macherey, C.-C. Chiu, S.&nbsp;Yavuz
   and C.&nbsp;Raffel, &ldquo;Monotonic infinite lookback attention for simultaneous
   machine translation,&rdquo; in <em>Proc. Annual Meeting of the Association for
   Computational Linguistics (ACL)</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/pdf/1906.05218">http</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1906.05218">http</a>&nbsp;]
 
 </td>
 </tr>
@@ -488,7 +488,7 @@ Y.&nbsp;Qin, N.&nbsp;Carlini, I.&nbsp;Goodfellow, G.&nbsp;Cottrell, and C.&nbsp;
 D.&nbsp;S. Park, W.&nbsp;Chan, Y.&nbsp;Zhang, C.&nbsp;Chiu, B.&nbsp;Zoph, E.&nbsp;D. Cubuk, and Q.&nbsp;V. Le,
   &ldquo;SpecAugment: A Simple Data Augmentation Method for Automatic Speech
   Recognition,&rdquo; in <em>arXiv</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/pdf/1904.08779.pdf">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1904.08779">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -618,7 +618,7 @@ D.&nbsp;Zhao, T.&nbsp;N. Sainath, D.&nbsp;Rybach, D.&nbsp;Bhatia, B.&nbsp;Li, an
 T.&nbsp;N. Sainath, R.&nbsp;Pang, D.&nbsp;Rybach, Y.&nbsp;He, R.&nbsp;Prabhavalkar, W.&nbsp;Li, M.&nbsp;Visontai,
   Q.&nbsp;Liang, T.&nbsp;Strohman, Y.&nbsp;Wu, I.&nbsp;McGraw, and C.-C. Chiu, &ldquo;Two-pass
   end-to-end speech recognition,&rdquo; in <em>Proc. Interspeech</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/pdf/1908.10992">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1908.10992">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -634,7 +634,7 @@ C.-C. Chiu, W.&nbsp;Han, Y.&nbsp;Zhang, R.&nbsp;Pang, S.&nbsp;Kishchenko, P.&nbs
   Y.&nbsp;Wu, &ldquo;A comparison of end-to-end models for long-form speech
   recognition,&rdquo; in <em>Proc. IEEE Automatic Speech Recognition and
   Understanding Workshop (ASRU)</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/pdf/1911.02242">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1911.02242">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -649,7 +649,7 @@ A.&nbsp;Narayanan, R.&nbsp;Prabhavalkar, C.&nbsp;Chiu, D.&nbsp;Rybach, T.&nbsp;S
   &ldquo;Recognizing long-form speech using streaming end-to-end models,&rdquo; in <em>
   Proc. IEEE Automatic Speech Recognition and Understanding Workshop
   (ASRU)</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/pdf/1910.11455">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1910.11455">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -1117,6 +1117,97 @@ G.&nbsp;Sun, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;Cao, H.&nbsp;Zen, A.&nbsp;
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="shen2020non">11</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Shen, Y.&nbsp;Jia, M.&nbsp;Chrzanowski, Y.&nbsp;Zhang, I.&nbsp;Elias, H.&nbsp;Zen, and Y.&nbsp;Wu,
+  &ldquo;Non-attentive tacotron: Robust and controllable neural tts synthesis
+  including unsupervised duration modeling,&rdquo; <em>arXiv preprint
+  arXiv:2010.04301</em>, 2020.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/nat">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2010.04301">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chen2020wavegrad">12</a>]
+</td>
+<td class="bibtexitem">
+N.&nbsp;Chen, Y.&nbsp;Zhang, H.&nbsp;Zen, R.&nbsp;J. Weiss, M.&nbsp;Norouzi, and W.&nbsp;Chan, &ldquo;Wavegrad:
+  Estimating gradients for waveform generation,&rdquo; in <em>Proc. International
+  Conference on Learning Representations (ICLR)</em>, 2020.
+[&nbsp;<a href="https://wavegrad.github.io">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2009.00713">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chen2021wavegrad2">13</a>]
+</td>
+<td class="bibtexitem">
+N.&nbsp;Chen, Y.&nbsp;Zhang, H.&nbsp;Zen, R.&nbsp;J. Weiss, M.&nbsp;Norouzi, N.&nbsp;Dehak, and W.&nbsp;Chan,
+  &ldquo;Wavegrad 2: Iterative refinement for text-to-speech synthesis,&rdquo; in <em>
+  Proc. Interspeech</em>, 2021.
+[&nbsp;<a href="https://wavegrad.github.io/v2">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2106.09660">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="elias2021parallel">14</a>]
+</td>
+<td class="bibtexitem">
+I.&nbsp;Elias, H.&nbsp;Zen, J.&nbsp;Shen, Y.&nbsp;Zhang, Y.&nbsp;Jia, R.&nbsp;J. Weiss, and Y.&nbsp;Wu, &ldquo;Parallel
+  tacotron: Non-autoregressive and controllable tts,&rdquo; in <em>Proc. IEEE
+  International Conference on Acoustics, Speech, and Signal Processing
+  (ICASSP)</em>, pp.&nbsp;5709--5713, IEEE, 2021.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/parallel_tacotron">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2010.11439">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="elias2021parallel2">15</a>]
+</td>
+<td class="bibtexitem">
+I.&nbsp;Elias, H.&nbsp;Zen, J.&nbsp;Shen, Y.&nbsp;Zhang, Y.&nbsp;Jia, R.&nbsp;Skerry-Ryan, and Y.&nbsp;Wu,
+  &ldquo;Parallel tacotron 2: A non-autoregressive neural tts model with
+  differentiable duration modeling,&rdquo; in <em>Proc. Interspeech</em>, 2021.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/parallel_tacotron_2">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2103.14574">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="jia2021png">16</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Jia, H.&nbsp;Zen, J.&nbsp;Shen, Y.&nbsp;Zhang, and Y.&nbsp;Wu, &ldquo;Png bert: Augmented bert on
+  phonemes and graphemes for neural tts,&rdquo; in <em>Proc. Interspeech</em>, 2021.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/png_bert">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2103.15060">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Speech translation
@@ -1168,6 +1259,21 @@ Y.&nbsp;Jia, R.&nbsp;J. Weiss, F.&nbsp;Biadsy, W.&nbsp;Macherey, M.&nbsp;Johnson
   <em>Proc. Interspeech</em>, 2019.
 [&nbsp;<a href="https://google-research.github.io/lingvo-lab/translatotron">sound examples</a>&nbsp;| 
 <a href="https://arxiv.org/abs/1904.06037">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="jia2021translatotron">4</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Jia, M.&nbsp;T. Ramanovich, T.&nbsp;Remez, and R.&nbsp;Pomerantz, &ldquo;Translatotron 2: Robust
+  direct speech-to-speech translation,&rdquo; <em>arXiv preprint arXiv:2107.08661</em>,
+  2021.
+[&nbsp;<a href="https://google-research.github.io/lingvo-lab/translatotron2">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2107.08661">pdf</a>&nbsp;]
 
 </td>
 </tr>
