@@ -639,6 +639,17 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Graph contains ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>
 
+    <span class="c1"># Collection defs</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="n">meta_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">export_meta_graph</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">meta_graph</span><span class="o">.</span><span class="n">collection_def</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;copying collection </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">collection_def</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span>
+            <span class="n">meta_graph</span><span class="o">.</span><span class="n">collection_def</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Not exporting collection defs &#39;</span>
+                         <span class="s1">&#39;since operating in eager mode.&#39;</span><span class="p">)</span>
+
     <span class="c1"># Freezing.</span>
     <span class="k">if</span> <span class="n">freeze_defaults</span> <span class="ow">or</span> <span class="n">freeze_checkpoint</span><span class="p">:</span>
       <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span>
