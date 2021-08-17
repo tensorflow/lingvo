@@ -186,7 +186,12 @@ class DecoderMetrics(base_layer.BaseLayer):
 
     if self.params.include_auxiliary_metrics:
       base_metrics.update({
+          # TODO(xingwu): fully replace 'wer' with 'error_rates/wer'.
           'wer': metrics.AverageMetric(),  # Word error rate.
+          'error_rates/ins': metrics.AverageMetric(),  # Insert error rate
+          'error_rates/sub': metrics.AverageMetric(),  # Substitute error rate
+          'error_rates/del': metrics.AverageMetric(),  # Deletion error rate
+          'error_rates/wer': metrics.AverageMetric(),  # Word error rate.
           'sacc': metrics.AverageMetric(),  # Sentence accuracy.
           'ter': metrics.AverageMetric(),  # Token error rate.
           'oracle_norm_wer': metrics.AverageMetric(),
@@ -247,7 +252,7 @@ class DecoderMetrics(base_layer.BaseLayer):
       filtered_top_hyps.append(filtered_hyp)
       dec_metrics_dict['corpus_bleu'].Update(filtered_ref, filtered_hyp)
 
-    total_errs = 0
+    total_ins, total_subs, total_dels, total_errs = 0, 0, 0, 0
     total_oracle_errs = 0
     total_ref_words = 0
     total_token_errs = 0
@@ -289,6 +294,9 @@ class DecoderMetrics(base_layer.BaseLayer):
           filtered_hyp = filtered_top_hyps[i]
           ins, subs, dels, errs = decoder_utils.EditDistance(
               filtered_ref, filtered_hyp)
+          total_ins += ins
+          total_subs += subs
+          total_dels += dels
           total_errs += errs
           ref_words = len(decoder_utils.Tokenize(filtered_ref))
           total_ref_words += ref_words
@@ -302,6 +310,14 @@ class DecoderMetrics(base_layer.BaseLayer):
 
       dec_metrics_dict['wer'].Update(total_errs / max(1., total_ref_words),
                                      total_ref_words)
+      dec_metrics_dict['error_rates/ins'].Update(
+          total_ins / max(1., total_ref_words), total_ref_words)
+      dec_metrics_dict['error_rates/sub'].Update(
+          total_subs / max(1., total_ref_words), total_ref_words)
+      dec_metrics_dict['error_rates/del'].Update(
+          total_dels / max(1., total_ref_words), total_ref_words)
+      dec_metrics_dict['error_rates/wer'].Update(
+          total_errs / max(1., total_ref_words), total_ref_words)
       dec_metrics_dict['oracle_norm_wer'].Update(
           total_oracle_errs / max(1., total_ref_words), total_ref_words)
       dec_metrics_dict['sacc'].Update(

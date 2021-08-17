@@ -135,7 +135,7 @@ class AsrModelTest(test_utils.TestCase):
       metrics_dict = mdl.CreateDecoderMetrics()
       key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
 
-      self.assertEqual(1.0, metrics_dict['wer'].value)
+      self.assertEqual(1.0, metrics_dict['error_rates/wer'].value)
       self.assertEqual(1.0, metrics_dict['norm_wer'].value)
       self.assertEqual(1.0, metrics_dict['ter'].value)
       self.assertEqual(0, len(key_value_pairs))
@@ -160,8 +160,8 @@ class AsrModelTest(test_utils.TestCase):
     metrics_dict = mdl.CreateDecoderMetrics()
     key_value_pairs = mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
-    self.assertEqual(0 + 1, metrics_dict['wer'].total_value)
-    self.assertEqual(4 + 1, metrics_dict['wer'].total_weight)
+    self.assertEqual(0 + 1, metrics_dict['error_rates/wer'].total_value)
+    self.assertEqual(4 + 1, metrics_dict['error_rates/wer'].total_weight)
     self.assertEqual(0 + 1, metrics_dict['norm_wer'].total_value)
     self.assertEqual(4 + 1, metrics_dict['norm_wer'].total_weight)
     self.assertEqual(4, metrics_dict['ter'].total_value)
@@ -245,8 +245,8 @@ class AsrModelTest(test_utils.TestCase):
     metrics_dict = mdl.CreateDecoderMetrics()
     kv_pairs = mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
-    self.assertEqual(0 + 1, metrics_dict['wer'].total_value)
-    self.assertEqual(7, metrics_dict['wer'].total_weight)
+    self.assertEqual(0 + 1, metrics_dict['error_rates/wer'].total_value)
+    self.assertEqual(7, metrics_dict['error_rates/wer'].total_weight)
     self.assertEqual(0 + 1, metrics_dict['norm_wer'].total_value)
     self.assertEqual(7, metrics_dict['norm_wer'].total_weight)
     self.assertEqual(0, len(kv_pairs))
@@ -271,8 +271,8 @@ class AsrModelTest(test_utils.TestCase):
     metrics_dict = mdl.CreateDecoderMetrics()
     kv_pairs = mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
-    self.assertEqual(0 + 1, metrics_dict['wer'].total_value)
-    self.assertEqual(7, metrics_dict['wer'].total_weight)
+    self.assertEqual(0 + 1, metrics_dict['error_rates/wer'].total_value)
+    self.assertEqual(7, metrics_dict['error_rates/wer'].total_weight)
     self.assertEqual(0 + 1, metrics_dict['norm_wer'].total_value)
     self.assertEqual(7, metrics_dict['norm_wer'].total_weight)
     self.assertEqual(0, len(kv_pairs))
@@ -297,8 +297,8 @@ class AsrModelTest(test_utils.TestCase):
     metrics_dict = mdl.CreateDecoderMetrics()
     mdl.PostProcessDecodeOut(fake_dec_out, metrics_dict)
 
-    self.assertEqual(1 + 0, metrics_dict['wer'].total_value)
-    self.assertEqual(0 + 4, metrics_dict['wer'].total_weight)
+    self.assertEqual(1 + 0, metrics_dict['error_rates/wer'].total_value)
+    self.assertEqual(0 + 4, metrics_dict['error_rates/wer'].total_weight)
     self.assertEqual(1 + 0, metrics_dict['norm_wer'].total_value)
     self.assertEqual(0 + 4, metrics_dict['norm_wer'].total_weight)
 
