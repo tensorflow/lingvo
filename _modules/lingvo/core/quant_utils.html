@@ -413,7 +413,13 @@
       <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
         <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.CreateAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">CreateAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizableLayer.CreateAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">CreateAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">w_name</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="p">,</span>
+                      <span class="n">feature_axis</span><span class="p">,</span>
+                      <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span>
+                      <span class="o">*</span><span class="p">,</span>
+                      <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates Quantized weights for later use.</span>
 
 <span class="sd">    Weight that will later be quantized must be created first, preferably</span>
@@ -425,11 +431,12 @@
 <span class="sd">        limitations</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39;).</span>
+<span class="sd">      legacy_aqt_w_name: Used for compatibility with old checkpoints.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">qd</span>
     <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
-      <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensorWithShape</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">)</span></div>
+      <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensorWithShape</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">legacy_aqt_w_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.QTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QTensor">[docs]</a>  <span class="k">def</span> <span class="nf">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes a general tensor input/output in one step.</span>
@@ -555,6 +562,17 @@
     <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
         <span class="p">(</span><span class="s1">&#39;Call to ToAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
          <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+
+    <span class="c1"># If w is a variable on this layer, then validate that w_name matches the</span>
+    <span class="c1"># name given to w in self.CreateVariable.</span>
+    <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span>
+      <span class="n">expected_name</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># model/path/layer/weight/var:0</span>
+      <span class="k">if</span> <span class="n">w_name</span> <span class="o">!=</span> <span class="n">expected_name</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Expected the AQT weight name to match the name of non-AQT &#39;</span>
+            <span class="sa">f</span><span class="s2">&quot;weight, but got &#39;</span><span class="si">{</span><span class="n">w_name</span><span class="si">}</span><span class="s2">&#39; and &#39;</span><span class="si">{</span><span class="n">expected_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Full weight info:</span><span class="se">\n</span><span class="s1">  </span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">w</span>
@@ -1480,13 +1498,18 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
-<div class="viewcode-block" id="QDomain.CreateTensorWithShape"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.CreateTensorWithShape">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTensorWithShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">):</span>
+<div class="viewcode-block" id="QDomain.CreateTensorWithShape"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.CreateTensorWithShape">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTensorWithShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                            <span class="n">t_name</span><span class="p">,</span>
+                            <span class="n">shape</span><span class="p">,</span>
+                            <span class="n">feature_axis</span><span class="p">,</span>
+                            <span class="n">legacy_aqt_t_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a QTensor with t_name and given shape.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      t_name: Unique name (within layer) for this tensor.</span>
 <span class="sd">      shape: Expected shape of the tensor.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
+<span class="sd">      legacy_aqt_t_name: Used for compatibility with old checkpoints.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
