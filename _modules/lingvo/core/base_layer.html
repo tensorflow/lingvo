@@ -177,7 +177,7 @@
 <span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
@@ -693,24 +693,57 @@
 <div class="viewcode-block" id="BaseLayer.GetDescendant"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.GetDescendant">[docs]</a>  <span class="k">def</span> <span class="nf">GetDescendant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseLayerT</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns a descendant layer given the path.</span>
 
-<span class="sd">    NOTE(yonghui): This GetDescendant is not complete. It is not able to descent</span>
-<span class="sd">    into list/tuple substructures.</span>
-
 <span class="sd">    Args:</span>
-<span class="sd">      path: a comma separated string denoting a descendant of this layer.</span>
+<span class="sd">      path: a dot separated string denoting a descendant of this layer.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The descendant layer.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      KeyError: if the descendant is not found.</span>
+<span class="sd">      IndexError: if an out of range index is requested of a descendant layer.</span>
+<span class="sd">      TypeError: if attempting to index a BaseLayer as though it were a list.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span>
+
     <span class="n">sub</span> <span class="o">=</span> <span class="bp">self</span>
-    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sub</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-          <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> not found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-        <span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">child_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+      <span class="c1"># If child_name is being indexed as a list then we separate the name and</span>
+      <span class="c1"># the index.</span>
+      <span class="n">index</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(.*)\[([-]?[0-9]+)\]$&#39;</span><span class="p">,</span> <span class="n">child_name</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+        <span class="n">child_name</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+
+      <span class="c1"># Validate that child_name is a child of the current parent layer.</span>
+      <span class="n">sub_path</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">[:</span><span class="n">i</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">child_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sub</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">child_name</span><span class="si">}</span><span class="s2">&#39; not found in sub-layer &#39;</span><span class="si">{</span><span class="n">sub_path</span><span class="si">}</span><span class="s2">&#39; with children &quot;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">sub</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sub</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">child_name</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Get the partial sub-layer and validate that it is a list.</span>
+        <span class="n">sub_list</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">child_name</span><span class="p">]</span>
+        <span class="n">sub_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">sub_path</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">child_name</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sub_list</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+          <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+              <span class="sa">f</span><span class="s2">&quot;Attempted to index &#39;</span><span class="si">{</span><span class="n">sub_path</span><span class="si">}</span><span class="s2">&#39; of type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">sub_list</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+              <span class="sa">f</span><span class="s1">&#39;as a list with index </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Use a try/except block to provide a useful error message if the index</span>
+        <span class="c1"># is out of range.</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">sub</span> <span class="o">=</span> <span class="n">sub_list</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+              <span class="sa">f</span><span class="s2">&quot;Index </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2"> out of range for sub-layer &#39;</span><span class="si">{</span><span class="n">sub_path</span><span class="si">}</span><span class="s2">&#39; with &quot;</span>
+              <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sub_list</span><span class="p">)</span><span class="si">}</span><span class="s1"> elements.&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
     <span class="k">return</span> <span class="n">sub</span></div>
 
   <span class="nd">@property</span>

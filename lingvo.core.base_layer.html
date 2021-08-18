@@ -513,17 +513,19 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer.GetDescendant">
 <span class="sig-name descname"><span class="pre">GetDescendant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.base_layer.BaseLayerT</span></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.GetDescendant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.GetDescendant" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a descendant layer given the path.</p>
-<p>NOTE(yonghui): This GetDescendant is not complete. It is not able to descent
-into list/tuple substructures.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>path</strong> – a comma separated string denoting a descendant of this layer.</p>
+<dd class="field-odd"><p><strong>path</strong> – a dot separated string denoting a descendant of this layer.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The descendant layer.</p>
 </dd>
 <dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#KeyError" title="(in Python v3.7)"><strong>KeyError</strong></a> – if the descendant is not found.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#KeyError" title="(in Python v3.7)"><strong>KeyError</strong></a> – if the descendant is not found.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#IndexError" title="(in Python v3.7)"><strong>IndexError</strong></a> – if an out of range index is requested of a descendant layer.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#TypeError" title="(in Python v3.7)"><strong>TypeError</strong></a> – if attempting to index a BaseLayer as though it were a list.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
