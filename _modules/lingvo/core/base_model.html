@@ -347,7 +347,11 @@
               <span class="s1">&#39;How often to keep a checkpoint.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;async_checkpointing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
               <span class="s1">&#39;Checkpointing asynchronously. Currently only support executor.&#39;</span><span class="p">)</span>
-
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;keep_per_example_loss&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, checks if per-example metrics contain a key named </span><span class="se">\&#39;</span><span class="s1">loss</span><span class="se">\&#39;</span><span class="s1">, &#39;</span>
+        <span class="s1">&#39;and if so copies it to the main metrics dictionary under key &#39;</span>
+        <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">per_example_loss</span><span class="se">\&#39;</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
               <span class="s1">&#39;Generates a summary roughly once every this many steps.&#39;</span><span class="p">)</span>
     <span class="c1"># The following params must mirror those in Learner.Params().</span>
@@ -751,6 +755,8 @@
           <span class="n">value</span><span class="p">,</span>
           <span class="n">weight</span><span class="p">,</span>
           <span class="n">raise_if_already_added</span><span class="o">=</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">keep_per_example_loss</span> <span class="ow">and</span> <span class="s1">&#39;loss&#39;</span> <span class="ow">in</span> <span class="n">per_example</span><span class="p">:</span>
+      <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;per_example_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">per_example</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
     <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FilterPerExampleTensors</span><span class="p">(</span><span class="n">per_example</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">per_example</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">AddPerExampleTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
