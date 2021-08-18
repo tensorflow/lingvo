@@ -276,73 +276,70 @@ To run the StarNet model using CloudTPUs on GCP, please refer to
 
 ### Automatic Speech Recognition
 
-*   [asr.librispeech.Librispeech960Grapheme](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)<sup>1,2</sup>
-*   [asr.librispeech.Librispeech960Wpm](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)<sup>1,2</sup>
+*   [Listen, Attend and Spell](https://arxiv.org/pdf/1508.01211.pdf).<br/>
+    William Chan, Navdeep Jaitly, Quoc V. Le, and Oriol Vinyals. ICASSP 2016.
+
+    [End-to-end Continuous Speech Recognition using Attention-based Recurrent
+    NN: First Results](https://arxiv.org/pdf/1412.1602.pdf).<br/>Jan Chorowski,
+    Dzmitry Bahdanau, Kyunghyun Cho, and Yoshua Bengio. arXiv 2014.
+
+    *   [asr.librispeech.Librispeech960Grapheme](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)
+    *   [asr.librispeech.Librispeech960Wpm](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)
 
 ### Car
 
-*   [car.kitti.StarNetCarModel0701](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/kitti.py)<sup>3</sup>
-*   [car.kitti.StarNetPedCycModel0704](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/kitti.py)<sup>3</sup>
-*   [car.waymo.StarNetVehicle](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/waymo.py)<sup>3</sup>
-*   [car.waymo.StarNetPed](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/waymo.py)<sup>3</sup>
+*   [StarNet: Targeted Computation for Object Detection in Point Clouds](https://arxiv.org/pdf/1908.11069.pdf).<br/>
+    Jiquan Ngiam, Benjamin Caine, Wei Han, Brandon Yang, Yuning Chai, Pei Sun, Yin
+    Zhou, Xi Yi, Ouais Alsharif, Patrick Nguyen, Zhifeng Chen, Jonathon Shlens,
+    and Vijay Vasudevan. arXiv 2019.
+
+    *   [car.kitti.StarNetCarModel0701](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/kitti.py)
+    *   [car.kitti.StarNetPedCycModel0704](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/kitti.py)
+    *   [car.waymo.StarNetVehicle](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/waymo.py)
+    *   [car.waymo.StarNetPed](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/params/waymo.py)
 
 ### Image
 
-*   [image.mnist.LeNet5](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/image/params/mnist.py)<sup>4</sup>
+*   [Gradient-based learning applied to document recognition](http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf).<br/>
+    Yann LeCun, Leon Bottou, Yoshua Bengio, and Patrick Haffner. IEEE 1998.
+
+    *   [image.mnist.LeNet5](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/image/params/mnist.py)
 
 ### Language Modelling
 
-*   [lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/params/one_billion_wds.py)<sup>5</sup>
+*   [mt.wmt14_en_de_xendec.WmtEnDeXEnDec](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de_xendec.py)<sup>8</sup>
 
-*   [lm.synthetic_packed_input.DenseLm1T16x16](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/params/synthetic_packed_input.py)<sup>6</sup>
+*   [Exploring the Limits of Language Modeling](https://arxiv.org/pdf/1602.02410.pdf).<br/>
+    Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui
+    Wu. arXiv, 2016.
+
+    *   [lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/params/one_billion_wds.py)
+
+*   [GShard: Scaling Giant Models with Conditional Computation and Automatic
+    Sharding](https://arxiv.org/pdf/2006.16668.pdf).<br/>
+    Dmitry Lepikhin, HyoukJoong Lee, Yuanzhong Xu, Dehao Chen, Orhan Firat, Yanping Huang, Maxim Krikun,
+    Noam Shazeer and Zhifeng Chen arXiv, 2020.
+
+    *   [lm.synthetic_packed_input.DenseLm1T16x16](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/params/synthetic_packed_input.py)
 
 ### Machine Translation
 
-*   [mt.wmt14_en_de.WmtEnDeTransformerBase](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>7</sup>
-*   [mt.wmt14_en_de.WmtEnDeRNMT](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>7</sup>
-*   [mt.wmtm16_en_de.WmtCaptionEnDeTransformer](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmtm16_en_de.py)<sup>7</sup>
-*   [mt.wmt14_en_de_xendec.WmtEnDeXEnDec](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de_xendec.py)<sup>8</sup>
+*   [The Best of Both Worlds: Combining Recent Advances in Neural Machine
+    Translation](http://aclweb.org/anthology/P18-1008).<br/>
+    Mia X. Chen, Orhan Firat, Ankur Bapna, Melvin Johnson, Wolfgang Macherey, George Foster, Llion
+    Jones, Mike Schuster, Noam Shazeer, Niki Parmar, Ashish Vaswani, Jakob
+    Uszkoreit, Lukasz Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff Hughes.
+    ACL 2018.
 
-<font size="-1">
+    *   [mt.wmt14_en_de.WmtEnDeTransformerBase](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)
+    *   [mt.wmt14_en_de.WmtEnDeRNMT](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)
+    *   [mt.wmtm16_en_de.WmtCaptionEnDeTransformer](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmtm16_en_de.py)
 
-\[1]: [Listen, Attend and Spell](https://arxiv.org/pdf/1508.01211.pdf). William
-Chan, Navdeep Jaitly, Quoc V. Le, and Oriol Vinyals. ICASSP 2016.
+*   [Self-supervised and Supervised Joint Training for Resource-rich Neural
+    Machine Translation](https://arxiv.org/pdf/2106.04060.pdf).<br/>
+    Yong Cheng, Wei Wang, Lu Jiang, and Wolfgang Macherey. ICML 2021.
 
-\[2]: [End-to-end Continuous Speech Recognition using Attention-based Recurrent
-NN: First Results](https://arxiv.org/pdf/1412.1602.pdf). Jan Chorowski, Dzmitry
-Bahdanau, Kyunghyun Cho, and Yoshua Bengio. arXiv 2014.
-
-\[3]:
-[StarNet: Targeted Computation for Object Detection in Point Clouds](https://arxiv.org/pdf/1908.11069.pdf).
-Jiquan Ngiam, Benjamin Caine, Wei Han, Brandon Yang, Yuning Chai, Pei Sun, Yin
-Zhou, Xi Yi, Ouais Alsharif, Patrick Nguyen, Zhifeng Chen, Jonathon Shlens, and
-Vijay Vasudevan. arXiv 2019.
-
-\[4]:
-[Gradient-based learning applied to document recognition](http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf).
-Yann LeCun, Leon Bottou, Yoshua Bengio, and Patrick Haffner. IEEE 1998.
-
-\[5]:
-[Exploring the Limits of Language Modeling](https://arxiv.org/pdf/1602.02410.pdf).
-Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui Wu.
-arXiv, 2016.
-
-\[6]: [GShard: Scaling Giant Models with Conditional Computation and Automatic
-Sharding](https://arxiv.org/pdf/2006.16668.pdf). Dmitry Lepikhin, HyoukJoong
-Lee, Yuanzhong Xu, Dehao Chen, Orhan Firat, Yanping Huang, Maxim Krikun, Noam
-Shazeer and Zhifeng Chen arXiv, 2020.
-
-\[7]: [The Best of Both Worlds: Combining Recent Advances in Neural Machine
-Translation](http://aclweb.org/anthology/P18-1008). Mia X. Chen, Orhan Firat,
-Ankur Bapna, Melvin Johnson, Wolfgang Macherey, George Foster, Llion Jones, Mike
-Schuster, Noam Shazeer, Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz
-Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff Hughes. ACL 2018.
-
-\[8]: [Self-supervised and Supervised Joint Training for Resource-rich Neural
-Machine Translation](https://arxiv.org/pdf/2106.04060.pdf). Yong Cheng, Wei
-Wang, Lu Jiang, and Wolfgang Macherey. ICML 2021.
-
-</font>
+    *   [mt.wmt14_en_de_xendec.WmtEnDeXEnDec](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de_xendec.py)
 
 ## References
 
