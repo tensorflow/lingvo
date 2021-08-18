@@ -192,7 +192,11 @@ class BaseTask(base_layer.BaseLayer):
               'How often to keep a checkpoint.')
     tp.Define('async_checkpointing', False,
               'Checkpointing asynchronously. Currently only support executor.')
-
+    tp.Define(
+        'keep_per_example_loss', False,
+        'If True, checks if per-example metrics contain a key named \'loss\', '
+        'and if so copies it to the main metrics dictionary under key '
+        '\'per_example_loss\'.')
     tp.Define('summary_interval_steps', 100,
               'Generates a summary roughly once every this many steps.')
     # The following params must mirror those in Learner.Params().
@@ -596,6 +600,8 @@ class BaseTask(base_layer.BaseLayer):
           value,
           weight,
           raise_if_already_added=not py_utils.IsEagerMode())
+    if p.train.keep_per_example_loss and 'loss' in per_example:
+      metrics['per_example_loss'] = per_example['loss']
     per_example = self.FilterPerExampleTensors(per_example)
     for name, value in per_example.items():
       self.AddPerExampleTensor(name, value)
