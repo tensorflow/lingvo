@@ -22,7 +22,7 @@ import copy
 import enum
 import itertools
 import re
-from typing import Callable, List, Mapping, Optional, Type, TypeVar, Union
+from typing import Callable, List, Mapping, Optional, Sequence, Type, TypeVar, Union
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
@@ -538,24 +538,57 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def GetDescendant(self, path: str) -> BaseLayerT:
     """Returns a descendant layer given the path.
 
-    NOTE(yonghui): This GetDescendant is not complete. It is not able to descent
-    into list/tuple substructures.
-
     Args:
-      path: a comma separated string denoting a descendant of this layer.
+      path: a dot separated string denoting a descendant of this layer.
 
     Returns:
       The descendant layer.
 
     Raises:
       KeyError: if the descendant is not found.
+      IndexError: if an out of range index is requested of a descendant layer.
+      TypeError: if attempting to index a BaseLayer as though it were a list.
     """
+    if not path:
+      return self
+
     sub = self
-    if path:
-      for k in path.split('.'):
-        if k not in sub.children:
-          raise KeyError('%s not found in %s' % (k, list(sub.children.keys())))
-        sub = sub.children[k]
+    path = path.split('.')
+    for i, child_name in enumerate(path):
+      # If child_name is being indexed as a list then we separate the name and
+      # the index.
+      index = None
+      match = re.match(r'(.*)\[([-]?[0-9]+)\]$', child_name)
+      if match:
+        child_name, index = match.group(1), int(match.group(2))
+
+      # Validate that child_name is a child of the current parent layer.
+      sub_path = '.'.join(path[:i])
+      if child_name not in sub.children:
+        raise KeyError(
+            f"'{child_name}' not found in sub-layer '{sub_path}' with children "
+            f'{sub.children.keys()}.')
+
+      if index is None:
+        sub = sub.children[child_name]
+      else:
+        # Get the partial sub-layer and validate that it is a list.
+        sub_list = sub.children[child_name]
+        sub_path = f'{sub_path}.{child_name}'
+        if not isinstance(sub_list, Sequence):
+          raise TypeError(
+              f"Attempted to index '{sub_path}' of type {type(sub_list)} "
+              f'as a list with index {index}.')
+
+        # Use a try/except block to provide a useful error message if the index
+        # is out of range.
+        try:
+          sub = sub_list[index]
+        except IndexError as e:
+          raise IndexError(
+              f"Index {index} out of range for sub-layer '{sub_path}' with "
+              f'{len(sub_list)} elements.') from e
+
     return sub
 
   @property

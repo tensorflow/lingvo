@@ -202,6 +202,10 @@ class BaseLayerTest(test_utils.TestCase):
     l.a.c.CreateChild('d', p)
     l.b._disable_create_child = False
     l.b.CreateChild('e', p)
+    l.b.e._disable_create_child = False
+    l.b.e.CreateChildren('list', [p, p])
+    l.b.e.list[1]._disable_create_child = False
+    l.b.e.list[1].CreateChild('g', p)
     # pylint: enable=protected-access
     self.assertEqual(l, l.GetDescendant(''))
     self.assertEqual(l.a, l.GetDescendant('a'))
@@ -209,6 +213,16 @@ class BaseLayerTest(test_utils.TestCase):
     self.assertEqual(l.a.c, l.GetDescendant('a.c'))
     self.assertEqual(l.a.c.d, l.GetDescendant('a.c.d'))
     self.assertEqual(l.b.e, l.GetDescendant('b.e'))
+    self.assertEqual(l.b.e.list, l.GetDescendant('b.e.list'))
+    self.assertEqual(l.b.e.list[0], l.GetDescendant('b.e.list[0]'))
+    self.assertEqual(l.b.e.list[1], l.GetDescendant('b.e.list[-1]'))
+    self.assertEqual(l.b.e.list[1].g, l.GetDescendant('b.e.list[1].g'))
+
+    with self.assertRaisesRegex(KeyError, "'l' not found in sub-layer 'b.e'"):
+      l.GetDescendant('b.e.l[0]')
+
+    with self.assertRaisesRegex(TypeError, "Attempted to index 'b.e' of type"):
+      l.GetDescendant('b.e[0]')
 
   def testCreateAccumulator(self):
     layer_p = base_layer.BaseLayer.Params()
