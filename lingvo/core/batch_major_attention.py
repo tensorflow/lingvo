@@ -2031,10 +2031,10 @@ class LocalSelfAttention(MultiHeadedAttention):
     Returns:
       A `.NestedMap` object containing
 
-      conext_len = p.left_context - 1 + p.right_context
-      - key:   [B, conext_len, N, H].
-      - value: [B, conext_len, N, H].
-      - masks: [B, conext_len], 0/1 Tensor where 0s are masked out positions.
+      context_len = p.left_context - 1 + p.right_context
+      - key:   [B, context_len, N, H].
+      - value: [B, context_len, N, H].
+      - masks: [B, context_len]. A 0/1 Tensor where 0s are masked out positions.
       - query: (only if p.right_context > 0) [B, p.right_context, N, H].
       - out_masks : (only if p.right_context> 0): [B, p.right_context].
     """
