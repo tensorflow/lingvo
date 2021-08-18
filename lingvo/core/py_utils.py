@@ -3387,7 +3387,6 @@ def AddVN(p, x, per_step=False):
       # seed += GetGlobalStep() * 203984
       pass
     noises = tf.random.normal(tf.shape(x), stddev=1.0, seed=seed, dtype=x.dtype)
-
   scale = tf.where(GetGlobalStep() >= p.vn.start_step, p.vn.scale, 0.0)
   return x + tf.cast(scale, x.dtype) * noises
 
