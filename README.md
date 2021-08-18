@@ -301,6 +301,7 @@ To run the StarNet model using CloudTPUs on GCP, please refer to
 *   [mt.wmt14_en_de.WmtEnDeTransformerBase](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>7</sup>
 *   [mt.wmt14_en_de.WmtEnDeRNMT](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>7</sup>
 *   [mt.wmtm16_en_de.WmtCaptionEnDeTransformer](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmtm16_en_de.py)<sup>7</sup>
+*   [mt.wmt14_en_de_xendec.WmtEnDeXEnDec](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de_xendec.py)<sup>8</sup>
 
 <font size="-1">
 
@@ -336,6 +337,10 @@ Translation](http://aclweb.org/anthology/P18-1008). Mia X. Chen, Orhan Firat,
 Ankur Bapna, Melvin Johnson, Wolfgang Macherey, George Foster, Llion Jones, Mike
 Schuster, Noam Shazeer, Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz
 Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff Hughes. ACL 2018.
+
+\[8]: [Self-supervised and Supervised Joint Training for Resource-rich Neural
+Machine Translation](https://arxiv.org/pdf/2106.04060.pdf). Yong Cheng, Wei
+Wang, Lu Jiang, and Wolfgang Macherey. ICML 2021.
 
 </font>
 

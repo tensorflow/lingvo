@@ -31,9 +31,9 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
   """Params for WMT'14 En->De experiments in https://arxiv.org/abs/2106.04060."""
 
   DATADIR = '/tmp/wmt14ende/'
-  DATATRAIN = '/tmp/wmt14ende/tmp-*'
-  DATADEV = '/tmp/wmt14ende/tmp-000-010'
-  DATATEST = '/tmp/wmt14ende/tmp-000-010'
+  DATATRAIN = 'tmp-*'
+  DATADEV = 'tmp-000-010'
+  DATATEST = 'tmp-000-010'
   VOCAB = '/tmp/wmt14ende/wordpiece-mixed.vocab'
   PACKED_INPUT = True
   vocab_size = 32000
@@ -52,14 +52,13 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
   source_mask_ratio_beta = '2,6'
   mask_word_id = 3
   pad_id = 4
-  mask_words_ratio = 0.50
+  mask_words_ratio = 0.25
   permutation_distance = 3
-  beta_ratio = 0.0
   loss_mix_weight = 1.0
   loss_clean_weight = 1.0
   loss_mono_weight = 1.0
 
-  batch_size_ratio = 0.01
+  batch_size_ratio = 1
   learning_rate = 1.0
   num_samples = 4506303
   use_prob_cl = True
