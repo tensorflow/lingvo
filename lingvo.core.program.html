@@ -301,11 +301,14 @@ available to be executed on demand without significant delay.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.Run">
-<span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.Run" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.Run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Execute the program using the given session handle.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – TF Session.</p></li>
+<li><p><strong>threadpool</strong> – A ThreadPool on the executor for running async functions.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Whether to end all execution.</p>
@@ -314,12 +317,6 @@ available to be executed on demand without significant delay.</p>
 <dd class="field-odd"><p>done</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.RunAsync">
-<span class="sig-name descname"><span class="pre">RunAsync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.RunAsync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.RunAsync" title="Permalink to this definition">¶</a></dt>
-<dd><p>Same as Run for now as there is no processing that need to run async.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -405,7 +402,10 @@ or a MultiTaskSubModel.</p>
 <dd><p>Execute the program using the given session handle.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – TF Session.</p></li>
+<li><p><strong>threadpool</strong> – A ThreadPool on the executor for running async functions.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Whether to end all execution.</p>
@@ -462,7 +462,10 @@ or a MultiTaskSubModel.</p>
 <dd><p>Execute the program using the given session handle.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – TF Session.</p></li>
+<li><p><strong>threadpool</strong> – A ThreadPool on the executor for running async functions.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Whether to end all execution.</p>
@@ -471,12 +474,6 @@ or a MultiTaskSubModel.</p>
 <dd class="field-odd"><p>done</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.EvalProgram.RunAsync">
-<span class="sig-name descname"><span class="pre">RunAsync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#EvalProgram.RunAsync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.EvalProgram.RunAsync" title="Permalink to this definition">¶</a></dt>
-<dd><p>Same as Run for now as there is no processing that need to run async.</p>
 </dd></dl>
 
 </dd></dl>
@@ -493,9 +490,21 @@ or a MultiTaskSubModel.</p>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>DecodeProgram.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Defaults parameters for Programs.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._CompileDecodeFn">
 <span class="sig-name descname"><span class="pre">_CompileDecodeFn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._CompileDecodeFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._CompileDecodeFn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrap the DecodeFn with split_compile_and_shard.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop">
+<span class="sig-name descname"><span class="pre">_DecodeUntilOutOfRangeInfeedLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infeed_step_queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._DecodeUntilOutOfRangeInfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infeed loop that stops when it runs out of data (OutOfRange error).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -507,9 +516,9 @@ or a MultiTaskSubModel.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._SetupRun">
-<span class="sig-name descname"><span class="pre">_SetupRun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._SetupRun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._SetupRun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set up the common objects for the program run.</p>
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._DecodeStep">
+<span class="sig-name descname"><span class="pre">_DecodeStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_futures</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._DecodeStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._DecodeStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run one iteration of decode.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -526,25 +535,8 @@ or a MultiTaskSubModel.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.Run">
-<span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Execute the program using the given session handle.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Whether to end all execution.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>done</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.RunAsync">
-<span class="sig-name descname"><span class="pre">RunAsync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.RunAsync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.RunAsync" title="Permalink to this definition">¶</a></dt>
-<dd><p>First finish TPU+host processing, then run CPU postprocessing async.</p>
+<span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup and execute Decode program.</p>
 </dd></dl>
 
 </dd></dl>
@@ -599,25 +591,8 @@ batch size).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.Run">
-<span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Execute the program using the given session handle.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Whether to end all execution.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>done</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.RunAsync">
-<span class="sig-name descname"><span class="pre">RunAsync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.RunAsync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.RunAsync" title="Permalink to this definition">¶</a></dt>
-<dd><p>Same as Run for now, make async later if performance is slow.</p>
+<span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup and execute Decode program.</p>
 </dd></dl>
 
 </dd></dl>
@@ -664,7 +639,10 @@ batch size).</p>
 <dd><p>Execute the program using the given session handle.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – TF Session.</p></li>
+<li><p><strong>threadpool</strong> – A ThreadPool on the executor for running async functions.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Whether to end all execution.</p>
@@ -673,12 +651,6 @@ batch size).</p>
 <dd class="field-odd"><p>done</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.MLPerfTrainDecodeProgram.RunAsync">
-<span class="sig-name descname"><span class="pre">RunAsync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram.RunAsync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram.RunAsync" title="Permalink to this definition">¶</a></dt>
-<dd><p>Same as Run for now, make async later if performance is slow.</p>
 </dd></dl>
 
 </dd></dl>
@@ -729,7 +701,7 @@ Run all the eval_programs</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program.SimpleProgramScheduleForTask">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">train_dataset_name</span></em>, <em class="sig-param"><span class="pre">train_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">eval_dataset_names</span></em>, <em class="sig-param"><span class="pre">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">decode_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">experimental_decoder=False</span></em>, <em class="sig-param"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">async_postprocess=True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">train_dataset_name</span></em>, <em class="sig-param"><span class="pre">train_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">eval_dataset_names</span></em>, <em class="sig-param"><span class="pre">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">decode_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">experimental_decoder=False</span></em>, <em class="sig-param"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">async_postprocess=True</span></em>, <em class="sig-param"><span class="pre">decode_until_out_of_range=False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -755,6 +727,11 @@ blocking training. But if the CPU postprocessing takes more time compared
 to Train, then multiple Train loops could complete before Decode finishes
 for an older global step. Then the latest Decode results do not correspond
 to the latest trained model.</p></li>
+<li><p><strong>decode_until_out_of_range</strong> – bool. Whether to run Decode (and its Infeed loop)
+until there is no more data (OutOfRange error is thrown). If this is True,
+decode_steps_per_loop is ignored (and not required). Currently do not
+support ExperimentalDecodeProgram, which uses loop on TPU. So keep
+experimental_decoder=False</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
