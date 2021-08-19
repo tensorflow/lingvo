@@ -79,7 +79,6 @@ py_library(
         ":layers",
         "//lingvo:compat",
         "//lingvo/core:base_model",
-        "//lingvo/core:layers_with_attention",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
     ],

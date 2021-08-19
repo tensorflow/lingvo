@@ -17,7 +17,6 @@
 
 import lingvo.compat as tf
 from lingvo.core import base_model
-from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.tasks.lm import layers
@@ -415,7 +414,7 @@ class PackedBatchMajorLanguageModel(base_model.BaseTask):
     self.CreateChild('lm', p.lm)
 
   def FPropTower(self, theta, input_batch):
-    with layers_with_attention.AuxLossContext() as aux_loss_ctx:
+    with py_utils.AuxLossContext() as aux_loss_ctx:
       assert aux_loss_ctx is not None
       p = self.params
       fprop_dtype = py_utils.FPropDtype(p)

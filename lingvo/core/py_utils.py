@@ -6078,3 +6078,41 @@ def GetTpuEmbeddingGraphCollection():
   tpu_emb_graph_collection = tf.get_collection_ref('__tpu_embedding_collection')
   assert len(tpu_emb_graph_collection) <= 1
   return tpu_emb_graph_collection
+
+
+class AuxLossContext:
+  """Context that holds a list of aux-losses.
+
+  By default it is non-reentrant, but can be specified as reentrant explicitly
+  when creating an inner context.
+  """
+
+  _global_stack = []
+
+  @classmethod
+  def Current(cls):
+    """Returns current context or None."""
+    if cls._global_stack:
+      return cls._global_stack[-1]
+    else:
+      return None
+
+  def __init__(self, reentrant=False):
+    self.aux_loss_tensors = []
+    self._reentrant = reentrant
+
+  def AddLoss(self, loss):
+    self.aux_loss_tensors.append(loss)
+
+  @property
+  def aux_losses(self):
+    return self.aux_loss_tensors
+
+  def __enter__(self):
+    if not self._reentrant:
+      assert not self._global_stack, 'no re-entry'
+    self._global_stack.append(self)
+    return self
+
+  def __exit__(self, *args):
+    self._global_stack.pop()

@@ -16,7 +16,6 @@
 
 import lingvo.compat as tf
 from lingvo.core import base_model
-from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.tasks.asr import decoder
@@ -163,7 +162,7 @@ class AsrModel(base_model.BaseTask):
     if p.frontend:
       with tf.name_scope('frontend'):
         input_batch_src = self.frontend.FProp(theta.frontend, input_batch_src)
-    with layers_with_attention.AuxLossContext() as aux_loss_ctx:
+    with py_utils.AuxLossContext() as aux_loss_ctx:
       if initial_state:
         encoder_outputs = self.encoder.FProp(
             theta.encoder, input_batch_src, state0=initial_state)

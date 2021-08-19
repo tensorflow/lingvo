@@ -221,7 +221,6 @@ py_library(
         ":frontend",
         "//lingvo:compat",
         "//lingvo/core:base_model",
-        "//lingvo/core:layers_with_attention",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
         "//lingvo/tools:audio_lib",

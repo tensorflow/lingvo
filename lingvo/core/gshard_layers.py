@@ -460,8 +460,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                 **kwargs):
     p = self.params
     with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
-      return self._BodyFPropInternal(theta, fn_name, iteration,
-                                     num_microbatches, *args, **kwargs)
+      outputs, control_out, aux_losses = self._BodyFPropInternal(
+          theta, fn_name, iteration, num_microbatches, *args, **kwargs)
+
+    outer_aux_loss_context = py_utils.AuxLossContext.Current()
+    if outer_aux_loss_context:
+      for aux_loss in aux_losses:
+        aux_loss.set_shape([p.num_stages])
+        outer_aux_loss_context.AddLoss(aux_loss)
+    return outputs, control_out
 
   def BodyFPropNoMicrobatching(self, theta, fn_name, *args, **kwargs):
     return self.BodyFProp(
@@ -471,6 +478,22 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         1,  # num_microbatches
         *args,
         **kwargs)
+
+  def _MicrobatchAndRepeatIDs(self, iteration):
+    """Returns microbatch IDs and repeat IDs for each stage."""
+    p = self.params
+    stage_ids = tf.range(p.num_stages)
+    microbatch_ids = tf.maximum(iteration - stage_ids, 0)
+
+    if p.circular_repeat > 1:
+      repeat_id = tf.math.mod(
+          tf.div(microbatch_ids, p.num_stages), p.circular_repeat)
+      segment_id = tf.div(microbatch_ids, p.circular_repeat * p.num_stages)
+      microbatch_ids = segment_id * p.num_stages + tf.math.mod(
+          microbatch_ids, p.num_stages)
+    else:
+      repeat_id = tf.zeros_like(stage_ids)
+    return microbatch_ids, repeat_id
 
   def _BodyFPropInternal(self, theta, fn_name, iteration, num_microbatches,
                          *args, **kwargs):
@@ -488,17 +511,20 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
     def _BodyFProp(x):
       with self.TransformVarsTempContext(_WrapWithTracking):
-        if p.per_stage_vars:
-          outs = getattr(self.body_iter_00000, fn_name)(x.theta, *x.args,
-                                                        **x.kwargs)
-        else:
-          outs = getattr(self.body, fn_name)(x.theta, *x.args, **x.kwargs)
-        if not wrappers:
-          return outs, tf.zeros([], dtype=tf.int32)
-        with tf.control_dependencies(
-            [w.control_after_assigns() for w in wrappers]):
-          control_out = tf.zeros([], dtype=tf.int32)
-        return outs, control_out
+        # Create an inner aux loss context, and extract the aux losses as extra
+        # outputs so that the function can be vectorized.
+        with py_utils.AuxLossContext(reentrant=True) as al_ctx:
+          if p.per_stage_vars:
+            outs = getattr(self.body_iter_00000, fn_name)(x.theta, *x.args,
+                                                          **x.kwargs)
+          else:
+            outs = getattr(self.body, fn_name)(x.theta, *x.args, **x.kwargs)
+          if not wrappers:
+            return outs, tf.zeros([], dtype=tf.int32), al_ctx.aux_losses
+          with tf.control_dependencies(
+              [w.control_after_assigns() for w in wrappers]):
+            control_out = tf.zeros([], dtype=tf.int32)
+          return outs, control_out, al_ctx.aux_losses
 
     if p.stage_parallel_body is not None:
       return _BodyFProp(theta, *args, **kwargs)
@@ -530,22 +556,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       stage_id = _ToManual(tf.range(p.num_stages))
 
-      def _ManualConst(x):
-        return _ToManualReplicate(tf.constant(x, dtype=stage_id.dtype))
-
-      microbatch_id = tf.maximum(
-          _ToManualReplicate(iteration) - stage_id, _ManualConst(0))
+      microbatch_ids, repeat_ids = self._MicrobatchAndRepeatIDs(iteration)
+      microbatch_id = _ToManual(microbatch_ids)
+      repeat_id = _ToManual(repeat_ids)
 
       if p.circular_repeat > 1:
-        repeat_id = tf.math.mod(
-            tf.div(microbatch_id, _ManualConst(p.num_stages)),
-            _ManualConst(p.circular_repeat))
         one_stage_theta_args.theta = tf.nest.map_structure(
             lambda x: x[repeat_id], one_stage_theta_args.theta)
-        segment_id = tf.div(microbatch_id,
-                            _ManualConst(p.circular_repeat * p.num_stages))
-        microbatch_id = segment_id * _ManualConst(p.num_stages) + tf.math.mod(
-            microbatch_id, _ManualConst(p.num_stages))
 
       microbatch_id = tf.minimum(microbatch_id, num_microbatches - 1)
 
@@ -568,7 +585,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         with py_utils.StepSeedIncrementContext(p.num_stages):
           with py_utils.GlobalStepContext(
               _ToManualReplicate(py_utils.GetGlobalStep())):
-            one_stage_outputs, control_out = _BodyFProp(one_stage_theta_args)
+            one_stage_outputs, control_out, aux_losses = _BodyFProp(
+                one_stage_theta_args)
 
       def _ToAuto(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
@@ -582,7 +600,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       # Reset step seed to the last stage's final seed.
       py_utils.ResetStepSeed(_ToAuto(py_utils.GetStepSeed())[-1])
-      return tf.nest.map_structure(_ToAuto, one_stage_outputs), control_out
+      # Convert aux losses to per-stage vector losses.
+      outputs = tf.nest.map_structure(_ToAuto, one_stage_outputs)
+      aux_losses = tf.nest.map_structure(_ToAuto, aux_losses)
+      return outputs, control_out, aux_losses
 
     else:
       # TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped
@@ -807,6 +828,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       per_stage_states = inputs_and_per_stage_states.per_stage_states
       tf.nest.map_structure(lambda x, y: x.set_shape(y.shape[1:]),
                             per_stage_states, padded_per_stage_states)
+      state0.iteration.set_shape([])
+      state0.aux_loss.set_shape([])
 
       def _SelectInput(state, inp):
         in_mask = tf.equal(tf.range(p.num_stages), 0)
@@ -840,20 +863,25 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       assigns = tf.nest.map_structure(lambda v, s: v.assign(s),
                                       self._non_trainable_vars,
                                       state0.non_trainable_vars)
-      if assigns:
-        # Group the dependencies int to a single no_op to avoid quadratic number
-        # of control edges.
-        with tf.control_dependencies(assigns):
-          ctrl_before = tf.no_op()
-        with tf.control_dependencies([ctrl_before]):
+
+      def _BodyFPropWithAuxLoss():
+        with py_utils.AuxLossContext(reentrant=True) as al_ctx:
           fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
                                                num_microbatches,
                                                *selected_inputs,
                                                *per_stage_states, **kwargs)
+          aux_losses = al_ctx.aux_losses
+        return fprop_outputs, ctrl, aux_losses
+
+      if assigns:
+        # Group the dependencies into a single no_op to avoid quadratic number
+        # of control edges.
+        with tf.control_dependencies(assigns):
+          ctrl_before = tf.no_op()
+        with tf.control_dependencies([ctrl_before]):
+          fprop_outputs, ctrl, aux_losses = _BodyFPropWithAuxLoss()
       else:
-        fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
-                                             num_microbatches, *selected_inputs,
-                                             *per_stage_states, **kwargs)
+        fprop_outputs, ctrl, aux_losses = _BodyFPropWithAuxLoss()
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(selected_inputs) + len(per_stage_states)
 
@@ -863,12 +891,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           per_stage_states=list(fprop_outputs[len(selected_inputs):]),
           iteration=state0.iteration + tf.constant(1, dtype=tf.int32))
 
-      # Pass state0.non_trainable_vars or updated values depending on whether
-      # it is a bubble iteration.
-      def _NextIterNonTrainableVar(v, v0):
-        mb_id = state0.iteration - tf.range(p.num_stages)
+      # v and v0 are the new and old values for each stage with leading dim
+      # num_stages. Selects v if it's a valid iteration and v0 if it's a bubble.
+      def _NewValueIfValidIter(v, v0):
+        mb_id, _ = self._MicrobatchAndRepeatIDs(state0.iteration)
         valid_iter = tf.logical_and(
-            tf.less(mb_id, num_microbatches), tf.greater_equal(mb_id, 0))
+            tf.less(mb_id, num_microbatches),
+            tf.greater_equal(state0.iteration, tf.range(p.num_stages)))
         with tf.control_dependencies([ctrl]):
           v1 = tf.identity(v)
         return tf.where(
@@ -877,9 +906,19 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                            [p.num_stages] + [1] * (len(v.shape) - 1)), v.shape),
             v1, v0)
 
+      # Pass state0.non_trainable_vars or updated values depending on whether
+      # it is a bubble iteration.
       state1.non_trainable_vars = tf.nest.map_structure(
-          _NextIterNonTrainableVar, self._non_trainable_vars,
+          _NewValueIfValidIter, self._non_trainable_vars,
           state0.non_trainable_vars)
+
+      if aux_losses:
+        aux_losses = tf.add_n(
+            [tf.cast(l, state0.aux_loss.dtype) for l in aux_losses])
+        state1.aux_loss = state0.aux_loss + tf.reduce_sum(
+            _NewValueIfValidIter(aux_losses, tf.zeros_like(aux_losses)))
+      else:
+        state1.aux_loss = state0.aux_loss
       return state1, py_utils.NestedMap()
 
     with tf.name_scope(p.name):
@@ -894,6 +933,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           per_stage_states=tf.nest.map_structure(_CreateInitState,
                                                  padded_per_stage_states),
           iteration=tf.constant(0, dtype=tf.int32),
+          aux_loss=tf.constant(0, dtype=tf.float32),
           non_trainable_vars=tf.nest.map_structure(tf.identity,
                                                    self._non_trainable_vars))
       final_non_trainable_var_values = None
@@ -946,6 +986,10 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           output_tensors = tf.nest.map_structure(tf.identity, output_tensors)
           output_per_stage_states = tf.nest.map_structure(
               tf.identity, output_per_stage_states)
+
+      aux_loss_context = py_utils.AuxLossContext.Current()
+      if aux_loss_context:
+        aux_loss_context.AddLoss(outputs.aux_loss)
 
       if p.shard_stages_1d:
         output_tensors = tf.nest.map_structure(_Replicate, output_tensors)

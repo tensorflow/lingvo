@@ -137,7 +137,7 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       hybrid_fflayer = layers_with_attention.HybridFeedforwardLayer(hybrid_p)
 
-      with layers_with_attention.AuxLossContext() as aux_loss_ctx:
+      with py_utils.AuxLossContext() as aux_loss_ctx:
         with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES,
                                        {symbol_sub_key: 'ff'}):
           outputs_ff = hybrid_fflayer.FPropDefaultTheta(inputs, paddings)
@@ -2956,7 +2956,7 @@ class SelfAttentiveLayerTest(test_utils.TestCase):
       params.penalty_terms = [1.0, 0.33, 0.01]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       # forward through the layer
-      with layers_with_attention.AuxLossContext() as aux_loss_ctx:
+      with py_utils.AuxLossContext() as aux_loss_ctx:
         att_layer = layers_with_attention.SelfAttentiveLayer(params)
         outputs = att_layer.FProp(att_layer.theta, features, paddings=paddings)
         tf.global_variables_initializer().run()

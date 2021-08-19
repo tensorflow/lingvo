@@ -702,10 +702,10 @@ class MoEFeedforwardLayer(base_layer.BaseLayer):
       moe_in = py_utils.NestedMap(
           vec=inputs, segment_id=segment_ids, segment_pos=segment_pos)
       moe_out = self.moe_fflayer.FProp(theta.moe_fflayer, moe_in)
-      aux_loss_ctx = AuxLossContext.current()
+      aux_loss_ctx = py_utils.AuxLossContext.Current()
       if aux_loss_ctx is None:
         raise ValueError('aux_loss_ctx should not be None.')
-      aux_loss_ctx.add_loss(moe_out.aux_loss)
+      aux_loss_ctx.AddLoss(moe_out.aux_loss)
       return moe_out.vec
 
 
@@ -751,39 +751,6 @@ class HybridFeedforwardLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       return self.children[self.sub_key].FProp(theta[self.sub_key], inputs,
                                                paddings)
-
-
-# TODO(yonghui): Move this to the right place.
-class AuxLossContext:
-  """Non-reentrant context that holds a list of aux-losses."""
-
-  _global_stack = []
-
-  @classmethod
-  def current(cls):
-    """Returns current context or None."""
-    if cls._global_stack:
-      return cls._global_stack[-1]
-    else:
-      return None
-
-  def __init__(self):
-    self.aux_loss_tensors = []
-
-  def add_loss(self, loss):
-    self.aux_loss_tensors.append(loss)
-
-  @property
-  def aux_losses(self):
-    return self.aux_loss_tensors
-
-  def __enter__(self):
-    assert not self._global_stack, 'no re-entry'
-    self._global_stack.append(self)
-    return self
-
-  def __exit__(self, *args):
-    self._global_stack.pop()
 
 
 class TransformerShardedMoeLayer(base_layer.BaseLayer):
@@ -1123,9 +1090,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
       # Add loss to a global collection. We don't return the loss to the caller
       # to avoid the change of the api here.
-      aux_loss_ctx = AuxLossContext.current()
+      aux_loss_ctx = py_utils.AuxLossContext.Current()
       if aux_loss_ctx is not None:
-        aux_loss_ctx.add_loss(aux_loss)
+        aux_loss_ctx.AddLoss(aux_loss)
 
       return out
 
@@ -2916,13 +2883,13 @@ class SelfAttentiveLayer(base_layer.BaseLayer):
     values_at = tf.transpose(values_a, [0, 2, 1])
     outputs = tf.matmul(values_at, inputs)
 
-    aux_loss_ctx = AuxLossContext.current()
+    aux_loss_ctx = py_utils.AuxLossContext.Current()
     if aux_loss_ctx is not None:
       penmat = tf.linalg.diag(p.penalty_terms)
       terms = tf.tile(penmat, [inputs.shape[0], 1])
       terms = tf.reshape(terms, [inputs.shape[0], p.num_heads, p.num_heads])
       values = tf.matmul(values_at, values_a)
       penalty = tf.reduce_sum(tf.square(values - terms), axis=[-2, -1])
-      aux_loss_ctx.add_loss(p.penalty_coef * penalty)
+      aux_loss_ctx.AddLoss(p.penalty_coef * penalty)
 
     return outputs
