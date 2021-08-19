@@ -2209,7 +2209,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">state0</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
           <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">per_head_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
-      <span class="n">state0</span><span class="o">.</span><span class="n">out_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">out_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
       <span class="c1"># This is used only if the caller of the layer uses skip_connection in</span>
       <span class="c1"># the layer&#39;s client code.</span>
       <span class="n">state0</span><span class="o">.</span><span class="n">skip_conn_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
@@ -2572,17 +2572,20 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="n">query_proj</span> <span class="o">*=</span> <span class="n">h</span><span class="o">**-</span><span class="mf">0.5</span>
 
+      <span class="n">input_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># [B, Q, N, H]</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query_proj</span>
-        <span class="n">out_masks</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">paddings</span>
+        <span class="n">out_masks</span> <span class="o">=</span> <span class="n">input_masks</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">paddings</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># [B, R + Q, N, H]</span>
         <span class="n">concat_query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># [B, Q, N, H]</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
-        <span class="n">concat_out_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">out_masks</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">concat_out_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">out_masks</span><span class="p">,</span> <span class="n">input_masks</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">out_masks</span> <span class="o">=</span> <span class="n">concat_out_masks</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">out_masks</span><span class="p">),</span> <span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
       <span class="c1"># key, value, mask.</span>
       <span class="c1"># [B, T, N, H].</span>
@@ -2596,7 +2599,6 @@
           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_value&#39;</span><span class="p">)</span>
       <span class="c1"># [B, T]</span>
-      <span class="n">input_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
       <span class="n">state_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">input_masks</span><span class="p">],</span>
                               <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_masks&#39;</span><span class="p">)</span>
@@ -2650,7 +2652,7 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">out_masks</span> <span class="o">=</span> <span class="n">concat_out_masks</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
-      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">out_masks</span><span class="p">,</span> <span class="n">state1</span></div>
+      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">out_paddings</span><span class="p">,</span> <span class="n">state1</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
