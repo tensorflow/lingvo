@@ -1961,8 +1961,8 @@ class LocalSelfAttention(MultiHeadedAttention):
       A `.NestedMap` object containing
 
       - inputs: [B, p.inference_step_max_length + p.left_context - 1, D]
-      - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-        Tensor where 0s are masked out positions.
+      - masks: [B, p.inference_step_max_length + p.left_context-1]. A tf.bool
+        Tensor where Falses are masked out positions.
       - circular_tail: [B, 1], currently only exists if
         use_3d_recurrent_state is True, the tail pointer to key, value and
         paddings circular buffers.
@@ -1976,7 +1976,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     inputs = tf.zeros([batch_size, context_len, p.input_dim],
                       py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
-    masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
+    masks = tf.zeros([batch_size, context_len], tf.bool)
     state0 = py_utils.NestedMap(inputs=inputs, masks=masks)
     if p.use_3d_recurrent_state:
       state0.circular_tail = tf.zeros([batch_size, 1], tf.int32)
@@ -1995,8 +1995,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         [..., N * H] if p.use_3d_recurrent_state.
       - value: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
         [..., N * H] if p.use_3d_recurrent_state.
-      - masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-        Tensor where 0s are masked out positions.
+      - masks: [B, p.inference_step_max_length + p.left_context-1]. A tf.bool
+        Tensor where Falses are masked out positions.
       - circular_tail: [B, 1], currently only effective if
         use_3d_recurrent_state is True, the tail pointer to key, value and
         paddings circular buffers.
@@ -2016,7 +2016,7 @@ class LocalSelfAttention(MultiHeadedAttention):
                            py_utils.FPropDtype(p))
     value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
-    masks = tf.zeros([batch_size, context_len], py_utils.FPropDtype(p))
+    masks = tf.zeros([batch_size, context_len], tf.bool)
     state0 = py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
     if p.use_3d_recurrent_state:
       state0.circular_tail = tf.zeros([batch_size, 1], tf.int32)
@@ -2034,7 +2034,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       context_len = p.left_context - 1 + p.right_context
       - key:   [B, context_len, N, H].
       - value: [B, context_len, N, H].
-      - masks: [B, context_len]. A 0/1 Tensor where 0s are masked out positions.
+      - masks: [B, context_len]. A Tensor where Falses are masked out positions.
       - query: (only if p.right_context > 0) [B, p.right_context, N, H].
       - out_masks : (only if p.right_context> 0): [B, p.right_context].
     """
@@ -2049,7 +2049,7 @@ class LocalSelfAttention(MultiHeadedAttention):
                          dtype)
     value_state = tf.zeros_like(key_state, dtype)
     # At the beginning, all positions are masked out.
-    masks = tf.zeros([batch_size, context_len], dtype)
+    masks = tf.zeros([batch_size, context_len], tf.bool)
     state0 = py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
     if p.right_context > 0:
       state0.query = tf.zeros(
@@ -2301,11 +2301,12 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # paddings
     # [B, S]. 1s are masked positions.
+    input_masks = tf.cast(1 - paddings, tf.bool)
     if p.use_3d_recurrent_state:
       new_masks = tf.tensor_scatter_nd_update(state0.masks, indices,
-                                              1 - paddings)
+                                              input_masks)
     else:
-      new_masks = tf.concat([state0.masks, 1 - paddings], axis=1)[:, -dims.s:]
+      new_masks = tf.concat([state0.masks, input_masks], axis=1)[:, -dims.s:]
 
     # [B, 1]
     if p.use_3d_recurrent_state:
@@ -2370,7 +2371,7 @@ class LocalSelfAttention(MultiHeadedAttention):
           local_atten_per_step_masks = tf.expand_dims(
               local_atten_per_step_masks, 0)
         # [B, 1, S]
-        expanded_state_masks = tf.expand_dims(tf.cast(state1.masks, tf.bool), 1)
+        expanded_state_masks = tf.expand_dims(state1.masks, 1)
 
         # [B, Q, S]
         final_masks = tf.logical_and(expanded_state_masks,
@@ -2440,7 +2441,8 @@ class LocalSelfAttention(MultiHeadedAttention):
           axis=1,
           name='concat_value')
       # [B, T]
-      state_masks = tf.concat([state0.masks, 1 - paddings],
+      input_masks = tf.cast(1 - paddings, tf.bool)
+      state_masks = tf.concat([state0.masks, input_masks],
                               axis=1,
                               name='concat_masks')
 
@@ -2464,7 +2466,7 @@ class LocalSelfAttention(MultiHeadedAttention):
         local_atten_per_step_masks = tf.expand_dims(local_atten_per_step_masks,
                                                     0)
         # [B, 1, T]
-        expanded_state_masks = tf.expand_dims(tf.cast(state_masks, tf.bool), 1)
+        expanded_state_masks = tf.expand_dims(state_masks, 1)
 
         # [B, Q, T]
         final_masks = tf.logical_and(expanded_state_masks,
