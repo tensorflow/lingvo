@@ -17,6 +17,7 @@
 
 import multiprocessing.dummy
 import os
+import queue
 import time
 
 from lingvo import base_trial
@@ -272,21 +273,17 @@ class BaseProgram:
             proto.status_error_message))
       tf.logging.info('Compiling %s done.', self._program_name)
 
-  def Run(self, sess):
+  def Run(self, sess, threadpool=None):
     """Execute the program using the given session handle.
 
     Args:
       sess: TF Session.
+      threadpool: A ThreadPool on the executor for running async functions.
 
     Returns:
       done: Whether to end all execution.
     """
     raise NotImplementedError()
-
-  def RunAsync(self, sess, threadpool):
-    """Same as Run for now as there is no processing that need to run async."""
-    del threadpool  # Not used.
-    self.Run(sess)
 
   def Shutdown(self):
     """Runs any necessary cleanup (potentially blocking)."""
@@ -652,11 +649,6 @@ class EvalProgram(BaseProgram):
     return self._ReportVizierMetrics(global_step,
                                      self._eval_metrics.ToAverageMetrics())
 
-  def RunAsync(self, sess, threadpool):
-    """Same as Run for now as there is no processing that need to run async."""
-    del threadpool  # Not used.
-    self.Run(sess)
-
 
 def _FetchDecodeOut(sess, decode_tensors, cpu_passthrough_tensors):
   """Fetch decoder outputs, combining with CPU passthrough tensors if needed."""
@@ -676,6 +668,14 @@ def _FetchDecodeOut(sess, decode_tensors, cpu_passthrough_tensors):
 
 class DecodeProgram(BaseProgram):
   """DecodeProgram."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('decode_until_out_of_range', False,
+             ('If set, ignores steps_per_loop and Decode proceeds until an '
+              'OutOfRangeError is triggered by hitting the end of dataset.'))
+    return p
 
   def __init__(self, params, shared_model=None, **kwargs):
     super().__init__(params, shared_model=shared_model, **kwargs)
@@ -713,6 +713,26 @@ class DecodeProgram(BaseProgram):
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
     self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
 
+  def _DecodeUntilOutOfRangeInfeedLoop(self, sess, infeed_step_queue):
+    """Infeed loop that stops when it runs out of data (OutOfRange error)."""
+    tf.logging.info(f'_InfeedLoop start {self._program_name} '
+                    f'on dataset {self.params.dataset_name}')
+    try:
+      loop_index = 0
+      while True:
+        tf.logging.vlog(1, '_InfeedLoop %d', loop_index)
+        sess.run(self._task.input.tpu_infeed_op)
+        infeed_step_queue.put(loop_index)
+        loop_index += 1
+    except tf.errors.OutOfRangeError:
+      tf.logging.info(f'End of dataset {self.params.dataset_name}.')
+      infeed_step_queue.put(-1)  # -1 signals reaching end of dataset.
+      self._WriteInputDataStats(sess)
+      tf.logging.info('_InfeedLoop done')
+    except Exception as e:
+      tf.logging.info('_InfeedLoop exception %r', e)
+      raise
+
   def BuildTpuSubgraph(self):
     tf.logging.info(
         f'DecodeProgram {self.params.dataset_name} BuildTpuSubGraph')
@@ -721,26 +741,30 @@ class DecodeProgram(BaseProgram):
       self._CompileDecodeFn()
     return None
 
-  def _SetupRun(self, sess):
-    """Set up the common objects for the program run."""
-    global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage(
-        f'Executing decode program on dataset {self.params.dataset_name} '
-        f'at step {global_step}')
-
-    if self._task.input.params.resettable:
-      tf.logging.info('Resetting input_generator.')
-      self._task.input.Reset(sess)
-
-    infeed_future = self._infeed_pool.apply_async(
-        self._InfeedLoop, args=(sess,))
-    dec_metrics = self._task.CreateDecoderMetrics()
-    dec_metrics.update({
-        'decode_secs': metrics.AverageMetric(),
-        'postprocess_secs': metrics.AverageMetric(),
-    })
-    start_time = time.time()
-    return global_step, infeed_future, dec_metrics, start_time
+  def _DecodeStep(self,
+                  sess,
+                  step,
+                  dec_metrics,
+                  global_step,
+                  buffered_decode_out,
+                  postprocess_futures,
+                  threadpool=None):
+    """Run one iteration of decode."""
+    tf.logging.info('Decoding step %f', step)
+    fetch_start = time.time()
+    decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
+    tf.logging.info('Finished TPU decoding on step %f', step)
+    dec_metrics['decode_secs'].Update(time.time() - fetch_start)
+    if threadpool:
+      # Run postprocess on separate CPU thread.
+      postprocess_futures.append(
+          threadpool.apply_async(
+              self._PostProcessStep,
+              args=(step, decode_out_dict, dec_metrics, global_step,
+                    buffered_decode_out)))
+    else:
+      self._PostProcessStep(step, decode_out_dict, dec_metrics, global_step,
+                            buffered_decode_out)
 
   def _PostProcessStep(self, idx, decode_out_dict, dec_metrics, global_step,
                        buffered_decode_out):
@@ -748,7 +772,7 @@ class DecodeProgram(BaseProgram):
     post_process_start = time.time()
     decode_out = self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
     dec_metrics['postprocess_secs'].Update(time.time() - post_process_start)
-    tf.logging.info('step: %d %f' %
+    tf.logging.info('PostProcessed step: %d %f' %
                     (idx, dec_metrics['num_samples_in_batch'].total_value))
     if decode_out:
       if isinstance(decode_out, dict):
@@ -795,49 +819,76 @@ class DecodeProgram(BaseProgram):
     # Result is not returned as a signal for "done", unlike for training.
     self._ReportVizierMetrics(global_step, dec_metrics)
 
-  def Run(self, sess):
-    global_step, infeed_future, dec_metrics, start_time = self._SetupRun(sess)
+  def Run(self, sess, threadpool=None):
+    """Setup and execute Decode program."""
+    global_step = sess.run(self._model.global_step)
+    self.SetStatusMessage(
+        f'Executing decode program on dataset {self.params.dataset_name} '
+        f'at step {global_step}')
+
+    if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
+
+    # The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop
+    # (that runs _DecodeStep). As an input batch is successfully fed through
+    # the _InfeedLoop, a non-negative counter value is added to the queue.
+    # _DecodeStep waits and only runs if it can successfully remove an item
+    # from the queue (i.e. there is available data). If End of Dataset is
+    # reached (OutOfRangeError), _InfeedLoop inserts a special value of "-1",
+    # which will terminate the Decode loop once it's consumed from the queue.
+    if self.params.decode_until_out_of_range:
+      infeed_step_queue = queue.Queue()
+      infeed_future = self._infeed_pool.apply_async(
+          self._DecodeUntilOutOfRangeInfeedLoop,
+          args=(
+              sess,
+              infeed_step_queue,
+          ))
+    else:
+      infeed_future = self._infeed_pool.apply_async(
+          self._InfeedLoop, args=(sess,))
+
+    dec_metrics = self._task.CreateDecoderMetrics()
+    dec_metrics.update({
+        'decode_secs': metrics.AverageMetric(),
+        'postprocess_secs': metrics.AverageMetric(),
+    })
+
     buffered_decode_out = []
-
-    for i in range(self._steps_per_loop):
-      fetch_start = time.time()
-      decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
-      dec_metrics['decode_secs'].Update(time.time() - fetch_start)
-      self._PostProcessStep(i, decode_out_dict, dec_metrics, global_step,
-                            buffered_decode_out)
-    infeed_future.wait()
-
-    self._FinalizeDecode(dec_metrics, start_time, global_step,
-                         buffered_decode_out)
-
-  def RunAsync(self, sess, threadpool):
-    """First finish TPU+host processing, then run CPU postprocessing async."""
-    global_step, infeed_future, dec_metrics, start_time = self._SetupRun(sess)
-    buffered_decode_out = []
-
     postprocess_futures = []
-    for i in range(self._steps_per_loop):
-      fetch_start = time.time()
-      decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
-      dec_metrics['decode_secs'].Update(time.time() - fetch_start)
-      # Run postprocess on separate CPU thread.
-      postprocess_futures.append(
-          threadpool.apply_async(
-              self._PostProcessStep,
-              args=(i, decode_out_dict, dec_metrics, global_step,
-                    buffered_decode_out)))
+
+    start_time = time.time()
+    if self.params.decode_until_out_of_range:
+      while True:
+        step = infeed_step_queue.get()  # Blocks until an item is returned.
+        if step == -1:
+          tf.logging.info('Reached end of dataset. Stop decoding.')
+          break
+        infeed_step_queue.task_done()
+        self._DecodeStep(sess, step, dec_metrics, global_step,
+                         buffered_decode_out, postprocess_futures, threadpool)
+    else:
+      for step in range(self._steps_per_loop):
+        tf.logging.info('Starting step %d of %d', step, self._steps_per_loop)
+        self._DecodeStep(sess, step, dec_metrics, global_step,
+                         buffered_decode_out, postprocess_futures, threadpool)
     infeed_future.wait()
 
-    # TPU+host processing is done and can move on to Train.
-    threadpool.apply_async(
-        self._FinalizeDecode,
-        args=(
-            dec_metrics,
-            start_time,
-            global_step,
-            buffered_decode_out,
-            postprocess_futures,
-        ))
+    if threadpool:
+      # Async. TPU+host processing is done and can move on to Train.
+      threadpool.apply_async(
+          self._FinalizeDecode,
+          args=(
+              dec_metrics,
+              start_time,
+              global_step,
+              buffered_decode_out,
+              postprocess_futures,
+          ))
+    else:
+      self._FinalizeDecode(dec_metrics, start_time, global_step,
+                           buffered_decode_out)
 
 
 class ExperimentalDecodeProgram(DecodeProgram):
@@ -937,7 +988,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
   def _DecodeLoop(self, sess):
     sess.run(self.decode_loop)
 
-  def Run(self, sess):
+  def Run(self, sess, threadpool=None):
     global_step = sess.run(self._model.global_step)
     self.SetStatusMessage(
         f'Executing decode program on dataset {self.params.dataset_name} '
@@ -969,11 +1020,6 @@ class ExperimentalDecodeProgram(DecodeProgram):
         os.path.basename(self._program_dir), global_step, summaries)
 
     return self._ReportVizierMetrics(global_step, dec_metrics)
-
-  def RunAsync(self, sess, threadpool):
-    """Same as Run for now, make async later if performance is slow."""
-    del threadpool  # Not used.
-    self.Run(sess)
 
 
 class MLPerfTrainDecodeProgram(BaseProgram):
@@ -1176,11 +1222,6 @@ class MLPerfTrainDecodeProgram(BaseProgram):
           return True
     return False
 
-  def RunAsync(self, sess, threadpool):
-    """Same as Run for now, make async later if performance is slow."""
-    del threadpool  # Not used.
-    self.Run(sess)
-
 
 class MultiTaskProgramSchedule:
   """Container for ProgramSchedules for a MultiTask model."""
@@ -1273,8 +1314,10 @@ class SimpleProgramSchedule:
     train_finish_time = time.time()
     tf.logging.info('Train took %f seconds.', train_finish_time - start_time)
     for eval_program in self.eval_programs:
-      if p.async_postprocess:
-        eval_program.RunAsync(sess, threadpool)
+      if p.async_postprocess and isinstance(eval_program, DecodeProgram):
+        # For now, Post-process is only in Decode, other Eval programs do not
+        # take or use threadpool.
+        eval_program.Run(sess, threadpool)
       else:
         eval_program.Run(sess)
     tf.logging.info('Eval took %f seconds.', time.time() - train_finish_time)
@@ -1296,7 +1339,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  experimental_decoder=False,
                                  train_program_cls=TrainProgram,
                                  eval_program_cls=EvalProgram,
-                                 async_postprocess=True):
+                                 async_postprocess=True,
+                                 decode_until_out_of_range=False):
   """Convenient helper method for common case.
 
   Args:
@@ -1321,6 +1365,11 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       to Train, then multiple Train loops could complete before Decode finishes
       for an older global step. Then the latest Decode results do not correspond
       to the latest trained model.
+    decode_until_out_of_range: bool. Whether to run Decode (and its Infeed loop)
+      until there is no more data (OutOfRange error is thrown). If this is True,
+      decode_steps_per_loop is ignored (and not required). Currently do not
+      support ExperimentalDecodeProgram, which uses loop on TPU. So keep
+      experimental_decoder=False
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -1362,7 +1411,16 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       eval_program_params.dataset_name = dataset_name
       program_schedule_params.eval_programs.append(eval_program_params)
 
-    if decode_steps_per_loop[idx] > 0:
+    if decode_until_out_of_range:
+      if experimental_decoder:
+        raise ValueError(
+            'experimental_decoder must be False for decode_until_out_of_range')
+      decode_program_params = DecodeProgram.Params()
+      decode_program_params.name = 'decode_tpu'
+      decode_program_params.dataset_name = dataset_name
+      decode_program_params.decode_until_out_of_range = True
+      program_schedule_params.eval_programs.append(decode_program_params)
+    elif decode_steps_per_loop[idx] > 0:
       decoder = (
           ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
       decode_program_params = decoder.Params()
