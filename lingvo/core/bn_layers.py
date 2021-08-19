@@ -929,7 +929,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     sum_v += cached_sum
 
     # [B, T, 1, 1, 1] or [B, T, 1, 1]
-    mask = tf.cast(1.0 - paddings, inputs.dtype)
+    mask = tf.ones([], inputs.dtype) - tf.cast(paddings, inputs.dtype)
     count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=True)
     count_v = tf.math.cumsum(count_v, axis=1)
     input_shape = py_utils.GetShape(inputs)
