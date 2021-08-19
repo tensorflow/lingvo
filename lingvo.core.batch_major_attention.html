@@ -1300,8 +1300,8 @@ updated_value_vec: [T, B, N, H].</p>
 <dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing</p>
 <ul class="simple">
 <li><p>inputs: [B, p.inference_step_max_length + p.left_context - 1, D]</p></li>
-<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-Tensor where 0s are masked out positions.</p></li>
+<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A tf.bool
+Tensor where Falses are masked out positions.</p></li>
 <li><p>circular_tail: [B, 1], currently only exists if
 use_3d_recurrent_state is True, the tail pointer to key, value and
 paddings circular buffers.
@@ -1327,8 +1327,8 @@ Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 […, N * H] if p.use_3d_recurrent_state.</p></li>
 <li><p>value: [B, p.inference_step_max_length + p.left_context - 1, N, H] or
 […, N * H] if p.use_3d_recurrent_state.</p></li>
-<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A 0/1
-Tensor where 0s are masked out positions.</p></li>
+<li><p>masks: [B, p.inference_step_max_length + p.left_context-1]. A tf.bool
+Tensor where Falses are masked out positions.</p></li>
 <li><p>circular_tail: [B, 1], currently only effective if
 use_3d_recurrent_state is True, the tail pointer to key, value and
 paddings circular buffers.
@@ -1352,7 +1352,7 @@ Value range is [0, p.inference_step_max_length + p.left_context - 1).</p></li>
 <p>context_len = p.left_context - 1 + p.right_context
 - key:   [B, context_len, N, H].
 - value: [B, context_len, N, H].
-- masks: [B, context_len]. A 0/1 Tensor where 0s are masked out positions.
+- masks: [B, context_len]. A Tensor where Falses are masked out positions.
 - query: (only if p.right_context &gt; 0) [B, p.right_context, N, H].
 - out_masks : (only if p.right_context&gt; 0): [B, p.right_context].</p>
 </p>
