@@ -1932,7 +1932,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     position_diff = tf.tile(tf.range(t)[tf.newaxis, :], [b, 1]) - time_step
     valid_atten = tf.math.logical_and(position_diff > -p.left_context,
                                       position_diff <= 0)
-    local_causal_padding = 1.0 - tf.cast(valid_atten, dtype=query_vec.dtype)
+    local_causal_padding = tf.cast(
+        tf.math.logical_not(valid_atten), dtype=query_vec.dtype)
     paddings += local_causal_padding
 
     return super().ExtendStep(theta, query_vec, cached_states, paddings,
@@ -2301,7 +2302,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # paddings
     # [B, S]. 1s are masked positions.
-    input_masks = tf.cast(1 - paddings, tf.bool)
+    input_masks = tf.logical_not(tf.cast(paddings, tf.bool))
     if p.use_3d_recurrent_state:
       new_masks = tf.tensor_scatter_nd_update(state0.masks, indices,
                                               input_masks)
