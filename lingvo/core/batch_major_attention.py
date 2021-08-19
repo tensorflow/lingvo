@@ -2054,7 +2054,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     if p.right_context > 0:
       state0.query = tf.zeros(
           [batch_size, p.right_context, p.num_heads, per_head_dim], dtype)
-      state0.out_masks = tf.zeros([batch_size, p.right_context], dtype)
+      state0.out_masks = tf.zeros([batch_size, p.right_context], tf.bool)
       # This is used only if the caller of the layer uses skip_connection in
       # the layer's client code.
       state0.skip_conn_input = tf.zeros(
@@ -2417,17 +2417,20 @@ class LocalSelfAttention(MultiHeadedAttention):
         else:
           query_proj *= h**-0.5
 
+      input_masks = tf.logical_not(tf.cast(paddings, tf.bool))
       if p.right_context == 0:
         # [B, Q, N, H]
         query = query_proj
-        out_masks = 1. - paddings
+        out_masks = input_masks
+        out_paddings = paddings
       else:
         # [B, R + Q, N, H]
         concat_query = tf.concat([state0.query, query_proj], axis=1)
         # [B, Q, N, H]
         query = concat_query[:, :q]
-        concat_out_masks = tf.concat([state0.out_masks, 1. - paddings], axis=1)
+        concat_out_masks = tf.concat([state0.out_masks, input_masks], axis=1)
         out_masks = concat_out_masks[:, :q]
+        out_paddings = tf.cast(tf.logical_not(out_masks), paddings.dtype)
 
       # key, value, mask.
       # [B, T, N, H].
@@ -2441,7 +2444,6 @@ class LocalSelfAttention(MultiHeadedAttention):
           axis=1,
           name='concat_value')
       # [B, T]
-      input_masks = tf.cast(1 - paddings, tf.bool)
       state_masks = tf.concat([state0.masks, input_masks],
                               axis=1,
                               name='concat_masks')
@@ -2495,7 +2497,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       if p.right_context > 0:
         state1.query = concat_query[:, q:]
         state1.out_masks = concat_out_masks[:, q:]
-      return output, 1. - out_masks, state1
+      return output, out_paddings, state1
 
   @classmethod
   def FPropMeta(cls, p, *args):
