@@ -857,10 +857,10 @@
       <span class="n">moe_in</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">vec</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="o">=</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">segment_pos</span><span class="o">=</span><span class="n">segment_pos</span><span class="p">)</span>
       <span class="n">moe_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">moe_fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">moe_fflayer</span><span class="p">,</span> <span class="n">moe_in</span><span class="p">)</span>
-      <span class="n">aux_loss_ctx</span> <span class="o">=</span> <span class="n">AuxLossContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
+      <span class="n">aux_loss_ctx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">aux_loss_ctx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;aux_loss_ctx should not be None.&#39;</span><span class="p">)</span>
-      <span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">add_loss</span><span class="p">(</span><span class="n">moe_out</span><span class="o">.</span><span class="n">aux_loss</span><span class="p">)</span>
+      <span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">AddLoss</span><span class="p">(</span><span class="n">moe_out</span><span class="o">.</span><span class="n">aux_loss</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">moe_out</span><span class="o">.</span><span class="n">vec</span></div></div>
 
 
@@ -906,39 +906,6 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_key</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_key</span><span class="p">],</span> <span class="n">inputs</span><span class="p">,</span>
                                                <span class="n">paddings</span><span class="p">)</span></div></div>
-
-
-<span class="c1"># TODO(yonghui): Move this to the right place.</span>
-<div class="viewcode-block" id="AuxLossContext"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.AuxLossContext">[docs]</a><span class="k">class</span> <span class="nc">AuxLossContext</span><span class="p">:</span>
-  <span class="sd">&quot;&quot;&quot;Non-reentrant context that holds a list of aux-losses.&quot;&quot;&quot;</span>
-
-  <span class="n">_global_stack</span> <span class="o">=</span> <span class="p">[]</span>
-
-<div class="viewcode-block" id="AuxLossContext.current"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.AuxLossContext.current">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">current</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns current context or None.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_global_stack</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_global_stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="kc">None</span></div>
-
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">aux_loss_tensors</span> <span class="o">=</span> <span class="p">[]</span>
-
-<div class="viewcode-block" id="AuxLossContext.add_loss"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.AuxLossContext.add_loss">[docs]</a>  <span class="k">def</span> <span class="nf">add_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">aux_loss_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span></div>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">aux_losses</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_loss_tensors</span>
-
-  <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_stack</span><span class="p">,</span> <span class="s1">&#39;no re-entry&#39;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_global_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span>
-
-  <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_global_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="TransformerShardedMoeLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerShardedMoeLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerShardedMoeLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -1278,9 +1245,9 @@
 
       <span class="c1"># Add loss to a global collection. We don&#39;t return the loss to the caller</span>
       <span class="c1"># to avoid the change of the api here.</span>
-      <span class="n">aux_loss_ctx</span> <span class="o">=</span> <span class="n">AuxLossContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
+      <span class="n">aux_loss_ctx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">aux_loss_ctx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">add_loss</span><span class="p">(</span><span class="n">aux_loss</span><span class="p">)</span>
+        <span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">AddLoss</span><span class="p">(</span><span class="n">aux_loss</span><span class="p">)</span>
 
       <span class="k">return</span> <span class="n">out</span></div></div>
 
@@ -3071,14 +3038,14 @@
     <span class="n">values_at</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">values_a</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">values_at</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
-    <span class="n">aux_loss_ctx</span> <span class="o">=</span> <span class="n">AuxLossContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
+    <span class="n">aux_loss_ctx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">aux_loss_ctx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">penmat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">penalty_terms</span><span class="p">)</span>
       <span class="n">terms</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">penmat</span><span class="p">,</span> <span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">])</span>
       <span class="n">terms</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">])</span>
       <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">values_at</span><span class="p">,</span> <span class="n">values_a</span><span class="p">)</span>
       <span class="n">penalty</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">values</span> <span class="o">-</span> <span class="n">terms</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-      <span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">add_loss</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">*</span> <span class="n">penalty</span><span class="p">)</span>
+      <span class="n">aux_loss_ctx</span><span class="o">.</span><span class="n">AddLoss</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">penalty_coef</span> <span class="o">*</span> <span class="n">penalty</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">outputs</span></div></div>
 </pre></div>

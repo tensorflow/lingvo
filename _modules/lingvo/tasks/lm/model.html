@@ -172,7 +172,6 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.lm</span> <span class="kn">import</span> <span class="n">layers</span>
@@ -570,7 +569,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lm&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PackedBatchMajorLanguageModel.FPropTower"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.PackedBatchMajorLanguageModel.FPropTower">[docs]</a>  <span class="k">def</span> <span class="nf">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="p">()</span> <span class="k">as</span> <span class="n">aux_loss_ctx</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="p">()</span> <span class="k">as</span> <span class="n">aux_loss_ctx</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">aux_loss_ctx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
       <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>

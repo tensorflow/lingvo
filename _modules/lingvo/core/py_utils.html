@@ -6233,6 +6233,44 @@
   <span class="n">tpu_emb_graph_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="s1">&#39;__tpu_embedding_collection&#39;</span><span class="p">)</span>
   <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tpu_emb_graph_collection</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>
   <span class="k">return</span> <span class="n">tpu_emb_graph_collection</span></div>
+
+
+<div class="viewcode-block" id="AuxLossContext"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AuxLossContext">[docs]</a><span class="k">class</span> <span class="nc">AuxLossContext</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Context that holds a list of aux-losses.</span>
+
+<span class="sd">  By default it is non-reentrant, but can be specified as reentrant explicitly</span>
+<span class="sd">  when creating an inner context.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">_global_stack</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="AuxLossContext.Current"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AuxLossContext.Current">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Current</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns current context or None.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_global_stack</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_global_stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reentrant</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">aux_loss_tensors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_reentrant</span> <span class="o">=</span> <span class="n">reentrant</span>
+
+<div class="viewcode-block" id="AuxLossContext.AddLoss"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AuxLossContext.AddLoss">[docs]</a>  <span class="k">def</span> <span class="nf">AddLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">aux_loss_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">aux_losses</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_loss_tensors</span>
+
+  <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reentrant</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_stack</span><span class="p">,</span> <span class="s1">&#39;no re-entry&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span>
+
+  <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 </pre></div>
 
            </div>
