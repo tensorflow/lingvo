@@ -1467,7 +1467,8 @@
       <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
         <span class="k">break</span>
     <span class="n">train_finish_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Train took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">train_finish_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+    <span class="n">train_time_in_secs</span> <span class="o">=</span> <span class="n">train_finish_time</span> <span class="o">-</span> <span class="n">start_time</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Train took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">async_postprocess</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">):</span>
         <span class="c1"># For now, Post-process is only in Decode, other Eval programs do not</span>
@@ -1475,9 +1476,10 @@
         <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Eval took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">train_finish_time</span><span class="p">)</span>
+    <span class="n">eval_time_in_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">train_finish_time</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Eval took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">eval_time_in_secs</span><span class="p">)</span>
     <span class="n">should_exit</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">==</span> <span class="mi">0</span>
-    <span class="k">return</span> <span class="n">should_exit</span></div>
+    <span class="k">return</span> <span class="n">should_exit</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">,</span> <span class="n">eval_time_in_secs</span></div>
 
 <div class="viewcode-block" id="SimpleProgramSchedule.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">:</span>
@@ -1661,13 +1663,19 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span></div>
 
 <div class="viewcode-block" id="MLPerfProgramSchedule.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfProgramSchedule.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Execute the program schedule.&quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">threadpool</span>  <span class="c1"># Unused.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span><span class="p">):</span>
       <span class="n">program_done</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">program_done</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="kc">False</span></div>
+        <span class="n">ret</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">break</span>
+    <span class="n">train_time_in_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+    <span class="n">eval_time_in_secs</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">,</span> <span class="n">eval_time_in_secs</span></div>
 
 <div class="viewcode-block" id="MLPerfProgramSchedule.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfProgramSchedule.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span></div></div>
