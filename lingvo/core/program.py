@@ -1335,7 +1335,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  train_steps_per_loop,
                                  eval_dataset_names,
                                  eval_steps_per_loop,
-                                 decode_steps_per_loop,
+                                 decode_steps_per_loop=None,
                                  experimental_decoder=False,
                                  train_program_cls=TrainProgram,
                                  eval_program_cls=EvalProgram,
@@ -1352,7 +1352,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       eval_dataset_names.
     decode_steps_per_loop: Number of steps to execute the decode program. Can be
       a single value or a list of values corresponding to the entries in
-      eval_dataset_names.
+      eval_dataset_names. If it is None, then decode_until_out_of_range must
+      be True.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
     train_program_cls: The class to use for training programs.  Defaults to
@@ -1398,6 +1399,10 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       raise ValueError('decode_steps_per_loop doesn\'t match the size of '
                        f'eval_dataset_names: {len(decode_steps_per_loop)} vs '
                        f'{len(eval_dataset_names)}.')
+  elif decode_steps_per_loop is None:
+    if not decode_until_out_of_range:
+      raise ValueError('decode_until_out_of_range must be set to True if '
+                       'decode_steps_per_loop is not specified (None).')
   else:
     decode_steps_per_loop = [decode_steps_per_loop] * len(eval_dataset_names)
 
@@ -1412,6 +1417,9 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       program_schedule_params.eval_programs.append(eval_program_params)
 
     if decode_until_out_of_range:
+      if decode_steps_per_loop is not None:
+        tf.logging.warning('decode_until_out_of_range set to True, ignoring '
+                           'decode_steps_per_loop setting.')
       if experimental_decoder:
         raise ValueError(
             'experimental_decoder must be False for decode_until_out_of_range')
