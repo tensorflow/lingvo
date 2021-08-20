@@ -177,7 +177,7 @@
 <span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
@@ -347,8 +347,8 @@
 <span class="c1"># NamedTuple that records the metadata for creating a variable.</span>
 <span class="c1"># For internal use only. Subclasses of BaseLayer should use</span>
 <span class="c1"># self.CreateVariable() to create variables.</span>
-<span class="n">CreateVariableMeta</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s1">&#39;CreateVariableMeta&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;var_params&#39;</span><span class="p">,</span> <span class="s1">&#39;theta_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">])</span>
+<span class="n">CreateVariableMeta</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;CreateVariableMeta&#39;</span><span class="p">,</span>
+                                            <span class="p">[</span><span class="s1">&#39;var_params&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">])</span>
 
 
 <div class="viewcode-block" id="_CreateLayerVariablesStatus"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer._CreateLayerVariablesStatus">[docs]</a><span class="k">class</span> <span class="nc">_CreateLayerVariablesStatus</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
@@ -521,9 +521,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars_transform_restore_stack</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="c1"># Theta derived from this layer&#39;s vars.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="c1"># A simple transformation before used by the forward computation. Its</span>
-    <span class="c1"># signature must be (tf.Tensor) -&gt; (tf.Tensor).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta_fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="c1"># Child layers created by this layer through CreateChild/CreateChildren.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="c1"># Child layers created by this layer. A well-formed layer should</span>
@@ -807,8 +804,6 @@
     <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
 
     <span class="n">private_theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">theta_fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta_fn</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
-      <span class="n">private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta_fn</span><span class="p">(</span><span class="n">private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">dtype</span><span class="p">):</span>
@@ -956,8 +951,6 @@
 <div class="viewcode-block" id="BaseLayer.CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateVariable">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                      <span class="n">var_params</span><span class="p">:</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">,</span>
-                     <span class="n">theta_fn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
-                                                 <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                      <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Create a variable of this layer according to the parameter `var_params`.</span>
 
@@ -967,17 +960,6 @@
 <span class="sd">          self.CreateVariable(</span>
 <span class="sd">              &#39;weight&#39;, py_utils.WeightParams(shape=[100, 100]))</span>
 
-<span class="sd">    `theta_fn` is used to apply a simple transformation on the created</span>
-<span class="sd">    variable&#39;s value before used by the forward computation. E.g., to</span>
-<span class="sd">    add the global variational noise according to this layer&#39;s</span>
-<span class="sd">    parameter, one can do::</span>
-
-<span class="sd">        def __init__(self, ...):    # A layer&#39;s constructor</span>
-<span class="sd">          self.CreateVariable(</span>
-<span class="sd">            name=&#39;weight&#39;,</span>
-<span class="sd">            var_params=py_utils.WeightParams(shape=[100, 100]),</span>
-<span class="sd">            theta_fn=self.AddVN)</span>
-
 <span class="sd">    In some contexts, eg. TPU training, variables may not be created immediately</span>
 <span class="sd">    but rather the creation request will be cached and created later via a call</span>
 <span class="sd">    to layer.InstantiateVariables().</span>
@@ -985,9 +967,6 @@
 <span class="sd">    Args:</span>
 <span class="sd">      name: Variable name which is used as the key into vars/theta.</span>
 <span class="sd">      var_params: `Params` used to create the variable.</span>
-<span class="sd">      theta_fn: A python function that takes a variable&#39;s value and returns a</span>
-<span class="sd">        new value to be used later for computation. Its signature must be</span>
-<span class="sd">        (tf.Tensor) -&gt; (tf.Tensor).</span>
 <span class="sd">      **kwargs: Keyword args passed to `.py_utils.CreateVariable`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1015,7 +994,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_params</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">meta</span> <span class="o">=</span> <span class="n">CreateVariableMeta</span><span class="p">(</span>
         <span class="n">var_params</span><span class="o">=</span><span class="n">var_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span>
-        <span class="n">theta_fn</span><span class="o">=</span><span class="n">theta_fn</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">IN_PROGRESS</span><span class="p">:</span>
       <span class="c1"># If InstantiateVariables has been called, create variable immediately.</span>
@@ -1053,9 +1031,6 @@
         <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">value</span> <span class="o">=</span> <span class="n">var</span>
-
-    <span class="k">if</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta_fn</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
