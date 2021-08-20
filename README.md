@@ -60,7 +60,8 @@ guarantees regarding backwards compatibility.**
 
 #### HEAD
 
-Nothing yet.
+*   **General**
+    *   The theta_fn arg to CreateVariable() has been removed.
 
 #### 0.9.1
 

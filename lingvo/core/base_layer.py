@@ -22,7 +22,7 @@ import copy
 import enum
 import itertools
 import re
-from typing import Callable, List, Mapping, Optional, Sequence, Type, TypeVar, Union
+from typing import List, Mapping, Optional, Sequence, Type, TypeVar, Union
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
@@ -192,8 +192,8 @@ class ABCLayerMeta(BaseLayerMeta, abc.ABCMeta):
 # NamedTuple that records the metadata for creating a variable.
 # For internal use only. Subclasses of BaseLayer should use
 # self.CreateVariable() to create variables.
-CreateVariableMeta = collections.namedtuple(
-    'CreateVariableMeta', ['var_params', 'theta_fn', 'kwargs'])
+CreateVariableMeta = collections.namedtuple('CreateVariableMeta',
+                                            ['var_params', 'kwargs'])
 
 
 class _CreateLayerVariablesStatus(enum.Enum):
@@ -366,9 +366,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._private_vars_transform_restore_stack = []
     # Theta derived from this layer's vars.
     self._private_theta = py_utils.NestedMap()
-    # A simple transformation before used by the forward computation. Its
-    # signature must be (tf.Tensor) -> (tf.Tensor).
-    self._private_theta_fn = py_utils.NestedMap()
     # Child layers created by this layer through CreateChild/CreateChildren.
     self._private_children = py_utils.NestedMap()
     # Child layers created by this layer. A well-formed layer should
@@ -652,8 +649,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     ret = self._private_children.Transform(lambda x: x.theta)
 
     private_theta = self._private_theta.DeepCopy()
-    for name, theta_fn in self._private_theta_fn.FlattenItems():
-      private_theta[name] = theta_fn(private_theta[name])
 
     if (self._params.fprop_dtype is not None and
         self._params.fprop_dtype != self._params.dtype):
@@ -801,8 +796,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def CreateVariable(self,
                      name: str,
                      var_params: hyperparams.Params,
-                     theta_fn: Optional[Callable[[tf.Tensor],
-                                                 tf.Tensor]] = None,
                      **kwargs) -> None:
     """Create a variable of this layer according to the parameter `var_params`.
 
@@ -812,17 +805,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
           self.CreateVariable(
               'weight', py_utils.WeightParams(shape=[100, 100]))
 
-    `theta_fn` is used to apply a simple transformation on the created
-    variable's value before used by the forward computation. E.g., to
-    add the global variational noise according to this layer's
-    parameter, one can do::
-
-        def __init__(self, ...):    # A layer's constructor
-          self.CreateVariable(
-            name='weight',
-            var_params=py_utils.WeightParams(shape=[100, 100]),
-            theta_fn=self.AddVN)
-
     In some contexts, eg. TPU training, variables may not be created immediately
     but rather the creation request will be cached and created later via a call
     to layer.InstantiateVariables().
@@ -830,9 +812,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     Args:
       name: Variable name which is used as the key into vars/theta.
       var_params: `Params` used to create the variable.
-      theta_fn: A python function that takes a variable's value and returns a
-        new value to be used later for computation. Its signature must be
-        (tf.Tensor) -> (tf.Tensor).
       **kwargs: Keyword args passed to `.py_utils.CreateVariable`.
     """
     if self.params.device_mesh is not None:
@@ -860,7 +839,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._var_symbolic_shape_map[name] = var_params.shape
     meta = CreateVariableMeta(
         var_params=var_params.Copy(),
-        theta_fn=theta_fn,
         kwargs=kwargs)
     if self._create_variables_status == _CreateLayerVariablesStatus.IN_PROGRESS:
       # If InstantiateVariables has been called, create variable immediately.
@@ -898,9 +876,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         value = tf.identity(var, name=name)
       else:
         value = var
-
-    if meta.theta_fn is not None:
-      self._private_theta_fn[name] = meta.theta_fn
 
     self._private_theta[name] = value
 

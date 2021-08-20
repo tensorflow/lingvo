@@ -336,7 +336,6 @@ class BaseTask(base_layer.BaseLayer):
             base_layer.CreateVariableMeta(
                 var_params=py_utils.WeightParams(
                     [], py_utils.WeightInit.Constant(0), tf.int64),
-                theta_fn=None,
                 kwargs=dict(
                     trainable=False,
                     collections=[tf.GraphKeys.GLOBAL_VARIABLES])))
