@@ -414,6 +414,7 @@ class ExecutorTpu(base_runner.BaseRunner):
       program_threadpool = multiprocessing.dummy.Pool(1)
       start_time = time.time()
       while True:
+        cycle_start_time = time.time()
         global_step = sess.run(py_utils.GetGlobalStep())
 
         def RunSave(sess, global_step):
@@ -451,11 +452,19 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Sampled %s', model_task)
           program_schedule = self._program_schedule_dict[model_task]
 
-        done = program_schedule.Run(sess, program_threadpool)
+        done, train_time_in_secs, eval_time_in_secs = program_schedule.Run(
+            sess, program_threadpool)
+
         if (not self._ml_perf_log and
             self.save_only_checkpointer.ShouldSave(global_step) and
             self.save_only_checkpointer.async_checkpointing):
           saver_future.wait()
+
+        executor_cycle_in_secs = time.time() - cycle_start_time
+        self._ExportMetrics(
+            executor_cycle_secs=executor_cycle_in_secs,
+            executor_train_time_secs=train_time_in_secs,
+            executor_eval_time_secs=eval_time_in_secs)
 
         def _ShutDown():
           program_threadpool.close()

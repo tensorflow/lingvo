@@ -1312,7 +1312,8 @@ class SimpleProgramSchedule:
       if done:
         break
     train_finish_time = time.time()
-    tf.logging.info('Train took %f seconds.', train_finish_time - start_time)
+    train_time_in_secs = train_finish_time - start_time
+    tf.logging.info('Train took %f seconds.', train_time_in_secs)
     for eval_program in self.eval_programs:
       if p.async_postprocess and isinstance(eval_program, DecodeProgram):
         # For now, Post-process is only in Decode, other Eval programs do not
@@ -1320,9 +1321,10 @@ class SimpleProgramSchedule:
         eval_program.Run(sess, threadpool)
       else:
         eval_program.Run(sess)
-    tf.logging.info('Eval took %f seconds.', time.time() - train_finish_time)
+    eval_time_in_secs = time.time() - train_finish_time
+    tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
     should_exit = p.train_executions_per_eval == 0
-    return should_exit
+    return should_exit, train_time_in_secs, eval_time_in_secs
 
   def Shutdown(self):
     if self.train_program:
@@ -1506,13 +1508,19 @@ class MLPerfProgramSchedule:
     return self._programs
 
   def Run(self, sess, threadpool):
+    """Execute the program schedule."""
     del threadpool  # Unused.
     p = self.params
+    start_time = time.time()
+    ret = False
     for _ in range(p.train_executions_per_eval):
       program_done = self.train_program.Run(sess)
       if program_done:
-        return True
-    return False
+        ret = True
+        break
+    train_time_in_secs = time.time() - start_time
+    eval_time_in_secs = 0
+    return ret, train_time_in_secs, eval_time_in_secs
 
   def Shutdown(self):
     self.train_program.Shutdown()
