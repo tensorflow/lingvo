@@ -282,6 +282,11 @@ XlaShardingBuilder.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._AdjustMSplitByName">
+<span class="sig-name descname"><span class="pre">_AdjustMSplitByName</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p_split_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._AdjustMSplitByName"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._AdjustMSplitByName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._Dropout">
 <span class="sig-name descname"><span class="pre">_Dropout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_prob</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_shape_broadcast_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._Dropout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._Dropout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a DropoutLayer Params.</p>
@@ -1079,6 +1084,23 @@ Primer multi-head depthwise convolutions.</p>
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseGated">
 <span class="sig-name descname"><span class="pre">DenseReluDenseGated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.DenseReluDenseGated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseGated" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._MoEWeightsGatedGELU">
+<span class="sig-name descname"><span class="pre">_MoEWeightsGatedGELU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wi_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wo_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._MoEWeightsGatedGELU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._MoEWeightsGatedGELU" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder._ShardedMoEGLU">
+<span class="sig-name descname"><span class="pre">_ShardedMoEGLU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder._ShardedMoEGLU"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder._ShardedMoEGLU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple MoE GLU with xla_sharding.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.MoEGated">
+<span class="sig-name descname"><span class="pre">MoEGated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder.MoEGated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder.MoEGated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a MoE layer with GLU experts.</p>
+</dd></dl>
 
 </dd></dl>
 

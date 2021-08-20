@@ -410,6 +410,13 @@
       <span class="n">new_split</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">m_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">new_split</span></div>
 
+<div class="viewcode-block" id="MoEBuilder._AdjustMSplitByName"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._AdjustMSplitByName">[docs]</a>  <span class="k">def</span> <span class="nf">_AdjustMSplitByName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p_split_name</span><span class="p">):</span>
+    <span class="n">split</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">p_split_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">m_axis</span> <span class="o">=</span> <span class="n">p_split_name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m_axis</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">m_axis</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">split</span></div>
+
 <div class="viewcode-block" id="MoEBuilder._Dropout"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._Dropout">[docs]</a>  <span class="k">def</span> <span class="nf">_Dropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">noise_shape_broadcast_dims</span> <span class="ow">or</span>
@@ -1940,15 +1947,6 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Split API is deprecated. &#39;</span>
                          <span class="s1">&#39;Use device_mesh and MeshSplit.&#39;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_Split</span><span class="p">(</span><span class="n">p_split_name</span><span class="p">):</span>
-      <span class="c1"># TODO(lepikhin): eliminate usages of MoEBuilder and merge DenseBuilder</span>
-      <span class="c1"># with MoEBuilder, so this getattr is not necessary.</span>
-      <span class="n">split</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p_split_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-      <span class="n">m_axis</span> <span class="o">=</span> <span class="n">p_split_name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">m_axis</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">m_axis</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">split</span>
-
     <span class="k">def</span> <span class="nf">_Compute</span><span class="p">(</span><span class="n">gating</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">wi</span><span class="p">,</span> <span class="n">wo</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">FeedForwardNetworksApplyGating</span><span class="p">(</span>
           <span class="n">gating</span><span class="p">,</span>
@@ -1961,12 +1959,12 @@
           <span class="n">dropout_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">moe_dropout_rate</span><span class="p">,</span>
           <span class="n">device_mesh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
           <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">,</span>
-          <span class="n">gsm_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;blm_split&#39;</span><span class="p">),</span>
-          <span class="n">egcm_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;egcm_split&#39;</span><span class="p">),</span>
-          <span class="n">gecm_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;gecm_split&#39;</span><span class="p">),</span>
-          <span class="n">gsec_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;gsec_split&#39;</span><span class="p">),</span>
-          <span class="n">eah_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;eah_split&#39;</span><span class="p">),</span>
-          <span class="n">eam_split</span><span class="o">=</span><span class="n">_Split</span><span class="p">(</span><span class="s1">&#39;eam_split&#39;</span><span class="p">),</span>
+          <span class="n">gsm_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;blm_split&#39;</span><span class="p">),</span>
+          <span class="n">egcm_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;egcm_split&#39;</span><span class="p">),</span>
+          <span class="n">gecm_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;gecm_split&#39;</span><span class="p">),</span>
+          <span class="n">gsec_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;gsec_split&#39;</span><span class="p">),</span>
+          <span class="n">eah_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;eah_split&#39;</span><span class="p">),</span>
+          <span class="n">eam_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;eam_split&#39;</span><span class="p">),</span>
           <span class="n">activation_name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">moe_activation</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">_Compute</span><span class="p">)</span></div>
@@ -2711,7 +2709,107 @@
         <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">,</span> <span class="mi">2</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
-    <span class="p">)</span></div></div>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder._MoEWeightsGatedGELU"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._MoEWeightsGatedGELU">[docs]</a>  <span class="k">def</span> <span class="nf">_MoEWeightsGatedGELU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">name</span><span class="p">,</span>
+                           <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">wi_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">wo_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># Gated GELU.  There are two separate linear transformations applied in</span>
+    <span class="c1"># parallel to the inputs.  You take the gelu of one of them and then</span>
+    <span class="c1"># multiply the two componentwise.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wi_0&#39;</span><span class="p">,</span>
+                  <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_hidden_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">emh_split</span><span class="p">)),</span>
+                 <span class="p">(</span><span class="s1">&#39;wi_1&#39;</span><span class="p">,</span>
+                  <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_hidden_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">emh_split</span><span class="p">)),</span>
+                 <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span>
+                  <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
+                          <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_hidden_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">e_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ehm_split</span><span class="p">))],</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder._ShardedMoEGLU"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._ShardedMoEGLU">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedMoEGLU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simple MoE GLU with xla_sharding.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span>
+
+    <span class="n">reshape_input</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ReshapeInputLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">num_groups</span><span class="o">=</span><span class="n">num_groups</span><span class="p">,</span>
+        <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+        <span class="n">model_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_GLUApplyGating</span><span class="p">(</span><span class="n">gating</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">wi_0</span><span class="p">,</span> <span class="n">wi_1</span><span class="p">,</span> <span class="n">wo</span><span class="p">):</span>
+      <span class="n">wi</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">wi_0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">wi_1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">FeedForwardNetworksApplyGating</span><span class="p">(</span>
+          <span class="n">gating</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="n">reshaped_inputs</span><span class="p">,</span>
+          <span class="n">wi</span><span class="p">,</span>
+          <span class="n">wo</span><span class="p">,</span>
+          <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+          <span class="n">num_groups</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
+          <span class="n">dropout_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">moe_dropout_rate</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+          <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">,</span>
+          <span class="n">gsm_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;blm_split&#39;</span><span class="p">),</span>
+          <span class="n">egcm_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;egcm_split&#39;</span><span class="p">),</span>
+          <span class="n">gecm_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;gecm_split&#39;</span><span class="p">),</span>
+          <span class="n">gsec_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;gsec_split&#39;</span><span class="p">),</span>
+          <span class="n">eah_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;eah_split&#39;</span><span class="p">),</span>
+          <span class="n">eam_split</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplitByName</span><span class="p">(</span><span class="s1">&#39;eam_split&#39;</span><span class="p">),</span>
+          <span class="n">use_glu</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">activation_name</span><span class="o">=</span><span class="s1">&#39;GELU_APPROXIMATE&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;wi_0&#39;</span><span class="p">,</span> <span class="s1">&#39;wi_1&#39;</span><span class="p">,</span> <span class="s1">&#39;wo&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,segment_id-&gt;reshaped_inputs, paddings&#39;</span><span class="p">,</span> <span class="n">reshape_input</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;gw&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Top2GatingWeights</span><span class="p">(</span><span class="s1">&#39;top_2_gating&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;gw-&gt;gw_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_gw&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;wi_0-&gt;wi0_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_wi0&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;wi_1-&gt;wi1_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_wi1&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;reshape_wo&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;gw_reshaped,reshaped_inputs,paddings-&gt;gating&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeTopKGating</span><span class="p">(</span><span class="s1">&#39;compute_gating&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;gating,inputs,reshaped_inputs,wi0_reshaped,wi1_reshaped,wo_reshaped&#39;</span>
+         <span class="s1">&#39;-&gt;outputs,aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;process_gating&#39;</span><span class="p">,</span> <span class="n">_GLUApplyGating</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="DenseBuilder.MoEGated"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.MoEGated">[docs]</a>  <span class="k">def</span> <span class="nf">MoEGated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a MoE layer with GLU experts.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">input_endpoints</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;vec-&gt;input_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;input_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wi_0,wi_1,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MoEWeightsGatedGELU</span><span class="p">(</span><span class="n">name</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_split,segment_id_split,wi_0,wi_1,wo&#39;</span>
+         <span class="s1">&#39;-&gt;outputs_pre_split,aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedMoEGLU</span><span class="p">(</span><span class="s1">&#39;ffw&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">)))</span></div></div>
 
 
 <div class="viewcode-block" id="RecurrentDenseBuilderParallelDecode"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">[docs]</a><span class="k">class</span> <span class="nc">RecurrentDenseBuilderParallelDecode</span><span class="p">(</span><span class="n">DenseBuilder</span><span class="p">):</span>
@@ -3095,6 +3193,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;positional_embedding&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Positional embs.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gated_gelu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;FFN gated GELU. &#39;</span>
              <span class="s1">&#39;Deprecated. Use gated_ffn_activation=gelu.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;moe_gated_gelu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use gated GELU for the MoE layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gated_ffn_activation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Transformer gated FFN activation.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;parallel_ffn&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to make ffn and attention parallel.&#39;</span><span class="p">)</span>
@@ -3212,7 +3311,10 @@
         <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDenseGated</span><span class="p">(</span>
             <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">moe</span><span class="p">:</span>
-        <span class="n">moe_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="s1">&#39;moe&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">moe_gated_gelu</span><span class="p">:</span>
+          <span class="n">moe_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MoEGated</span><span class="p">(</span><span class="s1">&#39;moe&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">moe_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="s1">&#39;moe&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">moe_layer</span><span class="p">,</span> <span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
         <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">//</span> <span class="mi">2</span>
       <span class="k">else</span><span class="p">:</span>
