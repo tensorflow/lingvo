@@ -619,11 +619,13 @@ class UniTransformerTest(test_utils.TestCase):
         segment_pos=tf.constant([[0, 1, 0, 1], [0, 1, 2, 0]], dtype=tf.int32))
     return py_utils.NestedMap(src=src, tgt=tgt)
 
-  def testUniTransformerFProp(self):
+  def _testUniTransformerFProp(self, use_moe=False):
     length_dim = 4
     graph = tf.Graph()
     params = gshard_builder.UniTransformer.Params().Set(
         gated_gelu=False,
+        moe=use_moe,
+        moe_gated_gelu=use_moe,
         positional_embedding=False,
         dtype=tf.float32,
         name='transformer',
@@ -636,8 +638,12 @@ class UniTransformerTest(test_utils.TestCase):
             dtype=tf.float32,
             num_devices=1,  # we call .Split num_devices on axis 0 (batch)
             relative_attention_use_universal_1d_position=True,
+            e_dim=2 if use_moe else None,
+            num_groups=1 if use_moe else None,
+            c_dim=2 if use_moe else None,
             model_dim=32,
             attention_num_heads=8,
+            moe_hidden_dim=128,
             ff_dim=128,
             attention_key_value_dim=8,
             attention_combine_dims=True),
@@ -660,7 +666,14 @@ class UniTransformerTest(test_utils.TestCase):
       loss = model.FPropDefaultTheta(input_batch)[0]['loss'][0]
       sess.run(tf.global_variables_initializer())
       loss_eval = sess.run(loss)
-      test_utils.CompareToGoldenSingleFloat(self, 5.635831, loss_eval)
+      golden_float = 5.761248 if use_moe else 5.635831
+      test_utils.CompareToGoldenSingleFloat(self, golden_float, loss_eval)
+
+  def testUniTransformerFProp(self):
+    self._testUniTransformerFProp(use_moe=False)
+
+  def testUniTransformerMoEGluFProp(self):
+    self._testUniTransformerFProp(use_moe=True)
 
   def testUniTransformerParallelFProp(self):
     length_dim = 4

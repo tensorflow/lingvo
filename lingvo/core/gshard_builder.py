@@ -255,6 +255,13 @@ class MoEBuilder(builder.Base):
       new_split.insert(m_dim + 1, -1)
     return new_split
 
+  def _AdjustMSplitByName(self, p_split_name):
+    split = getattr(self.params, p_split_name, None)
+    m_axis = p_split_name.find('m')
+    if m_axis >= 0:
+      split = self._AdjustMSplit(split, m_axis)
+    return split
+
   def _Dropout(self, name, keep_prob, noise_shape_broadcast_dims=None):
     return super()._Dropout(
         name, keep_prob, noise_shape_broadcast_dims or
@@ -1785,15 +1792,6 @@ class MoEBuilder(builder.Base):
       tf.logging.warning('Split API is deprecated. '
                          'Use device_mesh and MeshSplit.')
 
-    def _Split(p_split_name):
-      # TODO(lepikhin): eliminate usages of MoEBuilder and merge DenseBuilder
-      # with MoEBuilder, so this getattr is not necessary.
-      split = getattr(p, p_split_name, None)
-      m_axis = p_split_name.find('m')
-      if m_axis >= 0:
-        split = self._AdjustMSplit(split, m_axis)
-      return split
-
     def _Compute(gating, inputs, reshaped_inputs, wi, wo):
       return gshard_layers.FeedForwardNetworksApplyGating(
           gating,
@@ -1806,12 +1804,12 @@ class MoEBuilder(builder.Base):
           dropout_rate=p.moe_dropout_rate,
           device_mesh=self._device_mesh,
           model_dim_reshape_segments=self._model_dim_reshape_segments,
-          gsm_split=_Split('blm_split'),
-          egcm_split=_Split('egcm_split'),
-          gecm_split=_Split('gecm_split'),
-          gsec_split=_Split('gsec_split'),
-          eah_split=_Split('eah_split'),
-          eam_split=_Split('eam_split'),
+          gsm_split=self._AdjustMSplitByName('blm_split'),
+          egcm_split=self._AdjustMSplitByName('egcm_split'),
+          gecm_split=self._AdjustMSplitByName('gecm_split'),
+          gsec_split=self._AdjustMSplitByName('gsec_split'),
+          eah_split=self._AdjustMSplitByName('eah_split'),
+          eam_split=self._AdjustMSplitByName('eam_split'),
           activation_name=p.moe_activation)
 
     return self._Fn(name, _Compute)
@@ -2558,6 +2556,106 @@ class DenseBuilder(MoEBuilder):
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
     )
 
+  def _MoEWeightsGatedGELU(self,
+                           name,
+                           device_mesh=None,
+                           wi_mesh_split=None,
+                           wo_mesh_split=None):
+    # Gated GELU.  There are two separate linear transformations applied in
+    # parallel to the inputs.  You take the gelu of one of them and then
+    # multiply the two componentwise.
+    p = self.params
+    return self._ShardedVar(
+        name=name,
+        weights=[('wi_0',
+                  gshard_layers.ShardedWeightParams(
+                      init=py_utils.WeightInit.Uniform(
+                          (((1. / p.model_dim)**0.5) * 3.0**0.5)),
+                      dtype=p.dtype,
+                      shape=[p.e_dim, p.model_dim, p.moe_hidden_dim],
+                      tensor_split_dims_mapping=p.emh_split)),
+                 ('wi_1',
+                  gshard_layers.ShardedWeightParams(
+                      init=py_utils.WeightInit.Uniform(
+                          (((1. / p.model_dim)**0.5) * 3.0**0.5)),
+                      dtype=p.dtype,
+                      shape=[p.e_dim, p.model_dim, p.moe_hidden_dim],
+                      tensor_split_dims_mapping=p.emh_split)),
+                 ('wo',
+                  gshard_layers.ShardedWeightParams(
+                      init=py_utils.WeightInit.Uniform(
+                          (((1. / p.moe_hidden_dim)**0.5) * 3.0**0.5)),
+                      dtype=p.dtype,
+                      shape=[p.e_dim, p.moe_hidden_dim, p.model_dim],
+                      tensor_split_dims_mapping=p.ehm_split))],
+        device_mesh=device_mesh)
+
+  def _ShardedMoEGLU(self, name):
+    """Simple MoE GLU with xla_sharding."""
+    p = self.params
+    num_groups = p.num_groups or p.num_devices
+
+    reshape_input = gshard_layers.ReshapeInputLayer.Params().Set(
+        num_groups=num_groups,
+        num_devices=p.num_devices,
+        model_dims=self._ReshapedModelDims())
+
+    def _GLUApplyGating(gating, inputs, reshaped_inputs, wi_0, wi_1, wo):
+      wi = tf.concat([tf.expand_dims(wi_0, 0), tf.expand_dims(wi_1, 0)], 0)
+      return gshard_layers.FeedForwardNetworksApplyGating(
+          gating,
+          inputs,
+          reshaped_inputs,
+          wi,
+          wo,
+          num_devices=p.num_devices,
+          num_groups=p.num_groups or p.num_devices,
+          dropout_rate=p.moe_dropout_rate,
+          device_mesh=self._device_mesh,
+          model_dim_reshape_segments=self._model_dim_reshape_segments,
+          gsm_split=self._AdjustMSplitByName('blm_split'),
+          egcm_split=self._AdjustMSplitByName('egcm_split'),
+          gecm_split=self._AdjustMSplitByName('gecm_split'),
+          gsec_split=self._AdjustMSplitByName('gsec_split'),
+          eah_split=self._AdjustMSplitByName('eah_split'),
+          eam_split=self._AdjustMSplitByName('eam_split'),
+          use_glu=True,
+          activation_name='GELU_APPROXIMATE')
+
+    return self._Graph(
+        name, ['inputs', 'segment_id', 'wi_0', 'wi_1', 'wo'],
+        ['outputs', 'aux_loss'],
+        ('inputs,segment_id->reshaped_inputs, paddings', reshape_input),
+        ('->gw', self._Top2GatingWeights('top_2_gating')),
+        ('gw->gw_reshaped',
+         self._Fn('reshape_gw', fn=lambda x: self._ReshapeM(x, 0))),
+        ('wi_0->wi0_reshaped',
+         self._Fn('reshape_wi0', fn=lambda x: self._ReshapeM(x, 1))),
+        ('wi_1->wi1_reshaped',
+         self._Fn('reshape_wi1', fn=lambda x: self._ReshapeM(x, 1))),
+        ('wo->wo_reshaped',
+         self._Fn('reshape_wo', fn=lambda x: self._ReshapeM(x, 2))),
+        ('gw_reshaped,reshaped_inputs,paddings->gating',
+         self._ComputeTopKGating('compute_gating')),
+        ('gating,inputs,reshaped_inputs,wi0_reshaped,wi1_reshaped,wo_reshaped'
+         '->outputs,aux_loss', self._Fn('process_gating', _GLUApplyGating)))
+
+  def MoEGated(self, name, decoder=False):
+    """Returns a MoE layer with GLU experts."""
+    if decoder:
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
+
+    return self._Graph(
+        name, input_endpoints, ['outputs', 'aux_loss'],
+        ('vec->input_split', self.Split('input_split')),
+        ('segment_id->segment_id_split', self.Split('segment_id_split')),
+        ('->wi_0,wi_1,wo', self._MoEWeightsGatedGELU(name)),
+        ('input_split,segment_id_split,wi_0,wi_1,wo'
+         '->outputs_pre_split,aux_loss', self._ShardedMoEGLU('ffw')),
+        ('outputs_pre_split->outputs', self.Split('outputs_split')))
+
 
 class RecurrentDenseBuilderParallelDecode(DenseBuilder):
   """Same as RecurrentDenseBuilder but with micro variables.
@@ -2940,6 +3038,7 @@ class UniTransformer(base_model.BaseTask):
     p.Define('positional_embedding', True, 'Positional embs.')
     p.Define('gated_gelu', False, 'FFN gated GELU. '
              'Deprecated. Use gated_ffn_activation=gelu.')
+    p.Define('moe_gated_gelu', False, 'Use gated GELU for the MoE layer.')
     p.Define('gated_ffn_activation', None, 'Transformer gated FFN activation.')
     p.Define('parallel_ffn', False,
              'Whether to make ffn and attention parallel.')
@@ -3057,7 +3156,10 @@ class UniTransformer(base_model.BaseTask):
         ffw_layer = b.DenseReluDenseGated(
             'dense_relu_dense', gated_ffn_activation, decoder=True)
       if p.moe:
-        moe_layer = b.MoE('moe', decoder=True)
+        if p.moe_gated_gelu:
+          moe_layer = b.MoEGated('moe', decoder=True)
+        else:
+          moe_layer = b.MoE('moe', decoder=True)
         decoder_sub_layers = [atten_layer, moe_layer, atten_layer, ffw_layer]
         num_decoder_layers = p.num_transformer_layers // 2
       else:

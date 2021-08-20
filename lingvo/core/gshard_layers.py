@@ -2169,6 +2169,7 @@ def FeedForwardNetworksApplyGating(gating,
                                    eah_split=None,
                                    eam_split=None,
                                    model_dim_reshape_segments=None,
+                                   use_glu=False,
                                    activation_name='RELU'):
   """Apply top_2 gating to feedforward networks.
 
@@ -2196,6 +2197,7 @@ def FeedForwardNetworksApplyGating(gating,
     eah_split: Mesh split for EAH tensors.
     eam_split: Mesh split for EAM tensors.
     model_dim_reshape_segments: Reshaping model dimension M to that + [-1]
+    use_glu: Whether to use the GLU expert, default to False.
     activation_name: Default: `RELU`. Activation function for feed-forward.
 
   Returns:
@@ -2252,13 +2254,18 @@ def FeedForwardNetworksApplyGating(gating,
       name='expert_inputs_eam')
   expert_inputs = _NewOrHistoricSplit(expert_inputs, eam_split)
 
-  h = _Einsum('EAM,EMH->EAH', expert_inputs, wi_split, name='h_eah')
-  h = _NewOrHistoricSplit(h, eah_split)
-  if bi_split is not None:
-    h += Split(bi_split, 0, num_devices)
-    h = Split(h, 0, num_devices)
+  if use_glu:
+    h = _Einsum('KEMH,EAM->KEAH', wi_split, expert_inputs)
+    o1, o2 = [tf.squeeze(o, 0) for o in tf.split(h, 2, 0)]
+    h = tf.math.multiply(activations.GetFn(activation_name)(o1), o2)
+  else:
+    h = _Einsum('EAM,EMH->EAH', expert_inputs, wi_split, name='h_eah')
+    h = _NewOrHistoricSplit(h, eah_split)
+    if bi_split is not None:
+      h += Split(bi_split, 0, num_devices)
+      h = Split(h, 0, num_devices)
 
-  h = activations.GetFn(activation_name)(h)
+    h = activations.GetFn(activation_name)(h)
   if dropout_rate:
     # we generally do not use stateless dropout in MoE since it introduces
     # large uint32 tensor broadcast (per dehao@ study)
