@@ -264,7 +264,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p.Define('focal_loss_alpha', None, 'The weighting factor alpha.')
     p.Define('focal_loss_gamma', None, 'Tunable focusing parameter.')
     p.Define('adapter_layer_tpl', layers.MultitaskAdapterLayer.Params(),
-             'Params for domain/language adatper layer.')
+             'Params for domain/language adapter layer.')
     p.Define(
         'adapter_task_id_field', None,
         'Setting this will enable the use of adapter layers. This is the name '

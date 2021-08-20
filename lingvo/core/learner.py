@@ -66,7 +66,7 @@ class Learner(base_layer.BaseLayer):
     p.Define(
         'clip_gradient_single_norm_to_value', 0.0,
         'Clip gradient by single tensor norm to this value. This is '
-        'similar to the bahaviour of tf.clip_by_norm. Note this is mutually '
+        'similar to the behaviour of tf.clip_by_norm. Note this is mutually '
         'exlusive to using clip_gradient_norm_to_value.')
     p.Define('grad_norm_to_clip_to_zero', 0.0,
              'Clip gradient to 0 if its norm exceeds this value.')

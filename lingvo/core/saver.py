@@ -174,7 +174,7 @@ class Saver:
         # the latest checkpoint before raise the error.
         msg = "Checkpoint sanity check failed: {} {} {}\n".format(
             prefix, ",".join([_VarKey(v) for v in variables]), rule)
-        # Also saves the error messge into a file.
+        # Also saves the error message into a file.
         file_io.write_string_to_file("{}.failed".format(prefix), msg)
         raise tf.errors.AbortedError(None, None, msg)
 
@@ -182,7 +182,7 @@ class Saver:
     """Generate a new checkpoint.
 
     Args:
-      sess: A session with tf.Graph under which this object is constructred.
+      sess: A session with tf.Graph under which this object is constructed.
 
     Returns:
       If the checkpoint is successfully generated, returns its global step
@@ -250,7 +250,7 @@ class Saver:
     """Restore variables from a checkpoint.
 
     Args:
-      sess: A session with tf.Graph under which this object is constructred.
+      sess: A session with tf.Graph under which this object is constructed.
       checkpoint_id: If None, restore from the latest checkpoint. Otherwise,
         restore from the specific checkpoint.
 

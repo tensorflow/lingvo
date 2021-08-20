@@ -957,7 +957,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     need to be created inside of a specific context manager.
 
     There are a few cases of this in the codebase marked as for backwards
-    compability. This is only to ensure that variable scopes remain compatible
+    compatibility. This is only to ensure that variable scopes remain compatible
     through the code migration. New layers should not copy that pattern, and
     instead follow the standard pattern of self.CreateChild() in __init__() and
     self.CreateVariable() in _CreateLayerVariables(). If you are okay with
