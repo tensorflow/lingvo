@@ -329,7 +329,7 @@
         <span class="c1"># the latest checkpoint before raise the error.</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Checkpoint sanity check failed: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">]),</span> <span class="n">rule</span><span class="p">)</span>
-        <span class="c1"># Also saves the error messge into a file.</span>
+        <span class="c1"># Also saves the error message into a file.</span>
         <span class="n">file_io</span><span class="o">.</span><span class="n">write_string_to_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.failed&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="n">msg</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span></div>
 
@@ -337,7 +337,7 @@
     <span class="sd">&quot;&quot;&quot;Generate a new checkpoint.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      sess: A session with tf.Graph under which this object is constructred.</span>
+<span class="sd">      sess: A session with tf.Graph under which this object is constructed.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      If the checkpoint is successfully generated, returns its global step</span>
@@ -405,7 +405,7 @@
     <span class="sd">&quot;&quot;&quot;Restore variables from a checkpoint.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      sess: A session with tf.Graph under which this object is constructred.</span>
+<span class="sd">      sess: A session with tf.Graph under which this object is constructed.</span>
 <span class="sd">      checkpoint_id: If None, restore from the latest checkpoint. Otherwise,</span>
 <span class="sd">        restore from the specific checkpoint.</span>
 

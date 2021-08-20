@@ -1404,7 +1404,7 @@
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]))</span>
-      <span class="c1"># TODO(shivaniagrawal): There are the following dimmensions: bn, nmk, the</span>
+      <span class="c1"># TODO(shivaniagrawal): There are the following dimensions: bn, nmk, the</span>
       <span class="c1"># the correct thing to do here might be scaling on every m and every k,</span>
       <span class="c1"># while we are doing every k only.</span>
       <span class="n">x</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtInputs</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">act</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">w_feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -2905,7 +2905,7 @@
 <span class="sd">    memory inputs to attention.</span>
 
 <span class="sd">    The use of relative position is possible because sin(x+y) and cos(x+y) can</span>
-<span class="sd">    be experessed in terms of y, sin(x) and cos(x).</span>
+<span class="sd">    be expressed in terms of y, sin(x) and cos(x).</span>
 
 <span class="sd">    In particular, we use a geometric sequence of timescales starting with</span>
 <span class="sd">    min_timescale and ending with max_timescale.  The number of different</span>

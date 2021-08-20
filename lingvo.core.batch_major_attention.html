@@ -930,7 +930,7 @@ updated_value_vec: [T, B, N, H].</p>
 children InstantiateVariables calls are needed. eg, if children variables
 need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
-compability. This is only to ensure that variable scopes remain compatible
+compatibility. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
 self.CreateVariable() in _CreateLayerVariables(). If you are okay with
@@ -1715,7 +1715,7 @@ state1: Updated state of the same structure as state0.</p>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.MultiHeadedAttention" title="lingvo.core.batch_major_attention.MultiHeadedAttention"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.MultiHeadedAttention</span></code></a></p>
 <p>“Implements a sparse attention based on k-means clustering.</p>
 <p>This is used in the routing transformer <a class="reference external" href="https://arxiv.org/pdf/2003.05997">https://arxiv.org/pdf/2003.05997</a>.</p>
-<p>This verison of multi-headed attention differs from the full attention
+<p>This version of multi-headed attention differs from the full attention
 in that it uses k-means clusterting to cluster the queries and keys first,
 and each query only attend to a subset of keys that are close to the centroid
 closest to that query. As Euclidean distance is used to determine closeness,
