@@ -133,8 +133,8 @@ class CalibrationCalculator:
         indexes precision and 1 indexes recall.
       - calibrations: A list of C dicts mapping metrics names to np.float32
         arrays of shape [number of predictions, 2]. The first column is the
-        predicted probability and the second column is 0 or 1 indicating that the
-        prediction matched a ground truth item.
+        predicted probability and the second column is 0 or 1 indicating that
+        the prediction matched a ground truth item.
 
     Returns:
       nothing
