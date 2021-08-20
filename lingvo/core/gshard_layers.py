@@ -1021,7 +1021,7 @@ class StateLayer(base_layer.BaseLayer):
     theta.state:  a tensor of shape `[batch, max_steps, ...]`.
     x:            a tensor of shape `[batch, 1, ...]`.
 
-  Subclass must define the folllowing functions:
+  Subclass must define the following functions:
     NewState(self, shape)
     _Step(theta, x).
 

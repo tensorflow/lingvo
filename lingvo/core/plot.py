@@ -209,7 +209,7 @@ class MatplotlibFigureSummary:
         independently on each element of the batch.  Overrides plot_func passed
         in to the constructor.
       **kwargs: A dict of additional non-tensor keyword args to pass to
-        plot_func when generating the plot, overridding any
+        plot_func when generating the plot, overriding any
         shared_subplot_kwargs.  Useful for e.g. specifying a subplot's title.
     """
     merged_kwargs = dict(self._shared_subplot_kwargs, **kwargs)

@@ -4298,7 +4298,7 @@ def MixByWeight(inputs, weights, seed=None):
     seed: random seed.
 
   Returns:
-    A probablistic sample from the inputs proportional to the weights. The
+    A probabilistic sample from the inputs proportional to the weights. The
     return type will be the same as return type of individual 'fn' from the
     inputs.
     A one-hot vector of the source selected.

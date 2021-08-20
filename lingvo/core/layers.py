@@ -1249,7 +1249,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       out = self.FromAqtMatmul('w', out)
     else:
       x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
-      # TODO(shivaniagrawal): There are the following dimmensions: bn, nmk, the
+      # TODO(shivaniagrawal): There are the following dimensions: bn, nmk, the
       # the correct thing to do here might be scaling on every m and every k,
       # while we are doing every k only.
       x, w = self.ToAqtInputs('w', act=x, weight=w, w_feature_axis=-1)
@@ -2750,7 +2750,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     memory inputs to attention.
 
     The use of relative position is possible because sin(x+y) and cos(x+y) can
-    be experessed in terms of y, sin(x) and cos(x).
+    be expressed in terms of y, sin(x) and cos(x).
 
     In particular, we use a geometric sequence of timescales starting with
     min_timescale and ending with max_timescale.  The number of different

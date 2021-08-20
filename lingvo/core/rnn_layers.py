@@ -195,7 +195,7 @@ class StackedRNNBase(base_layer.BaseLayer):
 
 
 class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
-  """An implemention of StackedRNNBase which computes layer-by-layer."""
+  """An implementation of StackedRNNBase which computes layer-by-layer."""
 
   @classmethod
   def Params(cls):
@@ -296,7 +296,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
 
 
 class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
-  """An implemention of StackedRNNBase with bidirection RNN layers."""
+  """An implementation of StackedRNNBase with bidirection RNN layers."""
 
   @classmethod
   def Params(cls):

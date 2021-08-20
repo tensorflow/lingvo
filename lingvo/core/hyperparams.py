@@ -465,7 +465,7 @@ class Params:
       if isinstance(val, Params):
         param_pb.param_val.CopyFrom(_ToParam(val, prefix=key))
       elif isinstance(val, list) or isinstance(val, range):
-        # The range function is serialized by explicitely calling it.
+        # The range function is serialized by explicitly calling it.
         param_pb.list_val.items.extend(
             [_ToParamValue(f'{key}[{i}]', v) for i, v in enumerate(val)])
       elif isinstance(val, tuple):

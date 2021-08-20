@@ -126,7 +126,7 @@ def CoordinateTransform(points, pose):
   Args:
     points: Float shape [..., 3]: Points to transform to new coordinates.
     pose: Float shape [6]: [translate_x, translate_y, translate_z, yaw, roll,
-      pitch]. The pose in the frame that 'points' comes from, and the defintion
+      pitch]. The pose in the frame that 'points' comes from, and the definition
       of the rotation and translation angles to apply to points.
 
   Returns:

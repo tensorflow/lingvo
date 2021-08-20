@@ -119,7 +119,7 @@ class PointNet(builder_lib.ModelBuilderBase):
     return p
 
   def Segmentation(self, name='pointnet_segmentation'):
-    """PointNet archetecture for segmentation."""
+    """PointNet architecture for segmentation."""
     # dropout is NOT used in the vanilla setting from the paper.
     # pyformat: disable
     main_tower = self._Seq(

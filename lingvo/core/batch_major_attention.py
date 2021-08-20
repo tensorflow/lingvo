@@ -2702,7 +2702,7 @@ class RoutingAttention(MultiHeadedAttention):
 
   This is used in the routing transformer https://arxiv.org/pdf/2003.05997.
 
-  This verison of multi-headed attention differs from the full attention
+  This version of multi-headed attention differs from the full attention
   in that it uses k-means clusterting to cluster the queries and keys first,
   and each query only attend to a subset of keys that are close to the centroid
   closest to that query. As Euclidean distance is used to determine closeness,

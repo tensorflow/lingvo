@@ -1353,7 +1353,7 @@ class WeightNormalizedLSTMCellSimple(LSTMCellSimple):
 
 
 class NormalizedLSTMCellSimple(LSTMCellSimple):
-  """LSTM Cell that allows customzied normalization.
+  """LSTM Cell that allows customized normalization.
 
   theta:
 
