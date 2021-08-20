@@ -864,7 +864,21 @@ T.&nbsp;Doutre, W.&nbsp;Han, M.&nbsp;Ma, Z.&nbsp;Lu, C.-C. Chiu, R.&nbsp;Pang, A
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="fastemit2021">45</a>]
+[<a name="doutre2021b">45</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;Doutre, W.&nbsp;Han, C.-C. Chiu, R.&nbsp;Pang, O.&nbsp;Siohan, and L.&nbsp;Cao, &ldquo;Improving
+  streaming automatic speech recognition with non-streaming model distillation
+  on unsupervised data,&rdquo; in <em>Proc. Interspeech</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2104.14346">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="fastemit2021">46</a>]
 </td>
 <td class="bibtexitem">
 J.&nbsp;Yu, C.-C. Chiu, B.&nbsp;Li, S.&nbsp;yiin Chang, T.&nbsp;N. Sainath, Y.&nbsp;He, A.&nbsp;Narayanan,
@@ -873,6 +887,47 @@ J.&nbsp;Yu, C.-C. Chiu, B.&nbsp;Li, S.&nbsp;yiin Chang, T.&nbsp;N. Sainath, Y.&n
   International Conference on Acoustics, Speech, and Signal Processing
   (ICASSP)</em>, 2021.
 [&nbsp;<a href="https://arxiv.org/abs/2010.11148">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="lu2021">47</a>]
+</td>
+<td class="bibtexitem">
+Z.&nbsp;Lu, W.&nbsp;Han, Y.&nbsp;Zhang, and L.&nbsp;Cao, &ldquo;Exploring targeted universal adversarial
+  perturbations to end-to-end asr models,&rdquo; in <em>Proc. Interspeech</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2104.02757">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="li2021rebm">48</a>]
+</td>
+<td class="bibtexitem">
+Q.&nbsp;Li, Y.&nbsp;Zhang, B.&nbsp;Li, L.&nbsp;Cao, and P.&nbsp;C. Woodland, &ldquo;Residual energy-based
+  models for end-to-end speech recognition,&rdquo; in <em>Proc. Interspeech</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2103.14152">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="li2021cem">49</a>]
+</td>
+<td class="bibtexitem">
+Q.&nbsp;Li, D.&nbsp;Qiu, Y.&nbsp;Zhang, B.&nbsp;Li, Y.&nbsp;He, P.&nbsp;C. Woodland, L.&nbsp;Cao, and T.&nbsp;Strohman,
+  &ldquo;Confidence estimation for attention-based sequence-to-sequence models for
+  speech recognition,&rdquo; in <em>Proc. IEEE International Conference on
+  Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2010.11428">pdf</a>&nbsp;]
 
 </td>
 </tr>
