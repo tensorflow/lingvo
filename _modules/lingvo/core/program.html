@@ -1490,7 +1490,7 @@
                                  <span class="n">train_steps_per_loop</span><span class="p">,</span>
                                  <span class="n">eval_dataset_names</span><span class="p">,</span>
                                  <span class="n">eval_steps_per_loop</span><span class="p">,</span>
-                                 <span class="n">decode_steps_per_loop</span><span class="p">,</span>
+                                 <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">experimental_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                  <span class="n">train_program_cls</span><span class="o">=</span><span class="n">TrainProgram</span><span class="p">,</span>
                                  <span class="n">eval_program_cls</span><span class="o">=</span><span class="n">EvalProgram</span><span class="p">,</span>
@@ -1507,7 +1507,8 @@
 <span class="sd">      eval_dataset_names.</span>
 <span class="sd">    decode_steps_per_loop: Number of steps to execute the decode program. Can be</span>
 <span class="sd">      a single value or a list of values corresponding to the entries in</span>
-<span class="sd">      eval_dataset_names.</span>
+<span class="sd">      eval_dataset_names. If it is None, then decode_until_out_of_range must</span>
+<span class="sd">      be True.</span>
 <span class="sd">    experimental_decoder: bool. Whether to use experimental deocder which is</span>
 <span class="sd">      placed in a tpu loop.</span>
 <span class="sd">    train_program_cls: The class to use for training programs.  Defaults to</span>
@@ -1553,6 +1554,10 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;decode_steps_per_loop doesn</span><span class="se">\&#39;</span><span class="s1">t match the size of &#39;</span>
                        <span class="sa">f</span><span class="s1">&#39;eval_dataset_names: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">)</span><span class="si">}</span><span class="s1"> vs &#39;</span>
                        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">decode_steps_per_loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">decode_until_out_of_range</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;decode_until_out_of_range must be set to True if &#39;</span>
+                       <span class="s1">&#39;decode_steps_per_loop is not specified (None).&#39;</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">decode_steps_per_loop</span> <span class="o">=</span> <span class="p">[</span><span class="n">decode_steps_per_loop</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
 
@@ -1567,6 +1572,9 @@
       <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">eval_program_params</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">decode_until_out_of_range</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">decode_steps_per_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;decode_until_out_of_range set to True, ignoring &#39;</span>
+                           <span class="s1">&#39;decode_steps_per_loop setting.&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">experimental_decoder</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s1">&#39;experimental_decoder must be False for decode_until_out_of_range&#39;</span><span class="p">)</span>
