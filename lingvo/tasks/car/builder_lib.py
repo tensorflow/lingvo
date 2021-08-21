@@ -19,11 +19,11 @@ import functools
 import math
 
 from lingvo import compat as tf
+from lingvo.core import activations
 from lingvo.core import builder_layers
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.tasks.car import car_layers
-
 import numpy as np
 
 # Keys for NestedMap for points: points, features, and padding.
@@ -104,18 +104,23 @@ class ModelBuilderBase:
       bias_params = bias_params.Set(params_init=params_init)
     return bias_params
 
-  # TODO(tilarids): Consider using lingvo.core.activations.
-  def _Activation(self, name, activation_fn):
+  def _Activation(self, name, activation_fn_or_name=None):
+    if activation_fn_or_name is None:
+      activation_fn = self.activation_fn
+    elif isinstance(activation_fn_or_name, str):
+      activation_fn = activations.GetFn(activation_fn_or_name)
+    else:
+      activation_fn = activation_fn_or_name
     return builder_layers.MapLayer.Params().Set(name=name, fn=activation_fn)
 
   def _Relu(self, name):
-    return self._Activation(name, activation_fn=tf.nn.relu)
+    return self._Activation(name, activation_fn_or_name=tf.nn.relu)
 
   def _Swish(self, name):
-    return self._Activation(name, activation_fn=tf.nn.swish)
+    return self._Activation(name, activation_fn_or_name=tf.nn.swish)
 
   def _Sigmoid(self, name):
-    return self._Activation(name, activation_fn=tf.nn.sigmoid)
+    return self._Activation(name, activation_fn_or_name=tf.nn.sigmoid)
 
   def _FC(self, name, idims, odims, use_bn=True, activation_fn=None):
     """Fully connected layer, with optional batch norm."""
@@ -132,7 +137,8 @@ class ModelBuilderBase:
     else:
       # Add bias since no batch norm that folds in bias.
       fc_layers = fc_layers + [self._Bias('bias', odims)]
-    fc_layers += [self._Activation('activation', activation_fn=activation_fn)]
+    fc_layers += [self._Activation('activation',
+                                   activation_fn_or_name=activation_fn)]
 
     return self._Seq(name, *fc_layers)
 
@@ -308,7 +314,7 @@ class ModelBuilderBase:
         params_init=self.conv_init_method(filter_shape))
 
   def _Conv(self, name, filter_shape, stride=(1, 1), padding='SAME',
-            use_bn=True):
+            use_bn=True, activation=None):
     """Helper to construct a conv/normalize/actvation layer."""
     # TODO(zhifengc): Revisit whether BatchNormLayer should apply gamma when the
     # following activation is a relu.
@@ -324,7 +330,7 @@ class ModelBuilderBase:
         name,
         self._ConvPlain('conv', filter_shape, filter_stride, padding),
         norm,
-        self._Relu('relu'))
+        self._Activation('activation', activation_fn_or_name=activation))
 
   def _Identity(self, name):
     """Apply identity transformation."""
@@ -778,7 +784,8 @@ class ModelBuilderBase:
           self._Linear('linear', idims, odims),
           self._Bias('bias', odims),
       ]
-    seq_p += [self._Activation('activation', activation_fn=activation_fn)]
+    seq_p += [self._Activation('activation',
+                               activation_fn_or_name=activation_fn)]
     return self._SeqToKey(name, FEATURES_KEY, *seq_p)
 
   @_Decorators.ExpectsNestedMapTensor(FEATURES_KEY)
@@ -844,7 +851,7 @@ class ModelBuilderBase:
         name,
         transform_net,
         self._Seq('id') if use_bn else self._Bias('bias', odims),
-        self._Activation('activation', activation_fn=activation_fn))
+        self._Activation('activation', activation_fn_or_name=activation_fn))
 
   def _GINCondFC(self, name, lhs, rhs, idims, adims, odims, use_bn=True,
                  activation_fn=None):

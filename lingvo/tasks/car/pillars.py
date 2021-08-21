@@ -20,6 +20,7 @@ r"""PointPillars implementation.
 
 import enum
 import functools
+
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
@@ -165,18 +166,19 @@ class Builder(builder_lib.ModelBuilderBase):
         filter_shape=filter_shape,
         filter_stride=(stride, stride))
 
-  def _Block(self, name, stride, repeats, idims, odims):
+  def _Block(self, name, stride, repeats, idims, odims, activation=None):
     """[1]. Sec 2.2."""
     return self._Seq(
         name,
-        self._Conv('c3x3', (3, 3, idims, odims), stride),
+        self._Conv('c3x3', (3, 3, idims, odims), stride, activation=activation),
         self._Rep(
             'rep',
             repeats,
-            self._Conv('c3x3', (3, 3, odims, odims))),
+            self._Conv('c3x3', (3, 3, odims, odims), activation=activation)),
         self._Fetch('final'))
 
-  def _TopDown(self, name, strides=(2, 2, 2), channel_multiplier=1):
+  def _TopDown(self, name, strides=(2, 2, 2), channel_multiplier=1,
+               activation=None):
     """[1]. Sec 2.2."""
     if len(strides) != 3:
       raise ValueError('`strides` expected to be list/tuple of len 3.')
@@ -184,13 +186,13 @@ class Builder(builder_lib.ModelBuilderBase):
     return self._Seq(
         name,
         self._Block('b0', strides[0], 3, channel_multiplier * 64,
-                    channel_multiplier * 64),
+                    channel_multiplier * 64, activation),
         self._Block('b1', strides[1], 5, channel_multiplier * 64,
-                    channel_multiplier * 128),
+                    channel_multiplier * 128, activation),
         self._Block('b2', strides[2], 5, channel_multiplier * 128,
-                    channel_multiplier * 256))
+                    channel_multiplier * 256, activation))
 
-  def _Upsample(self, name, stride, idims, odims):
+  def _Upsample(self, name, stride, idims, odims, activation=None):
     """[1]. Sec 2.2."""
     # Match the kernel size to the stride in order to ensure that the output
     # activation map has no holes and to minimize any checkerboard artifacts.
@@ -201,17 +203,19 @@ class Builder(builder_lib.ModelBuilderBase):
         name,
         self._Deconv('deconv', (kernel, kernel, odims, idims), stride),
         self._BN('bn', odims),
-        self._Relu('relu'))
+        self._Activation('activation', activation))
 
-  def Contract(self, down_strides=(2, 2, 2), channel_multiplier=1):
+  def Contract(self, down_strides=(2, 2, 2), channel_multiplier=1,
+               activation=None):
     """Contracting part of [1] Sec 2.2."""
     return self._Branch(
         'branch',
         self._TopDown('topdown', strides=down_strides,
-                      channel_multiplier=channel_multiplier),
+                      channel_multiplier=channel_multiplier,
+                      activation=activation),
         ['b1.final', 'b0.final'])
 
-  def Expand(self, odims, channel_multiplier=1):
+  def Expand(self, odims, channel_multiplier=1, activation=None):
     """Expanding part of [1] Sec 2.2."""
     # Note that the resulting output will be 3*odims
     return self._Concat(
@@ -219,24 +223,29 @@ class Builder(builder_lib.ModelBuilderBase):
         self._Seq(
             'b2',
             self._ArgIdx('idx', [0]),
-            self._Upsample('ups', 4, channel_multiplier * 256, odims)),
+            self._Upsample('ups', 4, channel_multiplier * 256, odims, activation)),
         self._Seq(
             'b1',
             self._ArgIdx('idx', [1]),
-            self._Upsample('ups', 2, channel_multiplier * 128, odims)),
+            self._Upsample('ups', 2, channel_multiplier * 128, odims,
+                           activation)),
         self._Seq(
             'b0',
             self._ArgIdx('idx', [2]),
-            self._Upsample('ups', 1, channel_multiplier * 64, odims)))
+            self._Upsample('ups', 1, channel_multiplier * 64, odims,
+                           activation)))
 
-  def Backbone(self, odims, down_strides=(2, 2, 2), channel_multiplier=1):
+  def Backbone(self, odims, down_strides=(2, 2, 2), channel_multiplier=1,
+               activation=None):
     """[1]. Sec 2.2."""
     # We assume (H, W) are multiple of 8. So that we can concat
     # multiple-scale feature maps together after upsample.
     return self._Seq(
         'backbone',
-        self.Contract(down_strides, channel_multiplier=channel_multiplier),
-        self.Expand(odims, channel_multiplier=channel_multiplier))
+        self.Contract(down_strides, channel_multiplier=channel_multiplier,
+                      activation=activation),
+        self.Expand(odims, channel_multiplier=channel_multiplier,
+                    activation=activation))
 
   def Detector(self, name, idims, odims, conv_init_method=None,
                bias_params_init=None):

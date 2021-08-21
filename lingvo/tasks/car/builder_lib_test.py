@@ -482,6 +482,51 @@ class BuilderLibTest(test_utils.TestCase):
       self.assertAllEqual(actual_y.shape,
                           (batch_size, num_groups, num_out_channels))
 
+  def testActivationReluString(self):
+    b = builder_lib.ModelBuilderBase()
+    x = tf.constant([2, 5, 1, -3])
+    p = b._Activation('RELU', activation_fn_or_name='RELU')
+    l = p.Instantiate()
+    y = l.FPropDefaultTheta(x)
+    with self.session():
+      self.evaluate(tf.global_variables_initializer())
+      actual_y = self.evaluate(y)
+    self.assertAllEqual(actual_y, [2, 5, 1, 0])
+
+  def testActivationReluFn(self):
+    b = builder_lib.ModelBuilderBase()
+    x = tf.constant([2, 5, 1, -3])
+    p = b._Activation('RELU', activation_fn_or_name=tf.nn.relu)
+    l = p.Instantiate()
+    y = l.FPropDefaultTheta(x)
+    with self.session():
+      self.evaluate(tf.global_variables_initializer())
+      actual_y = self.evaluate(y)
+    self.assertAllEqual(actual_y, [2, 5, 1, 0])
+
+  def testActivationIdentityFn(self):
+    b = builder_lib.ModelBuilderBase()
+    x = tf.constant([2, 5, 1, -3])
+    p = b._Activation('Identity', activation_fn_or_name=tf.identity)
+    l = p.Instantiate()
+    y = l.FPropDefaultTheta(x)
+    with self.session():
+      self.evaluate(tf.global_variables_initializer())
+      actual_y = self.evaluate(y)
+    self.assertAllEqual(actual_y, [2, 5, 1, -3])
+
+  def testActivationDefault(self):
+    b = builder_lib.ModelBuilderBase()
+    x = tf.constant([2, 5, 1, -3])
+    # Default activation is relu
+    p = b._Activation('Default', activation_fn_or_name=None)
+    l = p.Instantiate()
+    y = l.FPropDefaultTheta(x)
+    with self.session():
+      self.evaluate(tf.global_variables_initializer())
+      actual_y = self.evaluate(y)
+    self.assertAllEqual(actual_y, [2, 5, 1, 0])
+
 
 if __name__ == '__main__':
   tf.test.main()

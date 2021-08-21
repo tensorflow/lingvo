@@ -194,6 +194,7 @@ py_library(
     deps = [
         ":car_layers",
         "//lingvo:compat",
+        "//lingvo/core:activations",
         "//lingvo/core:builder_layers",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
