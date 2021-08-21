@@ -675,6 +675,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     p.Define('learning_rate', None,
              'Overrides TPUEmbeddingLayer\'s learning_rate.')
     p.Define('lr_schedule', None, 'Overrides TPUEmbeddingLayer\'s lr_schedule.')
+    p.Define(
+        'inference_use_merged_variable', False,
+        'Whether to use merged embedding table variable during inference. '
+        'If set to True, only one table variable will be created, and '
+        'the user will need to manually merge the sharded table variables '
+        'in the trained checkpoint before generating the inference graph.')
     return p
 
   def __init__(self, params):
@@ -739,16 +745,27 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
           collections=[self.__class__.__name__ + '_vars'])
 
       embedding_table_vars = []
-      for i in range(p.num_tpu_hosts):
-        device_name = self.GetDeviceName(i)
-        with tf.device(device_name), py_utils.outside_all_rewrites():
-          var_name = self.GetVariableName(i)
+      if p.is_inference and p.inference_use_merged_variable:
+        with py_utils.outside_all_rewrites():
+          var_name = 'merged_var'
           self.CreateVariable(var_name, w_pc)
           embedding_var = self.vars[var_name]
           embedding_table_vars.append(embedding_var)
           # Remove from _private_vars / _private_thetas to be added later as wm.
           _RemovePrivateVar(self, var_name)
+      else:
+        for i in range(p.num_tpu_hosts):
+          device_name = self.GetDeviceName(i)
+          with tf.device(device_name), py_utils.outside_all_rewrites():
+            var_name = self.GetVariableName(i)
+            self.CreateVariable(var_name, w_pc)
+            embedding_var = self.vars[var_name]
+            embedding_table_vars.append(embedding_var)
+            # Remove from _private_vars / _private_thetas to be added later as
+            # wm.
+            _RemovePrivateVar(self, var_name)
 
+      # Track the table variables so they can be excluded from EMA.
       self._tpu_embedding_collection.AddTableVariables(self.table_name,
                                                        embedding_table_vars)
 
