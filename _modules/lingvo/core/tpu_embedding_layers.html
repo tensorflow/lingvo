@@ -830,6 +830,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Overrides TPUEmbeddingLayer</span><span class="se">\&#39;</span><span class="s1">s learning_rate.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Overrides TPUEmbeddingLayer</span><span class="se">\&#39;</span><span class="s1">s lr_schedule.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;inference_use_merged_variable&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to use merged embedding table variable during inference. &#39;</span>
+        <span class="s1">&#39;If set to True, only one table variable will be created, and &#39;</span>
+        <span class="s1">&#39;the user will need to manually merge the sharded table variables &#39;</span>
+        <span class="s1">&#39;in the trained checkpoint before generating the inference graph.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -894,16 +900,27 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
       <span class="n">embedding_table_vars</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">):</span>
-        <span class="n">device_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDeviceName</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_name</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
-          <span class="n">var_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_merged_variable</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
+          <span class="n">var_name</span> <span class="o">=</span> <span class="s1">&#39;merged_var&#39;</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
           <span class="n">embedding_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
           <span class="n">embedding_table_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">embedding_var</span><span class="p">)</span>
           <span class="c1"># Remove from _private_vars / _private_thetas to be added later as wm.</span>
           <span class="n">_RemovePrivateVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">):</span>
+          <span class="n">device_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDeviceName</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_name</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
+            <span class="n">var_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+            <span class="n">embedding_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+            <span class="n">embedding_table_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">embedding_var</span><span class="p">)</span>
+            <span class="c1"># Remove from _private_vars / _private_thetas to be added later as</span>
+            <span class="c1"># wm.</span>
+            <span class="n">_RemovePrivateVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
 
+      <span class="c1"># Track the table variables so they can be excluded from EMA.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
                                                        <span class="n">embedding_table_vars</span><span class="p">)</span>
 
