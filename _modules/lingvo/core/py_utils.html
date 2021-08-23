@@ -6271,6 +6271,41 @@
 
   <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_global_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GetTrainableVariables"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetTrainableVariables">[docs]</a><span class="k">def</span> <span class="nf">GetTrainableVariables</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="n">bprop_variable_filter</span><span class="p">,</span>
+                          <span class="n">bprop_variable_exclusion</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns trainable vars.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    scope: A Python str.</span>
+<span class="sd">    bprop_variable_filter: see BaseTask.Params().bprop_variable_filter.</span>
+<span class="sd">    bprop_variable_exclusion: see BaseTask.Params().bprop_variable_exclusion.</span>
+<span class="sd">    vmap: A NestedMap of var_path(str) -&gt; tf Variable.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A filtered NestedMap of var_path(str) -&gt; trainable tf Variable.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">pos</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span> <span class="k">if</span> <span class="n">bprop_variable_filter</span> <span class="k">else</span> <span class="kc">None</span>
+  <span class="n">neg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+      <span class="n">bprop_variable_exclusion</span><span class="p">)</span> <span class="k">if</span> <span class="n">bprop_variable_exclusion</span> <span class="k">else</span> <span class="kc">None</span>
+
+  <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if variable v should be optimized by this learner.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">trainable</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">pos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pos</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span>
+                      <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">neg</span> <span class="ow">and</span> <span class="n">neg</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_exclusion: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span>
+                      <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+  <span class="k">return</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
