@@ -20,7 +20,6 @@ mechanisms. A BaseTask can have multiple learners, each optimizing a (usually
 disjoint) subset of variables.
 """
 
-import re
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import optimizer
@@ -151,27 +150,8 @@ class Learner(base_layer.BaseLayer):
 
   def GetTrainableVariables(self, vmap):
     p = self.params
-    pos = re.compile(
-        p.bprop_variable_filter) if p.bprop_variable_filter else None
-    neg = re.compile(
-        p.bprop_variable_exclusion) if p.bprop_variable_exclusion else None
-
-    def VariableFilter(v):
-      """Returns True if variable v should be optimized by this learner."""
-      if not v.trainable:
-        return False
-
-      if pos and not pos.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_filter: %s', p.name,
-                        v.name)
-        return False
-      if neg and neg.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s', p.name,
-                        v.name)
-        return False
-      return True
-
-    return vmap.Filter(VariableFilter)
+    return py_utils.GetTrainableVariables(p.name, p.bprop_variable_filter,
+                                          p.bprop_variable_exclusion, vmap)
 
   def ApplyPostTrainingLoop(self):
     """Applies any computation to run after each tpu trainining loop.

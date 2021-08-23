@@ -6116,3 +6116,38 @@ class AuxLossContext:
 
   def __exit__(self, *args):
     self._global_stack.pop()
+
+
+def GetTrainableVariables(scope, bprop_variable_filter,
+                          bprop_variable_exclusion, vmap):
+  """Returns trainable vars.
+
+  Args:
+    scope: A Python str.
+    bprop_variable_filter: see BaseTask.Params().bprop_variable_filter.
+    bprop_variable_exclusion: see BaseTask.Params().bprop_variable_exclusion.
+    vmap: A NestedMap of var_path(str) -> tf Variable.
+
+  Returns:
+    A filtered NestedMap of var_path(str) -> trainable tf Variable.
+  """
+  pos = re.compile(bprop_variable_filter) if bprop_variable_filter else None
+  neg = re.compile(
+      bprop_variable_exclusion) if bprop_variable_exclusion else None
+
+  def VariableFilter(v):
+    """Returns True if variable v should be optimized by this learner."""
+    if not v.trainable:
+      return False
+
+    if pos and not pos.search(v.name):
+      tf.logging.info('%s: disabled by bprop_variable_filter: %s', scope,
+                      v.name)
+      return False
+    if neg and neg.search(v.name):
+      tf.logging.info('%s: disabled by bprop_variable_exclusion: %s', scope,
+                      v.name)
+      return False
+    return True
+
+  return vmap.Filter(VariableFilter)
