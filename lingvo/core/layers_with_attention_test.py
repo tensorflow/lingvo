@@ -2371,7 +2371,7 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       ]
       # pyformat: enable
       # pylint: enable=bad-whitespace
-      self.assertAllClose(actual_layer_output, expected_output)
+      self.assertAllClose(actual_layer_output, expected_output, atol=2e-6)
       self.assertAllClose(p_c_val, expected_p_c)
 
   def testTransformerWithContextLayerConstruction(self):
