@@ -69,8 +69,8 @@ class ClassifierTest(test_utils.TestCase):
         model.ConstructFPropBPropGraph()
     with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model))
-      CompareToGoldenSingleFloat(self, 2.302405, self._runOneStep(model))
+      CompareToGoldenSingleFloat(self, 3.039770, self._runOneStep(model))
+      CompareToGoldenSingleFloat(self, 2.698318, self._runOneStep(model))
 
   def testMnistV2(self):
     g = tf.Graph()
@@ -85,8 +85,8 @@ class ClassifierTest(test_utils.TestCase):
         model.ConstructFPropBPropGraph()
     with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model))
-      CompareToGoldenSingleFloat(self, 2.142516, self._runOneStep(model))
+      CompareToGoldenSingleFloat(self, 2.303070, self._runOneStep(model))
+      CompareToGoldenSingleFloat(self, 2.297364, self._runOneStep(model))
 
   def testInference(self):
     with self.session() as sess:

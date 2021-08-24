@@ -112,6 +112,8 @@ class ModelV1(BaseClassifier):
         'window_shapes', [(0, 0)],
         'Max pooling window shapes. Must be a list of sequences of 2. '
         'Elements are in order of height, width.')
+    p.Define('fc_tpl', layers.FCLayer.Params(),
+             'Params for the fully-connected logits computation.')
     p.Define('batch_norm', False, 'Apply BN or not after the conv.')
     p.Define('dropout_prob', 0.0,
              'Probability of the dropout applied after pooling.')
@@ -156,7 +158,7 @@ class ModelV1(BaseClassifier):
     # FC layer to project down to p.softmax.input_dim.
     self.CreateChild(
         'fc',
-        layers.FCLayer.Params().Set(
+        p.fc_tpl.Copy().Set(
             name='fc',
             input_dim=np.prod(shape[1:]),
             output_dim=p.softmax.input_dim))
