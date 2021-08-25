@@ -867,8 +867,8 @@ T.&nbsp;Doutre, W.&nbsp;Han, M.&nbsp;Ma, Z.&nbsp;Lu, C.-C. Chiu, R.&nbsp;Pang, A
 [<a name="doutre2021b">45</a>]
 </td>
 <td class="bibtexitem">
-T.&nbsp;Doutre, W.&nbsp;Han, C.-C. Chiu, R.&nbsp;Pang, O.&nbsp;Siohan, and L.&nbsp;Cao, &ldquo;Improving
-  streaming automatic speech recognition with non-streaming model distillation
+T.&nbsp;Doutre, W.&nbsp;Han, C.-C. Chiu, R.&nbsp;Pang, O.&nbsp;Siohan, and L.&nbsp;Cao, &ldquo;Bridging
+  the gap between streaming and non-streaming ASR systems bydistilling ensembles of CTC and RNN-T models
   on unsupervised data,&rdquo; in <em>Proc. Interspeech</em>, 2021.
 [&nbsp;<a href="https://arxiv.org/abs/2104.14346">pdf</a>&nbsp;]
 
