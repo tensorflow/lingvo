@@ -413,17 +413,22 @@ class MultiClassAUCMetric(BaseMetric):
   measure defines it as the per-class average of the auc roc or auc pr curves.
   """
 
-  def __init__(self, num_classes, mode='roc'):
+  def __init__(self, num_classes, mode='roc', samples=-1):
     """Construct a MultiClassAUCMetric instance.
 
     Args:
       num_classes: The number of classes.
       mode: Possible values: 'roc' or 'pr'.
+      samples: The number of sample points to compute the AUC. If -1, include
+        all points seen thus far.
     """
     self._num_classes = num_classes
     self._class_auc_metrics = []
     for _ in range(self._num_classes):
-      self._class_auc_metrics.append(AUCMetric(mode))
+      self._class_auc_metrics.append(AUCMetric(mode, samples))
+
+    # Track the classes that are present in the evaluation set.
+    self._labels_seen_dict = {i: 0 for i in range(self._num_classes)}
 
   def Update(self, labels, probs, weights=None):
     """Updates the MultiClassAUCMetric.
@@ -441,10 +446,17 @@ class MultiClassAUCMetric(BaseMetric):
       sliced_probs = probs[i]
       auc_metric.Update(sliced_labels, sliced_probs, weights)
 
+      for label in sliced_labels:
+        self._labels_seen_dict[i] = max(label, self._labels_seen_dict[i])
+
   @property
   def value(self):
-    auc_values = [auc_metric.value for auc_metric in self._class_auc_metrics]
-    return np.sum(auc_values) / self._num_classes
+    auc_values = []
+    for index, auc_metric in enumerate(self._class_auc_metrics):
+      if self._labels_seen_dict[index]:
+        auc_values.append(auc_metric.value)
+    num_classes_present_in_eval = sum(self._labels_seen_dict.values())
+    return np.sum(auc_values) / num_classes_present_in_eval
 
 
 class CorrelationMetric(BaseMetric):
