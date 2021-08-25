@@ -568,17 +568,22 @@
 <span class="sd">  measure defines it as the per-class average of the auc roc or auc pr curves.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;roc&#39;</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;roc&#39;</span><span class="p">,</span> <span class="n">samples</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct a MultiClassAUCMetric instance.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      num_classes: The number of classes.</span>
 <span class="sd">      mode: Possible values: &#39;roc&#39; or &#39;pr&#39;.</span>
+<span class="sd">      samples: The number of sample points to compute the AUC. If -1, include</span>
+<span class="sd">        all points seen thus far.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_num_classes</span> <span class="o">=</span> <span class="n">num_classes</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_class_auc_metrics</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_classes</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_class_auc_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AUCMetric</span><span class="p">(</span><span class="n">mode</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_class_auc_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AUCMetric</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="n">samples</span><span class="p">))</span>
+
+    <span class="c1"># Track the classes that are present in the evaluation set.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_labels_seen_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_classes</span><span class="p">)}</span>
 
 <div class="viewcode-block" id="MultiClassAUCMetric.Update"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.MultiClassAUCMetric.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Updates the MultiClassAUCMetric.</span>
@@ -594,12 +599,19 @@
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">auc_metric</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_class_auc_metrics</span><span class="p">):</span>
       <span class="n">sliced_labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
       <span class="n">sliced_probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-      <span class="n">auc_metric</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">sliced_labels</span><span class="p">,</span> <span class="n">sliced_probs</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span></div>
+      <span class="n">auc_metric</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">sliced_labels</span><span class="p">,</span> <span class="n">sliced_probs</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">sliced_labels</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels_seen_dict</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_seen_dict</span><span class="p">[</span><span class="n">i</span><span class="p">])</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">auc_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">auc_metric</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">auc_metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_class_auc_metrics</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">auc_values</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_classes</span></div>
+    <span class="n">auc_values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">auc_metric</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_class_auc_metrics</span><span class="p">):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels_seen_dict</span><span class="p">[</span><span class="n">index</span><span class="p">]:</span>
+        <span class="n">auc_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">auc_metric</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">num_classes_present_in_eval</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels_seen_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">auc_values</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_classes_present_in_eval</span></div>
 
 
 <div class="viewcode-block" id="CorrelationMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.CorrelationMetric">[docs]</a><span class="k">class</span> <span class="nc">CorrelationMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
