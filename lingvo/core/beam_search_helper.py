@@ -19,6 +19,7 @@ Individual models just need to provide a few callback functions.
 """
 
 import collections
+import re
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import ops
@@ -403,9 +404,14 @@ class BeamSearchHelper(BeamSearchSharedParams):
     new_bs_states = (out_best_scores, out_cumulative_scores, out_scores,
                      out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs,
                      out_beam_done)
+    random_seed_regex = re.compile(r'rnn_states\[\d+\].r$')
 
     def ReOrderHyps(key, x_in):
       """Reorders x_in based on prev hyp ids."""
+      if random_seed_regex.match(key):
+        # For keys like rnn_states[0].r, it is a shape [2] random seeds tensor
+        # used for deterministic behavior and should not be reordered.
+        return py_utils.HasShape(x_in, [2])
       correct_old_hyp_ids = (
           old_hyp_ids_in_cache_order if p.batch_major_compute else old_hyp_ids)
       if (isinstance(x_in, tf.Tensor) and x_in.shape.ndims):
