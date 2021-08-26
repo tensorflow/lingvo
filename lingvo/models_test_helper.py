@@ -189,4 +189,4 @@ class BaseModelsTest(test_utils.TestCase):
       def _Test(self, name=model_name):
         self._testOneModelParams(registry, name)  # pylint: disable=protected-access
 
-      setattr(cls, 'testModelParams_%s' % model_name, _Test)
+      setattr(cls, 'testModelParams_%s' % model_name.replace('.', '_'), _Test)
