@@ -258,7 +258,6 @@
 <div class="viewcode-block" id="BaseModelsTest._ValidateEMA"><a class="viewcode-back" href="../../lingvo.models_test_helper.html#lingvo.models_test_helper.BaseModelsTest._ValidateEMA">[docs]</a>  <span class="k">def</span> <span class="nf">_ValidateEMA</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">mdl</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
       <span class="k">return</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsInstance</span><span class="p">(</span><span class="n">mdl</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">mdl</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
       <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
       <span class="c1"># If the model has explicitly specified ema_decay_moving_vars to</span>
