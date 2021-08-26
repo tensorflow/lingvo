@@ -67,6 +67,11 @@ class DataSource(base_layer.BaseLayer):
       if isinstance(child, DataSource):
         child.Initialize(sess)
 
+  def Reset(self, sess):
+    for child in self._children_list:
+      if isinstance(child, DataSource):
+        child.Reset(sess)
+
   def GetNext(self):
     """Override this method to return the next element from the datasource.
 
@@ -392,6 +397,7 @@ class TFDatasetSource(DataSource):
       self._iterator = {key: iter(ds) for key, ds in self._dataset.items()}
     else:
       sess.run([it.initializer for it in self._iterator.values()])
+    super().Reset(sess)
 
   def GetNext(self):
     """Returns the next element from the dataset."""
