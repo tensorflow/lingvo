@@ -103,7 +103,6 @@ class BaseModelsTest(test_utils.TestCase):
   def _ValidateEMA(self, name, mdl):
     if not mdl.ema:
       return
-    self.assertIsInstance(mdl, base_model.SingleTaskModel)
     for task in mdl.tasks:
       tp = task.params.train
       # If the model has explicitly specified ema_decay_moving_vars to
