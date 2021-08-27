@@ -206,6 +206,47 @@ belongs to.</p></li>
 <dd></dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.CrossAttentionPaddingWithTimestamp">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.batch_major_attention.</span></span><span class="sig-name descname"><span class="pre">CrossAttentionPaddingWithTimestamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#CrossAttentionPaddingWithTimestamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.CrossAttentionPaddingWithTimestamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create per_step_padding for cross-attention with timestamp.</p>
+<p>In this cross-attention, the target (query) sequence provides an extra
+timestamp sequence. This timestamp sequence is of the same length as the
+target sequence. Each time stamp specifies, for each target position, the
+‘central’ position in the source (key) sequence it attends to. A window of
+the source sequence around the central position, containing left_context-1
+positions to the left, the central position itself, and right_context
+positions to the right are used for computing the attention probabilities
+and the resulting context vector.</p>
+<p>To give an simple example, let query=[a0, a1, a2, a3, a4] have length 5, and
+key B=[b0, b1, b2, b3] have length 4, and timestamp=[0, 1, 1, 2, 3] contains
+indices of B (note that len(timestamp)=len(A)). With left_context=1 and
+right_context=1, the padding matrix shall be (rows indicates query, column
+indicates key):</p>
+<blockquote>
+<div><p>b0  b1  b2  b3</p>
+</div></blockquote>
+<p>a0   0   0   1   1
+a1   0   0   0   1
+a2   0   0   0   1
+a3   1   0   0   0
+a4   1   1   0   0</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timestamp</strong> – [batch, target_seq_len]</p></li>
+<li><p><strong>source_paddings</strong> – [batch, source_seq_len]</p></li>
+<li><p><strong>left_context</strong> – left context size.</p></li>
+<li><p><strong>right_context</strong> – right context size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>paddings of shape [b, t, s], where out_paddings[i] gives the padding for
+cross-attention between target[i] and source[i].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.batch_major_attention.GetDtypeMin">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.batch_major_attention.</span></span><span class="sig-name descname"><span class="pre">GetDtypeMin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">tf.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#GetDtypeMin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.GetDtypeMin" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2274,7 +2315,7 @@ for very common cases.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.batch_major_attention.TransformerLayer.FProp">
-<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_step_padding_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_vec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_step_padding_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_per_step_padding_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux_segment_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer decoder layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2286,6 +2327,7 @@ its children layers.</p></li>
 <li><p><strong>aux_vec</strong> – [source_batch, source_time, dim].</p></li>
 <li><p><strong>aux_paddings</strong> – [source_batch, source_time].</p></li>
 <li><p><strong>per_step_padding_override</strong> – [target_batch, target_time, target_time].</p></li>
+<li><p><strong>aux_per_step_padding_override</strong> – [target_batch, target_time, source_time].</p></li>
 <li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time].</p></li>
 <li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time].
 target_batch can be a multiple of source_batch, where samples in
@@ -2756,6 +2798,7 @@ its children layers.</p></li>
 <li><p><strong>aux_vec</strong> – [source_batch, source_time, dim].</p></li>
 <li><p><strong>aux_paddings</strong> – [source_batch, source_time].</p></li>
 <li><p><strong>per_step_padding_override</strong> – [target_batch, target_time, target_time].</p></li>
+<li><p><strong>aux_per_step_padding_override</strong> – [target_batch, target_time, source_time].</p></li>
 <li><p><strong>segment_mask</strong> – [target_batch, 1, target_time, target_time].</p></li>
 <li><p><strong>aux_segment_mask</strong> – [source_batch, 1, target_time, source_time].
 target_batch can be a multiple of source_batch, where samples in
