@@ -80,6 +80,67 @@ def CausalPadding(slen, dtype=tf.float32):
   return 1 - tf.linalg.band_part(tf.ones([slen, slen], dtype=dtype), -1, 0)
 
 
+def CrossAttentionPaddingWithTimestamp(timestamp, source_paddings, left_context,
+                                       right_context):
+  """Create per_step_padding for cross-attention with timestamp.
+
+  In this cross-attention, the target (query) sequence provides an extra
+  timestamp sequence. This timestamp sequence is of the same length as the
+  target sequence. Each time stamp specifies, for each target position, the
+  'central' position in the source (key) sequence it attends to. A window of
+  the source sequence around the central position, containing left_context-1
+  positions to the left, the central position itself, and right_context
+  positions to the right are used for computing the attention probabilities
+  and the resulting context vector.
+
+  To give an simple example, let query=[a0, a1, a2, a3, a4] have length 5, and
+  key B=[b0, b1, b2, b3] have length 4, and timestamp=[0, 1, 1, 2, 3] contains
+  indices of B (note that len(timestamp)=len(A)). With left_context=1 and
+  right_context=1, the padding matrix shall be (rows indicates query, column
+  indicates key):
+
+      b0  b1  b2  b3
+  a0   0   0   1   1
+  a1   0   0   0   1
+  a2   0   0   0   1
+  a3   1   0   0   0
+  a4   1   1   0   0
+
+  Args:
+    timestamp: [batch, target_seq_len]
+    source_paddings: [batch, source_seq_len]
+    left_context: left context size.
+    right_context: right context size.
+
+  Returns:
+    paddings of shape [b, t, s], where out_paddings[i] gives the padding for
+    cross-attention between target[i] and source[i].
+  """
+
+  b, t = py_utils.GetShape(timestamp)
+  _, s = py_utils.GetShape(source_paddings)
+
+  # Verify that timestamp contains valid indices for source.
+  timestamp = py_utils.with_dependencies([
+      py_utils.assert_equal(
+          tf.reduce_all(tf.math.greater_equal(timestamp, 0)), True),
+      py_utils.assert_equal(tf.reduce_all(tf.math.less(timestamp, s)), True)
+  ], timestamp)
+
+  # indices and timestamp_comp are of shape [b, t, s].
+  source_indices = tf.tile(tf.reshape(tf.range(s), [1, 1, s]), [b, t, 1])
+  timestamp_comp = tf.tile(tf.expand_dims(timestamp, -1), [1, 1, s])
+  # Check if each index is within the range [central-L+1, central+R).
+  index_mask = tf.logical_and(
+      tf.greater(source_indices, timestamp_comp - left_context),
+      tf.less_equal(source_indices, timestamp_comp + right_context))
+
+  length_mask = tf.tile(
+      tf.reshape(tf.cast(1 - source_paddings, tf.bool), [b, 1, s]), [1, t, 1])
+  final_mask = tf.logical_and(index_mask, length_mask)
+  return 1 - tf.cast(final_mask, tf.float32)
+
+
 def GetDtypeMin(dtype=tf.float32):
   return tf.constant(-0.7 * dtype.max, dtype=dtype)
 
@@ -4167,6 +4228,7 @@ class TransformerLayer(base_layer.BaseLayer):
             aux_vec=None,
             aux_paddings=None,
             per_step_padding_override=None,
+            aux_per_step_padding_override=None,
             segment_mask=None,
             aux_segment_mask=None):
     """Transformer decoder layer.
@@ -4179,6 +4241,7 @@ class TransformerLayer(base_layer.BaseLayer):
       aux_vec:      [source_batch, source_time, dim].
       aux_paddings: [source_batch, source_time].
       per_step_padding_override: [target_batch, target_time, target_time].
+      aux_per_step_padding_override: [target_batch, target_time, source_time].
       segment_mask:     [target_batch, 1, target_time, target_time].
       aux_segment_mask: [source_batch, 1, target_time, source_time].
         target_batch can be a multiple of source_batch, where samples in
@@ -4237,7 +4300,8 @@ class TransformerLayer(base_layer.BaseLayer):
             atten_vec,
             aux_vec,
             aux_paddings,
-            segment_mask=aux_segment_mask)
+            segment_mask=aux_segment_mask,
+            per_step_padding_override=aux_per_step_padding_override)
         num_heads = py_utils.GetShape(aux_atten_probs)[1]
         aux_atten_probs = tf.reshape(
             aux_atten_probs,

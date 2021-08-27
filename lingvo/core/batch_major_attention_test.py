@@ -517,6 +517,26 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
     expected_prob_out = np.reshape(expected_prob_out, (6, 6, 6))
     self.assertAllClose(expected_prob_out, prob_out)
 
+  def testCrossAttentionPaddingWithTimestamp(self):
+    with self.session(use_gpu=False) as sess:
+      # batch=2, max_target_len=6
+      timestamp = tf.constant([[0, 1, 2, 3, 4, 4], [0, 1, 1, 2, 3, 2]],
+                              dtype=tf.int32)
+      # max_source_len=5
+      source_paddings = tf.constant([[0, 0, 0, 0, 0], [0, 0, 0, 0, 1]],
+                                    dtype=tf.float32)
+      out_paddings = attention.CrossAttentionPaddingWithTimestamp(
+          timestamp, source_paddings, 2, 1)
+      paddings_val = sess.run(out_paddings)
+      print(paddings_val)
+      paddings_expected = tf.constant(
+          [[[0, 0, 1, 1, 1], [0, 0, 0, 1, 1], [1, 0, 0, 0, 1], [1, 1, 0, 0, 0],
+            [1, 1, 1, 0, 0], [1, 1, 1, 0, 0]],
+           [[0, 0, 1, 1, 1], [0, 0, 0, 1, 1], [0, 0, 0, 1, 1], [1, 0, 0, 0, 1],
+            [1, 1, 0, 0, 1], [1, 0, 0, 0, 1]]],
+          dtype=tf.float32)
+      self.assertAllEqual(paddings_val, paddings_expected)
+
   def testFPropCrossAttention(self):
     # input_batch:6, seq_len:6. Test n = 2 case.
     with self.session(use_gpu=True) as sess:
@@ -2313,6 +2333,57 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual_ctx = np.reshape(actual_ctx, (10, 4))
       expected_ctx = [19.345360, 15.057412, 13.744134, 13.387347]
       self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=0))
+
+  def testTransformerAttentionLayerFPropCrossAttentionPaddingOverride(self):
+    # We use self-attention to verify cross-attention padding works correctly.
+    with self.session(use_gpu=True) as sess:
+      query_vec, _, _, _ = self._TransformerAttentionLayerInputs()
+      paddings = tf.convert_to_tensor([[0, 0, 0, 0, 1], [0, 0, 0, 1, 1]],
+                                      dtype=tf.float32)
+
+      # Setup LocalSelfAttention.
+      self_atten_tpl = attention.LocalSelfAttention.Params().Set(
+          left_context=2, right_context=1)
+      p1 = attention.TransformerAttentionLayer.Params().Set(
+          name='transformer_self_atten',
+          input_dim=4,
+          is_masked=False,
+          num_heads=2,
+          atten_tpl=self_atten_tpl)
+      p1.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l1 = p1.Instantiate()
+
+      # Setup MultiHeadedAttention.
+      source_atten_tpl = attention.MultiHeadedAttention.Params()
+      p2 = attention.TransformerAttentionLayer.Params().Set(
+          name='transformer_cross_atten',
+          input_dim=4,
+          is_masked=False,
+          num_heads=2,
+          atten_tpl=source_atten_tpl)
+      l2 = p2.Instantiate()
+
+      # LocalSelfAttention FProp
+      self_ctx_vec, _ = l1.FProp(l1.theta, query_vec, query_vec, paddings)
+
+      # timestamp includes valid indices to source.
+      timestamp = tf.convert_to_tensor([[0, 1, 2, 3, 4], [0, 1, 2, 3, 0]],
+                                       dtype=tf.int32)
+      per_step_padding = attention.CrossAttentionPaddingWithTimestamp(
+          timestamp, paddings, left_context=2, right_context=1)
+      # MultiHeadedAttention FProp with same theta and per_step_padding.
+      cross_ctx_vec, _ = l2.FProp(
+          l1.theta,
+          query_vec,
+          query_vec,
+          paddings,
+          per_step_padding_override=per_step_padding)
+
+      tf.global_variables_initializer().run()
+      act_self_ctx, act_cross_ctx = sess.run([self_ctx_vec, cross_ctx_vec])
+      # They can only differ in padded output positions.
+      self.assertAllClose(act_self_ctx[0, :4, :], act_cross_ctx[0, :4, :])
+      self.assertAllClose(act_self_ctx[1, :3, :], act_cross_ctx[1, :3, :])
 
   def testTransformerAttentionLayerFPropCrossAttentionInputDimAsDict(self):
     with self.session(use_gpu=True) as sess:
