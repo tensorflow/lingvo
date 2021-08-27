@@ -888,21 +888,22 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     if p.enable_value_proj:
       value_proj = self.value.FProp(theta.value, value_vec)
     else:
-      h = p.num_heads
-      _, _, d = py_utils.GetShape(value_vec, 3)
-      dh = d // h
-      # TODO(b/119531146): Reshape is inefficient here. Use one-hot matmul
-      # avoids the data formatting. Change this back to reshape once XLA
-      # has optimized reshape performance.
-      rhs = tf.reshape(
-          tf.one_hot(tf.range(d) // dh, h, dtype=value_vec.dtype),
-          [d, h, 1]) * tf.reshape(
-              tf.one_hot(tf.range(d) % dh, dh, dtype=value_vec.dtype),
-              [d, 1, dh])
+      with tf.name_scope('value'):
+        h = p.num_heads
+        _, _, d = py_utils.GetShape(value_vec, 3)
+        dh = self.dim_per_head
+        # TODO(b/119531146): Reshape is inefficient here. Use one-hot matmul
+        # avoids the data formatting. Change this back to reshape once XLA
+        # has optimized reshape performance.
+        rhs = tf.reshape(
+            tf.one_hot(tf.range(d) // dh, h, dtype=value_vec.dtype),
+            [d, h, 1]) * tf.reshape(
+                tf.one_hot(tf.range(d) % dh, dh, dtype=value_vec.dtype),
+                [d, 1, dh])
 
-      value_vec, rhs = self.ToAqtActActInputs(value_vec, rhs)
-      value_proj = tf.einsum('BTD,DNH->BTNH', value_vec, rhs)
-      value_proj = self.FromAqtActActMatmul(value_proj)
+        value_vec, rhs = self.ToAqtActActInputs(value_vec, rhs)
+        value_proj = tf.einsum('BTD,DNH->BTNH', value_vec, rhs)
+        value_proj = self.FromAqtActActMatmul(value_proj)
 
     query_proj = gshard_utils.MeshSplit(query_proj, p.device_mesh,
                                         p.activation_split_dims_mapping.blnh)
