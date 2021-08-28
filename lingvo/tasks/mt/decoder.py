@@ -1062,6 +1062,14 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     if p.force_alignment:
       new_states['num_sentences'] = states['num_sentences']
 
+    def SetShape(key, element):
+      if not isinstance(element, tf.Tensor):
+        return element
+      prev_v = states.GetItem(key)
+      element.set_shape(prev_v.shape)
+      return element
+
+    new_states = new_states.TransformWithKey(SetShape)
     return bs_results, new_states
 
   def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
