@@ -1217,6 +1217,14 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_alignment</span><span class="p">:</span>
       <span class="n">new_states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s1">&#39;num_sentences&#39;</span><span class="p">]</span>
 
+    <span class="k">def</span> <span class="nf">SetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">element</span>
+      <span class="n">prev_v</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">GetItem</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="n">element</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">prev_v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">element</span>
+
+    <span class="n">new_states</span> <span class="o">=</span> <span class="n">new_states</span><span class="o">.</span><span class="n">TransformWithKey</span><span class="p">(</span><span class="n">SetShape</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span>
 
 <div class="viewcode-block" id="MTDecoderV1._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span>
