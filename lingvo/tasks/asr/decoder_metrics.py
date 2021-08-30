@@ -15,11 +15,13 @@
 """Speech model decoder metrics."""
 
 import collections
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.asr import decoder_utils
+from lingvo.tasks.asr import metrics_calculator
 import numpy as np
 
 # hyps: [num_beams, num_hyps_per_beam] of serialized Hypothesis protos.
@@ -29,6 +31,7 @@ import numpy as np
 # decoded: [num_beams, num_hyps_per_beam].
 DecoderTopK = collections.namedtuple(
     'topk', ['hyps', 'ids', 'lens', 'scores', 'decoded'])  # pyformat: disable
+PostProcessInputs = metrics_calculator.PostProcessInputs
 
 
 def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
@@ -199,12 +202,14 @@ class DecoderMetrics(base_layer.BaseLayer):
 
     return base_metrics
 
-  def PostProcess(self, dec_out_dict, dec_metrics_dict):
-    p = self.params
+  def PreparePostProcess(self, dec_out_dict,
+                         dec_metrics_dict) -> PostProcessInputs:
+    """Prepare the objects for PostProcess metrics calculations."""
     assert 'topk_scores' in dec_out_dict, list(dec_out_dict.keys())
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']
     transcripts = dec_out_dict['transcripts']
+    utt_id = None
     if not py_utils.use_tpu():
       utt_id = dec_out_dict['utt_id']
       assert len(utt_id) == len(transcripts)
@@ -227,14 +232,6 @@ class DecoderMetrics(base_layer.BaseLayer):
     num_samples_in_batch = example_weights.sum()
     dec_metrics_dict['num_samples_in_batch'].Update(num_samples_in_batch)
 
-    def GetRefIds(ref_ids, ref_paddinds):
-      assert len(ref_ids) == len(ref_paddinds)
-      return_ids = []
-      for i in range(len(ref_ids)):
-        if ref_paddinds[i] == 0:
-          return_ids.append(ref_ids[i])
-      return return_ids
-
     total_norm_wer_errs = (norm_wer_errors[:, 0] * example_weights).sum()
     total_norm_wer_words = (norm_wer_words[:, 0] * example_weights).sum()
 
@@ -252,77 +249,17 @@ class DecoderMetrics(base_layer.BaseLayer):
       filtered_top_hyps.append(filtered_hyp)
       dec_metrics_dict['corpus_bleu'].Update(filtered_ref, filtered_hyp)
 
-    total_ins, total_subs, total_dels, total_errs = 0, 0, 0, 0
-    total_oracle_errs = 0
-    total_ref_words = 0
-    total_token_errs = 0
-    total_ref_tokens = 0
-    total_accurate_sentences = 0
-    key_value_pairs = []
+    return PostProcessInputs(transcripts, topk_decoded, filtered_transcripts,
+                             filtered_top_hyps, topk_scores, utt_id,
+                             norm_wer_errors, target_labels, target_paddings,
+                             topk_ids, topk_lens)
 
+  def PostProcess(self, dec_out_dict, dec_metrics_dict):
+    key_value_pairs = []  # To store results per each utt, not used now.
+    postprocess_inputs = self.PreparePostProcess(dec_out_dict, dec_metrics_dict)
+    p = self.params
     if p.include_auxiliary_metrics:
-      for i in range(len(transcripts)):
-        ref_str = transcripts[i]
-        if not py_utils.use_tpu():
-          tf.logging.info('utt_id: %s', utt_id[i])
-        if self.cluster.add_summary:
-          tf.logging.info('  ref_str: %s',
-                          ref_str.decode('utf-8') if p.log_utf8 else ref_str)
-        hyps = topk_decoded[i]
-        num_hyps_per_beam = len(hyps)
-        ref_ids = GetRefIds(target_labels[i], target_paddings[i])
-        hyp_index = i * num_hyps_per_beam
-        top_hyp_ids = topk_ids[hyp_index][:topk_lens[hyp_index]]
-        if self.cluster.add_summary:
-          tf.logging.info('  ref_ids: %s', ref_ids)
-          tf.logging.info('  top_hyp_ids: %s', top_hyp_ids)
-        total_ref_tokens += len(ref_ids)
-        _, _, _, token_errs = decoder_utils.EditDistanceInIds(
-            ref_ids, top_hyp_ids)
-        total_token_errs += token_errs
-
-        filtered_ref = filtered_transcripts[i]
-        oracle_errs = norm_wer_errors[i][0]
-        for n, (score, hyp_str) in enumerate(zip(topk_scores[i], hyps)):
-          oracle_errs = min(oracle_errs, norm_wer_errors[i, n])
-          if self.cluster.add_summary:
-            tf.logging.info('  %f: %s', score,
-                            hyp_str.decode('utf-8') if p.log_utf8 else hyp_str)
-          # Only aggregate scores of the top hypothesis.
-          if n != 0:
-            continue
-          filtered_hyp = filtered_top_hyps[i]
-          ins, subs, dels, errs = decoder_utils.EditDistance(
-              filtered_ref, filtered_hyp)
-          total_ins += ins
-          total_subs += subs
-          total_dels += dels
-          total_errs += errs
-          ref_words = len(decoder_utils.Tokenize(filtered_ref))
-          total_ref_words += ref_words
-          if norm_wer_errors[i, n] == 0:
-            total_accurate_sentences += 1
-          tf.logging.info(
-              '  ins: %d, subs: %d, del: %d, total: %d, ref_words: %d, wer: %f',
-              ins, subs, dels, errs, ref_words, errs / max(1, ref_words))
-
-        total_oracle_errs += oracle_errs
-
-      dec_metrics_dict['wer'].Update(total_errs / max(1., total_ref_words),
-                                     total_ref_words)
-      dec_metrics_dict['error_rates/ins'].Update(
-          total_ins / max(1., total_ref_words), total_ref_words)
-      dec_metrics_dict['error_rates/sub'].Update(
-          total_subs / max(1., total_ref_words), total_ref_words)
-      dec_metrics_dict['error_rates/del'].Update(
-          total_dels / max(1., total_ref_words), total_ref_words)
-      dec_metrics_dict['error_rates/wer'].Update(
-          total_errs / max(1., total_ref_words), total_ref_words)
-      dec_metrics_dict['oracle_norm_wer'].Update(
-          total_oracle_errs / max(1., total_ref_words), total_ref_words)
-      dec_metrics_dict['sacc'].Update(
-          total_accurate_sentences / len(transcripts), len(transcripts))
-      dec_metrics_dict['ter'].Update(
-          total_token_errs / max(1., total_ref_tokens), total_ref_tokens)
-
+      metrics_calculator.CalculateMetrics(postprocess_inputs, dec_metrics_dict,
+                                          self.cluster.add_summary,
+                                          py_utils.use_tpu(), p.log_utf8)
     return key_value_pairs

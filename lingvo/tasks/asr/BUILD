@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "pytype_strict_library")
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -202,6 +204,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":decoder_utils",
+        ":metrics_calculator",
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:metrics",
@@ -260,4 +263,14 @@ py_library(
     name = "levenshtein_distance",
     srcs = ["levenshtein_distance.py"],
     srcs_version = "PY3",
+)
+
+pytype_strict_library(
+    name = "metrics_calculator",
+    srcs = ["metrics_calculator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":decoder_utils",
+        "//lingvo:compat",
+    ],
 )
