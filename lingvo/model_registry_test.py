@@ -48,6 +48,16 @@ class DummyModel(base_model_params.SingleTaskModelParams):
     p.name = 'DummyModel'
     return p
 
+  def Dataset(self):
+    p = base_input_generator.BaseInputGenerator.Params()
+    p.name = 'Dataset'
+    return p
+
+  def Task_Dataset(self):
+    p = self.Task()
+    p.name = 'DatasetSpecificTask'
+    return p
+
 
 class ModelRegistryTest(test_utils.TestCase):
 
@@ -76,6 +86,10 @@ class ModelRegistryTest(test_utils.TestCase):
     # Registered version adds model source info but direct does not.
     cfg.model = None
     self.assertEqual(DummyModel().Model(), cfg)
+
+    cfg = model_registry.GetParams('test.DummyModel', 'Dataset')
+    self.assertIsNotNone(cfg)
+    self.assertEqual(DummyModel().Task_Dataset(), cfg.task)
 
     with self.assertRaises(LookupError):
       # Not yet registered.
