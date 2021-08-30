@@ -329,6 +329,9 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="s1">&#39;sample_ids&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
       <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;utt_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">sample_ids</span>
 
+    <span class="k">if</span> <span class="s1">&#39;is_real&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;is_real&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">is_real</span>
+
     <span class="n">ret_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">AddAdditionalDecoderMetricsToGraph</span><span class="p">(</span><span class="n">topk</span><span class="p">,</span> <span class="n">filtered_hyps</span><span class="p">,</span>
                                                 <span class="n">filtered_refs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span>
@@ -368,6 +371,10 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">utt_id</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;utt_id&#39;</span><span class="p">]</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;is_real&#39;</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">:</span>
+      <span class="n">is_real</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;is_real&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">is_real</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">norm_wer_errors</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">]</span>
     <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_words&#39;</span><span class="p">]</span>
     <span class="n">target_labels</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_labels&#39;</span><span class="p">]</span>
@@ -404,10 +411,11 @@
       <span class="n">filtered_top_hyps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filtered_hyp</span><span class="p">)</span>
       <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;corpus_bleu&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">PostProcessInputs</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">,</span> <span class="n">filtered_transcripts</span><span class="p">,</span>
-                             <span class="n">filtered_top_hyps</span><span class="p">,</span> <span class="n">topk_scores</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">,</span>
-                             <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">target_labels</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-                             <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">PostProcessInputs</span><span class="p">(</span><span class="n">is_real</span><span class="p">,</span> <span class="n">transcripts</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">,</span>
+                             <span class="n">filtered_transcripts</span><span class="p">,</span> <span class="n">filtered_top_hyps</span><span class="p">,</span>
+                             <span class="n">topk_scores</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">norm_wer_errors</span><span class="p">,</span>
+                             <span class="n">target_labels</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">topk_ids</span><span class="p">,</span>
+                             <span class="n">topk_lens</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DecoderMetrics.PostProcess"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.PostProcess">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">):</span>
     <span class="n">key_value_pairs</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># To store results per each utt, not used now.</span>
