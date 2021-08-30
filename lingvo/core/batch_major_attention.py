@@ -97,14 +97,14 @@ def CrossAttentionPaddingWithTimestamp(timestamp, source_paddings, left_context,
   key B=[b0, b1, b2, b3] have length 4, and timestamp=[0, 1, 1, 2, 3] contains
   indices of B (note that len(timestamp)=len(A)). With left_context=1 and
   right_context=1, the padding matrix shall be (rows indicates query, column
-  indicates key):
+  indicates key)::
 
-      b0  b1  b2  b3
-  a0   0   0   1   1
-  a1   0   0   0   1
-  a2   0   0   0   1
-  a3   1   0   0   0
-  a4   1   1   0   0
+        b0  b1  b2  b3
+    a0   0   0   1   1
+    a1   0   0   0   1
+    a2   0   0   0   1
+    a3   1   0   0   0
+    a4   1   1   0   0
 
   Args:
     timestamp: [batch, target_seq_len]
