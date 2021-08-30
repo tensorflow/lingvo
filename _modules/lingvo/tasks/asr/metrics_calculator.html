@@ -1,0 +1,355 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.asr.metrics_calculator &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.metrics_calculator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.asr.metrics_calculator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Calculate and update metrics for Decode Post-Process.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
+
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">decoder_utils</span>
+
+<span class="c1"># transcripts: [num_utts]. A sequence of transcripts (references), one for</span>
+<span class="c1">#   each utterance.</span>
+<span class="c1"># topk_decoded: [num_utts, num_topk_hyps]. A sequence, for each utterance, of a</span>
+<span class="c1">#   sequence of the top K hypotheses.</span>
+<span class="c1"># filtered_transcripts: [num_utts]. Same as transcripts, but after simple</span>
+<span class="c1">#   filtering.</span>
+<span class="c1"># filtered_top_hyps: [num_utts]. A sequence of filtered top hypotheses, one for</span>
+<span class="c1">#   each utterance.</span>
+<span class="c1"># topk_scores: [num_utts, num_topk_hyps]. A sequence, for each utterance, of a</span>
+<span class="c1">#   sequence of the top K decoder scores corresponding to the top K hypotheses.</span>
+<span class="c1"># utt_id: [num_utts]. A sequence of utterance_ids.</span>
+<span class="c1"># norm_wer_errors: [num_utts, num_topk_hyps]. A sequence, for each utterance, of</span>
+<span class="c1">#   a sequence of the normalized wer corresponding to the top K hypotheses.</span>
+<span class="c1"># target_labels: [num_utts, max_target_length]. A sequence, for each utterance,</span>
+<span class="c1">#   of a sequence of labels for the target(reference) tokens (e.g. word-pieces).</span>
+<span class="c1"># target_paddings: [num_utts, max_target_length]. A sequence, for each</span>
+<span class="c1">#   utterance, of a sequence of padding values for the target(reference) token</span>
+<span class="c1">#   sequence, used to determine non-padding labels.</span>
+<span class="c1"># topk_ids: [num_utts * num_topk_hyps, max_target_length]. A sequence, for each</span>
+<span class="c1">#   topK hypothesis of ALL utterances, of a sequence of token labels/ids</span>
+<span class="c1">#   (up to max_target_length).</span>
+<span class="c1"># topk_lens: [num_utts * num_topk_hyps]. A sequence, for each topK hypothesis of</span>
+<span class="c1">#   ALL utterances, of the length of its token labels/ids sequence.</span>
+<span class="n">PostProcessInputs</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;postprocess_input&#39;</span><span class="p">,</span> <span class="p">[</span>
+    <span class="s1">&#39;transcripts&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_decoded&#39;</span><span class="p">,</span> <span class="s1">&#39;filtered_transcripts&#39;</span><span class="p">,</span> <span class="s1">&#39;filtered_top_hyps&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;topk_scores&#39;</span><span class="p">,</span> <span class="s1">&#39;utt_id&#39;</span><span class="p">,</span> <span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">,</span> <span class="s1">&#39;target_labels&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;target_paddings&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_ids&#39;</span><span class="p">,</span> <span class="s1">&#39;topk_lens&#39;</span>
+<span class="p">])</span>
+
+
+<div class="viewcode-block" id="GetRefIds"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.metrics_calculator.html#lingvo.tasks.asr.metrics_calculator.GetRefIds">[docs]</a><span class="k">def</span> <span class="nf">GetRefIds</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">,</span> <span class="n">ref_paddings</span><span class="p">):</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_paddings</span><span class="p">)</span>
+  <span class="n">return_ids</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">ref_paddings</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">return_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">return_ids</span></div>
+
+
+<div class="viewcode-block" id="CalculateMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.metrics_calculator.html#lingvo.tasks.asr.metrics_calculator.CalculateMetrics">[docs]</a><span class="k">def</span> <span class="nf">CalculateMetrics</span><span class="p">(</span>
+    <span class="n">postprocess_inputs</span><span class="p">:</span> <span class="n">PostProcessInputs</span><span class="p">,</span>
+    <span class="n">dec_metrics_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">add_summary</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">use_tpu</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">log_utf8</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Calculate and update metrics.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    postprocess_inputs: namedtuple of Postprocess input objects/tensors.</span>
+<span class="sd">    dec_metrics_dict: A dictionary of metric names to metrics.</span>
+<span class="sd">    add_summary: Whether to add detailed summary logging for processing each</span>
+<span class="sd">      utterance.</span>
+<span class="sd">    use_tpu: Whether TPU is used (for decoding).</span>
+<span class="sd">    log_utf8: DecoderMetrics param. If True, decode reference and hypotheses</span>
+<span class="sd">      bytes to UTF-8 for logging.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">,</span> <span class="n">filtered_transcripts</span><span class="p">,</span> <span class="n">filtered_top_hyps</span><span class="p">,</span>
+   <span class="n">topk_scores</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">target_labels</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
+   <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">)</span> <span class="o">=</span> <span class="n">postprocess_inputs</span>
+
+  <span class="n">total_ins</span><span class="p">,</span> <span class="n">total_subs</span><span class="p">,</span> <span class="n">total_dels</span><span class="p">,</span> <span class="n">total_errs</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+  <span class="n">total_oracle_errs</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">total_ref_words</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">total_token_errs</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">total_ref_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">total_accurate_sentences</span> <span class="o">=</span> <span class="mi">0</span>
+
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)):</span>
+    <span class="n">ref_str</span> <span class="o">=</span> <span class="n">transcripts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_tpu</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utt_id: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ref_str: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">ref_str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">log_utf8</span> <span class="k">else</span> <span class="n">ref_str</span><span class="p">)</span>
+    <span class="n">hyps</span> <span class="o">=</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span>
+    <span class="n">ref_ids</span> <span class="o">=</span> <span class="n">GetRefIds</span><span class="p">(</span><span class="n">target_labels</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target_paddings</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">hyp_index</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">num_hyps_per_beam</span>
+    <span class="n">top_hyp_ids</span> <span class="o">=</span> <span class="n">topk_ids</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">][:</span><span class="n">topk_lens</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ref_ids: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ref_ids</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  top_hyp_ids: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">top_hyp_ids</span><span class="p">)</span>
+    <span class="n">total_ref_tokens</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">token_errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistanceInIds</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">,</span> <span class="n">top_hyp_ids</span><span class="p">)</span>
+    <span class="n">total_token_errs</span> <span class="o">+=</span> <span class="n">token_errs</span>
+
+    <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">filtered_transcripts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">oracle_errs</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hyps</span><span class="p">)):</span>
+      <span class="n">oracle_errs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">oracle_errs</span><span class="p">,</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%f</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span>
+                        <span class="n">hyp_str</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">log_utf8</span> <span class="k">else</span> <span class="n">hyp_str</span><span class="p">)</span>
+      <span class="c1"># Only aggregate scores of the top hypothesis.</span>
+      <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">filtered_top_hyps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
+          <span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+      <span class="n">total_ins</span> <span class="o">+=</span> <span class="n">ins</span>
+      <span class="n">total_subs</span> <span class="o">+=</span> <span class="n">subs</span>
+      <span class="n">total_dels</span> <span class="o">+=</span> <span class="n">dels</span>
+      <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
+      <span class="n">ref_words</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
+      <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="n">ref_words</span>
+      <span class="k">if</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">total_accurate_sentences</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">, ref_words: </span><span class="si">%d</span><span class="s1">, wer: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span>
+          <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">,</span> <span class="n">errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">))</span>
+
+    <span class="n">total_oracle_errs</span> <span class="o">+=</span> <span class="n">oracle_errs</span>
+
+  <span class="n">non_zero_total_ref_words</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_errs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span>
+                                 <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/ins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">total_ins</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/sub&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">total_subs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/del&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">total_dels</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">total_errs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;sacc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_accurate_sentences</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">),</span>
+                                  <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">))</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;ter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_token_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_tokens</span><span class="p">),</span>
+                                 <span class="n">total_ref_tokens</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
