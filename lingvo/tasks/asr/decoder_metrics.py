@@ -174,6 +174,9 @@ class DecoderMetrics(base_layer.BaseLayer):
     if not py_utils.use_tpu() and 'sample_ids' in input_batch:
       ret_dict['utt_id'] = input_batch.sample_ids
 
+    if 'is_real' in input_batch:
+      ret_dict['is_real'] = input_batch.is_real
+
     ret_dict.update(
         self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
                                                 filtered_refs, input_batch,
@@ -213,6 +216,10 @@ class DecoderMetrics(base_layer.BaseLayer):
     if not py_utils.use_tpu():
       utt_id = dec_out_dict['utt_id']
       assert len(utt_id) == len(transcripts)
+    if 'is_real' in dec_out_dict:
+      is_real = dec_out_dict['is_real']
+    else:
+      is_real = np.ones([len(transcripts)], np.float32)
     norm_wer_errors = dec_out_dict['norm_wer_errors']
     norm_wer_words = dec_out_dict['norm_wer_words']
     target_labels = dec_out_dict['target_labels']
@@ -249,10 +256,11 @@ class DecoderMetrics(base_layer.BaseLayer):
       filtered_top_hyps.append(filtered_hyp)
       dec_metrics_dict['corpus_bleu'].Update(filtered_ref, filtered_hyp)
 
-    return PostProcessInputs(transcripts, topk_decoded, filtered_transcripts,
-                             filtered_top_hyps, topk_scores, utt_id,
-                             norm_wer_errors, target_labels, target_paddings,
-                             topk_ids, topk_lens)
+    return PostProcessInputs(is_real, transcripts, topk_decoded,
+                             filtered_transcripts, filtered_top_hyps,
+                             topk_scores, utt_id, norm_wer_errors,
+                             target_labels, target_paddings, topk_ids,
+                             topk_lens)
 
   def PostProcess(self, dec_out_dict, dec_metrics_dict):
     key_value_pairs = []  # To store results per each utt, not used now.
