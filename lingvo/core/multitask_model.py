@@ -104,7 +104,9 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
         'variable_renaming_rules', None,
         'A list/tuple of variable renaming rules. Each element in the'
         ' list is a pair of strings. The first element is a regex'
-        ' expression while the second element is a python format string.')
+        ' expression while the second element is a python format string. '
+        'NOTE: variable renaming is not supported in eager mode. '
+        'Please look into migrating away from variable renaming.')
     return p
 
   def __init__(self, params):

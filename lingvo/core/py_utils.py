@@ -1317,6 +1317,10 @@ def GetVariableName(name):
   matched = False
   new_name = name
   for renames in _VARIABLE_RENAME_RULES.stack:
+    tf.logging.log_first_n(
+        tf.logging.WARN,
+        ('Renaming variables is not supported in eager mode. '
+         'Please look into migrating away from variable renaming.'), 1)
     for regexp, name_format in renames:
       match = re.match(regexp, name)
       if match:
