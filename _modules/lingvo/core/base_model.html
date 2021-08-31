@@ -330,6 +330,12 @@
         <span class="s1">&#39;{&quot;checkpoint_path&quot;: ([(&quot;(.*)&quot;, &quot;</span><span class="si">%s</span><span class="s1">&quot;)], [])} will initialize all the &#39;</span>
         <span class="s1">&#39;model parameters from the checkpoint_path.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;init_from_checkpoint_override&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;If set, override keys in init_from_checkpoint_rules with this. &#39;</span>
+        <span class="s1">&#39;Once set, only one key is expected in &#39;</span>
+        <span class="s1">&#39;init_from_checkpoint_rules. This is for easier param override &#39;</span>
+        <span class="s1">&#39;when using --model_params_override or in xm.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
         <span class="s1">&#39;with hyperparameter: value pairs. See google-research.model_pruning.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -461,6 +467,12 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">train</span>
+    <span class="k">if</span> <span class="n">tp</span> <span class="ow">and</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_override</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+      <span class="n">rules</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_override</span><span class="p">]</span> <span class="o">=</span> <span class="n">rules</span>
     <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">BaseTask</span><span class="p">)</span>
     <span class="c1"># Ensure global_step exists before calling super.</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
@@ -1164,6 +1176,8 @@
         <span class="s1">&#39;Must be set consistent across all tasks.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;init_from_checkpoint_rules&#39;</span><span class="p">,</span> <span class="p">{},</span>
               <span class="s1">&#39;See BaseTask documentation for details.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;init_from_checkpoint_override&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+              <span class="s1">&#39;See BaseTask document for details.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;early_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
               <span class="s1">&#39;Early stopping based on dev-set performance.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
