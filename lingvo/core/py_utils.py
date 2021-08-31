@@ -1885,6 +1885,16 @@ def _CreateVariableStateless(name,
     raise TypeError(
         'Stateless variable initialization does not support tf.complex64.')
 
+  def MaybeOpportunisticVariableReuse(next_creator, **kwargs):
+    try:
+      return next_creator(**kwargs)
+    except ValueError:  # Possibly the variable already exists
+      if GetOpportunisticVariableReuse():
+        with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+          return next_creator(**kwargs)
+      else:
+        raise
+
   def LingvoVariableCreator(next_creator, **kwargs):
     """Lingvo variable creator."""
     # TODO(yonghui): Possibly get away from variable_scope and implement our own
@@ -1914,18 +1924,19 @@ def _CreateVariableStateless(name,
     return var
 
   with VariableCreatorScope(LingvoVariableCreator):
-    var = _GetVariableCreator()(
-        var_name=var_name,
-        var_params=p,
-        name='var',
-        shape=GetVariableShapePrefixes() + list(shape),
-        dtype=var_dtype,
-        initializer=v_init,
-        collections=collections,
-        trainable=trainable,
-        validate_shape=True,
-        synchronization=synchronization,
-        aggregation=aggregation)
+    with VariableCreatorScope(MaybeOpportunisticVariableReuse):
+      var = _GetVariableCreator()(
+          var_name=var_name,
+          var_params=p,
+          name='var',
+          shape=GetVariableShapePrefixes() + list(shape),
+          dtype=var_dtype,
+          initializer=v_init,
+          collections=collections,
+          trainable=trainable,
+          validate_shape=True,
+          synchronization=synchronization,
+          aggregation=aggregation)
 
   combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
   if combined_layers_dims > 0:
