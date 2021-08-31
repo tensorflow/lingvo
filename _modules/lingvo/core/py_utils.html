@@ -1472,6 +1472,10 @@
   <span class="n">matched</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">new_name</span> <span class="o">=</span> <span class="n">name</span>
   <span class="k">for</span> <span class="n">renames</span> <span class="ow">in</span> <span class="n">_VARIABLE_RENAME_RULES</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">log_first_n</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">WARN</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;Renaming variables is not supported in eager mode. &#39;</span>
+         <span class="s1">&#39;Please look into migrating away from variable renaming.&#39;</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">regexp</span><span class="p">,</span> <span class="n">name_format</span> <span class="ow">in</span> <span class="n">renames</span><span class="p">:</span>
       <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regexp</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
