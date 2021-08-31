@@ -2040,6 +2040,16 @@
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
         <span class="s1">&#39;Stateless variable initialization does not support tf.complex64.&#39;</span><span class="p">)</span>
 
+  <span class="k">def</span> <span class="nf">MaybeOpportunisticVariableReuse</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># Possibly the variable already exists</span>
+      <span class="k">if</span> <span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">(),</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span>
+
   <span class="k">def</span> <span class="nf">LingvoVariableCreator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lingvo variable creator.&quot;&quot;&quot;</span>
     <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
@@ -2069,18 +2079,19 @@
     <span class="k">return</span> <span class="n">var</span>
 
   <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">):</span>
-    <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
-        <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
-        <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
-        <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
-        <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
-        <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
-        <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
-        <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">MaybeOpportunisticVariableReuse</span><span class="p">):</span>
+      <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
+          <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
+          <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
+          <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
+          <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
+          <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
+          <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
   <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">combined_layers_dims</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
