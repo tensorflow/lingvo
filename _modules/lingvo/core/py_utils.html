@@ -1131,12 +1131,14 @@
   <span class="sd">&quot;&quot;&quot;Static class providing weight initialization config params.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="WeightInit._Params"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit._Params">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">_Params</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">_Params</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">custom_v_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Parameters of this class.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="s1">&#39;Initialization method.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;Initialization scale.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="s1">&#39;Random seed used to generate initial values.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;custom_v_init&#39;</span><span class="p">,</span> <span class="n">custom_v_init</span><span class="p">,</span>
+             <span class="s1">&#39;A custom tf.init_ops.Initializer instance.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Freeze</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -1260,7 +1262,11 @@
 
 <div class="viewcode-block" id="WeightInit.KaimingUniformFanInLeakyRelu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.KaimingUniformFanInLeakyRelu">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">KaimingUniformFanInLeakyRelu</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">5.</span><span class="p">),</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;kaiming_uniform_fanin_leakyrelu&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WeightInit.CustomVarInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.CustomVarInit">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">CustomVarInit</span><span class="p">(</span><span class="n">custom_v_init</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;custom&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">custom_v_init</span><span class="p">)</span></div></div>
 
 
 <span class="n">_DEFAULT_XAVIER_INIT</span> <span class="o">=</span> <span class="mf">1.000001</span>
@@ -1858,7 +1864,7 @@
     <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
 
   <span class="n">v_init</span> <span class="o">=</span> <span class="n">_CreateVarInitStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
-                                  <span class="n">init_dtype</span><span class="p">)</span>
+                                  <span class="n">init_dtype</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">custom_v_init</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">var_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
 
@@ -2034,7 +2040,7 @@
     <span class="n">var_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
   <span class="n">init_dtype</span> <span class="o">=</span> <span class="n">var_dtype</span><span class="o">.</span><span class="n">real_dtype</span>
   <span class="n">v_init</span> <span class="o">=</span> <span class="n">_CreateVarInitStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
-                                   <span class="n">init_dtype</span><span class="p">)</span>
+                                   <span class="n">init_dtype</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">custom_v_init</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">var_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex64</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
@@ -2132,7 +2138,14 @@
   <span class="k">return</span> <span class="n">XavierUniform</span></div>
 
 
-<div class="viewcode-block" id="_CreateVarInitStateful"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._CreateVarInitStateful">[docs]</a><span class="k">def</span> <span class="nf">_CreateVarInitStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">):</span>
+<div class="viewcode-block" id="_CreateVarInitStateful"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._CreateVarInitStateful">[docs]</a><span class="k">def</span> <span class="nf">_CreateVarInitStateful</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                           <span class="n">method</span><span class="p">,</span>
+                           <span class="n">shape</span><span class="p">,</span>
+                           <span class="n">dim0</span><span class="p">,</span>
+                           <span class="n">seed</span><span class="p">,</span>
+                           <span class="n">scale</span><span class="p">,</span>
+                           <span class="n">init_dtype</span><span class="p">,</span>
+                           <span class="n">custom_v_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates variable initialization function for a stateful RNG.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
       <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span>
@@ -2223,6 +2236,8 @@
     <span class="n">bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">std_dev</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
         <span class="n">minval</span><span class="o">=-</span><span class="n">bound</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">bound</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;custom&#39;</span><span class="p">:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">custom_v_init</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;init_type `</span><span class="si">%s</span><span class="s1">` not supported.&#39;</span> <span class="o">%</span> <span class="n">method</span>
 
@@ -2381,7 +2396,14 @@
   <span class="k">return</span> <span class="n">XavierUniform</span></div>
 
 
-<div class="viewcode-block" id="_CreateVarInitStateless"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._CreateVarInitStateless">[docs]</a><span class="k">def</span> <span class="nf">_CreateVarInitStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dim0</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">):</span>
+<div class="viewcode-block" id="_CreateVarInitStateless"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._CreateVarInitStateless">[docs]</a><span class="k">def</span> <span class="nf">_CreateVarInitStateless</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                            <span class="n">method</span><span class="p">,</span>
+                            <span class="n">shape</span><span class="p">,</span>
+                            <span class="n">dim0</span><span class="p">,</span>
+                            <span class="n">seed</span><span class="p">,</span>
+                            <span class="n">scale</span><span class="p">,</span>
+                            <span class="n">init_dtype</span><span class="p">,</span>
+                            <span class="n">custom_v_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates variable initialization function for a stateless RNG.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="p">(</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
       <span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span>
@@ -2450,6 +2472,8 @@
     <span class="n">bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">std_dev</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomUniformInitializer</span><span class="p">(</span>
         <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=-</span><span class="n">bound</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">bound</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;custom&#39;</span><span class="p">:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">custom_v_init</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;init_type </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">method</span>
 
