@@ -976,12 +976,14 @@ class WeightInit:
   """Static class providing weight initialization config params."""
 
   @staticmethod
-  def _Params(method, scale, seed):
+  def _Params(method, scale, seed, custom_v_init=None):
     """Parameters of this class."""
     p = hyperparams.Params()
     p.Define('method', method, 'Initialization method.')
     p.Define('scale', scale, 'Initialization scale.')
     p.Define('seed', seed, 'Random seed used to generate initial values.')
+    p.Define('custom_v_init', custom_v_init,
+             'A custom tf.init_ops.Initializer instance.')
     p.Freeze()
     return p
 
@@ -1106,6 +1108,10 @@ class WeightInit:
   @staticmethod
   def KaimingUniformFanInLeakyRelu(scale=np.sqrt(5.), seed=None):
     return WeightInit._Params('kaiming_uniform_fanin_leakyrelu', scale, seed)
+
+  @staticmethod
+  def CustomVarInit(custom_v_init):
+    return WeightInit._Params('custom', 1.0, None, custom_v_init)
 
 
 _DEFAULT_XAVIER_INIT = 1.000001
@@ -1703,7 +1709,7 @@ def _CreateVariableStateful(name,
     init_dtype = tf.float32
 
   v_init = _CreateVarInitStateful(name, method, shape, dim0, seed, scale,
-                                  init_dtype)
+                                  init_dtype, p.init.custom_v_init)
 
   if var_dtype == tf.complex64:
 
@@ -1879,7 +1885,7 @@ def _CreateVariableStateless(name,
     var_dtype = p.dtype
   init_dtype = var_dtype.real_dtype
   v_init = _CreateVarInitStateless(name, method, shape, dim0, seed, scale,
-                                   init_dtype)
+                                   init_dtype, p.init.custom_v_init)
 
   if var_dtype == tf.complex64:
     raise TypeError(
@@ -1977,7 +1983,14 @@ def _RandomXavierUniformInitializer(method, scale, seed):
   return XavierUniform
 
 
-def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
+def _CreateVarInitStateful(name,
+                           method,
+                           shape,
+                           dim0,
+                           seed,
+                           scale,
+                           init_dtype,
+                           custom_v_init=None):
   """Creates variable initialization function for a stateful RNG."""
   if (method in [
       'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'
@@ -2068,6 +2081,8 @@ def _CreateVarInitStateful(name, method, shape, dim0, seed, scale, init_dtype):
     bound = np.sqrt(3.0) * std_dev
     v_init = init_ops.random_uniform_initializer(
         minval=-bound, maxval=bound, seed=seed, dtype=init_dtype)
+  elif method == 'custom':
+    v_init = custom_v_init
   else:
     assert False, 'init_type `%s` not supported.' % method
 
@@ -2226,7 +2241,14 @@ def _DeterministicRandomXavierUniformInitializer(method, scale, seed):
   return XavierUniform
 
 
-def _CreateVarInitStateless(name, method, shape, dim0, seed, scale, init_dtype):
+def _CreateVarInitStateless(name,
+                            method,
+                            shape,
+                            dim0,
+                            seed,
+                            scale,
+                            init_dtype,
+                            custom_v_init=None):
   """Creates variable initialization function for a stateless RNG."""
   if (method in [
       'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'
@@ -2295,6 +2317,8 @@ def _CreateVarInitStateless(name, method, shape, dim0, seed, scale, init_dtype):
     bound = np.sqrt(3.0) * std_dev
     v_init = _DeterministicRandomUniformInitializer(
         seed=seed, minval=-bound, maxval=bound)
+  elif method == 'custom':
+    v_init = custom_v_init
   else:
     assert False, 'init_type %s not supported.' % method
 

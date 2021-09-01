@@ -42,6 +42,7 @@ import mock
 import numpy as np
 
 from tensorflow.python.ops import functional_ops  # pylint:disable=g-direct-tensorflow-import
+from tensorflow.python.ops import init_ops  # pylint:disable=g-direct-tensorflow-import
 
 FLAGS = tf.flags.FLAGS
 
@@ -365,6 +366,23 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(v1_v_expted, v1_v.tolist())
       self.assertAllClose(v2_v_expted, v2_v.tolist())
       self.assertAllClose(v3_v_expted, v3_v.tolist())
+
+  def testCreateVariableCustomVarInit(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.random.set_seed(832124)
+
+      var = py_utils.CreateVariable(
+          'var',
+          py_utils.WeightParams(
+              shape=(2, 2),
+              dtype=tf.float32,
+              init=py_utils.WeightInit.CustomVarInit(
+                  init_ops.constant_initializer(3))))
+
+      v_expected = [[3, 3], [3, 3]]
+      self.evaluate(tf.global_variables_initializer())
+      v = self.evaluate(var)
+      self.assertAllClose(v_expected, v.tolist())
 
   def testCreateVariableSqrtFanInOut(self):
     with self.session():
