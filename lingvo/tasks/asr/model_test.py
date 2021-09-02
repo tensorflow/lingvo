@@ -140,6 +140,42 @@ class AsrModelTest(test_utils.TestCase):
       self.assertEqual(1.0, metrics_dict['ter'].value)
       self.assertEqual(0, len(key_value_pairs))
 
+  def testFilterRealExamples(self):
+    p = self._testParams()
+    mdl = p.Instantiate()
+    fake_dec_out = {
+        'utt_id': ['utt1', 'utt2', 'utt3'],  # utt3 is dummy.
+        'transcripts': ['a b c d', 'a', ''],
+        'topk_decoded': [['a b c d', 'a b c d'], ['wrong', ''], ['', '']],
+        'topk_scores': [[1.0, 0.9], [1.0, 0.9], [0.0, 0.0]],
+        'topk_ids': [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [4, 5, 6, 7],
+                     [0, 0, 0, 0], [0, 0, 0, 0]],
+        'topk_lens': [2, 4, 4, 2, 0, 0],
+        'target_labels': [[1, 2, 3, 4], [2, 3, 4, 5], [0, 0, 0, 0]],
+        'target_paddings': [[0, 0, 0, 1], [0, 0, 0, 1], [0, 0, 0, 0]],
+        'norm_wer_errors': [[0, 0], [1, 1], [0, 0]],
+        'norm_wer_words': [[4, 4], [1, 1], [0, 0]],
+        'is_real': [1.0, 1.0, 0.0]
+    }
+    expected_filtered = {
+        'utt_id': ['utt1', 'utt2'],
+        'transcripts': ['a b c d', 'a'],
+        'topk_decoded': [['a b c d', 'a b c d'], ['wrong', '']],
+        'topk_scores': [[1.0, 0.9], [1.0, 0.9]],
+        'topk_ids': [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [4, 5, 6, 7]],
+        'topk_lens': [2, 4, 4, 2],
+        'target_labels': [[1, 2, 3, 4], [2, 3, 4, 5]],
+        'target_paddings': [[0, 0, 0, 1], [0, 0, 0, 1]],
+        'norm_wer_errors': [[0, 0], [1, 1]],
+        'norm_wer_words': [[4, 4], [1, 1]],
+        'is_real': [1.0, 1.0]
+    }
+    mdl.decoder_metrics.FilterRealExamples(fake_dec_out)
+    fake_dec_out = {
+        key: np_arr.tolist() for key, np_arr in fake_dec_out.items()
+    }
+    self.assertDictEqual(fake_dec_out, expected_filtered)
+
   def testPostProcessDecodeOut(self):
     p = self._testParams()
     p.decoder.beam_search.num_hyps_per_beam = 2

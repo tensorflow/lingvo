@@ -15,6 +15,7 @@
 """Speech model decoder metrics."""
 
 import collections
+from typing import Any, Dict
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -205,10 +206,33 @@ class DecoderMetrics(base_layer.BaseLayer):
 
     return base_metrics
 
+  def FilterRealExamples(self, dec_out_dict: Dict[str, Any]) -> None:
+    """Remove from input dec_out_dict data that do not refer to real utt."""
+    is_real = dec_out_dict['is_real']
+    for key in dec_out_dict.keys():
+      if key in ['topk_ids', 'topk_lens']:
+        # Array length should be the total # of hyps for all utts.
+        # Do not assume constant num_hyps/utt. Instead count hyps for each utt.
+        temp = []
+        start_idx, end_idx = 0, 0
+        for utt_idx, hyps_scores in enumerate(dec_out_dict['topk_scores']):
+          end_idx = start_idx + len(hyps_scores)
+          if is_real[utt_idx]:
+            temp.extend(dec_out_dict[key][start_idx:end_idx])
+          start_idx = end_idx
+        dec_out_dict[key] = np.asarray(temp)
+      elif len(dec_out_dict[key]) == len(is_real):
+        dec_out_dict[key] = np.asarray(
+            [dec_out_dict[key][i] for i in range(len(is_real)) if is_real[i]])
+
   def PreparePostProcess(self, dec_out_dict,
                          dec_metrics_dict) -> PostProcessInputs:
     """Prepare the objects for PostProcess metrics calculations."""
     assert 'topk_scores' in dec_out_dict, list(dec_out_dict.keys())
+    # Filter out examples that is not real (dummy batch paddings).
+    if 'is_real' in dec_out_dict:
+      self.FilterRealExamples(dec_out_dict)
+
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']
     transcripts = dec_out_dict['transcripts']
@@ -216,10 +240,6 @@ class DecoderMetrics(base_layer.BaseLayer):
     if not py_utils.use_tpu():
       utt_id = dec_out_dict['utt_id']
       assert len(utt_id) == len(transcripts)
-    if 'is_real' in dec_out_dict:
-      is_real = dec_out_dict['is_real']
-    else:
-      is_real = np.ones([len(transcripts)], np.float32)
     norm_wer_errors = dec_out_dict['norm_wer_errors']
     norm_wer_words = dec_out_dict['norm_wer_words']
     target_labels = dec_out_dict['target_labels']
@@ -256,11 +276,10 @@ class DecoderMetrics(base_layer.BaseLayer):
       filtered_top_hyps.append(filtered_hyp)
       dec_metrics_dict['corpus_bleu'].Update(filtered_ref, filtered_hyp)
 
-    return PostProcessInputs(is_real, transcripts, topk_decoded,
-                             filtered_transcripts, filtered_top_hyps,
-                             topk_scores, utt_id, norm_wer_errors,
-                             target_labels, target_paddings, topk_ids,
-                             topk_lens)
+    return PostProcessInputs(transcripts, topk_decoded, filtered_transcripts,
+                             filtered_top_hyps, topk_scores, utt_id,
+                             norm_wer_errors, target_labels, target_paddings,
+                             topk_ids, topk_lens)
 
   def PostProcess(self, dec_out_dict, dec_metrics_dict):
     key_value_pairs = []  # To store results per each utt, not used now.

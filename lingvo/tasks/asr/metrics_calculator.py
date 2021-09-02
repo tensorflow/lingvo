@@ -21,9 +21,6 @@ from typing import Any, Dict
 import lingvo.compat as tf
 from lingvo.tasks.asr import decoder_utils
 
-# is_real: [num_utts]. Float number in same order as others, non-zero indicate
-#   it's real utterance, zero indicate it's fake utterance, and we should skip
-#   for metrics calculation.
 # transcripts: [num_utts]. A sequence of transcripts (references), one for
 #   each utterance.
 # topk_decoded: [num_utts, num_topk_hyps]. A sequence, for each utterance, of a
@@ -48,9 +45,9 @@ from lingvo.tasks.asr import decoder_utils
 # topk_lens: [num_utts * num_topk_hyps]. A sequence, for each topK hypothesis of
 #   ALL utterances, of the length of its token labels/ids sequence.
 PostProcessInputs = collections.namedtuple('postprocess_input', [
-    'is_real', 'transcripts', 'topk_decoded', 'filtered_transcripts',
-    'filtered_top_hyps', 'topk_scores', 'utt_id', 'norm_wer_errors',
-    'target_labels', 'target_paddings', 'topk_ids', 'topk_lens'
+    'transcripts', 'topk_decoded', 'filtered_transcripts', 'filtered_top_hyps',
+    'topk_scores', 'utt_id', 'norm_wer_errors', 'target_labels',
+    'target_paddings', 'topk_ids', 'topk_lens'
 ])
 
 
@@ -81,7 +78,7 @@ def CalculateMetrics(
     log_utf8: DecoderMetrics param. If True, decode reference and hypotheses
       bytes to UTF-8 for logging.
   """
-  (is_real, transcripts, topk_decoded, filtered_transcripts, filtered_top_hyps,
+  (transcripts, topk_decoded, filtered_transcripts, filtered_top_hyps,
    topk_scores, utt_id, norm_wer_errors, target_labels, target_paddings,
    topk_ids, topk_lens) = postprocess_inputs
 
@@ -93,8 +90,6 @@ def CalculateMetrics(
   total_accurate_sentences = 0
 
   for i in range(len(transcripts)):
-    if not is_real[i]:
-      continue
     ref_str = transcripts[i]
     if not use_tpu:
       tf.logging.info('utt_id: %s', utt_id[i])
