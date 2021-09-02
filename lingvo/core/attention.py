@@ -697,6 +697,13 @@ class AdditiveAttention(BaseAttentionLayer):
         collections=['AdditiveAttention_vars'])
     self.CreateVariable('hidden_var', pc)
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.source_var = self.AddVN(theta.source_var)
+    theta.hidden_var = self.AddVN(theta.hidden_var)
+    theta.query_var = self.AddVN(theta.query_var)
+    return theta
+
   def PackSource(self,
                  theta,
                  source_vecs,
@@ -723,8 +730,7 @@ class AdditiveAttention(BaseAttentionLayer):
         source_segment_id = tf.zeros_like(source_padding)
 
       (concated_source_vecs, concated_source_contexts) = (
-          self._encode_source(
-              self.AddVN(theta.source_var), source_vecs, source_contexts))
+          self._encode_source(theta.source_var, source_vecs, source_contexts))
     return py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -781,7 +787,6 @@ class AdditiveAttention(BaseAttentionLayer):
       - The new attention mechanism state: possibly nested tuple of tensors with
         dimensions [target_batch, ...]
     """
-    p = self.params
     concated_source_vecs = packed_src.source_vecs
     concated_source_contexts = packed_src.source_contexts
     source_padding = packed_src.source_padding
@@ -793,8 +798,8 @@ class AdditiveAttention(BaseAttentionLayer):
       per_step_source_padding = tf.fill([query_batch_size, source_length], zero)
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_length])
-    hidden = py_utils.AddVN(p, self.AddVN(theta.hidden_var), per_step=True)
-    query = py_utils.AddVN(p, self.AddVN(theta.query_var), per_step=True)
+    hidden = self.AddVN(theta.hidden_var, per_step=True)
+    query = self.AddVN(theta.query_var, per_step=True)
 
     if source_segment_id is None:
       source_segment_id = tf.zeros_like(source_padding)
@@ -2200,6 +2205,15 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         'logits_bias',
         domain='fullyconnected')
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.source_var = self.AddVN(theta.source_var)
+    theta.hidden_var = self.AddVN(theta.hidden_var)
+    theta.query_var = self.AddVN(theta.query_var)
+    theta.location_filter_var = self.AddVN(theta.location_filter_var)
+    theta.location_var = self.AddVN(theta.location_var)
+    return theta
+
   def _ApplyConv(self, attention_state, location_filter_var):
     """Applies the convolution on attention state."""
     p = self.params
@@ -2239,8 +2253,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         source_segment_id = tf.zeros_like(source_padding)
       (concated_source_vecs, concated_source_contexts) = (
           self._encode_source(
-              self.QWeight(self.AddVN(theta.source_var)), source_vecs,
-              source_contexts))
+              self.QWeight(theta.source_var), source_vecs, source_contexts))
     return py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -2324,12 +2337,10 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       per_step_source_padding = tf.fill([query_batch_size, source_length], zero)
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_length])
-
-    hidden = py_utils.AddVN(p, self.AddVN(theta.hidden_var), per_step=True)
-    query = py_utils.AddVN(p, self.AddVN(theta.query_var), per_step=True)
-    location_filter = py_utils.AddVN(
-        p, self.AddVN(theta.location_filter_var), per_step=True)
-    location = py_utils.AddVN(p, self.AddVN(theta.location_var), per_step=True)
+    hidden = self.AddVN(theta.hidden_var, per_step=True)
+    query = self.AddVN(theta.query_var, per_step=True)
+    location_filter = self.AddVN(theta.location_filter_var, per_step=True)
+    location = self.AddVN(theta.location_var, per_step=True)
 
     ctx_vec, prob = self._ctx_vec(hidden, query, source_padding,
                                   concated_source_vecs,
@@ -2507,6 +2518,13 @@ class MonotonicAttention(BaseAttentionLayer):
         collections=['MonotonicAttention_vars'])
     self.CreateVariable('hidden_bias_var', pc)
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.source_var = self.AddVN(theta.source_var)
+    theta.hidden_var = self.AddVN(theta.hidden_var)
+    theta.query_var = self.AddVN(theta.query_var)
+    return theta
+
   def PackSource(self,
                  theta,
                  source_vecs,
@@ -2517,8 +2535,7 @@ class MonotonicAttention(BaseAttentionLayer):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
       (concated_source_vecs, concated_source_contexts) = (
-          self._encode_source(
-              self.AddVN(theta.source_var), source_vecs, source_contexts))
+          self._encode_source(theta.source_var, source_vecs, source_contexts))
     return py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -2605,9 +2622,9 @@ class MonotonicAttention(BaseAttentionLayer):
           py_utils.NestedMap(
               concated_source_vecs=concated_source_vecs,
               query_vec=query_vec,
-              query_v=self.AddVN(theta.query_var),
+              query_v=theta.query_var,
               energy_b=theta.energy_bias_var,
-              hidden_v=self.AddVN(theta.hidden_var),
+              hidden_v=theta.hidden_var,
               hidden_g=theta.hidden_scale_var,
               hidden_b=theta.hidden_bias_var))
 

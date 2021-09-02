@@ -33,6 +33,7 @@ FLAGS = tf.flags.FLAGS
 
 _LAYER_STACK = py_utils.ThreadLocalStack()
 _CREATE_VARIABLES_STACK = py_utils.ThreadLocalStack()
+_THETA_STACK = py_utils.ThreadLocalStack()
 
 
 class Accumulator:
@@ -646,6 +647,22 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       raise ValueError(
           'Cannot access theta for layer %s before they have been created.' %
           self.params.cls)
+
+    stack_size = len(_THETA_STACK.stack)
+    _THETA_STACK.stack.append(self)
+    try:
+      ret = self._InternalGetTheta()
+    finally:
+      assert _THETA_STACK.stack[-1] is self
+      _THETA_STACK.stack.pop()
+      assert len(_THETA_STACK.stack) == stack_size
+
+    if not _THETA_STACK.stack:
+      # Outermost layer just finished theta call.
+      ret = self.AddGlobalVN(ret)
+    return ret
+
+  def _InternalGetTheta(self):
     ret = self._private_children.Transform(lambda x: x.theta)
 
     private_theta = self._private_theta.DeepCopy()
@@ -962,8 +979,28 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._private_theta[theta_name] = theta_value
     self._extra_theta[theta_name] = theta_value
 
-  def AddVN(self, value):
-    return py_utils.AddVN(self.params, value)
+  def AddVN(self, value, per_step=False):
+    return py_utils.AddVN(self.params, value, per_step=per_step)
+
+  def AddGlobalVN(self, theta):
+
+    def AddGlobalVNHelper(child, theta):
+      if isinstance(child, list):
+        return [
+            AddGlobalVNHelper(child[i], theta[i]) for i in range(len(child))
+        ]
+      elif isinstance(child, dict):
+        return type(child)(
+            {key: AddGlobalVNHelper(child[key], theta[key]) for key in child})
+      else:
+        return child.AddGlobalVN(theta)
+
+    for child_name in self._private_children:
+      if child_name in theta:
+        theta[child_name] = AddGlobalVNHelper(
+            self._private_children[child_name], theta[child_name])
+
+    return theta
 
   def CreateChild(self, name: str, params: BaseLayerParamsT) -> None:
     """Create a sub layer.

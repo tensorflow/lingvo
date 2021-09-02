@@ -201,8 +201,7 @@ class LstmFRNN(base_layer.BaseLayer):
       The final recurrent state.
     """
     p = self.params
-    rcell = self.cell
-    assert isinstance(rcell, (rnn_cell.RNNCell))
+    assert isinstance(self.cell, rnn_cell.RNNCell)
 
     if not isinstance(inputs, (list, tuple)):
       inputs = [inputs]
@@ -230,11 +229,11 @@ class LstmFRNN(base_layer.BaseLayer):
 
     if not state0:
       batch_size = py_utils.GetShape(paddings)[1]
-      state0 = rcell.zero_state(cell_theta, batch_size)
+      state0 = self.cell.zero_state(cell_theta, batch_size)
 
     # [T, B, H]
-    proj_inputs = rcell.ProjectInputSequence(cell_theta,
-                                             py_utils.NestedMap(act=inputs))
+    proj_inputs = self.cell.ProjectInputSequence(cell_theta,
+                                                 py_utils.NestedMap(act=inputs))
     proj_inputs = py_utils.NestedMap(
         proj_inputs=proj_inputs, padding=paddings, reset_mask=reset_mask)
 
@@ -242,12 +241,12 @@ class LstmFRNN(base_layer.BaseLayer):
         theta=cell_theta,
         state0=state0,
         inputs=proj_inputs,
-        cell_fn=rcell.FPropWithProjectedInput,
-        cell_type=rcell.layer_type,
+        cell_fn=self.cell.FPropWithProjectedInput,
+        cell_type=self.cell.layer_type,
         accumulator_layer=self,
         allow_implicit_capture=p.allow_implicit_capture)
 
-    act = rcell.GetOutput(acc_state)
+    act = self.cell.GetOutput(acc_state)
     if p.reverse:
       act = tf.reverse(act, [0])
     return act, final_state

@@ -3394,38 +3394,35 @@ def AddVN(p, x, per_step=False):
   Returns:
     The input with variational noise added according to params.
   """
+  tensor_name = x.name if not tf.executing_eagerly() else '[eager]'
   if per_step:
     if not p.vn.per_step_vn:
+      tf.logging.info(
+          'p.vn.per_step_vn is not set. Not adding per-step vn to ' +
+          tensor_name)
       return x
   else:
     if not p.vn.global_vn:
+      tf.logging.info('p.vn.global_vn is not set. Not adding global vn to ' +
+                      tensor_name)
       return x
+
+  tf.logging.info(
+      f"Add {'per-step' if per_step else 'global'} vn to {tensor_name}: {p.vn}")
 
   if p.vn.scale is None:
     raise ValueError('VN scale must be set.')
 
   if p.vn.deterministic:
-    seeds = GenerateStepSeedPair(p, GetGlobalStep())
-    global_step_seed = seeds[0]
-    op_seed = seeds[1]
-    if not p.vn.per_step_vn:
-      global_step_seed = tf.zeros_like(global_step_seed)
-    if p.vn.seed:
-      op_seed = tf.convert_to_tensor(p.vn.seed, dtype=op_seed.dtype)
-    noises = DeterministicVN(
-        p,
-        tf.stack([global_step_seed, op_seed]),
-        tf.shape(x),
-        mean=0.0,
-        std=1.0)
+    noises = DeterministicVN(p, tf.shape(x), mean=0.0, std=1.0)
     noises = tf.cast(noises, x.dtype)
   else:
-    seed = p.vn.seed
-    if seed and p.vn.per_step_vn:
-      # TODO(b/171767456): Fix per_step_vn.
-      # seed += GetGlobalStep() * 203984
-      pass
-    noises = tf.random.normal(tf.shape(x), stddev=1.0, seed=seed, dtype=x.dtype)
+    if per_step:
+      # recurrent.py does not support stateful random ops in cell_fn due to
+      # rematerialization.
+      raise ValueError('per_step vn requires deterministic=True.')
+    noises = tf.random.normal(
+        tf.shape(x), stddev=1.0, seed=p.vn.seed, dtype=x.dtype)
   scale = tf.where(GetGlobalStep() >= p.vn.start_step, p.vn.scale, 0.0)
   return x + tf.cast(scale, x.dtype) * noises
 
@@ -3434,9 +3431,11 @@ def VariationalNoiseParams(scale,
                            global_vn=False,
                            per_step_vn=False,
                            seed=None,
-                           deterministic=True,
+                           deterministic=None,
                            start_step=0):
   """Returns a hyperparams for variational noise."""
+  if deterministic is None:
+    deterministic = cluster_factory.Current().in_unit_test
   p = hyperparams.Params()
   p.Define(
       'scale', scale,
@@ -3619,13 +3618,11 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
     return result
 
 
-def DeterministicVN(params, seeds, noise_shape, mean=0.0, std=1.0, name=None):
+def DeterministicVN(params, noise_shape, mean=0.0, std=1.0, name=None):
   """Produces Fully deterministic Gaussian noise from shape, mean and std.
 
   Args:
     params: Nested map of params.
-    seeds: A Tensor of shape [2]. 2 seeds for deterministic random number
-      generator.
     noise_shape: A 1-D `Tensor` of type `int32`, representing the shape for
       randomly generated Gaussian noise.
     mean: Mean for the Gaussian noise.
@@ -3637,8 +3634,7 @@ def DeterministicVN(params, seeds, noise_shape, mean=0.0, std=1.0, name=None):
   """
 
   with tf.name_scope(name, 'gaussian_noise') as name:
-    if use_tpu():
-      seeds = tf.cast(seeds, tf.int32)
+    seeds = GenerateStepSeedPair(params, params.vn.seed)
     random_tensor = mean + (
         std * tf.random.stateless_normal(noise_shape, seed=seeds))
     if FPropDtype(params) != tf.float32:

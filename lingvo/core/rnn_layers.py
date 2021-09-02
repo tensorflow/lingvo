@@ -121,8 +121,7 @@ class RNN(base_layer.BaseLayer):
       The final recurrent state.
     """
     p = self.params
-    rcell = self.cell
-    assert isinstance(rcell, (rnn_cell.RNNCell))
+    assert isinstance(self.cell, rnn_cell.RNNCell)
     if p.sequence_length == 0:
       if isinstance(inputs, (tuple, list)):
         sequence_length = len(inputs)
@@ -141,7 +140,7 @@ class RNN(base_layer.BaseLayer):
       else:
         inputs0 = py_utils.NestedMap(
             act=[inputs_sequence[0]], padding=paddings_sequence[0])
-        state = rcell.zero_state(theta.cell, rcell.batch_size(inputs0))
+        state = self.cell.zero_state(theta.cell, self.cell.batch_size(inputs0))
       outputs = [None] * sequence_length
       if p.reverse:
         sequence = range(sequence_length - 1, -1, -1)
@@ -149,8 +148,8 @@ class RNN(base_layer.BaseLayer):
         sequence = range(0, sequence_length, 1)
       for idx in sequence:
         cur_input = py_utils.NestedMap(act=[inputs[idx]], padding=paddings[idx])
-        state, _ = rcell.FProp(theta.cell, state, cur_input)
-        outputs[idx] = rcell.GetOutput(state)
+        state, _ = self.cell.FProp(theta.cell, state, cur_input)
+        outputs[idx] = self.cell.GetOutput(state)
       return tf.stack(outputs), state
 
 
@@ -431,8 +430,7 @@ class FRNN(base_layer.BaseLayer):
       The final recurrent state.
     """
     p = self.params
-    rcell = self.cell
-    assert isinstance(rcell, (rnn_cell.RNNCell))
+    assert isinstance(self.cell, rnn_cell.RNNCell)
 
     def FlipUpDown(x):
       # Reverse the first dimension (time)
@@ -460,7 +458,7 @@ class FRNN(base_layer.BaseLayer):
           act=[x[0] for x in inputs],
           padding=paddings[0, :],
           reset_mask=reset_mask[0, :])
-      state0 = rcell.zero_state(theta.cell, rcell.batch_size(inputs0))
+      state0 = self.cell.zero_state(theta.cell, self.cell.batch_size(inputs0))
 
     inputs = py_utils.NestedMap(
         act=inputs, padding=paddings, reset_mask=reset_mask)
@@ -468,8 +466,8 @@ class FRNN(base_layer.BaseLayer):
     if input_ids is not None:
       inputs.ids = input_ids
 
-    if hasattr(rcell.params, 'inject_emb_method') \
-        and rcell.params.inject_emb_method == 'concat':
+    if (hasattr(self.cell.params, 'inject_emb_method') and
+        self.cell.params.inject_emb_method == 'concat'):
       # Preemptively match input dim to what LSTM expects via padding.
       # Reason: Recurrent.Recurrent() fails (during execution of backprop) when
       # the input dimensionality to recurrent.Recurrent() differs from the input
@@ -479,18 +477,19 @@ class FRNN(base_layer.BaseLayer):
       # with zeros before recurrent.Recurrent() to match the RNN cell input dim
       # and add the embeddings to the padded part of the input later.
       inputs.act[0] = tf.pad(
-          inputs.act[0], [[0, 0], [0, 0], [0, rcell.params.emb.emb.output_dim]])
+          inputs.act[0],
+          [[0, 0], [0, 0], [0, self.cell.params.emb.emb.output_dim]])
 
     acc_state, final_state = recurrent.Recurrent(
         theta=theta.cell,
         state0=state0,
         inputs=inputs,
-        cell_fn=rcell.FProp,
-        cell_type=rcell.layer_type,
+        cell_fn=self.cell.FProp,
+        cell_type=self.cell.layer_type,
         accumulator_layer=self,
         allow_implicit_capture=p.allow_implicit_capture)
 
-    act = rcell.GetOutput(acc_state)
+    act = self.cell.GetOutput(acc_state)
     if p.reverse:
       act = FlipUpDown(act)
     return act, final_state
@@ -966,11 +965,10 @@ class FRNNWithAttention(base_layer.BaseLayer):
     """
     p = self.params
     dtype = p.dtype
-    rcell = self.cell
-    atten = self.atten
-    assert dtype == rcell.params.dtype
-    assert dtype == atten.params.dtype
-    assert rcell.params.inputs_arity == 1 or rcell.params.inputs_arity == 2
+    assert dtype == self.cell.params.dtype
+    assert dtype == self.atten.params.dtype
+    assert (self.cell.params.inputs_arity == 1 or
+            self.cell.params.inputs_arity == 2)
     if segment_id is None:
       segment_id = tf.zeros_like(paddings)
 
@@ -997,22 +995,22 @@ class FRNNWithAttention(base_layer.BaseLayer):
         state0_mod = state0
       state1 = py_utils.NestedMap()
       if p.input_prev_atten_ctx:
-        if rcell.params.inputs_arity == 1:
+        if self.cell.params.inputs_arity == 1:
           act = [_ConcatLastDim(inputs.act, state0_mod.atten)]
         else:
           act = [inputs.act, state0_mod.atten]
       else:
         act = [inputs.act]
-      state1.rnn, _ = rcell.FProp(
+      state1.rnn, _ = self.cell.FProp(
           theta.rnn, state0_mod.rnn,
           py_utils.NestedMap(
               act=act, padding=inputs.padding, reset_mask=inputs.reset_mask))
 
       state1.atten, state1.atten_probs, state1.atten_state = (
-          atten.ComputeContextVectorWithSource(
+          self.atten.ComputeContextVectorWithSource(
               theta.atten,
               theta.packed_src,
-              rcell.GetOutput(state1.rnn),
+              self.cell.GetOutput(state1.rnn),
               state0_mod.atten_state,
               query_segment_id=tf.cast(
                   tf.squeeze(inputs.segment_id, 1), py_utils.FPropDtype(p))))
@@ -1248,10 +1246,10 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
       Transformed source vectors and transposed source vectors.
     """
     p = self._params
-    rcell = self.cell
 
     # Initial RNN states, theta and auxiliary variables.
-    state0 = py_utils.NestedMap(rnn=rcell.zero_state(theta.cell, batch_size))
+    state0 = py_utils.NestedMap(
+        rnn=self.cell.zero_state(theta.cell, batch_size))
     query_vec0 = tf.zeros([batch_size, p.cell.num_output_nodes],
                           py_utils.FPropDtype(p))
 
@@ -1303,11 +1301,10 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     """
     p = self.params
     dtype = p.dtype
-    rcell = self.cell
-    attentions = self.attentions
-    assert rcell.params.inputs_arity == 1 or rcell.params.inputs_arity == 2
-    assert dtype == rcell.params.dtype
-    for atten in attentions:
+    assert (self.cell.params.inputs_arity == 1 or
+            self.cell.params.inputs_arity == 2)
+    assert dtype == self.cell.params.dtype
+    for atten in self.attentions:
       if dtype != atten.params.dtype:
         raise ValueError('Data type mismatch!')
 
@@ -1339,7 +1336,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     def CellFn(theta, state0, inputs):
       """Computes one step forward."""
       state1 = py_utils.NestedMap()
-      state1.rnn, _ = rcell.FProp(
+      state1.rnn, _ = self.cell.FProp(
           theta.rnn, state0.rnn,
           py_utils.NestedMap(
               act=[_ConcatLastDim(inputs.act, state0.atten)],
@@ -1347,15 +1344,16 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
 
       # The ordering in local_ctxs follows p.source_names.
       local_ctxs = []
-      query_vec = rcell.GetOutput(state1.rnn)
+      query_vec = self.cell.GetOutput(state1.rnn)
       for i, src_name in enumerate(p.source_names):
         att_idx = (0 if p.share_attention else i)
-        local_ctxs.append(attentions[att_idx].ComputeContextVectorWithSource(
-            theta.attens[src_name],
-            theta.packed_src[src_name],
-            query_vec,
-            state0.atten,
-        )[0])
+        local_ctxs.append(
+            self.attentions[att_idx].ComputeContextVectorWithSource(
+                theta.attens[src_name],
+                theta.packed_src[src_name],
+                query_vec,
+                state0.atten,
+            )[0])
       state1.atten = self.atten_merger.FProp(theta.atten_merger, local_ctxs,
                                              query_vec)
       return state1, py_utils.NestedMap()
@@ -1373,7 +1371,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
         accumulator_layer=self,
         allow_implicit_capture=p.allow_implicit_capture)
 
-    return acc_state.atten, rcell.GetOutput(acc_state.rnn)
+    return acc_state.atten, self.cell.GetOutput(acc_state.rnn)
 
 
 class BidirectionalFRNNQuasi(base_layer.BaseLayer):

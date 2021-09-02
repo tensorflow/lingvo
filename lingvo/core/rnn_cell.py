@@ -36,7 +36,6 @@ RNN_CELL_WT = 'rnn_cell_weight_variable'
 
 
 class RNNCell(quant_utils.QuantizableLayer):
-  # pylint: disable=line-too-long
   """RNN cells.
 
   RNNCell represents recurrent state in a `.NestedMap`.
@@ -59,7 +58,6 @@ class RNNCell(quant_utils.QuantizableLayer):
   I.e., they have the same keys recursively. Furthermore, the corresponding
   tensors in these `.NestedMap` have the same shape and dtype.
   """
-  # pylint: enable=line-too-long
 
   @classmethod
   def Params(cls):
@@ -83,12 +81,6 @@ class RNNCell(quant_utils.QuantizableLayer):
         'for each cell. Must be one of the static functions defined in '
         'py_utils.RNNCellStateInit.')
     return p
-
-  def __init__(self, params):
-    """Initializes RnnCell."""
-    super().__init__(params)
-    assert not self.params.vn.per_step_vn, (
-        'We do not support per step VN in RNN cells.')
 
   def _VariableCollections(self):
     return [RNN_CELL_WT, '%s_vars' % self.__class__.__name__]
@@ -494,6 +486,16 @@ class LSTMCellSimple(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def AddGlobalVN(self, theta):
+    p = self.params
+    theta = super().AddGlobalVN(theta)
+    theta.wm = self.AddVN(theta.wm)
+    if p.enable_lstm_bias:
+      theta.b = self.AddVN(theta.b)
+    if p.num_hidden_nodes:
+      theta.w_proj = self.AddVN(theta.w_proj)
+    return theta
+
   def _GetBias(self, theta):
     """Gets the bias vector to add.
 
@@ -510,7 +512,7 @@ class LSTMCellSimple(RNNCell):
     """
     p = self.params
     if p.enable_lstm_bias:
-      b = self.AddVN(theta.b)
+      b = theta.b
     else:
       b = tf.zeros([self.num_gates * self.hidden_size], dtype=p.dtype)
     if p.forget_gate_bias != 0.0:
@@ -537,7 +539,7 @@ class LSTMCellSimple(RNNCell):
     concat = tf.concat(inputs.act + [state0.m], 1)
     if self.params.pruning_hparams_dict and not self.params.apply_pruning:
       return pruning_utils.PruningOp.GetMixResult(theta, concat, self)
-    wm = self.AddVN(theta.wm)
+    wm = theta.wm
     if self.params.apply_pruning:
       wm = tf.multiply(wm, theta.mask, 'masked_weights')
     wm = self.QWeight(wm)
@@ -597,7 +599,7 @@ class LSTMCellSimple(RNNCell):
     else:
       new_m = fns.qmultiply(tf.sigmoid(o_g), new_c, qt='m_output')
     if p.num_hidden_nodes:
-      w_proj = self.AddVN(theta.w_proj)
+      w_proj = theta.w_proj
       if p.apply_pruning_to_projection:
         w_proj = tf.multiply(w_proj, theta.proj_mask, 'masked_projection')
       w_proj = self.QWeight(w_proj, domain='m_state')
@@ -942,10 +944,14 @@ class QuantizedLSTMCell(RNNCell):
     state.c = inputs.reset_mask * state.c
     return state
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.wm = self.AddVN(theta.wm)
+    return theta
+
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    return py_utils.Matmul(
-        tf.concat(inputs.act + [state0.m], 1), self.AddVN(theta.wm))
+    return py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), theta.wm)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
@@ -1111,6 +1117,12 @@ class LayerNormalizedLSTMCell(RNNCell):
     state.c = inputs.reset_mask * state.c
     return state
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.wm = self.AddVN(theta.wm)
+    theta.b = self.AddVN(theta.b)
+    return theta
+
   def _Mix(self, theta, state0, inputs):
     if not isinstance(inputs.act, list):
       raise ValueError('Input activations must be of list type!')
@@ -1118,10 +1130,7 @@ class LayerNormalizedLSTMCell(RNNCell):
     # not support checkpointing vars for Recurrent cell, and setting AqtQDomain
     # for LayerNormalizedLSTM cell might run into errors.
     act, wm = self.ToAqtInputs(
-        'wm',
-        act=inputs.act,
-        weight=self.AddVN(theta.wm),
-        w_feature_axis=-1)
+        'wm', act=inputs.act, weight=theta.wm, w_feature_axis=-1)
     concat = tf.concat(act + [state0.m], 1)
     if self.params.apply_pruning:
       wm = self.QWeight(tf.multiply(wm, theta.mask, 'masked_weights'))
@@ -1136,12 +1145,10 @@ class LayerNormalizedLSTMCell(RNNCell):
     # Unpack the variables (weight and bias) into individual variables.
     params = self.params
 
-    b = self.AddVN(theta.b)
-
     def BiasSlice(dim, num_dims, start_ind):
       s = []
       for i in range(num_dims):
-        s.append(b[start_ind + i * dim:start_ind + (i + 1) * dim])
+        s.append(theta.b[start_ind + i * dim:start_ind + (i + 1) * dim])
       start_ind += dim * num_dims
       return s, start_ind
 
@@ -1250,6 +1257,11 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
         collections=self._VariableCollections())
     self.CreateVariable('ln_scale', ln_scale_pc)
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.ln_scale = self.AddVN(theta.ln_scale)
+    return theta
+
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
 
@@ -1271,7 +1283,7 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
 
     bs = tf.split(b, num_or_size_splits=self.num_gates, axis=1)
     ln_scales = tf.split(
-        self.AddVN(theta.ln_scale), num_or_size_splits=self.num_gates, axis=0)
+        theta.ln_scale, num_or_size_splits=self.num_gates, axis=0)
     gates = tf.split(xmw, num_or_size_splits=self.num_gates, axis=1)
 
     for i in range(self.num_gates):
@@ -1338,16 +1350,20 @@ class WeightNormalizedLSTMCellSimple(LSTMCellSimple):
         [py_utils.SKIP_LP_REGULARIZATION])
     self.CreateVariable('wn_scale', wn_scale_pc)
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.wn_scale = self.AddVN(theta.wn_scale)
+    return theta
+
   def _Gates(self, xmw, theta, state0, inputs):
     """Computes the new state."""
 
     p = self.params
 
     # Divide wm by it's L2 norm.
-    wm_sq_sum = tf.reduce_sum(
-        tf.square(self.AddVN(theta.wm)), axis=0, keepdims=True)
+    wm_sq_sum = tf.reduce_sum(tf.square(theta.wm), axis=0, keepdims=True)
     normed_gates = xmw * tf.math.rsqrt(wm_sq_sum + p.weight_norm_epsilon)
-    normed_gates = normed_gates * tf.expand_dims(self.AddVN(theta.wn_scale), 0)
+    normed_gates = normed_gates * tf.expand_dims(theta.wn_scale, 0)
 
     return super()._Gates(normed_gates, theta, state0, inputs)
 
@@ -1554,10 +1570,26 @@ class LayerNormalizedLSTMCellLean(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def AddGlobalVN(self, theta):
+    p = self.params
+    theta = super().AddGlobalVN(theta)
+    theta.wm = self.AddVN(theta.wm)
+    if p.enable_lstm_bias:
+      theta.b = self.AddVN(theta.b)
+    if p.num_hidden_nodes:
+      theta.w_proj = self.AddVN(theta.w_proj)
+    ln_gates = ['i_g', 'i_i', 'f_g', 'o_g']
+    if p.enable_ln_on_c:
+      ln_gates += ['c']
+    for ln_name in ln_gates:
+      theta['ln_scale_' + ln_name] = self.AddVN(theta['ln_scale_' + ln_name])
+      if p.use_ln_bias:
+        theta['bias_' + ln_name] = self.AddVN(theta['bias_' + ln_name])
+    return theta
+
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    mixed = tf.matmul(
-        tf.concat(inputs.act + [state0.m], 1), self.AddVN(theta.wm))
+    mixed = tf.matmul(tf.concat(inputs.act + [state0.m], 1), theta.wm)
     return mixed
 
   def _LayerNormGate(self, theta, gate_name, x):
@@ -1578,9 +1610,9 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
     normed = centered * tf.math.rsqrt(variance + p.layer_norm_epsilon)
-    scale = self.AddVN(theta['ln_scale_%s' % gate_name]) + 1.0
+    scale = theta['ln_scale_%s' % gate_name] + 1.0
     if p.use_ln_bias:
-      bias = self.AddVN(theta['bias_%s' % gate_name])
+      bias = theta['bias_%s' % gate_name]
       return normed * scale + bias
     else:
       return normed * scale
@@ -1595,7 +1627,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     o_g = self._LayerNormGate(theta, 'o_g', o_g)
     if p.enable_lstm_bias:
       # LayerNormalizedLSTMCellLean applies biases after LN.
-      biases = tf.split(self.AddVN(theta.b), num_or_size_splits=4)
+      biases = tf.split(theta.b, num_or_size_splits=4)
       i_i += biases[0]
       i_g += biases[1]
       f_g += biases[2]
@@ -1609,7 +1641,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     new_m = tf.sigmoid(o_g) * tf.tanh(new_c_normed)
 
     if p.num_hidden_nodes:
-      new_m = tf.matmul(new_m, self.AddVN(theta.w_proj))
+      new_m = tf.matmul(new_m, theta.w_proj)
 
     # Now take care of padding.
     padding = inputs.padding
@@ -1855,17 +1887,32 @@ class DoubleProjectionLSTMCell(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def AddGlobalVN(self, theta):
+    p = self.params
+    theta = super().AddGlobalVN(theta)
+    theta.w_input_proj = self.AddVN(theta.w_input_proj)
+    theta.w_output_proj = self.AddVN(theta.w_output_proj)
+    for gate_name in self.gates:
+      theta[f'wm_{gate_name}'] = self.AddVN(theta[f'wm_{gate_name}'])
+    ln_gates = self.gates
+    if p.enable_ln_on_c:
+      ln_gates += ['c']
+    for ln_name in ln_gates:
+      theta['ln_scale_' + ln_name] = self.AddVN(theta['ln_scale_' + ln_name])
+      theta['bias_' + ln_name] = self.AddVN(theta['bias_' + ln_name])
+    return theta
+
   def _ProcessInputProj(self, theta, input_proj):
     return input_proj
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
     concat = tf.concat(inputs.act + [state0.m], 1)
-    input_proj = tf.matmul(concat, self.AddVN(theta.w_input_proj))
+    input_proj = tf.matmul(concat, theta.w_input_proj)
     input_proj = self._ProcessInputProj(theta, input_proj)
     gate_map = {}
     for gate_name in self.gates:
-      g = tf.matmul(input_proj, self.AddVN(theta[f'wm_{gate_name}']))
+      g = tf.matmul(input_proj, theta[f'wm_{gate_name}'])
       g = self._LayerNormGate(theta, gate_name, g)
       gate_map[gate_name] = g
     return gate_map
@@ -1888,8 +1935,8 @@ class DoubleProjectionLSTMCell(RNNCell):
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
     normed = centered * tf.math.rsqrt(variance + p.layer_norm_epsilon)
-    scale = self.AddVN(theta[f'ln_scale_{gate_name}']) + 1.0
-    bias = self.AddVN(theta[f'bias_{gate_name}'])
+    scale = theta[f'ln_scale_{gate_name}'] + 1.0
+    bias = theta[f'bias_{gate_name}']
     return normed * scale + bias
 
   def _Gates(self, xmw, theta, state0, inputs):
@@ -1898,7 +1945,7 @@ class DoubleProjectionLSTMCell(RNNCell):
         xmw['i_g']) * tf.tanh(xmw['i_i'])
     new_c_normed = self._LayerNormGate(theta, 'c', new_c)
     new_m = tf.sigmoid(xmw['o_g']) * tf.tanh(new_c_normed)
-    new_m = tf.matmul(new_m, self.AddVN(theta.w_output_proj))
+    new_m = tf.matmul(new_m, theta.w_output_proj)
 
     # Now take care of padding.
     padding = inputs.padding
@@ -2024,21 +2071,26 @@ class ConvLSTMCell(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    theta.wm = self.AddVN(theta.wm)
+    theta.b = self.AddVN(theta.b)
+    return theta
+
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
     # Concate on channels.
     xm = tf.concat(inputs.act + [state0.m], 3)
     # TODO(yonghui): Possibly change the data_format to NCHW to speed
     # up conv2d kernel on gpu.
-    xmw = tf.nn.conv2d(
-        xm, self.AddVN(theta.wm), [1, 1, 1, 1], 'SAME', data_format='NHWC')
+    xmw = tf.nn.conv2d(xm, theta.wm, [1, 1, 1, 1], 'SAME', data_format='NHWC')
     return xmw
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
     # Bias is applied to channels.
-    bias = tf.reshape(self.AddVN(theta.b), [1, 1, 1, -1])
+    bias = tf.reshape(theta.b, [1, 1, 1, -1])
     i_i, i_g, f_g, o_g = tf.split(
         value=xmw + bias, num_or_size_splits=4, axis=3)
     new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
@@ -2334,6 +2386,26 @@ class SRUCell(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def AddGlobalVN(self, theta):
+    p = self.params
+    theta = super().AddGlobalVN(theta)
+    theta.wm = self.AddVN(theta.wm)
+    theta.b = self.AddVN(theta.b)
+    if p.num_hidden_nodes:
+      theta.w_proj = self.AddVN(theta.w_proj)
+    if p.apply_layer_norm:
+      theta.f_t_ln_scale = self.AddVN(theta.f_t_ln_scale)
+      theta.r_t_ln_scale = self.AddVN(theta.r_t_ln_scale)
+      theta.c_t_ln_scale = self.AddVN(theta.c_t_ln_scale)
+      if not p.couple_input_forget_gates:
+        theta.i_t_ln_scale = self.AddVN(theta.i_t_ln_scale)
+    if p.pointwise_peephole:
+      theta.f_t_vector_cell = self.AddVN(theta.f_t_vector_cell)
+      theta.r_t_vector_cell = self.AddVN(theta.r_t_vector_cell)
+      if not p.couple_input_forget_gates:
+        theta.i_t_vector_cell = self.AddVN(theta.i_t_vector_cell)
+    return theta
+
   def LayerNorm(self, theta, gate_name, x, bias):
     """Applies layer normalization on the last dimension of 'x'.
 
@@ -2352,13 +2424,13 @@ class SRUCell(RNNCell):
       centered = x - mean
       variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
       normed = centered * tf.math.rsqrt(variance + p.layer_norm_epsilon)
-      scale = self.AddVN(theta[f'{gate_name}_ln_scale'])
+      scale = theta[f'{gate_name}_ln_scale']
       x = normed * scale
     return x + bias
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    wm = self.AddVN(theta.wm)
+    wm = theta.wm
     if self.params.apply_pruning:
       wm = tf.multiply(wm, theta.mask)
     return py_utils.Matmul(tf.concat(inputs.act, 1), wm)
@@ -2366,32 +2438,31 @@ class SRUCell(RNNCell):
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
-    b = self.AddVN(theta.b)
     if p.couple_input_forget_gates:
       x_t2, resized, f_t, r_t = tf.split(
           value=xmw, num_or_size_splits=4, axis=1)
       b_t2, b_resized, b_f, b_r = tf.split(
-          value=tf.expand_dims(b, 0), num_or_size_splits=4, axis=1)
+          value=tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
       if p.pointwise_peephole:
-        f_t = f_t + tf.multiply(state0.c, self.AddVN(theta.f_t_vector_cell))
+        f_t = f_t + tf.multiply(state0.c, theta.f_t_vector_cell)
       f_t = self.LayerNorm(theta, 'f_t', f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
       i_t = 1.0 - f_t
     else:
       x_t2, resized, i_t, f_t, r_t = tf.split(
-          value=xmw + tf.expand_dims(b, 0), num_or_size_splits=5, axis=1)
+          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
       b_t2, b_resized, b_i, b_f, b_r = tf.split(
-          value=tf.expand_dims(b, 0), num_or_size_splits=5, axis=1)
+          value=tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
       if p.pointwise_peephole:
-        f_t = f_t + tf.multiply(state0.c, self.AddVN(theta.f_t_vector_cell))
-        i_t = i_t + tf.multiply(state0.c, self.AddVN(theta.i_t_vector_cell))
+        f_t = f_t + tf.multiply(state0.c, theta.f_t_vector_cell)
+        i_t = i_t + tf.multiply(state0.c, theta.i_t_vector_cell)
       f_t = self.LayerNorm(theta, 'f_t', f_t, b_f)
       f_t = tf.nn.sigmoid(f_t)
       i_t = self.LayerNorm(theta, 'i_t', i_t, b_i)
       i_t = tf.nn.sigmoid(i_t)
 
     if p.pointwise_peephole:
-      r_t = r_t + tf.multiply(state0.c, self.AddVN(theta.r_t_vector_cell))
+      r_t = r_t + tf.multiply(state0.c, theta.r_t_vector_cell)
     r_t = self.LayerNorm(theta, 'r_t', r_t, b_r)
     r_t = tf.nn.sigmoid(r_t)
 
@@ -2415,7 +2486,7 @@ class SRUCell(RNNCell):
     h_t = r_t * g_c_t + (1.0 - r_t) * resized * alpha
 
     if p.num_hidden_nodes:
-      w_proj = self.AddVN(theta.w_proj)
+      w_proj = theta.w_proj
       if p.apply_pruning_to_projection:
         w_proj = tf.multiply(w_proj, theta.proj_mask)
       h_t = tf.matmul(h_t, w_proj)
@@ -2722,6 +2793,25 @@ class GRUCell(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def AddGlobalVN(self, theta):
+    p = self.params
+    theta = super().AddGlobalVN(theta)
+    theta.w_n = self.AddVN(theta.w_n)
+    theta.w_u = self.AddVN(theta.w_u)
+    theta.w_r = self.AddVN(theta.w_r)
+    if p.num_hidden_nodes:
+      theta.w_proj = self.AddVN(theta.w_proj)
+      theta.b_proj = self.AddVN(theta.b_proj)
+    if p.enable_gru_bias:
+      theta.b_n = self.AddVN(theta.b_n)
+      theta.b_u = self.AddVN(theta.b_u)
+      theta.b_r = self.AddVN(theta.b_r)
+    if p.apply_layer_norm:
+      theta.bn_ln_scale = self.AddVN(theta.bn_ln_scale)
+      theta.bu_ln_scale = self.AddVN(theta.bu_ln_scale)
+      theta.br_ln_scale = self.AddVN(theta.br_ln_scale)
+    return theta
+
   def LayerNorm(self, x, scale):
     """Applies layer normalization on the last dimension of 'x'.
 
@@ -2762,28 +2852,25 @@ class GRUCell(RNNCell):
 
     # Update all gates
     # Compute r_g. r_g has size [batch, output]
-    r_g = tf.matmul(
-        tf.concat(inputs.act + [state0.m], 1), self.AddVN(theta.w_r))
+    r_g = tf.matmul(tf.concat(inputs.act + [state0.m], 1), theta.w_r)
     if p.apply_layer_norm:
-      r_g = self.LayerNorm(r_g, self.AddVN(theta.br_ln_scale) + 1.0)
+      r_g = self.LayerNorm(r_g, theta.br_ln_scale + 1.0)
     if p.enable_gru_bias:
-      r_g = r_g + self.AddVN(theta.b_r)
+      r_g = r_g + theta.b_r
     r_g = tf.sigmoid(r_g)
 
     # Compute u_g and n_g. Both have size [batch, hidden].
     # u_g has size [batch, hidden]
-    u_g = tf.matmul(
-        tf.concat(inputs.act + [state0.m], 1), self.AddVN(theta.w_u))
+    u_g = tf.matmul(tf.concat(inputs.act + [state0.m], 1), theta.w_u)
     # size of n_g is [batch, hidden]
     n_g = tf.matmul(
-        tf.concat(inputs.act + [tf.multiply(r_g, state0.m)], 1),
-        self.AddVN(theta.w_n))
+        tf.concat(inputs.act + [tf.multiply(r_g, state0.m)], 1), theta.w_n)
     if p.apply_layer_norm:
-      u_g = self.LayerNorm(u_g, self.AddVN(theta.bu_ln_scale) + 1.0)
-      n_g = self.LayerNorm(n_g, self.AddVN(theta.bn_ln_scale) + 1.0)
+      u_g = self.LayerNorm(u_g, theta.bu_ln_scale + 1.0)
+      n_g = self.LayerNorm(n_g, theta.bn_ln_scale + 1.0)
     if p.enable_gru_bias:  # Add biases to u_g and n_g if needed
-      u_g = u_g + self.AddVN(theta.b_u)
-      n_g = n_g + self.AddVN(theta.b_n)
+      u_g = u_g + theta.b_u
+      n_g = n_g + theta.b_n
 
     u_g = tf.sigmoid(u_g)
     n_g = tf.tanh(n_g)
@@ -2798,8 +2885,7 @@ class GRUCell(RNNCell):
     new_m = new_c
     # Apply projection matrix if necessary
     if p.num_hidden_nodes:
-      new_m = tf.matmul(new_m, self.AddVN(theta.w_proj)) + self.AddVN(
-          theta.b_proj)
+      new_m = tf.matmul(new_m, theta.w_proj) + theta.b_proj
     # Apply padding.
     new_m = py_utils.ApplyPadding(inputs.padding, new_m, state0.m)
     new_c = py_utils.ApplyPadding(inputs.padding, new_c, state0.c)

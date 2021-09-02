@@ -283,17 +283,17 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       dict(
           testcase_name='_GlobalNoise',
-          m_expected=[[0.123478, 0.334635], [-0.060803, 0.097732],
-                      [-0.130544, 0.252547]],
-          c_expected=[[0.348711, 0.869925], [-0.121857, 0.320817],
-                      [-0.322398, 0.720299]]),
+          m_expected=[[-0.061369, 0.198229], [0.015448, 0.077887],
+                      [-0.043196, 0.063092]],
+          c_expected=[[-0.292653, 0.573982], [0.06449, 0.194121],
+                      [-0.259611, 0.211775]]),
       dict(
           testcase_name='_Double',
           dtype=tf.float64,
-          m_expected=[[0.339129, 0.051817], [-0.000471, 0.054213],
-                      [-0.083333, 0.0311]],
-          c_expected=[[0.588729, 0.45511], [-0.000811, 0.175916],
-                      [-0.131822, 0.119508]]),
+          m_expected=[[0.209838, 0.010304], [0.071149, 0.024825],
+                      [-0.051708, -0.02569]],
+          c_expected=[[0.496024, 0.120541], [0.239338, 0.061809],
+                      [-0.157122, -0.142631]]),
       dict(
           testcase_name='_NoOutputNonlinearity',
           global_vn=False,
@@ -315,10 +315,11 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
           testcase_name='_WithForgetGateBias',
           dtype=tf.float64,
           forget_gate_bias=-1.,
-          m_expected=[[0.277512, 0.042677], [-0.082185, 0.016758],
-                      [-0.14941, -0.017745]],
-          c_expected=[[0.463423, 0.36651], [-0.14248, 0.053876],
-                      [-0.239461, -0.06797]]),
+          m_expected=[[1.501816e-01, -1.257807e-04],
+                      [1.708532e-02, -1.134138e-02],
+                      [-1.087235e-01, -5.264970e-02]],
+          c_expected=[[0.341142, -0.001464], [0.05646, -0.028209],
+                      [-0.340229, -0.298947]]),
   )
   def testLSTMSimple_P3(self,
                         global_vn=True,
@@ -696,18 +697,16 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     self.assertAllClose(c_expected, c_actual)
     self.assertAllClose(out_expected, out_actual)
 
-  # pyformat: disable
   @parameterized.named_parameters(
-      ('_NoInline', False, False,
-       [0.4144063, 0.88831079, 0.56665027, 0.30154669, 0.2818037],
-       [4.72228432, 3.9454143, 3.77556086, 2.76972866, 1.87397099]),
-      ('_Inline', True, False,
-       [0.4144063, 0.88831079, 0.56665027, 0.30154669, 0.2818037],
-       [4.72228432, 3.9454143, 3.77556086, 2.76972866, 1.87397099]),
-      ('_GlobalNoise', True, True,
-       [0.157361, 0.508499, 0.349873, 0.114074, 0.394596],
-       [2.280342, 3.548889, 2.010778, 2.110273, 2.289954]))
-  # pyformat: enable
+      ('_NoInline', False, False, [
+          0.4144063, 0.88831079, 0.56665027, 0.30154669, 0.2818037
+      ], [4.72228432, 3.9454143, 3.77556086, 2.76972866, 1.87397099]),
+      ('_Inline', True, False, [
+          0.4144063, 0.88831079, 0.56665027, 0.30154669, 0.2818037
+      ], [4.72228432, 3.9454143, 3.77556086, 2.76972866, 1.87397099]),
+      ('_GlobalNoise', True, True, [
+          1.891705, 1.759723, 0.981507, 2.172119, 1.073552
+      ], [8.521435, 7.25943, 5.508372, 7.510872, 5.006944]))
   def testConvLSTM(self, inline, global_vn, m_expected, c_expected):
     params = rnn_cell.ConvLSTMCell.Params().Set(
         name='conv_lstm',
