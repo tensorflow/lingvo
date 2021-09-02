@@ -3549,38 +3549,35 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The input with variational noise added according to params.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">tensor_name</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;[eager]&#39;</span>
   <span class="k">if</span> <span class="n">per_step</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;p.vn.per_step_vn is not set. Not adding per-step vn to &#39;</span> <span class="o">+</span>
+          <span class="n">tensor_name</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">x</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;p.vn.global_vn is not set. Not adding global vn to &#39;</span> <span class="o">+</span>
+                      <span class="n">tensor_name</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">x</span>
+
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+      <span class="sa">f</span><span class="s2">&quot;Add </span><span class="si">{</span><span class="s1">&#39;per-step&#39;</span> <span class="k">if</span> <span class="n">per_step</span> <span class="k">else</span> <span class="s1">&#39;global&#39;</span><span class="si">}</span><span class="s2"> vn to </span><span class="si">{</span><span class="n">tensor_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;VN scale must be set.&#39;</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">deterministic</span><span class="p">:</span>
-    <span class="n">seeds</span> <span class="o">=</span> <span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">GetGlobalStep</span><span class="p">())</span>
-    <span class="n">global_step_seed</span> <span class="o">=</span> <span class="n">seeds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">op_seed</span> <span class="o">=</span> <span class="n">seeds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
-      <span class="n">global_step_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">global_step_seed</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span><span class="p">:</span>
-      <span class="n">op_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">op_seed</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">noises</span> <span class="o">=</span> <span class="n">DeterministicVN</span><span class="p">(</span>
-        <span class="n">p</span><span class="p">,</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">global_step_seed</span><span class="p">,</span> <span class="n">op_seed</span><span class="p">]),</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
-        <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">noises</span> <span class="o">=</span> <span class="n">DeterministicVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
     <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">noises</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span>
-    <span class="k">if</span> <span class="n">seed</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
-      <span class="c1"># TODO(b/171767456): Fix per_step_vn.</span>
-      <span class="c1"># seed += GetGlobalStep() * 203984</span>
-      <span class="k">pass</span>
-    <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">per_step</span><span class="p">:</span>
+      <span class="c1"># recurrent.py does not support stateful random ops in cell_fn due to</span>
+      <span class="c1"># rematerialization.</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;per_step vn requires deterministic=True.&#39;</span><span class="p">)</span>
+    <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
   <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">GetGlobalStep</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">start_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">noises</span></div>
 
@@ -3589,9 +3586,11 @@
                            <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                           <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">deterministic</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">start_step</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a hyperparams for variational noise.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">deterministic</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">deterministic</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">in_unit_test</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
       <span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span>
@@ -3774,13 +3773,11 @@
     <span class="k">return</span> <span class="n">result</span></div>
 
 
-<div class="viewcode-block" id="DeterministicVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.DeterministicVN">[docs]</a><span class="k">def</span> <span class="nf">DeterministicVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">noise_shape</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DeterministicVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.DeterministicVN">[docs]</a><span class="k">def</span> <span class="nf">DeterministicVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">noise_shape</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Produces Fully deterministic Gaussian noise from shape, mean and std.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    params: Nested map of params.</span>
-<span class="sd">    seeds: A Tensor of shape [2]. 2 seeds for deterministic random number</span>
-<span class="sd">      generator.</span>
 <span class="sd">    noise_shape: A 1-D `Tensor` of type `int32`, representing the shape for</span>
 <span class="sd">      randomly generated Gaussian noise.</span>
 <span class="sd">    mean: Mean for the Gaussian noise.</span>
@@ -3792,8 +3789,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;gaussian_noise&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">name</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
-      <span class="n">seeds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">random_tensor</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="p">(</span>
         <span class="n">std</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_normal</span><span class="p">(</span><span class="n">noise_shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seeds</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">FPropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
