@@ -5619,19 +5619,24 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     # n - bottleneck_dim
 
     # [batch, input_dim, bottleneck_dim].
-    down_w = tf.einsum('bk,kin->bin', tasks_onehot, theta.down_w)
+    with tf.name_scope('down_w_einsum'):
+      down_w = tf.einsum('bk,kin->bin', tasks_onehot, theta.down_w)
 
     # [batch, 1, bottleneck_dim].
-    down_b = tf.einsum('bk,kn->bn', tasks_onehot, theta.down_b)[:, None, :]
+    with tf.name_scope('down_b_einsum'):
+      down_b = tf.einsum('bk,kn->bn', tasks_onehot, theta.down_b)[:, None, :]
 
     # [batch, bottleneck_dim, input_dim].
-    up_w = tf.einsum('bk,kni->bni', tasks_onehot, theta.up_w)
+    with tf.name_scope('up_w_einsum'):
+      up_w = tf.einsum('bk,kni->bni', tasks_onehot, theta.up_w)
 
     # [batch, 1, input_dim].
-    up_b = tf.einsum('bk,ki->bi', tasks_onehot, theta.up_b)[:, None, :]
+    with tf.name_scope('up_b_einsum'):
+      up_b = tf.einsum('bk,ki->bi', tasks_onehot, theta.up_b)[:, None, :]
 
     # Layer norm -> down-projection -> non-linearity -> up-projection
-    norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
+    with tf.name_scope('layer_norm_feed'):
+      norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
     # [batch, time, bottleneck_dim].
     down_projected = tf.einsum('bti,bin->btn', norm_inputs, down_w) + down_b
     # ReLU.
