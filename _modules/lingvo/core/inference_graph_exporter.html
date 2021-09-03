@@ -598,7 +598,10 @@
             <span class="c1"># Replace variables with tensors using tf.identity in theta before</span>
             <span class="c1"># freezing to avoid the graph referencing types of DT_RESOURCE.</span>
             <span class="k">def</span> <span class="nf">AddIdentityToTheta</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>
-              <span class="n">layer</span><span class="o">.</span><span class="n">_private_theta</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">_private_theta</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+              <span class="c1"># pylint: disable=protected-access</span>
+              <span class="n">layer</span><span class="o">.</span><span class="n">_private_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
+                                                        <span class="n">layer</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">)</span>
+              <span class="c1"># pylint: enable=protected-access</span>
               <span class="n">layer</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">AddIdentityToTheta</span><span class="p">)</span>
 
             <span class="n">AddIdentityToTheta</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
