@@ -250,6 +250,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         'params_init', py_utils.DefaultParamInit(),
         'How model weights should be initialized. Not to be confused with '
         'hyperparams.')
+    # TODO(tilarids): Remove after all models stop using this param.
+    p.Define('add_name_to_theta', False, 'DEPRECATED, do not use.')
     # Makes additional alterations for graphs being used for inference.
     p.Define('is_inference', None, 'True if in inference mode.')
     # In addition to is_inference, indicate that the inference graph is
