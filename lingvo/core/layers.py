@@ -2812,6 +2812,90 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     return self._PosEmbeddingsFromPositions(theta, position)
 
 
+class LearnablePositionalEmbeddingLayer(base_layer.BaseLayer):
+  """Learnable positional embedding."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('embedding_dim', 0, 'Dimension of the positional embeddings.')
+    p.Define(
+        'max_pos', 0, 'Maximum position, positional embeddings are generated'
+        'for the interval [0, max_pos)')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if not isinstance(p.embedding_dim,
+                      numbers.Integral) or p.embedding_dim <= 0:
+      raise ValueError('params.embedding_dim must be a positive int,'
+                       'but is %s' % params.radius)
+    if not isinstance(p.max_pos, numbers.Integral) or p.max_pos <= 0:
+      raise ValueError('params.max_pos must be a positive int, but is %s' %
+                       p.max_pos)
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+    pc = py_utils.WeightParams(
+        shape=[p.max_pos, p.embedding_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('pos_embs', pc)
+
+  def _PosEmbeddingsFromPositions(self, theta, position):
+    """Generates the positional embeddings given the position tensor.
+
+    Factors out the common code from FProp and FPropWithPosition. Returns
+    positional embeddings corresponding to the input position tensor.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      position: Position tensor of dtype float and shape [bs, seq_length] to
+        generate positional embeddings.
+
+    Returns:
+      a Tensor of shape [bs, seq_length, embedding_dim].
+    """
+    pos_embs = tf.gather(theta.pos_embs, tf.cast(position, tf.int32))
+    return pos_embs
+
+  def FProp(self, theta, seq_length):
+    """Computes the positional embeddings for seq_length.
+
+    Args:
+      theta: A `.NestedMap` object containing weights of this layer.
+      seq_length: Sequence length of the embeddings to be generated
+
+    Returns:
+      a Tensor of shape [seq_length, embedding_dim].
+    """
+    p = self.params
+    position = tf.reshape(
+        tf.cast(tf.range(seq_length), py_utils.FPropDtype(p)), [1, seq_length])
+    pos_emb = self._PosEmbeddingsFromPositions(theta, position)
+    return tf.reshape(pos_emb, [seq_length, -1])
+
+  def FPropWithPosition(self, theta, position_tensor):
+    """Computes the positional embeddings for position_tensor .
+
+    Uses the provided position tensor to generate positional embeddings. Refer
+    to FProp description for details of sinusoidal positional embeddings.
+
+    Args:
+      theta: A `.NestedMap` object containing weights of this layer.
+      position_tensor: Position tensor of shape [bs, seq_length].
+
+    Returns:
+      a Tensor of shape [bs, seq_length, embedding_dim].
+    """
+    position = tf.cast(position_tensor, py_utils.FPropDtype(self.params))
+    return self._PosEmbeddingsFromPositions(theta, position)
+
+
 class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
   """Relative positional embedding.
 
