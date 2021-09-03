@@ -1593,6 +1593,84 @@ positional embeddings.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.layers.LearnablePositionalEmbeddingLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">LearnablePositionalEmbeddingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LearnablePositionalEmbeddingLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LearnablePositionalEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Learnable positional embedding.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LearnablePositionalEmbeddingLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LearnablePositionalEmbeddingLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LearnablePositionalEmbeddingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LearnablePositionalEmbeddingLayer._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LearnablePositionalEmbeddingLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LearnablePositionalEmbeddingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LearnablePositionalEmbeddingLayer._PosEmbeddingsFromPositions">
+<span class="sig-name descname"><span class="pre">_PosEmbeddingsFromPositions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LearnablePositionalEmbeddingLayer._PosEmbeddingsFromPositions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LearnablePositionalEmbeddingLayer._PosEmbeddingsFromPositions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates the positional embeddings given the position tensor.</p>
+<p>Factors out the common code from FProp and FPropWithPosition. Returns
+positional embeddings corresponding to the input position tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>position</strong> – Position tensor of dtype float and shape [bs, seq_length] to
+generate positional embeddings.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a Tensor of shape [bs, seq_length, embedding_dim].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LearnablePositionalEmbeddingLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_length</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LearnablePositionalEmbeddingLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LearnablePositionalEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the positional embeddings for seq_length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights of this layer.</p></li>
+<li><p><strong>seq_length</strong> – Sequence length of the embeddings to be generated</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a Tensor of shape [seq_length, embedding_dim].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LearnablePositionalEmbeddingLayer.FPropWithPosition">
+<span class="sig-name descname"><span class="pre">FPropWithPosition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position_tensor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LearnablePositionalEmbeddingLayer.FPropWithPosition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LearnablePositionalEmbeddingLayer.FPropWithPosition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the positional embeddings for position_tensor .</p>
+<p>Uses the provided position tensor to generate positional embeddings. Refer
+to FProp description for details of sinusoidal positional embeddings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights of this layer.</p></li>
+<li><p><strong>position_tensor</strong> – Position tensor of shape [bs, seq_length].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a Tensor of shape [bs, seq_length, embedding_dim].</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.layers.RelativePositionalEmbeddingLayer">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">RelativePositionalEmbeddingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RelativePositionalEmbeddingLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.RelativePositionalEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
