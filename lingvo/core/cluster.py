@@ -136,8 +136,6 @@ class _Cluster:
     p.Define('do_eval', None, 'Whether to do eval.')
     p.Define('in_unit_test', None, 'Whether this is running in a unit test.')
     p.Define('split_id', 0, 'Split id for the model.')
-    p.Define('immediately_instantiate_variables', True,
-             'Whether to create variables immediately.')
     p.Define(
         'require_sequential_input_order', None,
         'Whether the input needs to be in sequential order. '
@@ -520,10 +518,6 @@ class _Cluster:
   @property
   def in_unit_test(self):
     return self.params.in_unit_test
-
-  @property
-  def immediately_instantiate_variables(self):
-    return self.params.immediately_instantiate_variables
 
   @property
   def require_sequential_input_order(self):

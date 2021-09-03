@@ -101,20 +101,6 @@ def SetEval(mode):
   return ret
 
 
-def SetImmediatelyInstantiateVariables(mode):
-  """Returns a cluster with immediately_instantiate_variables option set.
-
-  Args:
-    mode: True, False or None.
-
-  Returns:
-    A new Cluster instance.
-  """
-  ret = copy.deepcopy(Current())
-  ret.params.immediately_instantiate_variables = mode
-  return ret
-
-
 def SetRequireSequentialInputOrder(mode):
   """Returns a cluster with require_sequential_input_order option set.
 

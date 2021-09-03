@@ -421,11 +421,11 @@ class TrainProgram(BaseProgram):
     self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
     data_parallelism = self.data_parallelism
 
-    with cluster_factory.SetImmediatelyInstantiateVariables(False):
+    with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
-    self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
+    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     def TpuTrainStep(*args):
       """Train a shard of a batch on a single TPU core.
@@ -438,7 +438,6 @@ class TrainProgram(BaseProgram):
       """
       with tf.name_scope('tpu_train'):
         with py_utils.OpportunisticVariableReuseScope(True):
-          self._model.InstantiateVariables()
           self._model.ConstructFPropBPropGraph()
         per_step_eval_metrics = self._eval_metrics.SetMetrics(
             self._task.eval_metrics, args)
@@ -467,10 +466,6 @@ class TrainProgram(BaseProgram):
     outfeed_dequeue_op = self._OutfeedDequeueLoop(
         self._task.per_example_tensors, self._steps_per_loop,
         self.num_splits_per_client)
-
-    # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
-    # that the TPUEmbedding singleton is available.
-    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     # Get metric result from a single replica; they are all same here.
 
@@ -573,9 +568,7 @@ class EvalProgram(BaseProgram):
       Summed eval metrics.
     """
     with tf.name_scope('tpu_eval'):
-      with py_utils.OpportunisticVariableReuseScope(True):
-        self._model.InstantiateVariables()
-        self._model.ConstructFPropGraph()
+      self._model.ConstructFPropGraph()
       per_step_eval_metrics = self._eval_metrics.SetMetrics(
           self._task.eval_metrics, args)
       summed_metrics = []
@@ -599,11 +592,11 @@ class EvalProgram(BaseProgram):
     with cluster_factory.SetEval(True):
       self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
       data_parallelism = self.data_parallelism
-      with cluster_factory.SetImmediatelyInstantiateVariables(False):
+      with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      self._task.input.InstantiateVariables()
       self._task.input.CreateTpuEnqueueOps()
+      self._task.input.CreateTpuEmbeddingEnqueueOps()
 
       # XLA thinks self.TpuEvalLoop() requires 1 argument due to self
       # Trick it with wrapper function
@@ -614,10 +607,6 @@ class EvalProgram(BaseProgram):
           TpuEvalLoopWrapper,
           num_shards=data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
-
-      # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
-      # that the TPUEmbedding singleton is available.
-      self._task.input.CreateTpuEmbeddingEnqueueOps()
 
       # Get metric result from a single replica; they are all same here because
       # TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
@@ -683,18 +672,16 @@ class DecodeProgram(BaseProgram):
 
   def _CompileDecodeFn(self):
     """Wrap the DecodeFn with split_compile_and_shard."""
-    with cluster_factory.SetImmediatelyInstantiateVariables(False):
+    with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
-    self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
     self._task.input.CreateCpuPassthroughEnqueueOps()
+    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
-      with py_utils.OpportunisticVariableReuseScope(
-          True), py_utils.TaskCallScope(self._task):
-        self._model.InstantiateVariables()
+      with py_utils.TaskCallScope(self._task):
         input_batch = self._task.input.TpuDequeueBatch()
         decode_dict = self._task.Decode(input_batch)
       self.decode_nm = py_utils.NestedMap(decode_dict)
@@ -704,10 +691,6 @@ class DecodeProgram(BaseProgram):
         _DecodeFn,
         num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
-
-    # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
-    # that the TPUEmbedding singleton is available.
-    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     self.cpu_pt = self._task.input.DequeueCpuPassthrough()
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
@@ -911,18 +894,16 @@ class ExperimentalDecodeProgram(DecodeProgram):
   def _CompileDecodeLoop(self):
     """Wrap the DecodeLoop with split_compile_and_shard."""
     device_assignment = py_utils.GetTpuDeviceAssignment()
-    with cluster_factory.SetImmediatelyInstantiateVariables(False):
+    with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
-    self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
     self._task.input.CreateCpuPassthroughEnqueueOps()
+    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     def _DecodeStep():
       """Decode call to be compiled for TPU."""
-      with py_utils.OpportunisticVariableReuseScope(
-          True), py_utils.TaskCallScope(self._task):
-        self._model.InstantiateVariables()
+      with py_utils.TaskCallScope(self._task):
         input_batch = self._task.input.TpuDequeueBatch()
         decode_dict = self._task.Decode(input_batch)
       self.decode_nm = py_utils.NestedMap(decode_dict)
@@ -937,10 +918,6 @@ class ExperimentalDecodeProgram(DecodeProgram):
         DecodeLoopFn,
         num_shards=self.data_parallelism,
         device_assignment=device_assignment)
-
-    # Create tpu embedding enqueue ops after model.InstantiateVariables(), so
-    # that the TPUEmbedding singleton is available.
-    self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     # Get a list of outfeed ops.
     self.decode_tensors = self._OutfeedDequeue()
@@ -1077,10 +1054,9 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
     data_parallelism = self.data_parallelism
-    with cluster_factory.SetImmediatelyInstantiateVariables(False):
+    with py_utils.OpportunisticVariableReuseScope(True):
       self._train_model = self._train_task_params.Instantiate()
     self._train_task = self._train_model.GetTask()
-    self._train_task.input.InstantiateVariables()
     self._train_task.input.CreateTpuEnqueueOps()
     self._model = self._train_model
 
@@ -1093,7 +1069,6 @@ class MLPerfTrainDecodeProgram(BaseProgram):
        [train_op].
       """
       with py_utils.OpportunisticVariableReuseScope(True):
-        self._train_model.InstantiateVariables()
         self._train_model.ConstructFPropBPropGraph()
       return [self._train_task.train_op]
 
@@ -1107,20 +1082,17 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     py_utils.ResetStepSeed()
 
-    with cluster_factory.SetImmediatelyInstantiateVariables(False):
+    with py_utils.OpportunisticVariableReuseScope(True):
       self._decode_model = self._InstantiateTaskModel(self._decode_task_params)
     self._decode_task = self._decode_model.GetTask()
-    self._decode_task.input.InstantiateVariables()
     self._decode_task.input.CreateTpuEnqueueOps()
     self._decode_task.input.CreateCpuPassthroughEnqueueOps()
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
-      with py_utils.OpportunisticVariableReuseScope(True):
-        with cluster_factory.SetEval(True):
-          self._decode_model.InstantiateVariables()
-          input_batch = self._decode_task.input.TpuDequeueBatch()
-          decode_dict = self._decode_task.Decode(input_batch)
+      with cluster_factory.SetEval(True):
+        input_batch = self._decode_task.input.TpuDequeueBatch()
+        decode_dict = self._decode_task.Decode(input_batch)
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 

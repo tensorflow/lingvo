@@ -445,10 +445,8 @@ class TrainerTpu(base_runner.BaseRunner):
       self._CreateTF2SummaryWriter(self._train_dir)
       with self._cluster, tf.device(
           self._cluster.GetPlacer()), self._TF2SummaryContext():
-        with cluster_factory.SetImmediatelyInstantiateVariables(False):
-          self._model = self.params.Instantiate()
+        self._model = self.params.Instantiate()
         self._task = self._model.GetTask()
-        self._task.input.InstantiateVariables()
         self._task.input.CreateTpuEnqueueOps()
         self._eval_metrics = metrics.TpuEvalMetrics()
         # Needed due to the AddExtraTheta() reference to global_step when
@@ -468,7 +466,6 @@ class TrainerTpu(base_runner.BaseRunner):
           Returns:
             New summed metrics values and a train_op.
           """
-          self._model.InstantiateVariables()
           self._model.ConstructFPropBPropGraph()
           tpu_embedding_collection = (
               tpu_embedding_layers.TpuEmbeddingCollection.Get())
