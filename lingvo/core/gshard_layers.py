@@ -1380,7 +1380,8 @@ class ReshapeInputLayer(base_layer.BaseLayer):
       # input size in tokens
       input_size = (
           py_utils.GetShape(orig_inputs)[0] * py_utils.GetShape(orig_inputs)[1])
-      group_size = input_size // p.num_groups
+      group_size, rest = divmod(input_size, p.num_groups)
+      assert rest == 0, (input_size, p.num_groups)
       model_dims = p.model_dims or [orig_inputs.shape[-1]]
       inputs = tf.reshape(
           orig_inputs, [p.num_groups, group_size] + model_dims,
