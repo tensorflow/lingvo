@@ -251,8 +251,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         'params_init', py_utils.DefaultParamInit(),
         'How model weights should be initialized. Not to be confused with '
         'hyperparams.')
-    p.Define('add_name_to_theta', False,
-             'Wrap theta with tf.identity(var_name).')
     # Makes additional alterations for graphs being used for inference.
     p.Define('is_inference', None, 'True if in inference mode.')
     # In addition to is_inference, indicate that the inference graph is
@@ -889,8 +887,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         # sends from reading variables from ps multiple times.
         with tf.device(var.device):
           value = tf.identity(var, name=name)
-      elif self.params.add_name_to_theta:
-        value = tf.identity(var, name=name)
       else:
         value = var
 
