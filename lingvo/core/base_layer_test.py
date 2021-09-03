@@ -168,7 +168,7 @@ class BaseLayerTest(test_utils.TestCase):
       self.assertAllClose(layer.vars.w.eval(), layer.theta.w.eval())
       b_eval = layer.vars.b.eval()
       self.assertAllClose(b_eval, layer.theta.b.eval())
-      self.assertAllClose(b_eval, layer._private_theta.b.eval())
+      self.assertAllClose(b_eval, layer._private_theta['b'].eval())
 
       # theta reflects the vars change.
       new_b = layer.vars.b.assign(tf.ones_like(layer.vars.b) * 3.)

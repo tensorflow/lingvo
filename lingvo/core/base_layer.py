@@ -359,13 +359,13 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     tf.logging.debug('Creating layer %s with params: \n %s \n',
                      self.__class__.__name__, str(params))
     # Vars created by this layer.
-    self._private_vars = py_utils.NestedMap()
+    self._private_vars = {}
     # Utility for TransformVarsTempContext() to restore self._private_vars.
     self._private_vars_transform_restore_stack = []
     # Theta derived from this layer's vars.
-    self._private_theta = py_utils.NestedMap()
+    self._private_theta = {}
     # Child layers created by this layer through CreateChild/CreateChildren.
-    self._private_children = py_utils.NestedMap()
+    self._private_children = {}
     # Child layers created by this layer. A well-formed layer should
     # have self._private_children equals to self._children_list. I.e.,
     # all child layers are created using CreateChild/CreateChildren.
@@ -374,9 +374,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # the concatenated sharded variables.
     self._extra_theta = py_utils.NestedMap()
     # All registered accumulators.
-    self._private_accumulators = py_utils.NestedMap()
+    self._private_accumulators = {}
     # Layer-private functions. Add with AddFunction.
-    self._private_fns = dict()
+    self._private_fns = {}
     # Mapping from variable names to its symbolic shape.
     # self._var_symbolic_shape_map['var_name'] will be a tuple of integers or
     # symbolic expressions, one for each dimension of the variable.
@@ -512,7 +512,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def children(self) -> py_utils.NestedMap:
     """Returns children layers of this layer in a `.NestedMap`."""
-    return self._private_children
+    return py_utils.NestedMap(self._private_children)
 
   def __getattr__(self, name: str):
     """Returns the child layer of the given name."""
@@ -590,12 +590,12 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def vars(self):
     """Returns variables of this layer and its children in a `.NestedMap`."""
     if self._is_variable_free:
-      return self._private_children.Transform(lambda _: py_utils.NestedMap())
+      return py_utils.Transform(lambda _: py_utils.NestedMap(), self.children)
     if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
           'Cannot access vars for layer %s before they have been created.' %
           self.params.cls)
-    ret = self._private_children.Transform(lambda x: x.vars)
+    ret = py_utils.Transform(lambda x: x.vars, self.children)
     for k in self._private_vars.keys():
       ret[k] = self._private_vars[k]
     return ret
@@ -603,28 +603,28 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def _TransformVarsInternal(self, fn):
     """Internal: replaces each variable v in self._private_vars with fn(v).
 
-    Also recursively invokes _TransformVarsInternal() on self._private_children.
+    Also recursively invokes _TransformVarsInternal() on self.children.
 
     Args:
       fn: A function that takes a variable and returns a variable or a wrapper
         of the variable.
     """
     self._private_vars_transform_restore_stack.append(self._private_vars)
-    self._private_vars = self._private_vars.Transform(fn)
+    self._private_vars = {key: fn(x) for key, x in self._private_vars.items()}
     if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
           'Cannot access vars for layer %s before they have been created.' %
           self.params.cls)
-    tf.nest.map_structure(
+    py_utils.Transform(
         lambda c: c._TransformVarsInternal(fn),  # pylint: disable=protected-access
-        self._private_children)
+        self.children)
 
   def _UndoTransformVarsInternal(self):
     """Internal. Undoes _TransformVarsInternal()."""
     self._private_vars = self._private_vars_transform_restore_stack.pop()
-    tf.nest.map_structure(
+    py_utils.Transform(
         lambda c: c._UndoTransformVarsInternal(),  # pylint: disable=protected-access
-        self._private_children)
+        self.children)
 
   @contextlib.contextmanager
   def TransformVarsTempContext(self, fn):
@@ -639,7 +639,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def theta(self):
     """Returns theta of this layer and its children in a `.NestedMap`."""
     if self._is_variable_free:
-      return self._private_children.Transform(lambda _: py_utils.NestedMap())
+      return py_utils.Transform(lambda _: py_utils.NestedMap(), self.children)
     if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
           'Cannot access theta for layer %s before they have been created.' %
@@ -660,9 +660,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     return ret
 
   def _InternalGetTheta(self):
-    ret = self._private_children.Transform(lambda x: x.theta)
+    ret = py_utils.Transform(lambda x: x.theta, self.children)
 
-    private_theta = self._private_theta.DeepCopy()
+    private_theta = self._private_theta
 
     if (self._params.fprop_dtype is not None and
         self._params.fprop_dtype != self._params.dtype):
@@ -674,7 +674,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         else:
           return x
 
-      private_theta = private_theta.Transform(MaybeCastToFPropDtype)
+      private_theta = py_utils.Transform(MaybeCastToFPropDtype, private_theta)
 
     ret.update(private_theta)
     return ret
@@ -682,7 +682,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def accumulators(self):
     """Returns `.NestedMap` of `Accumulator` instances for this and children."""
-    ret = self._private_children.Transform(lambda x: x.accumulators)
+    ret = py_utils.Transform(lambda x: x.accumulators, self.children)
     for k, acc in self._private_accumulators.items():
       ret[k] = acc
     return ret
@@ -1060,8 +1060,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         p.name = '%s_%d' % (name, next(uid))
       return p.Instantiate()
 
-    self._private_children[name] = py_utils.NestedMap(
-        sub=params).Transform(Instantiate).sub
+    self._private_children[name] = py_utils.Transform(Instantiate, params)
 
   def AddChild(self, name: str, children: BaseLayerT) -> None:
     """Add existing layer or layers as sublayer."""
@@ -1094,7 +1093,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
   def _VerifyChildren(self) -> None:
     """Verify all children created by this layer are via `CreateChild(ren)`."""
-    created_children = self._private_children.Flatten()
+    created_children = py_utils.Flatten(self._private_children)
     for v in self._children_list:
       if v not in created_children:
         tf.logging.info([
@@ -1133,7 +1132,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """
     update_ops = [
         child.PostTrainingStepUpdate()
-        for child in self._private_children.Flatten()
+        for child in py_utils.Flatten(self._private_children)
     ]
     return tf.group(*update_ops)
 

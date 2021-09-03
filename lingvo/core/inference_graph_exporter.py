@@ -443,7 +443,10 @@ class InferenceGraphExporter:
             # Replace variables with tensors using tf.identity in theta before
             # freezing to avoid the graph referencing types of DT_RESOURCE.
             def AddIdentityToTheta(layer):
-              layer._private_theta = layer._private_theta.Transform(tf.identity)  # pylint: disable=protected-access
+              # pylint: disable=protected-access
+              layer._private_theta = py_utils.Transform(tf.identity,
+                                                        layer._private_theta)
+              # pylint: enable=protected-access
               layer.children.Transform(AddIdentityToTheta)
 
             AddIdentityToTheta(task)
