@@ -5039,7 +5039,7 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    assert p.num_pipeline_stages > 1
+    assert p.num_pipeline_stages > 0
     # Use deterministic droupout in pipelined layers.
     stage_params = p.pipeline_stage.Copy()
     layer_params = stage_params.transformer_layer_params_tpl
