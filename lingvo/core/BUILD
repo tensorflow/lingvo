@@ -462,6 +462,33 @@ py_library(
 py_test(
     name = "base_model_test",
     srcs = ["base_model_test.py"],
+    args = ["--noenable_eager_execution"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_decoder",
+        ":base_input_generator",
+        ":base_layer",
+        ":base_model",
+        ":base_model_params",
+        ":distillation_task",
+        ":hyperparams",
+        ":layers",
+        ":learner",
+        ":py_utils",
+        ":task_scheduler",
+        ":test_utils",
+        # Implicit absl.testing.flagsaver dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_test(
+    name = "base_model_eager_test",
+    srcs = ["base_model_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "base_model_test.py",
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [

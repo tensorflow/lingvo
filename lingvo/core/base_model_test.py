@@ -16,6 +16,7 @@
 """Tests for base_model."""
 
 from absl.testing import flagsaver
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_decoder
 from lingvo.core import base_input_generator
@@ -26,6 +27,7 @@ from lingvo.core import distillation_task
 from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import learner
+from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
 from lingvo.core import test_utils
@@ -41,7 +43,11 @@ class TestTask(base_model.BaseTask):
 
   def __init__(self, params):
     super().__init__(params)
-    self.CreateChild('x', layers.BatchNormLayer.Params().Set(name='x', dim=1))
+    self.CreateChild('x', layers.BatchNormLayer.Params().Set(dim=1))
+    self.CreateChild(
+        'y',
+        layers.ProjectionLayer.Params().Set(
+            input_dim=1, output_dim=1, batch_norm=True, has_bias=True))
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -51,6 +57,9 @@ class TestTask(base_model.BaseTask):
     self.CreateVariable(
         'b',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+
+  def FPropTower(self, theta, input_batch):
+    return {'loss': (theta.a, 1.0)}, {}
 
 
 class BaseTaskTest(test_utils.TestCase):
@@ -301,17 +310,17 @@ class DistillationTaskTest(test_utils.TestCase):
           self.assertNotAlmostEqual(values_before_training[child][k], v)
 
 
-class SingleTaskModelTest(test_utils.TestCase):
+class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
 
   def testInit(self):
     p = base_model.SingleTaskModel.Params()
     p.task = BaseTaskTest.TestParams()
-    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    p.task.train.learner = (learner.Learner.Params().Set(name='loss'))
+    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.task.train.learner = learner.Learner.Params().Set(name='loss')
     model = p.Instantiate()
     self.assertEqual(model.params.name, model.GetTask().params.name)
     self.assertEqual(model.params.task, model.GetTask().params)
-    self.assertEqual(len(model.tasks), 1)
+    self.assertLen(model.tasks, 1)
     self.assertEqual(model.tasks[0], model.GetTask())
     self.assertEqual(model.tasks[0], model.SampleTask(None))
 
@@ -322,9 +331,8 @@ class SingleTaskModelTest(test_utils.TestCase):
     p.task.train.ema_decay = 0.9
     p.task.train.ema_decay_moving_vars = False
     model = p.Instantiate()
-    task = model._task
-    task._train_op = tf.no_op()
-    task.ApplyExponentialMovingAverage(model.ema)
+    self.assertIsNotNone(model.ema)
+    model.ConstructFPropBPropGraph()
     with tf.variable_scope('base_mdl', reuse=True):
       beta = tf.get_variable('x/beta/var')
       mean = tf.get_variable('x/moving_mean/var')
@@ -337,16 +345,68 @@ class SingleTaskModelTest(test_utils.TestCase):
     p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.task.train.ema_decay = 0.9
     p.task.train.ema_decay_moving_vars = True
-    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
     model = p.Instantiate()
-    task = model._task
-    task._train_op = tf.no_op()
-    task.ApplyExponentialMovingAverage(model.ema)
+    self.assertIsNotNone(model.ema)
+    model.ConstructFPropBPropGraph()
     with tf.variable_scope('base_mdl', reuse=True):
       beta = tf.get_variable('x/beta/var')
       mean = tf.get_variable('x/moving_mean/var')
       self.assertIsNotNone(model.ema.average(beta))
       self.assertIsNotNone(model.ema.average(mean))
+
+  @parameterized.named_parameters(
+      ('SGD', optimizer.SGD.Params()),
+      ('AdamV1', optimizer.Adam.Params()),
+      ('AdamV2', optimizer.AdamV2.Params()),
+  )
+  def testModuleVarsTracking(self, optimizer_params):
+    p = base_model.SingleTaskModel.Params()
+    p.task = BaseTaskTest.TestParams()
+    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.task.train.learner = learner.Learner.Params().Set(
+        name='loss', optimizer=optimizer_params)
+    model = p.Instantiate()
+    model.ConstructFPropBPropGraph()
+    self.assertEqual([
+        'global_step:0',
+        'base_mdl/a/var:0',
+        'base_mdl/b/var:0',
+        'base_mdl/x/beta/var:0',
+        'base_mdl/x/gamma/var:0',
+        'base_mdl/x/moving_mean/var:0',
+        'base_mdl/x/moving_variance/var:0',
+        'base_mdl/y/b/var:0',
+        'base_mdl/y/w/var:0',
+        'base_mdl/y/beta/var:0',
+        'base_mdl/y/gamma/var:0',
+        'base_mdl/y/moving_mean/var:0',
+        'base_mdl/y/moving_variance/var:0',
+    ], [x.name for x in model.variables])
+
+  def testModuleVarsTrackingEMA(self):
+    p = base_model.SingleTaskModel.Params()
+    p.task = BaseTaskTest.TestParams()
+    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.task.train.ema_decay = 0.9
+    p.task.train.ema_decay_moving_vars = True
+    model = p.Instantiate()
+    self.assertIsNotNone(model.ema)
+    model.ConstructFPropBPropGraph()
+    self.assertEqual([
+        'global_step:0',
+        'base_mdl/a/var:0',
+        'base_mdl/b/var:0',
+        'base_mdl/x/beta/var:0',
+        'base_mdl/x/gamma/var:0',
+        'base_mdl/x/moving_mean/var:0',
+        'base_mdl/x/moving_variance/var:0',
+        'base_mdl/y/b/var:0',
+        'base_mdl/y/w/var:0',
+        'base_mdl/y/beta/var:0',
+        'base_mdl/y/gamma/var:0',
+        'base_mdl/y/moving_mean/var:0',
+        'base_mdl/y/moving_variance/var:0',
+    ], [x.name for x in model.variables])
 
 
 class MultiTaskModelTest(test_utils.TestCase):
