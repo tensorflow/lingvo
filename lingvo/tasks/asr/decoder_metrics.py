@@ -22,6 +22,7 @@ from lingvo.core import base_layer
 from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.asr import decoder_utils
+from lingvo.tasks.asr import eos_normalization
 from lingvo.tasks.asr import metrics_calculator
 import numpy as np
 
@@ -61,6 +62,8 @@ def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
 
   if decoder_outs.topk_ids is not None:
     ids = tf.identity(ids, name='TopKLabelIds' + tag)
+    # With the assumption that ids[-1] is always EOS token.
+    # TODO(b/195027707): remove EOS token in better way.
     decoded = ids_to_strings_fn(ids, lens - 1)
     decoded = tf.identity(decoded, name='top_k_decoded%s' % tag)
     decoded = tf.reshape(decoded, tf.shape(hyps))
@@ -117,7 +120,11 @@ class DecoderMetrics(base_layer.BaseLayer):
     # provide their own implementation.
     return {}
 
-  def ComputeMetrics(self, decoder_outs, input_batch, ids_to_strings_fn):
+  def ComputeMetrics(self,
+                     decoder_outs,
+                     input_batch,
+                     ids_to_strings_fn,
+                     eos_id=None):
     """Computes metrics on output from decoder.
 
     Args:
@@ -128,6 +135,8 @@ class DecoderMetrics(base_layer.BaseLayer):
       ids_to_strings_fn: a function of (ids, lens) -> strings, where ids has
         shape [batch, length], lens has shape [batch], and strings has shape
         [batch].
+      eos_id: A number, which is eos_id. The default is None as not all models
+        have EOS concept.
 
     Returns:
       A dict of Tensors containing decoder output and metrics.
@@ -138,7 +147,12 @@ class DecoderMetrics(base_layer.BaseLayer):
     tgt = input_batch.tgt
     tgt_lens = tf.cast(tf.round(tf.reduce_sum(1.0 - tgt.paddings, 1)), tf.int32)
     tgt_lens = py_utils.HasShape(tgt_lens, [tgt_batch])
-    transcripts = ids_to_strings_fn(tgt.labels, tgt_lens - 1)
+    if eos_id is not None:
+      tgt_labels, tgt_lens = eos_normalization.NormalizeTrailingEos(
+          tgt.labels, tgt_lens, need_trailing_eos=False, eos_id=eos_id)
+    else:
+      tgt_labels = tgt.labels
+    transcripts = ids_to_strings_fn(tgt_labels, tgt_lens)
 
     # Filter out all isolated '<noise>' tokens.
     noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'

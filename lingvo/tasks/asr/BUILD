@@ -94,6 +94,31 @@ py_test(
 )
 
 py_library(
+    name = "eos_normalization",
+    srcs = ["eos_normalization.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+        "//lingvo/core:py_utils",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_test(
+    name = "eos_normalization_test",
+    srcs = ["eos_normalization_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":eos_normalization",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_library(
     name = "fusion",
     srcs = ["fusion.py"],
     srcs_version = "PY3",
@@ -204,6 +229,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":decoder_utils",
+        ":eos_normalization",
         ":metrics_calculator",
         "//lingvo:compat",
         "//lingvo/core:base_layer",
