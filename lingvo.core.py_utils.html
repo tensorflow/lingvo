@@ -1161,7 +1161,9 @@ constructed and initialized.</p></li>
 semantics as the reuse arg in tf.variable_scope.</p></li>
 <li><p><strong>trainable</strong> – Whether or not the variable is trainable.</p></li>
 <li><p><strong>collections</strong> – Override the default variable collection (
-tf.GraphKeys.GLOBAL_VARIABLES).</p></li>
+tf.GraphKeys.GLOBAL_VARIABLES). Note that specifying a collections
+argument in <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code> does not override this collection; the caller must
+set this field explicitly in the call to CreateVariable().</p></li>
 <li><p><strong>default_seed</strong> – Seed to use for initialization if not specified in params.
 Used for deterministic initialization in tests.</p></li>
 <li><p><strong>synchronization</strong> – Indicates when a distributed a variable will be aggregated.
