@@ -1,0 +1,341 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>lingvo.tasks.asr.eos_normalization module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.asr.frontend module" href="lingvo.tasks.asr.frontend.html" />
+    <link rel="prev" title="lingvo.tasks.asr.encoder module" href="lingvo.tasks.asr.encoder.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.asr.html">lingvo.tasks.asr package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.eos_normalization module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/lingvo.tasks.asr.eos_normalization.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.asr.eos_normalization">
+<span id="lingvo-tasks-asr-eos-normalization-module"></span><h1>lingvo.tasks.asr.eos_normalization module<a class="headerlink" href="#module-lingvo.tasks.asr.eos_normalization" title="Permalink to this headline">¶</a></h1>
+<p>util functions for eos normalization.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.eos_normalization.FillPaddingPos">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.eos_normalization.</span></span><span class="sig-name descname"><span class="pre">FillPaddingPos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_len</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></span><a class="reference internal" href="_modules/lingvo/tasks/asr/eos_normalization.html#FillPaddingPos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.eos_normalization.FillPaddingPos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a batch of sequences, fills the padding pos with <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding_value</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> – a [B, max_len] int tensor.</p></li>
+<li><p><strong>id_len</strong> – a [B, ] int tensor.</p></li>
+<li><p><strong>padding_value</strong> – an int.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>new ids with the property.</dt><dd><ul class="simple">
+<li><p>new_ids[b, :id_len[b]] = ids[b, :id_len[b]]</p></li>
+<li><p>new_ids[b, id_len[b]:] = padding_value</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>new_ids</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.eos_normalization.NormalizeTrailingEos">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.eos_normalization.</span></span><span class="sig-name descname"><span class="pre">NormalizeTrailingEos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_len</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">need_trailing_eos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/tasks/asr/eos_normalization.html#NormalizeTrailingEos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.eos_normalization.NormalizeTrailingEos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optionally removes/adds the trailing eos symbol.</p>
+<p>Given ids/id_len, return normalized id_len, and also make sure the padding
+positions are filled with eos.</p>
+<dl class="simple">
+<dt>Specifically,</dt><dd><ul class="simple">
+<li><p>If need_trailing_eos = True and the last symbol is:
+* eos: id_len_eos_normalized = id_len
+* not eos: id_len_eos_normalized = min(id_len + 1, max_label_len)</p></li>
+<li><p>If need_trailing_eos = False and the last symbol is:
+* eos: id_len_eos_normalized = max(id_len - 1, 0)
+* not eos: id_len_eos_normalized = id_len</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> – a [B, max_label_len] int tensor.</p></li>
+<li><p><strong>id_len</strong> – a [B,] int tensor. <code class="xref py py-obj docutils literal notranslate"><span class="pre">id_len</span></code> indicates the last symbol’s position.</p></li>
+<li><p><strong>need_trailing_eos</strong> – bool. if True, then the return id_len include the last
+eos symbol; otherwise, it does not include the last eos.</p></li>
+<li><p><strong>eos_id</strong> – int. The index of eos symbol.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>a [B, max_label_len] int tensor, and it is guaranteed that:</dt><dd><ul class="simple">
+<li><p>new_ids[b, :min(id_len_eos_normalized[b], id_len[b])] =
+ids[b, :min(id_len_eos_normalized[b], id_len[b])]</p></li>
+<li><p>new_ids[b, id_len_eos_normalized[b]:] = eos_id.</p></li>
+</ul>
+</dd>
+<dt>id_len_eos_normalized: a [B, ] int tensor, which indicates eos normalized</dt><dd><p>length.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>new_ids</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.eos_normalization.NumpyNormalizeTrailingEos">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.eos_normalization.</span></span><span class="sig-name descname"><span class="pre">NumpyNormalizeTrailingEos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_len</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">numpy.array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">need_trailing_eos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.array</span><span class="p"><span class="pre">,</span> </span><span class="pre">numpy.array</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/tasks/asr/eos_normalization.html#NumpyNormalizeTrailingEos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.eos_normalization.NumpyNormalizeTrailingEos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optionally removes/adds the trailing eos symbol, numpy implementation.</p>
+<p>This is the numpy implementation of <a class="reference internal" href="#lingvo.tasks.asr.eos_normalization.NormalizeTrailingEos" title="lingvo.tasks.asr.eos_normalization.NormalizeTrailingEos"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NormalizeTrailingEos</span></code></a>. See more details
+there. As only a reference implementation, it is not optimized but it should
+sever better for readers to understand the logic and for debug purpose
+as well.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> – a [B, max_label_len] int np.array.</p></li>
+<li><p><strong>id_len</strong> – a [B,] int np.array. <code class="xref py py-obj docutils literal notranslate"><span class="pre">id_len</span></code> indicates the last symbol’s position.</p></li>
+<li><p><strong>need_trailing_eos</strong> – bool. if True, then the return id_len include the last
+eos symbol; otherwise, it does not include the last eos.</p></li>
+<li><p><strong>eos_id</strong> – int. The index of eos symbol.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>a [B, max_label_len] np.array, and it is guaranteed that:</dt><dd><ul class="simple">
+<li><p>new_ids[b, :min(id_len_eos_normalized[b], id_len[b])] =
+ids[b, :min(id_len_eos_normalized[b], id_len[b])]</p></li>
+<li><p>new_ids[b, id_len_eos_normalized[b]:] = eos_id.</p></li>
+</ul>
+</dd>
+<dt>id_len_eos_normalized: a [B, ] np.array, which indicates eos normalized</dt><dd><p>length.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>new_ids</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="lingvo.tasks.asr.frontend.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.frontend module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="lingvo.tasks.asr.encoder.html" class="btn btn-neutral float-left" title="lingvo.tasks.asr.encoder module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2018.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
