@@ -1614,7 +1614,9 @@ def CreateVariable(name,
       semantics as the reuse arg in tf.variable_scope.
     trainable: Whether or not the variable is trainable.
     collections: Override the default variable collection (
-      tf.GraphKeys.GLOBAL_VARIABLES).
+      tf.GraphKeys.GLOBAL_VARIABLES). Note that specifying a collections
+      argument in `params` does not override this collection; the caller must
+      set this field explicitly in the call to CreateVariable().
     default_seed: Seed to use for initialization if not specified in params.
       Used for deterministic initialization in tests.
     synchronization: Indicates when a distributed a variable will be aggregated.
