@@ -35,6 +35,7 @@ py_binary(
         # Implicit absl.flags dependency.
         # Implicit apache_beam dependency.
         "//lingvo:compat",
+        "//lingvo/core:py_utils",
         "//lingvo/tools:beam_utils",
         # Implicit Waymo Open Dataset proto dependency.
     ],

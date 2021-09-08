@@ -1652,7 +1652,7 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  tf.disable_eager_execution()
+  py_utils.SetEagerMode(False)
   tf.flags.mark_flag_as_required('model')
   FLAGS(sys.argv, known_only=True)
   if FLAGS.disable_tf2:

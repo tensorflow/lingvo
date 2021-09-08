@@ -16,6 +16,7 @@
 """Tests for var_tmp_wrappers."""
 
 from lingvo import compat as tf
+from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core import var_tmp_wrappers
 
@@ -49,5 +50,5 @@ class VarTmpWrappersTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.disable_eager_execution()
+  py_utils.SetEagerMode(False)
   tf.test.main()

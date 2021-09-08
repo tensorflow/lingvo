@@ -178,6 +178,7 @@ py_binary(
     deps = [
         ":audio_lib",
         "//lingvo:compat",
+        "//lingvo/core:py_utils",
     ],
 )
 

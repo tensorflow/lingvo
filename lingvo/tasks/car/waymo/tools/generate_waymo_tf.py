@@ -32,11 +32,10 @@ from absl import flags
 
 import apache_beam as beam
 from lingvo import compat as tf
+from lingvo.core import py_utils
 from lingvo.tasks.car.waymo.tools import waymo_proto_to_tfe
 from lingvo.tools import beam_utils
 from waymo_open_dataset import dataset_pb2
-
-tf.enable_eager_execution()
 
 flags.DEFINE_string('input_file_pattern', None, 'Path to read input')
 flags.DEFINE_string('output_filebase', None, 'Path to write output')
@@ -74,4 +73,5 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  py_utils.SetEagerMode()
   app.run(main)

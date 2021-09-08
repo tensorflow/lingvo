@@ -21,8 +21,6 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 import numpy as np
 
-tf.enable_eager_execution()
-
 
 class PyUtilsEagerTest(test_utils.TestCase):
 
@@ -65,4 +63,5 @@ class PyUtilsEagerTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
+  py_utils.SetEagerMode()
   tf.test.main()

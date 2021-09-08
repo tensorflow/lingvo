@@ -657,10 +657,13 @@ def GetTpuDeviceAssignment(job=None):
 _IS_EAGER_MODE = False
 
 
-def SetIsEagerMode():
+def SetEagerMode(eager_mode=True):
   global _IS_EAGER_MODE
-  assert tf.executing_eagerly(), 'It must be in eager mode when setting this.'
-  _IS_EAGER_MODE = True
+  _IS_EAGER_MODE = eager_mode
+  if eager_mode:
+    tf.enable_eager_execution()
+  else:
+    tf.disable_eager_execution()
 
 
 def IsEagerMode():

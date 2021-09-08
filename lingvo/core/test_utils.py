@@ -25,8 +25,6 @@ from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 import numpy as np
 
-# Disable eager execution for all tests.
-tf.disable_eager_execution()
 tf.flags.DEFINE_bool('enable_eager_execution', False,
                      'Whether to enable eager execution.')
 
@@ -35,6 +33,9 @@ tf.flags.DEFINE_boolean(
     'Update the goldens, rather than diffing against them.')
 
 FLAGS = tf.flags.FLAGS
+
+# Disable eager mode for tests by default.
+py_utils.SetEagerMode(False)
 
 
 class TestCase(tf.test.TestCase):
@@ -217,9 +218,6 @@ def ComputeNumericGradient(sess,
 
 def main(*args, **kwargs):
   FLAGS(sys.argv, known_only=True)
-  if FLAGS.enable_eager_execution:
-    tf.enable_eager_execution()
-  else:
-    tf.disable_eager_execution()
+  py_utils.SetEagerMode(FLAGS.enable_eager_execution)
   FLAGS.unparse_flags()
   tf.test.main(*args, **kwargs)

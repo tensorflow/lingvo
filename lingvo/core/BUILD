@@ -2563,6 +2563,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":py_utils",
         ":var_tmp_wrappers",
         "//lingvo:compat",
         "//lingvo/core:test_utils",

@@ -20,6 +20,7 @@ import random
 import re
 import tarfile
 import lingvo.compat as tf
+from lingvo.core import py_utils
 from lingvo.tools import audio_lib
 
 tf.flags.DEFINE_string('input_tarball', '', 'Input .tar.gz file.')
@@ -206,5 +207,5 @@ def main(_):
 
 
 if __name__ == '__main__':
-  tf.disable_eager_execution()
+  py_utils.SetEagerMode(False)
   tf.app.run(main)
