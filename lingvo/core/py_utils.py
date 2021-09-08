@@ -3691,7 +3691,7 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
     that are relevant to the loss being optimized, and the second list contains
     all in batch_norm_updates but not in the first list.
   """
-  if tf.executing_eagerly():
+  if tf.executing_eagerly_outside_functions():
     return [], []
   dependent_ops_and_tensors = set(FindNeeded(loss))
   relevant_updates = []
@@ -3700,8 +3700,8 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
   bn_update_dict = _get_batch_norm_updates_dict()
   for bn_update in batch_norm_updates:
     assert bn_update.name in bn_update_dict, (
-        '%s is probably not a valid batch normalization update op.'
-        ' Make sure batch normalization is done through calling'
+        f'{bn_update.name} is probably not a valid batch normalization update '
+        'op. Make sure batch normalization is done through calling'
         ' the py_utils.UpdateBatchNormVars helper routine.')
     bn_stat_name = bn_update_dict[bn_update.name][1].name
     if bn_stat_name in dependent_ops_and_tensors:
