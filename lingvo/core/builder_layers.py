@@ -167,13 +167,16 @@ class RepeatLayer(base_layer.BaseLayer):
       for layer_idx in range(p.repeat):
         if p.per_layer_vars:
           layer_theta = theta['body_iter_%05d' % layer_idx]
+          body_instance = self.children['body_iter_%05d' % layer_idx]
         else:
+          body_instance = self.body
 
           def _Slice(t, idx=layer_idx):
             return t[idx]
 
           layer_theta = tf.nest.map_structure(_Slice, theta.body)
-        fprop_outputs = self._body.FProp(layer_theta, *fprop_inputs)
+
+        fprop_outputs = body_instance.FProp(layer_theta, *fprop_inputs)
         fprop_outputs = _ToTuple(fprop_outputs)
         assert len(fprop_outputs) == len(fprop_inputs)
         fprop_inputs = fprop_outputs
