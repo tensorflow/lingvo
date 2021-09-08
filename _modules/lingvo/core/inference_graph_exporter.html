@@ -467,7 +467,8 @@
              <span class="n">export_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">subgraph_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">disable_packed_input</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+             <span class="n">disable_packed_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+             <span class="n">prune_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exports a InferenceGraph proto with piecewise subgraphs.</span>
 
 <span class="sd">    Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</span>
@@ -490,6 +491,7 @@
 <span class="sd">        empty, export only this list of inference subgraphs.</span>
 <span class="sd">      random_seed: Fixes the random seed in the exported inference graph.</span>
 <span class="sd">      disable_packed_input: Disable packed input for inference writing purposes.</span>
+<span class="sd">      prune_graph: If true, prune the graph to just the parts we need.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      InferenceGraph proto.</span>
@@ -672,19 +674,22 @@
         <span class="n">graph_def</span> <span class="o">=</span> <span class="n">_FreezeDefaults</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
-      <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">)</span>
-
-      <span class="c1"># Prune the graph to just the parts we need.</span>
-      <span class="c1"># To support restoring, we have to not prune out the restore node.</span>
-      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
-      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
-      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;save/control_dependency&#39;</span><span class="p">)</span>
-      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;save/restore_all&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
-        <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
       <span class="n">graph_def</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">()</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Pruning graph to output ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
-      <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">prune_graph</span><span class="p">:</span>
+        <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">)</span>
+
+        <span class="c1"># Prune the graph to just the parts we need.</span>
+        <span class="c1"># To support restoring, we have to not prune out the restore node.</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;save/control_dependency&#39;</span><span class="p">)</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;save/restore_all&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
+          <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
+
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Pruning graph to output ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
+        <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">device_options</span><span class="o">.</span><span class="n">retain_device_placement</span><span class="p">:</span>
       <span class="c1"># Clear the device so that the runtime can choose.</span>
