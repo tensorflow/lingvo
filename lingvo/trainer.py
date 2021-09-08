@@ -1493,8 +1493,11 @@ class RunnerManager:
     """Sets the model name."""
     self._model_name = model_name
 
-  def WriteInferenceGraph(self):
+  def WriteInferenceGraph(self, prune_graph=True):
     """Generates the inference graphs for a given model.
+
+    Args:
+      prune_graph: If true, prune the graph to just the parts we need.
 
     Returns:
       InferenceGraph proto for cpu.
@@ -1538,7 +1541,8 @@ class RunnerManager:
                 model_task_name=task_name,
                 device_options=device_options,
                 export_path=filename_prefix + '.pbtxt',
-                random_seed=FLAGS.inference_graph_random_seed))
+                random_seed=FLAGS.inference_graph_random_seed,
+                prune_graph=prune_graph))
     else:
       for task_name in task_names:
         filename_prefix = 'inference'
@@ -1553,7 +1557,8 @@ class RunnerManager:
                   model_cfg=cfg,
                   model_task_name=task_name,
                   export_path=filename_prefix + '.pbtxt',
-                  random_seed=FLAGS.inference_graph_random_seed))
+                  random_seed=FLAGS.inference_graph_random_seed,
+                  prune_graph=prune_graph))
         except NotImplementedError as e:
           tf.logging.error('Cannot write inference graph: %s', e)
 
@@ -1571,7 +1576,8 @@ class RunnerManager:
               model_task_name=task_name,
               device_options=device_options,
               export_path=filename_prefix + '_tpu.pbtxt',
-              random_seed=FLAGS.inference_graph_random_seed)
+              random_seed=FLAGS.inference_graph_random_seed,
+              prune_graph=prune_graph)
         except Exception as e:  # pylint: disable=broad-except
           tf.logging.error('Error exporting TPU inference graph: %s' % e)
 

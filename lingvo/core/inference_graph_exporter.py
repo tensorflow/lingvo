@@ -312,7 +312,8 @@ class InferenceGraphExporter:
              export_path=None,
              subgraph_filter=None,
              random_seed=None,
-             disable_packed_input=True):
+             disable_packed_input=True,
+             prune_graph=True):
     """Exports a InferenceGraph proto with piecewise subgraphs.
 
     Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.
@@ -335,6 +336,7 @@ class InferenceGraphExporter:
         empty, export only this list of inference subgraphs.
       random_seed: Fixes the random seed in the exported inference graph.
       disable_packed_input: Disable packed input for inference writing purposes.
+      prune_graph: If true, prune the graph to just the parts we need.
 
     Returns:
       InferenceGraph proto.
@@ -517,19 +519,22 @@ class InferenceGraphExporter:
         graph_def = _FreezeDefaults(graph, output_op_names)
     else:
       inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
-      output_op_names = GetOutputOpNames(graph, inference_graph_proto)
-
-      # Prune the graph to just the parts we need.
-      # To support restoring, we have to not prune out the restore node.
-      output_op_names.append('init_all_tables')
-      output_op_names.append('init_all_variables')
-      output_op_names.append('save/control_dependency')
-      output_op_names.append('save/restore_all')
-      if IsTpu(device_options) and device_options.gen_init_op:
-        output_op_names.append('tpu_init_op')
       graph_def = graph.as_graph_def()
-      tf.logging.info('Pruning graph to output ops: %r', output_op_names)
-      graph_def = tf.graph_util.extract_sub_graph(graph_def, output_op_names)
+
+      if prune_graph:
+        output_op_names = GetOutputOpNames(graph, inference_graph_proto)
+
+        # Prune the graph to just the parts we need.
+        # To support restoring, we have to not prune out the restore node.
+        output_op_names.append('init_all_tables')
+        output_op_names.append('init_all_variables')
+        output_op_names.append('save/control_dependency')
+        output_op_names.append('save/restore_all')
+        if IsTpu(device_options) and device_options.gen_init_op:
+          output_op_names.append('tpu_init_op')
+
+        tf.logging.info('Pruning graph to output ops: %r', output_op_names)
+        graph_def = tf.graph_util.extract_sub_graph(graph_def, output_op_names)
 
     if not device_options.retain_device_placement:
       # Clear the device so that the runtime can choose.
