@@ -265,15 +265,15 @@ class Checkpointer:
     with sess.graph.as_default():
       gstep = py_utils.GetGlobalStep()
 
-    path = tf.train.latest_checkpoint(self._train_dir)
-    if path:
-      reader = tf.train.NewCheckpointReader(path)
-      value = reader.get_tensor('global_step')
-      tf.logging.info('Restoring global step: %s', value)
-      sess.run(gstep.assign(value))
-    else:
-      tf.logging.info('Initializing global step')
-      sess.run(gstep.initializer)
+      path = tf.train.latest_checkpoint(self._train_dir)
+      if path:
+        reader = tf.train.NewCheckpointReader(path)
+        value = reader.get_tensor('global_step')
+        tf.logging.info('Restoring global step: %s', value)
+        sess.run(gstep.assign(value))
+      else:
+        tf.logging.info('Initializing global step')
+        sess.run(gstep.initializer)
 
 
 def GetSpecificCheckpoint(load_checkpoint_from):
