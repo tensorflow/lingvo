@@ -180,6 +180,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
 
 
 <div class="viewcode-block" id="_ToInt32"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder._ToInt32">[docs]</a><span class="k">def</span> <span class="nf">_ToInt32</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
@@ -3556,8 +3557,11 @@
         <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_words&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
         <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx_per_word&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">entropy</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_words</span><span class="p">,</span> <span class="n">num_words</span><span class="p">)</span>
-
-      <span class="c1"># TpuSummaries are in now propagated in _BPropGenTrainOps</span>
+      <span class="c1"># During training, the tpu summary tensors are added in _BPropGenTrainOps.</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">wgt</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuSummaryTensors</span><span class="p">()):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TpuSummaryTensor=&gt;EvalMetric </span><span class="si">%r</span><span class="s1"> </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">wgt</span><span class="p">))</span>
+          <span class="n">eval_metrics</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">wgt</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">per_step_loss</span></div>
 
 <div class="viewcode-block" id="UniTransformer.FilterPerExampleTensors"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer.FilterPerExampleTensors">[docs]</a>  <span class="k">def</span> <span class="nf">FilterPerExampleTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_step</span><span class="p">):</span>
