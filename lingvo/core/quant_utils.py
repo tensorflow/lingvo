@@ -50,13 +50,14 @@ class InputDistribution(enum.Enum):
     """
     if isinstance(spec, cls):
       return spec
-    spec = spec.upper().replace('-', '_')
+    upper_spec = spec.upper().replace('-', '_')
     # pylint: disable=unsupported-membership-test
-    if spec not in cls.__members__:
-      raise ValueError(f'For act_distribution argument, expected one of: '
-                       f"{', '.join(cls.__members__.keys())}")
+    if upper_spec not in cls.__members__:
+      raise ValueError(f'Expected input distribution to be one of '
+                       f"{{{', '.join(cls.__members__.keys())}}} (case "
+                       f"insensitive) but got '{spec}'.")
     # pylint: enable=unsupported-membership-test
-    return cls[spec]
+    return cls[upper_spec]
 
 
 class QuantizableLayer(base_layer.BaseLayer):
