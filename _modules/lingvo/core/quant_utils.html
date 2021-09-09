@@ -205,13 +205,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">spec</span>
-    <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+    <span class="n">upper_spec</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
     <span class="c1"># pylint: disable=unsupported-membership-test</span>
-    <span class="k">if</span> <span class="n">spec</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;For act_distribution argument, expected one of: &#39;</span>
-                       <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">upper_spec</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Expected input distribution to be one of &#39;</span>
+                       <span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="se">}}</span><span class="s2"> (case &quot;</span>
+                       <span class="sa">f</span><span class="s2">&quot;insensitive) but got &#39;</span><span class="si">{</span><span class="n">spec</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
     <span class="c1"># pylint: enable=unsupported-membership-test</span>
-    <span class="k">return</span> <span class="bp">cls</span><span class="p">[</span><span class="n">spec</span><span class="p">]</span></div></div>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">[</span><span class="n">upper_spec</span><span class="p">]</span></div></div>
 
 
 <div class="viewcode-block" id="QuantizableLayer"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer">[docs]</a><span class="k">class</span> <span class="nc">QuantizableLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
