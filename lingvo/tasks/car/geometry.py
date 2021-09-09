@@ -545,11 +545,11 @@ def BBoxCorners(bboxes):
   """Extract the corner points from a 7-DOF bbox representation.
 
   Args:
-    bboxes: A [batch, num_boxes, 7] floating point bounding box representation
+    bboxes: A [..., num_boxes, 7] floating point bounding box representation
       ([x, y, z, dx, dy, dz, phi]).
 
   Returns:
-    A [batch, num_boxes, 8, 3] floating point Tensor containing
+    A [..., num_boxes, 8, 3] floating point Tensor containing
       the corner (x, y, z) points for every bounding box.
   """
   # Code adapted from vale/soapbox codebase.
@@ -568,12 +568,12 @@ def BBoxCorners(bboxes):
       [0.5, -0.5, -0.5],  # bottom
   ])
 
-  batch, nb, _ = py_utils.GetShape(bboxes, 3)
+  bboxes_shape = py_utils.GetShape(bboxes)
 
   # Extract location, dimension, and rotation.
-  location = bboxes[:, :, :3]
-  dimensions = bboxes[:, :, 3:6]
-  phi_world = bboxes[:, :, 6]
+  location = bboxes[..., :3]
+  dimensions = bboxes[..., 3:6]
+  phi_world = bboxes[..., 6]
 
   # Convert rotation_phis into rotation matrices along unit z.
   cos = tf.cos(phi_world)
@@ -581,17 +581,17 @@ def BBoxCorners(bboxes):
   zero = tf.zeros_like(cos)
   one = tf.ones_like(cos)
   rotations_world = tf.reshape(
-      tf.stack([cos, -sin, zero, sin, cos, zero, zero, zero, one], axis=2),
-      [batch, nb, 3, 3])
+      tf.stack([cos, -sin, zero, sin, cos, zero, zero, zero, one], axis=-1),
+      bboxes_shape[:-1] + [3, 3])
 
   # Create axis-aligned corners from length/width/height.
-  corners = tf.einsum('bni,ji->bnji', dimensions, corners)
+  corners = tf.einsum('...ni,ji->...nji', dimensions, corners)
 
   # Rotate the corners coordinates to the rotated world frame.
-  corners = tf.einsum('bnij,bnkj->bnki', rotations_world, corners)
+  corners = tf.einsum('...nij,...nkj->...nki', rotations_world, corners)
 
   # Translate corners to the world location.
-  corners = corners + tf.reshape(location, (batch, nb, 1, 3))
+  corners = corners + tf.reshape(location, bboxes_shape[:-1] + [1, 3])
   return corners
 
 
