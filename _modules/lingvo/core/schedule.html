@@ -1006,6 +1006,26 @@
     <span class="n">relative_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PiecewiseConstant</span><span class="p">(</span><span class="n">relative_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_boundaries</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
                                       <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="InverseSigmoid"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.InverseSigmoid">[docs]</a><span class="k">class</span> <span class="nc">InverseSigmoid</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;The inverse sigmoid decay from https://arxiv.org/abs/1506.03099.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="InverseSigmoid.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.InverseSigmoid.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;k &gt;= 1, the greater k is, the slower it decays.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">k</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">k</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Param k invalid: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="InverseSigmoid.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.InverseSigmoid.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">k</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">k</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">step</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">k</span><span class="p">))</span></div></div>
 </pre></div>
 
            </div>
