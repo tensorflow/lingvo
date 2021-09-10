@@ -314,25 +314,25 @@ instead uses manual-auto sharding conversion and supports all computations.</p>
 <dt>Supported features in different configurations:</dt><dd><p>1) stage_parallel_body:
 Non-trainable variables are supported. This is not compatible with regular
 existing layers, and mostly used for testing purpose.</p>
-<p>2) single_stage_body + per_stage_vars=False + shard_stages_1d=True:
-Non-trainable variables are supported. Sharding is added automatically.
-Use this option when only pipelining is needed; the implementation is
-reliable, because it does not depend on tf.vectorized_map.</p>
-<p>3) single_stage_body + per_stage_vars=False + shard_stages_1d=False:
+<p>2) single_stage_body + per_stage_vars=False + (shard_stages_1d=True or
+pipeline_stage_mesh_dim is not None):
+Non-trainable variables are supported. The implementation is reliable,
+because it does not depend on tf.vectorized_map.</p>
+<p>3) single_stage_body + per_stage_vars=False + (shard_stages_1d=False and
+pipeline_stage_mesh_dim is None):
 tf.vectorized_map will be used. Non-trainable variables are not supported.
-Use this option when sharding on multiple dimensions (more than pipelining
-stages) is needed.</p>
+Use this option only for testing purpose.</p>
 <p>4) single_stage_body + per_stage_vars=True + shard_stages_1d=True:
 Non-trainable variables are not supported. Per-stage variables are defined
 separately. Sharding is applied differently to per-layer variables and the
 stacked variable for all stages, so it has resharding cost. If per-layer
 vars are not a hard requirement 2) is a better option.</p>
-<p>5) single_stage_body + per_stage_vars=True + shard_stages_1d=False:
+<p>5) single_stage_body + per_stage_vars=True + (shard_stages_1d=False and
+pipeline_stage_mesh_dim is None):
 Non-trainable variables are not supported. Similar to 4), but sharding is
-provided by the user, which means the user can shard more than one
-dimensions, but also needs to take care of different shardings on per-stage
-variables and stacked variables. If per-layer vars are not a hard
-requirement 3) is a better option.</p>
+provided by the user, which means the user needs to take care of different
+shardings on per-stage variables and stacked variables. Mostly for testing,
+and if per-layer vars are not a hard requirement 3) is a better option.</p>
 </dd>
 </dl>
 <p>It can run on a single core, or sharded using GShard annotations. If the stage
