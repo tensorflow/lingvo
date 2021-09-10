@@ -5018,6 +5018,10 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         'circular_repeat', 1,
         'If > 1, it enables circular pipeline, and this is the number of '
         'repeats for each stage.')
+    p.Define(
+        'pipeline_stage_mesh_dim', None,
+        'The mesh dimension to shard the pipeline stage dimension. Set '
+        'this only when shard_stages_1d is False.')
     return p
 
   class WrappedStageClass:
@@ -5067,6 +5071,7 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         shard_stages_1d=p.shard_stages_1d,
         per_stage_vars=False,
         circular_repeat=p.circular_repeat,
+        pipeline_stage_mesh_dim=p.pipeline_stage_mesh_dim,
         unroll='never')
     self.CreateChild('pipeline', pipeline_params)
     self.pipeline.body = self.WrappedStageClass(self.pipeline.body)

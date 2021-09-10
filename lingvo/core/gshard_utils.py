@@ -76,9 +76,29 @@ def Replicate(x, use_sharding_op=True):
 
 
 _MESH_SPLIT_DIM_PREFIXES = ThreadLocalStack()
+_MANUAL_MESH_DIMS = ThreadLocalStack()
 
 
-def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
+def GetMeshSplitSharding(device_mesh, tensor_split_dims_mapping):
+  """Wrapper of xla_sharding.mesh_split_sharding()."""
+  # Apply the prefix in the context.
+  tensor_split_dims_mapping = (
+      _MESH_SPLIT_DIM_PREFIXES.stack + tensor_split_dims_mapping)
+  if _MANUAL_MESH_DIMS.stack:
+    return xla_sharding.mesh_split_sharding(
+        device_mesh,
+        tensor_split_dims_mapping,
+        manual_mesh_dims=_MANUAL_MESH_DIMS.stack)
+  # Do not include manual_mesh_dims to support legacy TF versions.
+  return xla_sharding.mesh_split_sharding(device_mesh,
+                                          tensor_split_dims_mapping)
+
+
+def MeshSplit(x,
+              device_mesh,
+              tensor_split_dims_mapping,
+              use_sharding_op=True,
+              unspecified_dims=None):
   """Wrapper of xla_sharding.mesh_split()."""
   if (not py_utils_flags.use_tpu() or tensor_split_dims_mapping is None or
       device_mesh is None or device_mesh.size <= 1):
@@ -90,6 +110,16 @@ def MeshSplit(x, device_mesh, tensor_split_dims_mapping, use_sharding_op=True):
       [device_mesh.shape[i] for i in tensor_split_dims_mapping if i >= 0])
   if num_tiles <= 1:
     return x
+  if _MANUAL_MESH_DIMS.stack or unspecified_dims:
+    return xla_sharding.mesh_split(
+        x,
+        device_mesh,
+        tensor_split_dims_mapping,
+        use_sharding_op=use_sharding_op,
+        manual_mesh_dims=_MANUAL_MESH_DIMS.stack,
+        unspecified_dims=unspecified_dims)
+  # Do not include manual_mesh_dims or unspecified_dims to support legacy TF
+  # versions.
   return xla_sharding.mesh_split(
       x,
       device_mesh,
@@ -111,6 +141,18 @@ def MeshSplitDimPrefixContext(prefix_mesh_dim):
 
 def GetMeshSplitDimPrefixContext():
   return _MESH_SPLIT_DIM_PREFIXES.stack
+
+
+@contextlib.contextmanager
+def ManualMeshDimContext(mesh_dim):
+  """Adds a context where mesh_dim is used for manual sharding."""
+  if mesh_dim is not None:
+    _MANUAL_MESH_DIMS.stack.append(mesh_dim)
+  try:
+    yield
+  finally:
+    if mesh_dim is not None:
+      _MANUAL_MESH_DIMS.stack.pop()
 
 
 def ZigzagOrderOnDeviceMesh(device_mesh, zigzag_mesh_dim):

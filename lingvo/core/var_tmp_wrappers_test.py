@@ -20,10 +20,6 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core import var_tmp_wrappers
 
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
-# pylint: enable=g-direct-tensorflow-import
-
 
 class VarTmpWrappersTest(test_utils.TestCase):
 
@@ -40,7 +36,6 @@ class VarTmpWrappersTest(test_utils.TestCase):
   def testStackedVarWrapperWithManualSharding(self):
     with tf.Graph().as_default():
       var = tf.get_variable('v2', shape=[8, 16], dtype=tf.float32)
-      xla_sharding.split(var, 0, num_devices=8, use_sharding_op=False)
       wrapper = var_tmp_wrappers.StackedVarWrapperWithManualSharding(var)
       ones = tf.ones_like(wrapper)
       wrapper.assign(ones)

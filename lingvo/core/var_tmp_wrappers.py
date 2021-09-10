@@ -89,14 +89,22 @@ class StackedVarWrapperWithManualSharding:
 
   This wrapper internally converts between auto and manual sharding modes, which
   makes variable read/write compatible with the rest of manually sharded code.
+
+  If the variable has other dimensions sharded, the auto/manual conversion will
+  only happen partially on the stacking dimension only.
   """
 
   def __init__(self, var):
     self._var = var
     assert not isinstance(var, StackedVarWrapperWithManualSharding)
-    self._sharding = xla_sharding.Sharding.split(
-        var, split_dimension=0,
-        num_devices=var.shape[0]).proto.SerializeToString()
+    self._sharding = xla_sharding.get_op_sharding(var.op)
+    if not self._sharding:
+      self._sharding = xla_sharding.Sharding.split(
+          var, split_dimension=0,
+          num_devices=var.shape[0]).proto.SerializeToString()
+      self._maybe_partial_manual = False
+    else:
+      self._maybe_partial_manual = True
 
   def __getattr__(self, attr):
     if attr.startswith('scatter') or attr.startswith('gather'):
@@ -111,6 +119,23 @@ class StackedVarWrapperWithManualSharding:
   def raw_var(self):
     return self._var
 
+  def _to_manual(self, val):
+    if self._maybe_partial_manual:
+      return xla_sharding.auto_to_manual_spmd_partition(
+          val, self._sharding, single_dim=0)
+    else:
+      # Do not use single_dim if not necessary. This is to avoid problems with
+      # older TF versions.
+      return xla_sharding.auto_to_manual_spmd_partition(val, self._sharding)
+
+  def _to_auto(self, val):
+    if self._maybe_partial_manual:
+      return xla_sharding.manual_to_auto_spmd_partition(
+          val, self._sharding, self._var.shape, single_dim=0)
+    else:
+      return xla_sharding.manual_to_auto_spmd_partition(val, self._sharding,
+                                                        self._var.shape)
+
   def value(self):
     """Returns the variable and converts it to manually sharded mode.
 
@@ -119,7 +144,7 @@ class StackedVarWrapperWithManualSharding:
       variable (shard shape with the stacking dimension collapsed).
     """
     val = self._var.value()
-    val = xla_sharding.auto_to_manual_spmd_partition(val, self._sharding)
+    val = self._to_manual(val)
     return tf.squeeze(val, 0)
 
   def read_value(self):
@@ -130,7 +155,7 @@ class StackedVarWrapperWithManualSharding:
       variable (shard shape with the stacking dimension collapsed).
     """
     val = self._var.read_value()
-    val = xla_sharding.auto_to_manual_spmd_partition(val, self._sharding)
+    val = self._to_manual(val)
     return tf.squeeze(val, 0)
 
   def assign(self, value, use_locking=False, name=None, read_value=True):
@@ -151,33 +176,30 @@ class StackedVarWrapperWithManualSharding:
       variable (shard shape with the stacking dimension collapsed).
     """
     value = tf.expand_dims(value, 0)
-    value = xla_sharding.manual_to_auto_spmd_partition(value, self._sharding,
-                                                       self._var.shape)
+    value = self._to_auto(value)
     res = self._var.assign(value, use_locking, name, read_value)
     if read_value:
-      res = xla_sharding.auto_to_manual_spmd_partition(res, self._sharding)
+      res = self._to_manual(res)
       res = tf.squeeze(res, 0)
     return res
 
   def assign_add(self, delta, use_locking=False, name=None, read_value=True):
     """Implements the interface of tf.Variable.assign_add."""
     delta = tf.expand_dims(delta, 0)
-    delta = xla_sharding.manual_to_auto_spmd_partition(delta, self._sharding,
-                                                       self._var.shape)
+    delta = self._to_auto(delta)
     res = self._var.assign_add(delta, use_locking, name, read_value)
     if read_value:
-      res = xla_sharding.auto_to_manual_spmd_partition(res, self._sharding)
+      res = self._to_manual(res)
       res = tf.squeeze(res, 0)
     return res
 
   def assign_sub(self, delta, use_locking=False, name=None, read_value=True):
     """Implements the interface of tf.Variable.assign_sub."""
     delta = tf.expand_dims(delta, 0)
-    delta = xla_sharding.manual_to_auto_spmd_partition(delta, self._sharding,
-                                                       self._var.shape)
+    delta = self._to_auto(delta)
     res = self._var.assign_sub(delta, use_locking, name, read_value)
     if read_value:
-      res = xla_sharding.auto_to_manual_spmd_partition(res, self._sharding)
+      res = self._to_manual(res)
       res = tf.squeeze(res, 0)
     return res
 

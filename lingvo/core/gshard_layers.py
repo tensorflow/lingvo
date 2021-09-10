@@ -195,15 +195,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     Non-trainable variables are supported. This is not compatible with regular
     existing layers, and mostly used for testing purpose.
 
-    2) single_stage_body + per_stage_vars=False + shard_stages_1d=True:
-    Non-trainable variables are supported. Sharding is added automatically.
-    Use this option when only pipelining is needed; the implementation is
-    reliable, because it does not depend on tf.vectorized_map.
+    2) single_stage_body + per_stage_vars=False + (shard_stages_1d=True or
+    pipeline_stage_mesh_dim is not None):
+    Non-trainable variables are supported. The implementation is reliable,
+    because it does not depend on tf.vectorized_map.
 
-    3) single_stage_body + per_stage_vars=False + shard_stages_1d=False:
+    3) single_stage_body + per_stage_vars=False + (shard_stages_1d=False and
+    pipeline_stage_mesh_dim is None):
     tf.vectorized_map will be used. Non-trainable variables are not supported.
-    Use this option when sharding on multiple dimensions (more than pipelining
-    stages) is needed.
+    Use this option only for testing purpose.
 
     4) single_stage_body + per_stage_vars=True + shard_stages_1d=True:
     Non-trainable variables are not supported. Per-stage variables are defined
@@ -211,12 +211,12 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     stacked variable for all stages, so it has resharding cost. If per-layer
     vars are not a hard requirement 2) is a better option.
 
-    5) single_stage_body + per_stage_vars=True + shard_stages_1d=False:
+    5) single_stage_body + per_stage_vars=True + (shard_stages_1d=False and
+    pipeline_stage_mesh_dim is None):
     Non-trainable variables are not supported. Similar to 4), but sharding is
-    provided by the user, which means the user can shard more than one
-    dimensions, but also needs to take care of different shardings on per-stage
-    variables and stacked variables. If per-layer vars are not a hard
-    requirement 3) is a better option.
+    provided by the user, which means the user needs to take care of different
+    shardings on per-stage variables and stacked variables. Mostly for testing,
+    and if per-layer vars are not a hard requirement 3) is a better option.
 
   It can run on a single core, or sharded using GShard annotations. If the stage
   dimension is sharded, GShard will produce a cross-core pipelining pattern.
@@ -368,8 +368,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     assert p.unroll in ('never', 'eval_only', 'always')
     if p.circular_repeat > 1:
       # Circular pipeline only supported for single_stage_body without per-stage
-      # vars, and with 1D stage sharding.
-      assert p.stage_parallel_body is None and p.shard_stages_1d
+      # vars, and with stage sharding.
+      assert (p.stage_parallel_body is None and
+              (p.shard_stages_1d or p.pipeline_stage_mesh_dim is not None))
     if p.stage_parallel_body is not None:
       assert p.single_stage_body is None
       assert not p.per_stage_vars
@@ -426,9 +427,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         else:
           super()._CreateChildrenVariables()
 
-    if p.shard_stages_1d:
-
-      def _SplitVar(v):
+    def _SplitVar(v):
+      if p.shard_stages_1d:
         if p.per_stage_vars:
           split_dim = self._FindPerStageVarShardingDim(v.shape)
         else:
@@ -438,8 +438,19 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         else:
           return gshard_utils.Split(
               v, split_dim, p.num_stages, use_sharding_op=False)
+      elif p.pipeline_stage_mesh_dim is not None:
+        assert not p.per_stage_vars
+        if xla_sharding.get_op_sharding(v.op) is not None:
+          return v
+        # If the var is not annotated, use MeshSplit on the stage dim.
+        return gshard_utils.MeshSplit(
+            v,
+            p.device_mesh,
+            [p.pipeline_stage_mesh_dim] + [-1] * (len(v.shape) - 1),
+            use_sharding_op=False)
+      return v
 
-      tf.nest.map_structure(_SplitVar, self.vars)
+    tf.nest.map_structure(_SplitVar, self.vars)
 
     def _AddToNonTrainable(v):
       if not v.trainable:
@@ -459,9 +470,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
   def BodyFProp(self, theta, fn_name, iteration, num_microbatches, *args,
                 **kwargs):
     p = self.params
-    with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
-      outputs, control_out, aux_losses = self._BodyFPropInternal(
-          theta, fn_name, iteration, num_microbatches, *args, **kwargs)
+    outputs, control_out, aux_losses = self._BodyFPropInternal(
+        theta, fn_name, iteration, num_microbatches, *args, **kwargs)
 
     outer_aux_loss_context = py_utils.AuxLossContext.Current()
     if outer_aux_loss_context:
@@ -532,27 +542,56 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     theta_args = py_utils.NestedMap(theta=theta, args=args)
 
     if p.shard_stages_1d:
+      device_mesh = np.arange(p.num_stages)
+      stage_mesh_dim = 0
+    elif p.pipeline_stage_mesh_dim is not None:
+      device_mesh = p.device_mesh
+      stage_mesh_dim = p.pipeline_stage_mesh_dim
+    else:
+      device_mesh = None
+
+    if device_mesh is not None:
       # Each stage should have its own seed.
       seeds = tf.stack([py_utils.GetIncStepSeed() for _ in range(p.num_stages)])
       seeds = gshard_utils.Replicate(seeds)
 
-      def _ToManual(x):
+      def _ToManual(x, var=None):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
           return x
-        sharding = xla_sharding.Sharding.split(x, 0, p.num_stages)
+        if var is None:
+          sharding = gshard_utils.GetMeshSplitSharding(
+              device_mesh, [stage_mesh_dim] + [-1] *
+              (len(x.shape) - 1)).proto.SerializeToString()
+          # Partially specify that only dim 0 is annotated with sharding.
+          unspecified_dims = list(range(1, len(x.shape)))
+        else:
+          sharding = xla_sharding.get_op_sharding(var.op)
+          unspecified_dims = None
         to_manual = xla_sharding.auto_to_manual_spmd_partition(
-            x, sharding.proto.SerializeToString())
+            x, sharding, single_dim=0, unspecified_dims=unspecified_dims)
         return tf.squeeze(to_manual, 0)
 
-      one_stage_theta_args = tf.nest.map_structure(_ToManual, theta_args)
+      if p.per_stage_vars:
+        manual_theta = tf.nest.map_structure(_ToManual, theta_args.theta)
+      else:
+        manual_theta = tf.nest.map_structure(_ToManual, theta_args.theta,
+                                             self.body.vars)
+      one_stage_theta_args = py_utils.NestedMap(
+          theta=manual_theta,
+          args=tf.nest.map_structure(_ToManual, theta_args.args))
       py_utils.ResetStepSeed(_ToManual(seeds))
 
       def _ToManualReplicate(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
           return x
-        sharding = xla_sharding.Sharding.replicate()
-        return xla_sharding.auto_to_manual_spmd_partition(
-            x, sharding.proto.SerializeToString())
+        if p.shard_stages_1d:
+          sharding = xla_sharding.Sharding.replicate()
+          return xla_sharding.auto_to_manual_spmd_partition(
+              x, sharding.proto.SerializeToString())
+        else:
+          # We do a broadcast first, then we can reuse _ToManual().
+          x = tf.broadcast_to(x, [p.num_stages] + x.shape)
+          return _ToManual(x)
 
       stage_id = _ToManual(tf.range(p.num_stages))
 
@@ -585,18 +624,26 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         with py_utils.StepSeedIncrementContext(p.num_stages):
           with py_utils.GlobalStepContext(
               _ToManualReplicate(py_utils.GetGlobalStep())):
-            one_stage_outputs, control_out, aux_losses = _BodyFProp(
-                one_stage_theta_args)
+            # If there are any internal annotations in the stage, they will be
+            # subgrouped with manual partitioning on stage_mesh_dim.
+            with gshard_utils.ManualMeshDimContext(stage_mesh_dim):
+              one_stage_outputs, control_out, aux_losses = _BodyFProp(
+                  one_stage_theta_args)
 
       def _ToAuto(x):
         if not isinstance(x, (tf.Operation, tf.Tensor)):
           return x
         full_shape = [p.num_stages] + x.shape
-        sharding = xla_sharding.Sharding.split(
-            None, 0, p.num_stages, input_shape=full_shape)
+        unspecified_dims = list(range(1, len(full_shape)))
+        sharding = gshard_utils.GetMeshSplitSharding(
+            device_mesh, [stage_mesh_dim] + [-1] * len(x.shape))
         x = tf.expand_dims(x, 0)
         return xla_sharding.manual_to_auto_spmd_partition(
-            x, sharding.proto.SerializeToString(), full_shape=full_shape)
+            x,
+            sharding.proto.SerializeToString(),
+            full_shape=full_shape,
+            single_dim=0,
+            unspecified_dims=unspecified_dims)
 
       # Reset step seed to the last stage's final seed.
       py_utils.ResetStepSeed(_ToAuto(py_utils.GetStepSeed())[-1])
@@ -606,8 +653,6 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       return outputs, control_out, aux_losses
 
     else:
-      # TODO(yuanzx): Replace vectorized_map with fine-grained/subgrouped
-      # auto-manual sharding conversion when it is available.
       stage_id = tf.range(p.num_stages)
       microbatch_id = tf.maximum(iteration - stage_id,
                                  tf.zeros([p.num_stages], dtype=stage_id.dtype))
@@ -757,18 +802,28 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       args = tf.nest.map_structure(_ToMicrobatches, args)
       kwargs = tf.nest.map_structure(_ToMicrobatches, kwargs)
 
-    def _Replicate(x):
+    def _MaybeReplicateNumMicrobatches(x):
+      # Mark the num_microbatches dim replicated.
       if not isinstance(x, (tf.Operation, tf.Tensor)):
         return x
-      return xla_sharding.replicate(x, use_sharding_op=True)
+      if p.shard_stages_1d:
+        return gshard_utils.Replicate(x)
+      if p.pipeline_stage_mesh_dim is not None:
+        # Partially specify that only dim 0 is replicated.
+        return gshard_utils.MeshSplit(
+            x,
+            p.device_mesh, [-1] * len(x.shape),
+            unspecified_dims=list(range(1, len(x.shape))))
+      return x
+
+    # Replicate the input as the layer is only sharded on the stage dimension.
+    args = tf.nest.map_structure(_MaybeReplicateNumMicrobatches, args)
+    kwargs = tf.nest.map_structure(_MaybeReplicateNumMicrobatches, kwargs)
 
     if p.shard_stages_1d:
-      # Replicate the input as the layer is only sharded on the stage dimension.
-      args = tf.nest.map_structure(_Replicate, args)
-      kwargs = tf.nest.map_structure(_Replicate, kwargs)
 
       def _SplitStages(x):
-        return gshard_utils.Split(x, 0, p.num_stages, use_sharding_op=True)
+        return gshard_utils.Split(x, 0, p.num_stages)
 
       theta_body = tf.nest.map_structure(_SplitStages, theta_body)
 
@@ -991,8 +1046,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       if aux_loss_context:
         aux_loss_context.AddLoss(outputs.aux_loss)
 
-      if p.shard_stages_1d:
-        output_tensors = tf.nest.map_structure(_Replicate, output_tensors)
+      output_tensors = tf.nest.map_structure(_MaybeReplicateNumMicrobatches,
+                                             output_tensors)
       if needs_microbatching:
 
         def _ToBatches(x):
