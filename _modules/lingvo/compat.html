@@ -202,7 +202,7 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 <span class="c1"># pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top</span>
 
-<span class="k">if</span> <span class="n">tf1</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+<span class="k">if</span> <span class="n">tf2</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
   <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Lingvo with eager execution is not well tested. Consider &quot;</span>
                   <span class="s2">&quot;disabling eager with tf.compat.v1.disable_eager_execution() &quot;</span>
                   <span class="s2">&quot;or proceed at your own risk.&quot;</span><span class="p">)</span>
@@ -432,6 +432,22 @@
     <span class="k">return</span> <span class="n">dataset</span></div>
 <span class="c1"># pylint: enable=undefined-variable, used-before-assignment</span>
 
+
+<div class="viewcode-block" id="variable_scope"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat.variable_scope">[docs]</a><span class="k">class</span> <span class="nc">variable_scope</span><span class="p">(</span><span class="n">tf1</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="sd">&quot;&quot;&quot;Override tf.compat.v1.variable_scope with an additional error message.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">tf2</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="c1"># In eager mode, the reuse arg to variable_scope is silently overwritten</span>
+      <span class="c1"># to AUTO_REUSE. We opt to raise an error instead.</span>
+      <span class="c1"># https://github.com/tensorflow/tensorflow/blob/9345aee6988f50b7c571295a9e70e40e47221a64/tensorflow/python/ops/variable_scope.py#L1166</span>
+      <span class="n">reuse</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;reuse&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">reuse</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Setting reuse to True or False is not supported in eager mode.&quot;</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
 <span class="c1"># TF 1.x symbols used in the codebase.</span>
 <span class="c1"># To keep this list short, please use TF 2.x API whenever applicable.</span>
 <span class="c1"># Only use TF 1.x API if it has no 2.x equivalent.</span>
@@ -570,7 +586,6 @@
 <span class="n">variables_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">variables_initializer</span>
 <span class="n">VariableScope</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">VariableScope</span>
 <span class="n">variance_scaling_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">variance_scaling_initializer</span>
-<span class="n">variable_scope</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">variable_scope</span>
 <span class="n">where</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">where</span>
 <span class="n">while_loop</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">while_loop</span>
 <span class="n">wrap_function</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">wrap_function</span>
