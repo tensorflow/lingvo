@@ -70,21 +70,33 @@ class NestedMap(Dict[str, Any]):
     super().__setitem__(key, value)
 
   def __setattr__(self, name: str, value: Any) -> None:
-    self.__setitem__(name, value)
+    self[name] = value
 
   def __getattr__(self, name: str) -> Any:
     try:
       return self[name]
     except KeyError as e:
-      raise AttributeError('%s; available attributes: %s' %
-                           (e, sorted(list(self.keys()))))
+      raise AttributeError(e)
 
   def __delattr__(self, name: str) -> None:
     try:
       del self[name]
     except KeyError as e:
-      raise AttributeError('%s; available attributes: %s' %
-                           (e, sorted(list(self.keys()))))
+      raise AttributeError(e)
+
+  def __getitem__(self, name: str) -> Any:
+    try:
+      return super().__getitem__(name)
+    except KeyError as e:
+      raise KeyError('%s; available attributes: %s' %
+                     (e, sorted(list(self.keys()))))
+
+  def __delitem__(self, name: str) -> None:
+    try:
+      super().__delitem__(name)
+    except KeyError as e:
+      raise KeyError('%s; available attributes: %s' %
+                     (e, sorted(list(self.keys()))))
 
   def copy(self: NestedMapT) -> NestedMapT:  # pylint: disable=invalid-name
     # Don't delegate w/ super: dict.copy() -> dict.
