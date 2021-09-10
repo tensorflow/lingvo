@@ -4144,6 +4144,10 @@
       <span class="n">src_key</span> <span class="o">=</span> <span class="s1">&#39;source_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
       <span class="n">src_atten</span> <span class="o">=</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">src_atten</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_InitAttentionParams</span><span class="p">(</span><span class="n">src_atten</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src_atten</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;TransformerMultiSourceAttentionLayer does not support &#39;</span>
+            <span class="s1">&#39;num_heads &gt; 1.&#39;</span><span class="p">)</span>
       <span class="n">src_atten</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">src_key</span>
       <span class="n">source_atten_tpls</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">src_key</span><span class="p">,</span> <span class="n">src_atten</span><span class="p">))</span>
 

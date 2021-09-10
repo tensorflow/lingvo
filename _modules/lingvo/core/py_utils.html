@@ -187,6 +187,8 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
@@ -463,7 +465,8 @@
     <span class="k">if</span> <span class="n">more</span><span class="p">:</span>
       <span class="n">more_vars</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;more=\[(.*?)\].*$&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
           <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">caller_more_vars</span> <span class="o">=</span> <span class="n">more_vars</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">more_vars</span><span class="p">:</span>
+        <span class="n">caller_more_vars</span> <span class="o">=</span> <span class="n">more_vars</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
 
   <span class="n">the_class</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
   <span class="k">if</span> <span class="s1">&#39;self&#39;</span> <span class="ow">in</span> <span class="n">stack</span><span class="o">.</span><span class="n">f_locals</span><span class="p">:</span>
@@ -2920,13 +2923,21 @@
   <span class="k">return</span> <span class="n">aggregated_grads</span> <span class="o">+</span> <span class="n">tpu_embedding_grads</span></div>
 
 
-<div class="viewcode-block" id="VarGrad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.VarGrad">[docs]</a><span class="k">class</span> <span class="nc">VarGrad</span><span class="p">:</span>
-  <span class="sd">&quot;&quot;&quot;A class that holds a variable and a gradient.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="_VarGrad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._VarGrad">[docs]</a><span class="k">class</span> <span class="nc">_VarGrad</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">NamedTuple</span><span class="p">):</span>
+  <span class="n">var</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span>
+  <span class="n">grad</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">]</span>
+  <span class="n">scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-  <span class="n">_VAR_GRAD</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;VarGradNamedTuple&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;grad&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="VarGrad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.VarGrad">[docs]</a><span class="k">class</span> <span class="nc">VarGrad</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;A class that holds a variable and a gradient.</span>
+
+<span class="sd">  This does not inherit from namedtuple so that tf.nest operations do not</span>
+<span class="sd">  recurse into it.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VAR_GRAD</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span> <span class="o">=</span> <span class="n">_VarGrad</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -2935,10 +2946,12 @@
     <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">scale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">iter</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">grad</span><span class="p">))</span>
     <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="s1">&#39;VarGrad(</span><span class="si">%r</span><span class="s1">, </span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">grad</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SkipNoneGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.SkipNoneGradients">[docs]</a><span class="k">def</span> <span class="nf">SkipNoneGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">):</span>
@@ -3146,13 +3159,14 @@
 <span class="sd">    gradient is inf or nan.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">ScaleOrZero</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">ScaleOrZero</span><span class="p">(</span><span class="n">var</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">grad</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+                  <span class="n">scale</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="n">grad</span> <span class="o">=</span> <span class="n">CheckNumerics</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="s1">&#39;Gradient for </span><span class="si">%s</span><span class="s1"> is not finite.&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="mf">0.</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">grad</span><span class="p">),</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">grad</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">Scale</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">Scale</span><span class="p">(</span><span class="n">item</span><span class="p">:</span> <span class="n">VarGrad</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VarGrad</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Scales the gradient.&quot;&quot;&quot;</span>
     <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">=</span> <span class="n">item</span>
     <span class="k">assert</span> <span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No grad found for &#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -4961,8 +4975,9 @@
   <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="n">lines</span> <span class="o">=</span> <span class="n">pkgutil</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span>
-          <span class="s1">&#39;lingvo&#39;</span><span class="p">,</span> <span class="n">file_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;lingvo/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
-                                      <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+          <span class="s1">&#39;lingvo&#39;</span><span class="p">,</span> <span class="n">file_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;lingvo/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">lines</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
       <span class="c1"># If pkgutil can&#39;t find the file, continue and let GFile raise the error.</span>
       <span class="n">lines</span> <span class="o">=</span> <span class="kc">None</span>
