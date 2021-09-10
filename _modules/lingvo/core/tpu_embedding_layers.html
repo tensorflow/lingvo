@@ -298,12 +298,16 @@
 
 <div class="viewcode-block" id="TpuEmbeddingCollection.AddActivations"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddActivations">[docs]</a>  <span class="k">def</span> <span class="nf">AddActivations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_call_scope</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateTaskScope</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;Adding TPU embedding activations for task </span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">task_call_scope</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">:</span>
       <span class="n">activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">get_activations</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">[</span><span class="n">task_call_scope</span><span class="p">]</span> <span class="o">=</span> <span class="n">activations</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">[</span><span class="n">task_call_scope</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="TpuEmbeddingCollection.GetActivations"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.GetActivations">[docs]</a>  <span class="k">def</span> <span class="nf">GetActivations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_call_scope</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;Getting TPU embedding activations for task </span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">task_call_scope</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateTaskScope</span><span class="p">(</span><span class="n">task_call_scope</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations_by_task</span><span class="p">[</span><span class="n">task_call_scope</span><span class="p">]</span>
@@ -367,6 +371,8 @@
     <span class="k">if</span> <span class="n">task_call_scope</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_gradient_op_by_task</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="sa">f</span><span class="s1">&#39;Send gradient op for task </span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1"> already exist.&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;Applying TPU embedding gradients for task </span><span class="si">{</span><span class="n">task_call_scope</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
 
     <span class="c1"># Apply gradient multiplier schedule.</span>
     <span class="n">grad_multiplier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gradient_multiplier_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
