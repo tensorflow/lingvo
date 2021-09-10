@@ -143,12 +143,16 @@ class TpuEmbeddingCollection:
 
   def AddActivations(self, task_call_scope):
     self._ValidateTaskScope(task_call_scope)
+    tf.logging.info(
+        f'Adding TPU embedding activations for task {task_call_scope}.')
     if task_call_scope not in self._activations_by_task:
       activations = self._tpu_embedding.get_activations()
       self._activations_by_task[task_call_scope] = activations
     return self._activations_by_task[task_call_scope]
 
   def GetActivations(self, task_call_scope):
+    tf.logging.info(
+        f'Getting TPU embedding activations for task {task_call_scope}.')
     if task_call_scope in self._activations_by_task:
       self._ValidateTaskScope(task_call_scope)
       return self._activations_by_task[task_call_scope]
@@ -212,6 +216,8 @@ class TpuEmbeddingCollection:
     if task_call_scope in self._send_gradient_op_by_task:
       raise ValueError(
           f'Send gradient op for task {task_call_scope} already exist.')
+    tf.logging.info(
+        f'Applying TPU embedding gradients for task {task_call_scope}.')
 
     # Apply gradient multiplier schedule.
     grad_multiplier = self._gradient_multiplier_schedule.Value()

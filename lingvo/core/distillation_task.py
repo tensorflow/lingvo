@@ -158,7 +158,8 @@ class DistillationTask(base_model.BaseTask):
       return super().BProp()
     else:
       # Only bprop on student variables.
-      self._BPropForVariables(self.student.vars)
+      with py_utils.TaskCallScope(self):  # Support bprop for TPU embedding.
+        self._BPropForVariables(self.student.vars)
 
   def Decode(self, input_batch):
     return self.student.Decode(input_batch)
