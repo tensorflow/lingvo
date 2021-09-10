@@ -47,7 +47,7 @@ from tensorflow import _major_api_version
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
-if tf1.executing_eagerly():
+if tf2.executing_eagerly():
   logging.warning("Lingvo with eager execution is not well tested. Consider "
                   "disabling eager with tf.compat.v1.disable_eager_execution() "
                   "or proceed at your own risk.")
@@ -277,6 +277,22 @@ def stateless_list_files(file_pattern, shuffle=None, seed=None):
     return dataset
 # pylint: enable=undefined-variable, used-before-assignment
 
+
+class variable_scope(tf1.variable_scope):  # pylint: disable=invalid-name
+  """Override tf.compat.v1.variable_scope with an additional error message."""
+
+  def __init__(self, *args, **kwargs):
+    if tf2.executing_eagerly():
+      # In eager mode, the reuse arg to variable_scope is silently overwritten
+      # to AUTO_REUSE. We opt to raise an error instead.
+      # https://github.com/tensorflow/tensorflow/blob/9345aee6988f50b7c571295a9e70e40e47221a64/tensorflow/python/ops/variable_scope.py#L1166
+      reuse = kwargs.get("reuse", None)
+      if reuse in (True, False):
+        raise ValueError(
+            "Setting reuse to True or False is not supported in eager mode.")
+    super().__init__(*args, **kwargs)
+
+
 # TF 1.x symbols used in the codebase.
 # To keep this list short, please use TF 2.x API whenever applicable.
 # Only use TF 1.x API if it has no 2.x equivalent.
@@ -415,7 +431,6 @@ Variable = tf1.Variable
 variables_initializer = tf1.variables_initializer
 VariableScope = tf1.VariableScope
 variance_scaling_initializer = tf1.variance_scaling_initializer
-variable_scope = tf1.variable_scope
 where = tf1.where
 while_loop = tf1.while_loop
 wrap_function = tf1.wrap_function
