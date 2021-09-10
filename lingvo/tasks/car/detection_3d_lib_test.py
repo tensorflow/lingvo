@@ -93,6 +93,22 @@ class Utils3DTest(test_utils.TestCase):
                                                   (0, 10, 5)])
     self.assertAllEqual(three_dims.shape, [5 * 5 * 5, 3])
 
+  def testCreateDenseCoordinatesCenterInCell(self):
+    utils_3d = detection_3d_lib.Utils3D()
+    one_dim = utils_3d.CreateDenseCoordinates([(0., 3., 3)],
+                                              center_in_cell=True)
+    with self.session():
+      actual_one_dim = self.evaluate(one_dim)
+      self.assertAllEqual(actual_one_dim, [[0.5], [1.5], [2.5]])
+
+    two_by_two = utils_3d.CreateDenseCoordinates([(0, 1, 2), (1, 2, 2)],
+                                                 center_in_cell=True)
+    with self.session():
+      actual_two_by_two = self.evaluate(two_by_two)
+      self.assertAllEqual(
+          actual_two_by_two,
+          [[0.25, 1.25], [0.25, 1.75], [0.75, 1.25], [0.75, 1.75]])
+
   def testMakeAnchorBoxesWithoutRotation(self):
     utils_3d = detection_3d_lib.Utils3D()
     anchor_bboxes = utils_3d.MakeAnchorBoxes(

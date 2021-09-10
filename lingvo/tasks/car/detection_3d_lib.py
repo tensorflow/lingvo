@@ -141,7 +141,7 @@ class Utils3D:
     huber_loss = tf.reshape(huber_loss, bbox_shape[:-1])
     return huber_loss
 
-  def CreateDenseCoordinates(self, ranges):
+  def CreateDenseCoordinates(self, ranges, center_in_cell=False):
     """Create a matrix of coordinate locations corresponding to a dense grid.
 
     Example: To create (x, y) coordinates corresponding over a 10x10 grid with
@@ -152,6 +152,8 @@ class Utils3D:
         num_steps). Each list element corresponds to one dimesion. Each tuple
         will be passed into np.linspace to create the values for a single
         dimension.
+      center_in_cell: Whether to center the each location in the grid cell
+        center; defaults to False.
 
     Returns:
       tf.float32 tensor of shape [total_points, len(ranges)], where
@@ -163,6 +165,13 @@ class Utils3D:
     stack_coordinates = []
 
     for r_start, r_stop, r_steps in ranges:
+      if center_in_cell:
+        # Compute the size of each grid cell, and then start from the first cell
+        # but in the center location.
+        cell_size = float(r_stop - r_start) / r_steps
+        half_size = cell_size / 2.
+        r_start += half_size
+        r_stop -= half_size
       values = tf.linspace(
           tf.cast(r_start, tf.float32), tf.cast(r_stop, tf.float32),
           tf.cast(r_steps, tf.int32))

@@ -956,36 +956,14 @@ class GridAnchorCenters(Preprocessor):
   def TransformFeatures(self, features):
     p = self.params
     utils_3d = detection_3d_lib.Utils3D()
-
-    # Compute the grid cell size and adjust the range sent to dense coordinates
-    # by half a cell size so as to ensure that the anchors are placed in the
-    # center of each grid cell.
     grid_size_x, grid_size_y, grid_size_z = p.grid_size
-    grid_cell_sizes = [
-        float(p.grid_range_x[1] - p.grid_range_x[0]) / grid_size_x,
-        float(p.grid_range_y[1] - p.grid_range_y[0]) / grid_size_y,
-        float(p.grid_range_z[1] - p.grid_range_z[0]) / grid_size_z,
-    ]
-    half_size_x, half_size_y, half_size_z = np.asarray(grid_cell_sizes) / 2.0
-
     grid_shape = list(p.grid_size) + [3]
     anchor_centers = utils_3d.CreateDenseCoordinates([
-        [
-            p.grid_range_x[0] + half_size_x,
-            p.grid_range_x[1] - half_size_x,
-            grid_size_x
-        ],
-        [
-            p.grid_range_y[0] + half_size_y,
-            p.grid_range_y[1] - half_size_y,
-            grid_size_y
-        ],
-        [
-            p.grid_range_z[0] + half_size_z,
-            p.grid_range_z[1] - half_size_z,
-            grid_size_z
-        ],
-    ])  # pyformat: disable
+        list(p.grid_range_x) + [grid_size_x],
+        list(p.grid_range_y) + [grid_size_y],
+        list(p.grid_range_z) + [grid_size_z],
+    ],
+                                                     center_in_cell=True)
     features.anchor_centers = tf.reshape(anchor_centers, grid_shape)
 
     return features
