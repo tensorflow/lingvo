@@ -3989,6 +3989,10 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
       src_key = 'source_%d' % i
       src_atten = atten_tpl.Copy()
       src_atten = super()._InitAttentionParams(src_atten)
+      if isinstance(src_atten, list):
+        raise ValueError(
+            'TransformerMultiSourceAttentionLayer does not support '
+            'num_heads > 1.')
       src_atten.name = 'multihead_atten_%s' % src_key
       source_atten_tpls.append((src_key, src_atten))
 

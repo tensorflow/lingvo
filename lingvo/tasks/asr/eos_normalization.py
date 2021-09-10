@@ -91,10 +91,10 @@ def NormalizeTrailingEos(ids: tf.Tensor,
   return new_ids, id_len_eos_normalized
 
 
-def NumpyNormalizeTrailingEos(ids: np.array,
-                              id_len: np.array,
+def NumpyNormalizeTrailingEos(ids: np.ndarray,
+                              id_len: np.ndarray,
                               need_trailing_eos: bool = True,
-                              eos_id: int = 2) -> Tuple[np.array, np.array]:
+                              eos_id: int = 2) -> Tuple[np.ndarray, np.ndarray]:
   """Optionally removes/adds the trailing eos symbol, numpy implementation.
 
   This is the numpy implementation of `NormalizeTrailingEos`. See more details

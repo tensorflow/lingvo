@@ -5,6 +5,7 @@ load(
     "lingvo_proto_py",
     "lingvo_py_binary",
 )
+load("//lingvo:lingvo.bzl", "pytype_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -80,7 +81,7 @@ py_library(
     ],
 )
 
-py_library(
+pytype_library(
     name = "batch_major_attention",
     srcs = ["batch_major_attention.py"],
     srcs_version = "PY3",
@@ -332,7 +333,7 @@ py_test(
     ],
 )
 
-py_library(
+pytype_library(
     name = "base_layer",
     srcs = ["base_layer.py"],
     srcs_version = "PY3",
@@ -766,7 +767,7 @@ lingvo_proto_py(
     deps = [":inference_graph_proto"],
 )
 
-py_library(
+pytype_library(
     name = "hyperparams",
     srcs = ["hyperparams.py"],
     srcs_version = "PY3",
@@ -774,8 +775,8 @@ py_library(
         ":hyperparams_py_pb2",
         ":symbolic",
         # Implicit python proto dependency.
-        # Implicit dataclasses dependency.
         "//lingvo:compat",
+        # Implicit typing_extensions dependency.
     ],
 )
 
@@ -879,7 +880,7 @@ py_test(
     ],
 )
 
-py_library(
+pytype_library(
     name = "layers",
     srcs = ["layers.py"],
     srcs_version = "PY3",
@@ -1330,7 +1331,7 @@ py_library(
     ],
 )
 
-py_library(
+pytype_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
     srcs_version = "PY3",
@@ -1397,7 +1398,7 @@ py_test(
     ],
 )
 
-py_library(
+pytype_library(
     name = "quant_utils",
     srcs = ["quant_utils.py"],
     srcs_version = "PY3",
@@ -2183,7 +2184,7 @@ py_test(
     ],
 )
 
-py_library(
+pytype_library(
     name = "gshard_utils",
     srcs = ["gshard_utils.py"],
     srcs_version = "PY3",
@@ -2516,12 +2517,13 @@ py_library(
     ],
 )
 
-py_library(
+pytype_library(
     name = "nested_map",
     srcs = ["nested_map.py"],
     srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
+        # Implicit typing_extensions dependency.
     ],
 )
 

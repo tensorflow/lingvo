@@ -32,6 +32,8 @@ import pkgutil
 import re
 import threading
 import traceback
+import typing
+from typing import Optional, Union
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -308,7 +310,8 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
     if more:
       more_vars = re.compile(r'more=\[(.*?)\].*$').search(
           caller.code_context[0]).groups()[0]
-      caller_more_vars = more_vars.split(',')
+      if more_vars:
+        caller_more_vars = more_vars.split(',')
 
   the_class = ''
   if 'self' in stack.f_locals:
@@ -2765,13 +2768,21 @@ def _ComputeGradientsTpu(loss_or_activations,
   return aggregated_grads + tpu_embedding_grads
 
 
-class VarGrad:
-  """A class that holds a variable and a gradient."""
+class _VarGrad(typing.NamedTuple):
+  var: tf.Tensor
+  grad: Union[tf.Tensor, tf.IndexedSlices]
+  scale: Optional[tf.Tensor] = None
 
-  _VAR_GRAD = py_collections.namedtuple('VarGradNamedTuple', ['var', 'grad'])
+
+class VarGrad:
+  """A class that holds a variable and a gradient.
+
+  This does not inherit from namedtuple so that tf.nest operations do not
+  recurse into it.
+  """
 
   def __init__(self, *args, **kwargs):
-    self._var_grad = self._VAR_GRAD(*args, **kwargs)
+    self._var_grad = _VarGrad(*args, **kwargs)
 
   def __getitem__(self, key):
     return self._var_grad[key]
@@ -2780,10 +2791,12 @@ class VarGrad:
     return getattr(self._var_grad, key)
 
   def __iter__(self):
+    if self._var_grad.scale is None:
+      return iter((self._var_grad.var, self._var_grad.grad))
     return iter(self._var_grad)
 
   def __repr__(self):
-    return 'VarGrad(%r, %r)' % (self._var_grad.var, self._var_grad.grad)
+    return repr(self._var_grad)
 
 
 def SkipNoneGradients(var_grads):
@@ -2991,13 +3004,14 @@ def ApplyGradMultiplier(vs_gs, grad_scale=None):
     gradient is inf or nan.
   """
 
-  def ScaleOrZero(var, grad, scale):
+  def ScaleOrZero(var: tf.Tensor, grad: tf.Tensor,
+                  scale: tf.Tensor) -> tf.Tensor:
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
     return tf.where(
         tf.equal(scale, 0.), tf.zeros_like(grad),
         tf.cast(scale, grad.dtype) * grad)
 
-  def Scale(item):
+  def Scale(item: VarGrad) -> VarGrad:
     """Scales the gradient."""
     var, grad = item
     assert grad is not None, ('No grad found for ', var.name)
@@ -4806,8 +4820,9 @@ def ReadFileLines(file_path):
   if not tf.io.gfile.exists(file_path):
     try:
       lines = pkgutil.get_data(
-          'lingvo', file_path.replace('lingvo/', '',
-                                      1)).splitlines(True)
+          'lingvo', file_path.replace('lingvo/', '', 1))
+      if lines:
+        lines = lines.splitlines(True)
     except IOError:
       # If pkgutil can't find the file, continue and let GFile raise the error.
       lines = None

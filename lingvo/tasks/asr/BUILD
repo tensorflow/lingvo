@@ -93,7 +93,7 @@ py_test(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "eos_normalization",
     srcs = ["eos_normalization.py"],
     srcs_version = "PY3",
@@ -223,7 +223,7 @@ py_library(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "decoder_metrics",
     srcs = ["decoder_metrics.py"],
     srcs_version = "PY3",
@@ -285,7 +285,7 @@ filegroup(
     srcs = ["wpm_16k_librispeech.vocab"],
 )
 
-py_library(
+pytype_strict_library(
     name = "levenshtein_distance",
     srcs = ["levenshtein_distance.py"],
     srcs_version = "PY3",

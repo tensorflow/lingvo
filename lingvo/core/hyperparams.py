@@ -24,12 +24,14 @@ import inspect
 import pickle
 import re
 import sys
+import typing
 from typing import (Any, Callable, Dict, List, Generator, Generic, Mapping,
                     Optional, Sequence, Tuple, Type, TypeVar, Union)
 
 import lingvo.compat as tf
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
+from typing_extensions import Literal
 
 from google.protobuf import message
 from google.protobuf import text_format
@@ -273,7 +275,7 @@ class Params:
   def _SimilarKeys(self, name: str) -> List[str]:
     """Return a list of params keys that are similar to name."""
 
-    def _Overlaps(name: str, key: str) -> int:
+    def _Overlaps(name: str, key: str) -> float:
       """The fraction of 3-char substrings in <name> that appear in key."""
       matches = 0
       trials = 0
@@ -605,8 +607,8 @@ class Params:
 
   def Visit(self,
             visit_fn: Callable[[str, Any], None],
-            enter_fn: Callable[[str, Any], bool] = None,
-            exit_fn: Callable[[str, Any], None] = None):
+            enter_fn: Optional[Callable[[str, Any], bool]] = None,
+            exit_fn: Optional[Callable[[str, Any], None]] = None):
     """Recursively visits objects within this Params instance.
 
     Visit can traverse Params, lists, tuples, dataclasses, and namedtuples.
@@ -689,9 +691,19 @@ class Params:
 
     _Visit('', self)
 
+  @typing.overload
   def ToText(self,
-             include_types: bool = False,
-             separator: str = ':') -> Union[str, Tuple[str, Dict[str, str]]]:
+             include_types: Literal[False] = False,
+             separator: str = ':') -> str:
+    ...
+
+  @typing.overload
+  def ToText(self,
+             include_types: Literal[True],
+             separator: str = ':') -> Tuple[str, Dict[str, str]]:
+    ...
+
+  def ToText(self, include_types: bool = False, separator: str = ':'):
     """Encodes params into a simple text format.
 
     Each param is represented as a single line in the output.  The param
@@ -712,7 +724,8 @@ class Params:
     Returns:
       The encoded text or (encoded text, types dict) if include_types is True.
     """
-    def GetRepr(val: Any) -> str:
+
+    def GetRepr(val: Any):
       """Get the representation of `val`."""
       if isinstance(val, Params):
         return _SortedDict({k: GetRepr(v) for k, v in val.IterParams()})
@@ -987,22 +1000,24 @@ class Params:
           diff += '<' + spaces + key_i + ': ' + str(b[i]) + '\n'
       return diff
 
-    def GetKeys(params_or_dict: Tuple[Params, Dict[str, Any]]) -> List[str]:
+    def GetKeys(params_or_dict: Union[Params, Dict[str, Any]]) -> List[str]:
       if isinstance(params_or_dict, Params):
         return params_or_dict.GetKeys()
       else:
-        return params_or_dict.keys()
+        return list(params_or_dict.keys())
 
-    def GetValue(params_or_dict: Tuple[Params, Dict[str, Any]],
+    def GetValue(params_or_dict: Union[Params, Dict[str, Any]],
                  key: str) -> Any:
       if isinstance(params_or_dict, Params):
         return params_or_dict.Get(key)
       else:
         return params_or_dict.get(key)
 
-    def TextDiffParamsHelper(a: Tuple[Params, Dict[str, Any]],
-                             b: Tuple[Params, Dict[str,
-                                                   Any]], spaces: str) -> str:
+    def TextDiffParamsHelper(
+        a: Union[Params, Dict[str, Any]],
+        b: Union[Params, Dict[str, Any]],
+        spaces: str,
+    ) -> str:
       """Return the differences between a and b as a string."""
       a_keys = set(GetKeys(a))
       b_keys = set(GetKeys(b))

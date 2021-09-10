@@ -325,7 +325,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       to_params.params_init = from_params.params_init.Copy()
     return to_params
 
-  def __init__(self: BaseLayerT, params: BaseLayerParamsT) -> None:
+  def __init__(self, params: BaseLayerParamsT) -> None:
     """Layer constructor.
 
     Args:

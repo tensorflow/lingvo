@@ -16,15 +16,41 @@
 """NestedMap dict structure."""
 
 import re
+import typing
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
-                    Tuple, TypeVar, Union)
+                    Tuple, TypeVar)
 import lingvo.compat as tf
+from typing_extensions import Literal
 
 _NAME_PATTERN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 _SQUARE_BRACKET_PATTERN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]')
 
 
+T = TypeVar('T')
 NestedMapT = TypeVar('NestedMapT', bound='NestedMap')
+
+
+@typing.overload
+def _FromNestedDict(x: Mapping[str, Any]) -> 'NestedMap':
+  ...
+
+
+@typing.overload
+def _FromNestedDict(x: T) -> T:
+  ...
+
+
+def _FromNestedDict(x):
+  """Converts every dict in nested structure 'x' to a NestedMap."""
+  if isinstance(x, Mapping):
+    res = NestedMap()
+    for k, v in x.items():
+      res[k] = _FromNestedDict(v)
+    return res
+  elif isinstance(x, (list, tuple)):
+    return type(x)(_FromNestedDict(v) for v in x)
+  else:
+    return x
 
 
 class NestedMap(Dict[str, Any]):
@@ -111,19 +137,9 @@ class NestedMap(Dict[str, Any]):
     return self.Pack(self.Flatten())
 
   @staticmethod
-  def FromNestedDict(
-      x: Union[NestedMapT, Mapping[str, Any], List[Any], Tuple[Any, ...]]
-  ) -> NestedMapT:
+  def FromNestedDict(x):
     """Converts every dict in nested structure 'x' to a NestedMap."""
-    if isinstance(x, dict):
-      res = NestedMap()
-      for k, v in x.items():
-        res[k] = NestedMap.FromNestedDict(v)
-      return res
-    elif isinstance(x, (list, tuple)):
-      return type(x)(NestedMap.FromNestedDict(v) for v in x)
-    else:
-      return x
+    return _FromNestedDict(x)
 
   def ToNestedDict(self) -> Mapping[str, Any]:
     """Converts every NestedMap in nested structure to a 'dict' instance.
@@ -159,7 +175,7 @@ class NestedMap(Dict[str, Any]):
     if not m:
       return key, None
     else:
-      return m.groups()[0], int(m.groups()[1])
+      return str(m.groups()[0]), int(m.groups()[1])
 
   def GetItem(self, key: str) -> Any:
     """Gets the value for the nested `key`.
@@ -262,9 +278,18 @@ class NestedMap(Dict[str, Any]):
                            ' {} but must be a dict or NestedMap.'
                            ''.format(key, k, type(current)))
 
+  @typing.overload
   def _RecursiveMap(self: NestedMapT,
                     fn: Callable[[str, Any], Any],
-                    flatten: bool = False) -> Union[List[Any], NestedMapT]:
+                    flatten: Literal[False] = False) -> NestedMapT:
+    ...
+
+  @typing.overload
+  def _RecursiveMap(self, fn: Callable[[str, Any], Any],
+                    flatten: Literal[True]) -> List[Any]:
+    ...
+
+  def _RecursiveMap(self, fn: Callable[[str, Any], Any], flatten: bool = False):
     """Traverse recursively into lists, dicts, and NestedMaps applying `fn`.
 
     Args:
@@ -276,7 +301,7 @@ class NestedMap(Dict[str, Any]):
       The result of applying fn.
     """
 
-    def Recurse(v: Any, key: str = ''):
+    def Recurse(v: Any, key: str = '') -> Any:
       """Helper function for _RecursiveMap."""
       if isinstance(v, dict):
         ret = [] if flatten else type(v)()
@@ -317,6 +342,7 @@ class NestedMap(Dict[str, Any]):
     res = Recurse(self)
     if res is self._DELETE:
       return [] if flatten else type(self)()
+    assert isinstance(res, (list, NestedMap))
     return res
 
   def Flatten(self) -> List[Any]:
@@ -351,7 +377,7 @@ class NestedMap(Dict[str, Any]):
     """Returns a copy of this `.NestedMap` with fn applied on each key/value."""
     return self._RecursiveMap(fn)
 
-  def IsCompatible(self, other: NestedMapT) -> bool:
+  def IsCompatible(self, other: 'NestedMap') -> bool:
     """Returns true if self and other are compatible.
 
     If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())` produces y
@@ -407,4 +433,4 @@ class NestedMap(Dict[str, Any]):
   def __dir__(self) -> List[str]:
     """dir() that includes flattened keys in returned output."""
     keys = self._RecursiveMap(lambda k, v: k, flatten=True)
-    return keys + super().__dir__()
+    return keys + super().__dir__()  # pytype: disable=attribute-error
