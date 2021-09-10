@@ -709,6 +709,19 @@ class LearningRateScheduleTest(test_utils.TestCase):
           [4, 0.5],
       ])
 
+  def testInverseSigmoid(self):
+    p = schedule.InverseSigmoid.Params().Set(k=10000)
+    with self.session():
+      lrs = p.Instantiate()
+      pts = []
+      for step in range(0, 200000, 25000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
+      self.assertAllClose(
+          [[0, 0.999900], [25000, 0.998783], [50000, 0.985376],
+           [75000, 0.846880], [100000, 0.312242], [125000, 0.035928],
+           [150000, 0.003050], [175000, 0.000251]], pts)
+
 
 if __name__ == '__main__':
   tf.test.main()

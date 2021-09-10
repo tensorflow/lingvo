@@ -851,3 +851,23 @@ class CycleSchedule(BaseSchedule):
     relative_step = tf.math.mod(py_utils.GetGlobalStep(), self._period)
     return py_utils.PiecewiseConstant(relative_step, self._boundaries, values,
                                       values[0].dtype)
+
+
+class InverseSigmoid(BaseSchedule):
+  """The inverse sigmoid decay from https://arxiv.org/abs/1506.03099."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('k', None, 'k >= 1, the greater k is, the slower it decays.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    if not self.params.k or self.params.k < 1:
+      raise ValueError(f'Param k invalid: {self.params.k}')
+
+  def Value(self):
+    p = self.params
+    step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
+    return p.k / (p.k + tf.math.exp(step / p.k))
