@@ -802,11 +802,15 @@ stopping.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.WriteInferenceGraph">
-<span class="sig-name descname"><span class="pre">WriteInferenceGraph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prune_graph</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.WriteInferenceGraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.WriteInferenceGraph" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">WriteInferenceGraph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prune_graph</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.WriteInferenceGraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.WriteInferenceGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates the inference graphs for a given model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>prune_graph</strong> – If true, prune the graph to just the parts we need.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cfg</strong> – Full <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a> for the model class. If present,
+this cfg will be used instead of retrieving from model_registry.</p></li>
+<li><p><strong>prune_graph</strong> – If true, prune the graph to just the parts we need.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>InferenceGraph proto for cpu.</p>

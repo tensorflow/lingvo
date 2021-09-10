@@ -1648,10 +1648,12 @@
     <span class="sd">&quot;&quot;&quot;Sets the model name.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span> <span class="o">=</span> <span class="n">model_name</span></div>
 
-<div class="viewcode-block" id="RunnerManager.WriteInferenceGraph"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.WriteInferenceGraph">[docs]</a>  <span class="k">def</span> <span class="nf">WriteInferenceGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prune_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="RunnerManager.WriteInferenceGraph"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.WriteInferenceGraph">[docs]</a>  <span class="k">def</span> <span class="nf">WriteInferenceGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prune_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generates the inference graphs for a given model.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      cfg: Full `~.hyperparams.Params` for the model class. If present,</span>
+<span class="sd">        this cfg will be used instead of retrieving from model_registry.</span>
 <span class="sd">      prune_graph: If true, prune the graph to just the parts we need.</span>
 
 <span class="sd">    Returns:</span>
@@ -1661,8 +1663,10 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">inference_graph_dir</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Writing inference graphs to dir: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">inference_graph_dir</span><span class="p">)</span>
 
-    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span>
-                                        <span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_dataset_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg</span><span class="p">:</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span>
+                                          <span class="n">FLAGS</span><span class="o">.</span><span class="n">inference_dataset_name</span><span class="p">)</span>
+
     <span class="n">task_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">]</span>
     <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">)</span> <span class="ow">and</span>
         <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">):</span>
