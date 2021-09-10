@@ -1493,10 +1493,12 @@ class RunnerManager:
     """Sets the model name."""
     self._model_name = model_name
 
-  def WriteInferenceGraph(self, prune_graph=True):
+  def WriteInferenceGraph(self, cfg=None, prune_graph=True):
     """Generates the inference graphs for a given model.
 
     Args:
+      cfg: Full `~.hyperparams.Params` for the model class. If present,
+        this cfg will be used instead of retrieving from model_registry.
       prune_graph: If true, prune the graph to just the parts we need.
 
     Returns:
@@ -1506,8 +1508,10 @@ class RunnerManager:
     tf.io.gfile.makedirs(inference_graph_dir)
     tf.logging.info('Writing inference graphs to dir: %s', inference_graph_dir)
 
-    cfg = self.model_registry.GetParams(self._model_name,
-                                        FLAGS.inference_dataset_name)
+    if not cfg:
+      cfg = self.model_registry.GetParams(self._model_name,
+                                          FLAGS.inference_dataset_name)
+
     task_names = [FLAGS.model_task_name]
     if (issubclass(cfg.cls, base_model.MultiTaskModel) and
         not FLAGS.model_task_name):
