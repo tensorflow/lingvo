@@ -1,4 +1,4 @@
-/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -180,6 +180,7 @@ REGISTER_OP("BeamSearchStepV2")
     .Attr("force_eos_in_last_step: bool = false")
     .Attr("force_eos_in_top_k: bool = false")
     .Attr("beam_independence: bool = false")
+    .Attr("atten_vecs_in_hypothesis_protos: bool = true")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(2));
       c->set_output(1, c->input(3));
@@ -304,6 +305,8 @@ force_eos_in_top_k: Whether to always consider the eos token to be among the top
     local_eos_threshold always apply regardless of this.
 beam_independence: When enabled, this step will become a no-op for beam_id if
     and only if in_beam_done[beam_id] == True.
+atten_vecs_in_hypothesis_protos: Whether to populate the atten_vecs fields in
+    the returned Hypothesis protos.
 )doc");
 
 REGISTER_OP("TopKTerminatedHyps")

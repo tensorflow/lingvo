@@ -20,11 +20,11 @@ package tensorflow.lingvo;
 message Hypothesis {
   // The beam to which this hyp belongs.
   optional int32 beam_id = 1;
-  repeated int32 ids = 2;
-  repeated float scores = 3;
+  repeated int32 ids = 2 [packed = true];
+  repeated float scores = 3 [packed = true];
 
   message AttenVec {
-    repeated float prob = 1;
+    repeated float prob = 1 [packed = true];
   }
   repeated AttenVec atten_vecs = 4;
   optional float normalized_score = 5;

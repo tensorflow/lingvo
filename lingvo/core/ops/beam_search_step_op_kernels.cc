@@ -305,6 +305,8 @@ class BeamSearchStepOp : public OpKernel {
     if (op_version == 2) {
       OP_REQUIRES_OK(ctx,
                      ctx->GetAttr("beam_independence", &beam_independence_));
+      OP_REQUIRES_OK(ctx, ctx->GetAttr("atten_vecs_in_hypothesis_protos",
+                                       &atten_vecs_in_hypothesis_protos_));
       OP_REQUIRES_OK(ctx,
                      ctx->GetAttr("force_eos_in_top_k", &force_eos_in_top_k_));
     }
@@ -377,9 +379,11 @@ class BeamSearchStepOp : public OpKernel {
       const float score_this_step =
           (merge_paths_ ? average_step_score : t_out_scores(i, hyp_id));
       hypothesis.add_scores(score_this_step);
-      auto* att_vec = hypothesis.add_atten_vecs();
-      for (int j = 0; j < atten_probs.dim_size(1); ++j) {
-        att_vec->add_prob(t_out_atten_probs(i, hyp_id, j));
+      if (atten_vecs_in_hypothesis_protos_) {
+        auto* att_vec = hypothesis.add_atten_vecs();
+        for (int j = 0; j < atten_probs.dim_size(1); ++j) {
+          att_vec->add_prob(t_out_atten_probs(i, hyp_id, j));
+        }
       }
     }
     // Now add the terminal symbol.
@@ -388,10 +392,12 @@ class BeamSearchStepOp : public OpKernel {
     const float score_this_step =
         merge_paths_ ? average_step_score : hyp.local_score;
     hypothesis.add_scores(score_this_step);
-    auto* att_vec = hypothesis.add_atten_vecs();
-    auto t_atten_probs = atten_probs.matrix<float>();
-    for (int j = 0; j < atten_probs.dim_size(1); ++j) {
-      att_vec->add_prob(t_atten_probs(hyp.hyp_id, j));
+    if (atten_vecs_in_hypothesis_protos_) {
+      auto* att_vec = hypothesis.add_atten_vecs();
+      auto t_atten_probs = atten_probs.matrix<float>();
+      for (int j = 0; j < atten_probs.dim_size(1); ++j) {
+        att_vec->add_prob(t_atten_probs(hyp.hyp_id, j));
+      }
     }
     return hypothesis.SerializeAsString();
   }
@@ -841,6 +847,7 @@ class BeamSearchStepOp : public OpKernel {
   // Whether each beam terminates independently. Only supported when op_version
   // is 2.
   bool beam_independence_ = false;
+  bool atten_vecs_in_hypothesis_protos_ = true;
 };
 
 template <>

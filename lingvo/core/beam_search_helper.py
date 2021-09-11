@@ -298,6 +298,11 @@ class BeamSearchHelper(BeamSearchSharedParams):
         'force_eos_in_last_step', False,
         'For all active hyps that are still on the beam after target_seq_len '
         'steps, return partial hyps with EOS set as the last token.')
+    p.Define(
+        'atten_vecs_in_hypothesis_protos', True,
+        'Whether to write atten_vecs fields in the Hypothesis protos. Setting '
+        'this to False saves memory, and can be used when the protos become '
+        'too large for long sequences, but requires p.coverage_penalty == 0.0.')
     p.name = 'beam_search'
     return p
 
@@ -305,6 +310,9 @@ class BeamSearchHelper(BeamSearchSharedParams):
     super().__init__(params)
     p = self.params
     self._model_uses_eoc_id = p.target_eoc_id >= 0
+    if not p.atten_vecs_in_hypothesis_protos and p.coverage_penalty != 0.0:
+      raise ValueError('p.atten_vecs_in_hypothesis_protos requires '
+                       'p.coverage_penalty == 0.0.')
 
   def _BeamSearchStep(self, theta, encoder_outputs, cur_step, step_ids,
                       core_bs_states, other_states, num_hyps_per_beam,
@@ -378,7 +386,8 @@ class BeamSearchHelper(BeamSearchSharedParams):
          force_eos_in_last_step=p.force_eos_in_last_step,
          force_eos_in_top_k=p.force_eos_in_top_k,
          local_eos_threshold=p.local_eos_threshold,
-         beam_independence=p.terminate_beams_independently)
+         beam_independence=p.terminate_beams_independently,
+         atten_vecs_in_hypothesis_protos=p.atten_vecs_in_hypothesis_protos)
 
     new_step_ids = tf.reshape(out_hyps[cur_step, :], tf.shape(step_ids))
     new_step_ids.set_shape(step_ids.get_shape())
