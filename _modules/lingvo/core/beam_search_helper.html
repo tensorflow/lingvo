@@ -453,6 +453,11 @@
         <span class="s1">&#39;force_eos_in_last_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;For all active hyps that are still on the beam after target_seq_len &#39;</span>
         <span class="s1">&#39;steps, return partial hyps with EOS set as the last token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;atten_vecs_in_hypothesis_protos&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to write atten_vecs fields in the Hypothesis protos. Setting &#39;</span>
+        <span class="s1">&#39;this to False saves memory, and can be used when the protos become &#39;</span>
+        <span class="s1">&#39;too large for long sequences, but requires p.coverage_penalty == 0.0.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;beam_search&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -460,6 +465,9 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model_uses_eoc_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_vecs_in_hypothesis_protos</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">coverage_penalty</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.atten_vecs_in_hypothesis_protos requires &#39;</span>
+                       <span class="s1">&#39;p.coverage_penalty == 0.0.&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BeamSearchHelper._BeamSearchStep"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep">[docs]</a>  <span class="k">def</span> <span class="nf">_BeamSearchStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span>
                       <span class="n">core_bs_states</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
@@ -533,7 +541,8 @@
          <span class="n">force_eos_in_last_step</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_last_step</span><span class="p">,</span>
          <span class="n">force_eos_in_top_k</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_top_k</span><span class="p">,</span>
          <span class="n">local_eos_threshold</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">local_eos_threshold</span><span class="p">,</span>
-         <span class="n">beam_independence</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">terminate_beams_independently</span><span class="p">)</span>
+         <span class="n">beam_independence</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">terminate_beams_independently</span><span class="p">,</span>
+         <span class="n">atten_vecs_in_hypothesis_protos</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_vecs_in_hypothesis_protos</span><span class="p">)</span>
 
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out_hyps</span><span class="p">[</span><span class="n">cur_step</span><span class="p">,</span> <span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">))</span>
     <span class="n">new_step_ids</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">step_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
