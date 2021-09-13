@@ -170,7 +170,6 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     self.assertTrue(self._HasFile(control_files, 'params.txt'))
     self.assertTrue(self._HasFile(control_files, 'params.pbtxt'))
     self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
-    self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
     self.assertTrue(self._HasFile(control_files, 'tfevents'))
 
     # EvalerDev may not run concurrently with Controller in a single process
@@ -336,7 +335,6 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     control_files = tf.io.gfile.glob(logdir + '/control/*')
     self.assertTrue(self._HasFile(control_files, 'params.txt'))
     self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
-    self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
     self.assertTrue(self._HasFile(control_files, 'tfevents'))
 
   @parameterized.named_parameters(('Evaler', trainer.Evaler),
@@ -407,7 +405,6 @@ class TrainerWithTrialTest(BaseTrainerTest):
     control_files = tf.io.gfile.glob(logdir + '/control/*')
     self.assertTrue(self._HasFile(control_files, 'params.txt'))
     self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
-    self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
     self.assertTrue(self._HasFile(control_files, 'tfevents'))
 
     # EvalerDev may not run concurrently with Controller in a single process

@@ -338,8 +338,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       self._load_ops = tpu_embedding_collection.load_ops
       self._retrieve_ops = tpu_embedding_collection.retrieve_ops
       self._tpu_embedding = tpu_embedding_collection.tpu_embedding
-      tf.io.write_graph(self._graph.as_graph_def(), self._checkpoint_dir,
-                        'train.pbtxt')
 
   def _GetSession(self, **kwargs):
     return super()._GetSession(cluster_def=self._worker_cluster_def, **kwargs)

@@ -280,8 +280,6 @@ class Controller(base_runner.BaseRunner):
     self._WriteToLog(
         text_format.MessageToString(self.params.ToProto(), as_utf8=True),
         self._control_dir, 'params.pbtxt')
-    tf.io.write_graph(self._graph.as_graph_def(), self._control_dir,
-                      'train.pbtxt')
 
   def _CreateCheckpointer(self, train_dir, model, init_op=None):
     """Wrapper method for override purposes."""
@@ -542,9 +540,6 @@ class TrainerTpu(base_runner.BaseRunner):
       py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
       self._WriteToLog(self._model_analysis, self._train_dir,
                        'model_analysis.txt')
-    # Saves the graph def.
-    tf.io.write_graph(self._graph.as_graph_def(), self._train_dir,
-                      'train.pbtxt')
 
     # Saves the trainer params.
     self._WriteToLog(self.params.ToText(), self._train_dir,

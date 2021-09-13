@@ -82,12 +82,9 @@ class Trainer(base_runner.BaseRunner):
 
     self._step_rate_tracker = summary_utils.StepRateTracker()
 
-    # Saves the graph def.
     if self.params.cluster.task == 0:
       self._WriteToLog(self.params.ToText(), self._train_dir,
                        'trainer_params.txt')
-      tf.io.write_graph(self._graph.as_graph_def(), self._train_dir,
-                        'train.pbtxt')
     worker_id = self.params.cluster.task
     self._start_up_delay_steps = (((worker_id + 1) * worker_id / 2) *
                                   self.params.train.start_up_delay_steps)
