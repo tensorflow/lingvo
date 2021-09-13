@@ -920,13 +920,14 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     stack_size = len(_CREATE_VARIABLES_STACK.stack)
     _CREATE_VARIABLES_STACK.stack.append(self)
     try:
-      self._CreateChildrenVariables()
+      with py_utils.VariableStore():
+        self._CreateChildrenVariables()
 
-      if not self._is_variable_free:
-        with self._SelfVariableScope():
-          for name, meta in list(self._variables_to_create.items()):
-            self._CreateVariableInternal(name, meta)
-          self._CreateLayerVariables()
+        if not self._is_variable_free:
+          with self._SelfVariableScope():
+            for name, meta in list(self._variables_to_create.items()):
+              self._CreateVariableInternal(name, meta)
+            self._CreateLayerVariables()
     finally:
       assert _CREATE_VARIABLES_STACK.stack[-1] is self
       _CREATE_VARIABLES_STACK.stack.pop()

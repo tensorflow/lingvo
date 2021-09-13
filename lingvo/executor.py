@@ -304,7 +304,8 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
-        with py_utils.VariableRenameScope(self._variable_renaming_rules):
+        with py_utils.VariableStore(), py_utils.VariableRenameScope(
+            self._variable_renaming_rules):
           global_step = py_utils.GetOrCreateGlobalStepVar()
           if issubclass(train_cfg.cls, base_model.MultiTaskModel):
             if train_cfg.train.ema_decay > 0:

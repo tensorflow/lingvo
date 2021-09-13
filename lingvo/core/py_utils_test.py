@@ -16,6 +16,7 @@
 """Tests for py_utils."""
 
 import collections
+import contextlib
 import copy
 import itertools
 import math
@@ -48,6 +49,12 @@ FLAGS = tf.flags.FLAGS
 
 
 class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    with contextlib.ExitStack() as stack:
+      self._store = stack.enter_context(py_utils.VariableStore())
+      self.addCleanup(stack.pop_all().close)
 
   def testEnableAssertFlagOverrideFromCluster(self):
     cluster_params = cluster_factory.Current().params.Copy()
@@ -178,7 +185,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       ('_stateless', True, [tf.float32, tf.float64]))
   def testCreateVariableBasics(self, stateless_vars_init, dtypes):
     with flagsaver.flagsaver(stateless_vars_init=stateless_vars_init):
-      with self.session(use_gpu=False, graph=tf.Graph()):
+      with self.session(use_gpu=False):
         methods = [
             py_utils.WeightInit.Gaussian,
             py_utils.WeightInit.Uniform,
@@ -245,7 +252,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(self.evaluate(var), self.evaluate(var_copy))
 
   def testCreateVariableWithRegexDTypes(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       methods = [
           py_utils.WeightInit.Uniform,
@@ -303,7 +310,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(v4_v_expted, v4_v.tolist())
 
   def testCreateVariableUniform(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       methods = [
           py_utils.WeightInit.Uniform,
@@ -336,7 +343,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(v4_v_expted, v4_v.tolist())
 
   def testCreateVariableNormal(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(832124)
       methods = [
           py_utils.WeightInit.Gaussian,
@@ -368,7 +375,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(v3_v_expted, v3_v.tolist())
 
   def testCreateVariableCustomVarInit(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(832124)
 
       var = py_utils.CreateVariable(
@@ -426,7 +433,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
           var_values)
 
   def testCreateVariableException(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(832124)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
       var1 = py_utils.CreateVariable('var1', pc)
@@ -459,7 +466,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertGreater(np.max(np.abs(w0_val - w1_val)), 0.1)
 
   def testXavier(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16, tf.complex64]
@@ -484,7 +491,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(v3_v_expted, v3_v.tolist())
 
   def testXavier1D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16, tf.complex64]
@@ -502,7 +509,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
   def testXavier3D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16, tf.complex64]
@@ -520,7 +527,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
   def testVariableShapePrefix(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       shape = [3, 2]
       pc = py_utils.WeightParams(
           shape=shape, init=py_utils.WeightInit.Constant(0.0), dtype=tf.float32)
@@ -1124,14 +1131,14 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   )
   def testReduceRms(self, size):
     x = np.ones(size) * 0.5
-    with self.session(graph=tf.Graph()):
+    with self.session():
       x = tf.constant(x)
       y = py_utils.ReduceRms(x)
       y_val = self.evaluate(y)
     self.assertAllClose(0.5, y_val, atol=1e-12)
 
   def testReduceRmsNotFullyDefined(self):
-    with self.session(graph=tf.Graph()):
+    with self.session():
       x = tf.placeholder(tf.float32, shape=(None, 5))
       with self.assertRaisesRegex(ValueError,
                                   'Shape of x must be fully defined.'):
@@ -1180,7 +1187,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(repeat_inner_dim2, repeat_inner_dim)
 
   def testStackTensorsRecursively(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       stacked = py_utils.StackTensorsRecursively([
           py_utils.NestedMap(
               x=tf.constant([1, 2]),
@@ -1947,7 +1954,7 @@ class ReadOnlyAttrDictViewTest(test_utils.TestCase):
 class PadPadSequenceToTest(test_utils.TestCase):
 
   def test2DInputs(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
       length = 6
@@ -1968,7 +1975,7 @@ class PadPadSequenceToTest(test_utils.TestCase):
       self.assertAllClose(expected_padding, real_padding)
 
   def testSingleInput(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
       length = 6
@@ -1992,7 +1999,7 @@ class PadPadSequenceToTest(test_utils.TestCase):
 class PadSequenceDimensionTest(test_utils.TestCase):
 
   def testPadSequenceDimension_2D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       length = 6
       padded_x = py_utils.PadSequenceDimension(x, length, 0)
@@ -2006,7 +2013,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
   def testPadSequenceDimension_2D_axis0(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       length = 6
       padded_x = py_utils.PadSequenceDimension(x, length, 0, axis=0)
@@ -2019,7 +2026,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
   def testPadSequenceDimension_2D_UnknownShape(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       shape = tf.placeholder(tf.int32)
       x = tf.random.normal(shape=shape, seed=123456)
       length = 6
@@ -2040,7 +2047,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       py_utils.PadSequenceDimension(x, length, 0)
 
   def testPadSequenceDimension_4D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       length = 4
       padded_x = py_utils.PadSequenceDimension(x, length, 1)
@@ -2056,7 +2063,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
   def testPadSequenceDimension_UnmatchedShape(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       length = 4
       self.assertRaises(ValueError, py_utils.PadSequenceDimension, x, length, 0,
@@ -2066,7 +2073,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
 class ShiftLeftTest(test_utils.TestCase):
 
   def testShiftLeft_2D_axis1(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       shift_size = 2
       shifted_x = py_utils.ShiftLeft(x, shift_size, axis=1)
@@ -2079,7 +2086,7 @@ class ShiftLeftTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
   def testShiftLeft_4D_axis0(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       shift_size = 1
       shifted_x = py_utils.ShiftLeft(x, shift_size, axis=0)
@@ -2095,7 +2102,7 @@ class ShiftLeftTest(test_utils.TestCase):
 class PadOrTrimToTest(test_utils.TestCase):
 
   def test2DConstantShapePad(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       shape = [4, 6]
       padded_x_right = py_utils.PadOrTrimTo(x, shape, pad_val=0)
@@ -2120,7 +2127,7 @@ class PadOrTrimToTest(test_utils.TestCase):
       self.assertAllClose(expected_x_left, real_x_left)
 
   def test2DConstantShapeTrim(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       shape = [1, 3]
       trimmed_x_right = py_utils.PadOrTrimTo(x, shape, pad_val=0)
@@ -2136,7 +2143,7 @@ class PadOrTrimToTest(test_utils.TestCase):
       self.assertAllClose(expected_x_left, real_x_left)
 
   def test2DStaticShape(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       y = tf.zeros(shape=(4, 6))
       padded_x = py_utils.PadOrTrimTo(x, y.shape, pad_val=0)
@@ -2151,7 +2158,7 @@ class PadOrTrimToTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
   def test2DDynamicShape(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       x = tf.random.normal(shape=(3, 3), seed=123456)
       y = tf.placeholder(dtype=tf.float32)
       padded_x = py_utils.PadOrTrimTo(x, tf.shape(y), pad_val=0)
@@ -2172,7 +2179,7 @@ class PadOrTrimToTest(test_utils.TestCase):
       py_utils.PadOrTrimTo(tensor, shape)
 
   def test4D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       shape = (1, 1, 3, 3)
       padded_x = py_utils.PadOrTrimTo(x, shape, pad_val=1)
@@ -2309,7 +2316,7 @@ class PaddingsFromLengthsTest(test_utils.TestCase):
 class TrimTrailingPaddingsTest(test_utils.TestCase):
 
   def test2D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -2323,7 +2330,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
       self.assertAllEqual(padding[:, :5], trimmed_padding)
 
   def test2D_UnknownShape(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False) as sess:
       shape = tf.placeholder(tf.int32)
       x = tf.random.normal(shape=shape, seed=123456)
       padding = np.array([
@@ -2339,7 +2346,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
       self.assertAllEqual(padding[:, :5], trimmed_padding)
 
   def test4D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6, 3, 3))
       padding = np.array([
@@ -2353,7 +2360,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
       self.assertAllEqual(padding[:, :5], trimmed_padding)
 
   def testNoPadding(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -2367,7 +2374,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
       self.assertAllEqual(padding, trimmed_padding)
 
   def testLeadingPaddingOnly(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -2381,7 +2388,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
       self.assertAllEqual(padding, trimmed_padding)
 
   def testAllPadded(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -2680,6 +2687,12 @@ class StepSeedTest(test_utils.TestCase, parameterized.TestCase):
 
 class WeightParamsTest(test_utils.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    with contextlib.ExitStack() as stack:
+      self._store = stack.enter_context(py_utils.VariableStore())
+      self.addCleanup(stack.pop_all().close)
+
   def testShapeModification(self):
     """Tests that WeightParams.shape can be modified."""
     pc = py_utils.WeightParams([20, 30],
@@ -2692,6 +2705,12 @@ class WeightParamsTest(test_utils.TestCase):
 
 class WeightInitTest(test_utils.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    with contextlib.ExitStack() as stack:
+      self._store = stack.enter_context(py_utils.VariableStore())
+      self.addCleanup(stack.pop_all().close)
+
   def testModification(self):
     """Tests that WeightInit cannot be modified."""
     w_init = py_utils.WeightInit.UniformPositive(1.0)
@@ -2699,7 +2718,7 @@ class WeightInitTest(test_utils.TestCase):
       w_init.scale = 2.0
 
   def testUniformPositive(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       pc = py_utils.WeightParams([20, 30],
                                  py_utils.WeightInit.UniformPositive(1.0),
@@ -2711,7 +2730,7 @@ class WeightInitTest(test_utils.TestCase):
       self.assertTrue(np.all(var_v <= 1.0))
 
   def testCategory(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       pc = py_utils.WeightParams([30, 30], py_utils.WeightInit.Category(3),
                                  tf.float32)
@@ -2721,7 +2740,7 @@ class WeightInitTest(test_utils.TestCase):
       self.assertEqual({0.0, 1.0, 2.0}, set(np.unique(var_v)))
 
   def testKaimingUniformRelu(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       pc = py_utils.WeightParams(
           [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInRelu(1.0),
           tf.float32)
@@ -2735,7 +2754,7 @@ class WeightInitTest(test_utils.TestCase):
       self.assertTrue(np.all(var_v <= bound))
 
   def testKaimingUniformLeakyRelu(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       pc = py_utils.WeightParams(
           [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInLeakyRelu(),
           tf.float32)
@@ -2754,7 +2773,7 @@ class WeightInitTest(test_utils.TestCase):
 class RNNCellStateInitTest(test_utils.TestCase):
 
   def testZeros(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3], init=py_utils.RNNCellStateInit.Zeros(), dtype=tf.float32)
@@ -2764,7 +2783,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
       self.assertAllClose(zero_state_v, expected_zero_state)
 
   def testRandomNormal(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3],
@@ -2778,7 +2797,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
 
   @flagsaver.flagsaver(stateless_vars_init=True)
   def testRandomNormalStatelessVarsInit(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3],
@@ -2794,7 +2813,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
       self.assertAllClose(zero_state_v_bis, expected_zero_state)
 
   def testRandomNormalInEval(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3],
@@ -2810,7 +2829,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
 class RematerializeFnTest(test_utils.TestCase):
 
   def testRandomNormal(self):
-    with self.session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False):
       tf.random.set_seed(12345678)
       a = tf.random.normal([2, 3])
       b = tf.random.normal([3, 4])

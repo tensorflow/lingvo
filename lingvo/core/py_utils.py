@@ -1432,12 +1432,6 @@ def GenerateSeedFromId(obj_id):
   return np.int64(int(md5.hexdigest(), 16) % (2**31 - 1))
 
 
-# To keep track of all the variables ever gets created by the CreateVariable
-# routine below.
-_ALL_VARS_KEY = ('__lingvo_all_vars',)
-
-_get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
-
 _VARIABLE_SHAPE_PREFIXES = ThreadLocalStack()
 
 
@@ -1517,13 +1511,48 @@ def GetFanInFanOut(shape, prefix_dims_to_skip):
     return fan_in, fan_out
 
 
-_VARIABLE_CREATOR_STACK = ThreadLocalStack().stack
+_VARIABLE_STORE_STACK = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def VariableStore():
+  """Keeps track of {variable_name: (variable, var_params)}.
+
+  When CreateVariable would result in a variable name that exists in the store,
+  the existing variable is returned, or an error is raised, depending on whether
+  the variable scope supports reuse.
+
+  This mimics the behavior of tf.compat.v1.get_variable() with regards to
+  variable reuse, while functioning correctly in TF2 eager context. However, it
+  only applies to variables created via CreateVariable.
+
+  When there are nested VariableStore contexts, they all provide the same
+  variable store object. That is, the scope of the variable store is the
+  outermost context.
+
+  Yields:
+    A dictionary representing the variable store.
+  """
+  store = _VARIABLE_STORE_STACK.stack[-1] if _VARIABLE_STORE_STACK.stack else {}
+  _VARIABLE_STORE_STACK.stack.append(store)
+  try:
+    yield store
+  finally:
+    _VARIABLE_STORE_STACK.stack.pop()
+
+
+def _GetVariableStore():
+  return (_VARIABLE_STORE_STACK.stack[-1]
+          if _VARIABLE_STORE_STACK.stack else None)
 
 
 def _DefaultVariableCreator(**kwargs):
-  kwargs.pop('var_name', None)
-  kwargs.pop('var_params', None)
+  kwargs.pop('var_name')
+  kwargs.pop('var_params')
   return tf.get_variable(**kwargs)
+
+
+_VARIABLE_CREATOR_STACK = ThreadLocalStack().stack
 
 
 def _GetVariableCreator():
@@ -1599,6 +1628,44 @@ def PlaceOnTpuCore(core_id):
       return next_creator(**kwargs)
 
   return VariableCreatorScope(Creator)
+
+
+# Variable creators.
+def MaybeReuseFromVariableStore(next_creator, **kwargs):
+  """Variable creator that attempts to reuse variables from variable store."""
+  var_name = kwargs['var_name']
+  p = kwargs['var_params']
+  store = _GetVariableStore()
+  if store is not None and var_name in store:
+    if tf.get_variable_scope().reuse:
+      var, cached_p = store[var_name]
+      tf.logging.info('Reusing var %s', var.name)
+      assert cached_p == p.ToText(), (
+          'Cached config:\n %s vs new config:\n %s' % (cached_p, p.ToText()))
+      return var
+
+  var = next_creator(**kwargs)
+  tf.logging.info('Creating var %s shape=%s on device %s', var.name, var.shape,
+                  var.device)
+  for col in p.collections:
+    tf.add_to_collection(col, var)
+  if store is not None:
+    store[var_name] = (var, p.ToText())
+  return var
+
+
+def MaybePinVarsToCpu(next_creator, **kwargs):
+  if _FromGlobal('pin_vars_to_cpu'):
+    with tf.device('/cpu:0'):
+      return next_creator(**kwargs)
+  return next_creator(**kwargs)
+
+
+def MaybeOpportunisticVariableReuse(next_creator, **kwargs):
+  if GetOpportunisticVariableReuse():
+    with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+      return next_creator(**kwargs)
+  return next_creator(**kwargs)
 
 
 # TODO(yonghui): Add support for partitioned Variables.
@@ -1752,23 +1819,6 @@ def _CreateVariableStateful(name,
 
     v_init = FloatToInt8Wrapper(v_init)
 
-  # Variable creators.
-  def MaybePinVarsToCpu(next_creator, **kwargs):
-    if _FromGlobal('pin_vars_to_cpu'):
-      with tf.device('/cpu:0'):
-        return next_creator(**kwargs)
-    return next_creator(**kwargs)
-
-  def MaybeOpportunisticVariableReuse(next_creator, **kwargs):
-    try:
-      return next_creator(**kwargs)
-    except ValueError:  # Possibly the variable already exists
-      if GetOpportunisticVariableReuse():
-        with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
-          return next_creator(**kwargs)
-      else:
-        raise
-
   def LingvoVariableCreator(next_creator, **kwargs):
     """Lingvo variable creator."""
     # TODO(yonghui): Possibly get away from variable_scope and implement our own
@@ -1780,38 +1830,25 @@ def _CreateVariableStateful(name,
           caching_device=scope.caching_device,
           use_resource=True)
     with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
-      var = next_creator(**kwargs)
+      return next_creator(**kwargs)
 
-    var_ref = var.experimental_ref()  # For key in dict/set.
-    all_vars = _get_all_vars()
-    if var_ref in all_vars:
-      tf.logging.info('Reusing var %s', var.name)
-      cached = all_vars[var_ref]
-      assert cached == p.ToText(), ('Cached config:\n %s vs new config:\n %s' %
-                                    (cached, p.ToText()))
-    else:
-      tf.logging.info('Creating var %s shape=%s on device %s', var.name,
-                      var.shape, var.device)
-      all_vars[var_ref] = p.ToText()
-      for col in p.collections:
-        tf.add_to_collection(col, var)
-    return var
-
-  with VariableCreatorScope(LingvoVariableCreator):
-    with VariableCreatorScope(MaybeOpportunisticVariableReuse):
-      with VariableCreatorScope(MaybePinVarsToCpu):
-        var = _GetVariableCreator()(
-            var_name=var_name,
-            var_params=p,
-            name='var',
-            shape=GetVariableShapePrefixes() + list(shape),
-            dtype=var_dtype,
-            initializer=v_init,
-            collections=collections,
-            trainable=trainable,
-            validate_shape=True,
-            synchronization=synchronization,
-            aggregation=aggregation)
+  with contextlib.ExitStack() as context_stack:
+    for variable_creator_fn in (LingvoVariableCreator,
+                                MaybeOpportunisticVariableReuse,
+                                MaybePinVarsToCpu, MaybeReuseFromVariableStore):
+      context_stack.enter_context(VariableCreatorScope(variable_creator_fn))
+    var = _GetVariableCreator()(
+        var_name=var_name,
+        var_params=p,
+        name='var',
+        shape=GetVariableShapePrefixes() + list(shape),
+        dtype=var_dtype,
+        initializer=v_init,
+        collections=collections,
+        trainable=trainable,
+        validate_shape=True,
+        synchronization=synchronization,
+        aggregation=aggregation)
 
   combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
   if combined_layers_dims > 0:
@@ -1899,16 +1936,6 @@ def _CreateVariableStateless(name,
     raise TypeError(
         'Stateless variable initialization does not support tf.complex64.')
 
-  def MaybeOpportunisticVariableReuse(next_creator, **kwargs):
-    try:
-      return next_creator(**kwargs)
-    except ValueError:  # Possibly the variable already exists
-      if GetOpportunisticVariableReuse():
-        with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
-          return next_creator(**kwargs)
-      else:
-        raise
-
   def LingvoVariableCreator(next_creator, **kwargs):
     """Lingvo variable creator."""
     # TODO(yonghui): Possibly get away from variable_scope and implement our own
@@ -1920,37 +1947,25 @@ def _CreateVariableStateless(name,
           caching_device=scope.caching_device,
           use_resource=True)
     with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
-      var = next_creator(**kwargs)
+      return next_creator(**kwargs)
 
-    var_ref = var.experimental_ref()  # For key in dict/set.
-    all_vars = _get_all_vars()
-    if var_ref in all_vars:
-      tf.logging.info('Reusing var %s', var.name)
-      cached = all_vars[var_ref]
-      assert cached == p.ToText(), ('Cached config:\n %s vs new config:\n %s' %
-                                    (cached, p.ToText()))
-    else:
-      tf.logging.info('Creating var %s shape=%s on device %s', var.name,
-                      var.shape, var.device)
-      all_vars[var_ref] = p.ToText()
-      for col in p.collections:
-        tf.add_to_collection(col, var)
-    return var
-
-  with VariableCreatorScope(LingvoVariableCreator):
-    with VariableCreatorScope(MaybeOpportunisticVariableReuse):
-      var = _GetVariableCreator()(
-          var_name=var_name,
-          var_params=p,
-          name='var',
-          shape=GetVariableShapePrefixes() + list(shape),
-          dtype=var_dtype,
-          initializer=v_init,
-          collections=collections,
-          trainable=trainable,
-          validate_shape=True,
-          synchronization=synchronization,
-          aggregation=aggregation)
+  with contextlib.ExitStack() as context_stack:
+    for variable_creator_fn in (LingvoVariableCreator,
+                                MaybeOpportunisticVariableReuse,
+                                MaybeReuseFromVariableStore):
+      context_stack.enter_context(VariableCreatorScope(variable_creator_fn))
+    var = _GetVariableCreator()(
+        var_name=var_name,
+        var_params=p,
+        name='var',
+        shape=GetVariableShapePrefixes() + list(shape),
+        dtype=var_dtype,
+        initializer=v_init,
+        collections=collections,
+        trainable=trainable,
+        validate_shape=True,
+        synchronization=synchronization,
+        aggregation=aggregation)
 
   combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
   if combined_layers_dims > 0:
