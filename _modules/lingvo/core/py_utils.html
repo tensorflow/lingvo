@@ -1,71 +1,31 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
   <meta charset="utf-8" />
-  
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>lingvo.core.py_utils &mdash; Lingvo  documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
         <script src="../../../_static/jquery.js"></script>
         <script src="../../../_static/underscore.js"></script>
         <script src="../../../_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
-    
+    <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="../../../index.html" class="icon icon-home"> Lingvo
-          
-
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -73,85 +33,35 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="../../../index.html">Lingvo</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="../../index.html">Module code</a> &raquo;</li>
-        
       <li>lingvo.core.py_utils</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
+             
   <h1>Source code for lingvo.core.py_utils</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
@@ -1587,12 +1497,6 @@
   <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">md5</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div>
 
 
-<span class="c1"># To keep track of all the variables ever gets created by the CreateVariable</span>
-<span class="c1"># routine below.</span>
-<span class="n">_ALL_VARS_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_all_vars&#39;</span><span class="p">,)</span>
-
-<span class="n">_get_all_vars</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_ALL_VARS_KEY</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">{})</span>
-
 <span class="n">_VARIABLE_SHAPE_PREFIXES</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 
 
@@ -1672,13 +1576,48 @@
     <span class="k">return</span> <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span></div>
 
 
-<span class="n">_VARIABLE_CREATOR_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
+<span class="n">_VARIABLE_STORE_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="VariableStore"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.VariableStore">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">VariableStore</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Keeps track of {variable_name: (variable, var_params)}.</span>
+
+<span class="sd">  When CreateVariable would result in a variable name that exists in the store,</span>
+<span class="sd">  the existing variable is returned, or an error is raised, depending on whether</span>
+<span class="sd">  the variable scope supports reuse.</span>
+
+<span class="sd">  This mimics the behavior of tf.compat.v1.get_variable() with regards to</span>
+<span class="sd">  variable reuse, while functioning correctly in TF2 eager context. However, it</span>
+<span class="sd">  only applies to variables created via CreateVariable.</span>
+
+<span class="sd">  When there are nested VariableStore contexts, they all provide the same</span>
+<span class="sd">  variable store object. That is, the scope of the variable store is the</span>
+<span class="sd">  outermost context.</span>
+
+<span class="sd">  Yields:</span>
+<span class="sd">    A dictionary representing the variable store.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">store</span> <span class="o">=</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="p">{}</span>
+  <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span> <span class="n">store</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="_GetVariableStore"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._GetVariableStore">[docs]</a><span class="k">def</span> <span class="nf">_GetVariableStore</span><span class="p">():</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+          <span class="k">if</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_DefaultVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._DefaultVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_DefaultVariableCreator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;var_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-  <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;var_params&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+  <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;var_name&#39;</span><span class="p">)</span>
+  <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;var_params&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="n">_VARIABLE_CREATOR_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
 
 
 <div class="viewcode-block" id="_GetVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._GetVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_GetVariableCreator</span><span class="p">():</span>
@@ -1754,6 +1693,44 @@
       <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">Creator</span><span class="p">)</span></div>
+
+
+<span class="c1"># Variable creators.</span>
+<div class="viewcode-block" id="MaybeReuseFromVariableStore"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MaybeReuseFromVariableStore">[docs]</a><span class="k">def</span> <span class="nf">MaybeReuseFromVariableStore</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Variable creator that attempts to reuse variables from variable store.&quot;&quot;&quot;</span>
+  <span class="n">var_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;var_name&#39;</span><span class="p">]</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;var_params&#39;</span><span class="p">]</span>
+  <span class="n">store</span> <span class="o">=</span> <span class="n">_GetVariableStore</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">store</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span><span class="o">.</span><span class="n">reuse</span><span class="p">:</span>
+      <span class="n">var</span><span class="p">,</span> <span class="n">cached_p</span> <span class="o">=</span> <span class="n">store</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reusing var </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">cached_p</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="p">(</span>
+          <span class="s1">&#39;Cached config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> vs new config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cached_p</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
+      <span class="k">return</span> <span class="n">var</span>
+
+  <span class="n">var</span> <span class="o">=</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                  <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">store</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+  <span class="k">return</span> <span class="n">var</span></div>
+
+
+<div class="viewcode-block" id="MaybePinVarsToCpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MaybePinVarsToCpu">[docs]</a><span class="k">def</span> <span class="nf">MaybePinVarsToCpu</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MaybeOpportunisticVariableReuse"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MaybeOpportunisticVariableReuse">[docs]</a><span class="k">def</span> <span class="nf">MaybeOpportunisticVariableReuse</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">(),</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <span class="c1"># TODO(yonghui): Add support for partitioned Variables.</span>
@@ -1907,23 +1884,6 @@
 
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">FloatToInt8Wrapper</span><span class="p">(</span><span class="n">v_init</span><span class="p">)</span>
 
-  <span class="c1"># Variable creators.</span>
-  <span class="k">def</span> <span class="nf">MaybePinVarsToCpu</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-  <span class="k">def</span> <span class="nf">MaybeOpportunisticVariableReuse</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">try</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># Possibly the variable already exists</span>
-      <span class="k">if</span> <span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">(),</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
-          <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span>
-
   <span class="k">def</span> <span class="nf">LingvoVariableCreator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lingvo variable creator.&quot;&quot;&quot;</span>
     <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
@@ -1935,38 +1895,25 @@
           <span class="n">caching_device</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">caching_device</span><span class="p">,</span>
           <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">reuse</span><span class="p">):</span>
-      <span class="n">var</span> <span class="o">=</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="n">var_ref</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">experimental_ref</span><span class="p">()</span>  <span class="c1"># For key in dict/set.</span>
-    <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_get_all_vars</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">var_ref</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reusing var </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="n">cached</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span>
-      <span class="k">assert</span> <span class="n">cached</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="p">(</span><span class="s1">&#39;Cached config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> vs new config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                                    <span class="p">(</span><span class="n">cached</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                      <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-      <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span>
-      <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">var</span>
-
-  <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">MaybeOpportunisticVariableReuse</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">MaybePinVarsToCpu</span><span class="p">):</span>
-        <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
-            <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
-            <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
-            <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
-            <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
-            <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
-            <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
+  <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">,</span>
+                                <span class="n">MaybeOpportunisticVariableReuse</span><span class="p">,</span>
+                                <span class="n">MaybePinVarsToCpu</span><span class="p">,</span> <span class="n">MaybeReuseFromVariableStore</span><span class="p">):</span>
+      <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">variable_creator_fn</span><span class="p">))</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
+        <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
+        <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
+        <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
+        <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
+        <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
+        <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
   <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">combined_layers_dims</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -2054,16 +2001,6 @@
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
         <span class="s1">&#39;Stateless variable initialization does not support tf.complex64.&#39;</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">MaybeOpportunisticVariableReuse</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">try</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># Possibly the variable already exists</span>
-      <span class="k">if</span> <span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">(),</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
-          <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span>
-
   <span class="k">def</span> <span class="nf">LingvoVariableCreator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lingvo variable creator.&quot;&quot;&quot;</span>
     <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
@@ -2075,37 +2012,25 @@
           <span class="n">caching_device</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">caching_device</span><span class="p">,</span>
           <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">reuse</span><span class="p">):</span>
-      <span class="n">var</span> <span class="o">=</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="n">var_ref</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">experimental_ref</span><span class="p">()</span>  <span class="c1"># For key in dict/set.</span>
-    <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_get_all_vars</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">var_ref</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reusing var </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="n">cached</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span>
-      <span class="k">assert</span> <span class="n">cached</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="p">(</span><span class="s1">&#39;Cached config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> vs new config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                                    <span class="p">(</span><span class="n">cached</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                      <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-      <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span>
-      <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">var</span>
-
-  <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">MaybeOpportunisticVariableReuse</span><span class="p">):</span>
-      <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
-          <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
-          <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
-          <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
-          <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
-          <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
-          <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-          <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
-          <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
+  <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">,</span>
+                                <span class="n">MaybeOpportunisticVariableReuse</span><span class="p">,</span>
+                                <span class="n">MaybeReuseFromVariableStore</span><span class="p">):</span>
+      <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">variable_creator_fn</span><span class="p">))</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
+        <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
+        <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
+        <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
+        <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
+        <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
+        <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
   <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">combined_layers_dims</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -6364,46 +6289,30 @@
 </pre></div>
 
            </div>
-           
           </div>
           <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2018.
-
-    </p>
+    <p>&#169; Copyright 2018.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

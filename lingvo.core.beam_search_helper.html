@@ -1,73 +1,34 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>lingvo.core.beam_search_helper module &mdash; Lingvo  documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.bfloat16_variables module" href="lingvo.core.bfloat16_variables.html" />
     <link rel="prev" title="lingvo.core.batch_utils module" href="lingvo.core.batch_utils.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="index.html" class="icon icon-home"> Lingvo
-          
-
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -75,18 +36,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
@@ -104,144 +54,101 @@
 </li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Lingvo</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
-        
           <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
-        
       <li>lingvo.core.beam_search_helper module</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/lingvo.core.beam_search_helper.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  <div class="section" id="module-lingvo.core.beam_search_helper">
-<span id="lingvo-core-beam-search-helper-module"></span><h1>lingvo.core.beam_search_helper module<a class="headerlink" href="#module-lingvo.core.beam_search_helper" title="Permalink to this headline">¶</a></h1>
+             
+  <section id="module-lingvo.core.beam_search_helper">
+<span id="lingvo-core-beam-search-helper-module"></span><h1>lingvo.core.beam_search_helper module<a class="headerlink" href="#module-lingvo.core.beam_search_helper" title="Permalink to this headline"></a></h1>
 <p>Helper class for implementing a beam search decoder.</p>
 <p>Individual models just need to provide a few callback functions.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">BeamSearchDecodeOutput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topk_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_lens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_decoded</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_states</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">BeamSearchDecodeOutput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topk_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_lens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_decoded</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_states</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#tuple" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._asdict">
-<span class="sig-name descname"><span class="pre">_asdict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._asdict" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_asdict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._asdict" title="Permalink to this definition"></a></dt>
 <dd><p>Return a new dict which maps field names to their values.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._field_defaults">
-<span class="sig-name descname"><span class="pre">_field_defaults</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._field_defaults" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_field_defaults</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._field_defaults" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._fields">
-<span class="sig-name descname"><span class="pre">_fields</span></span><em class="property"> <span class="pre">=</span> <span class="pre">('topk_hyps',</span> <span class="pre">'topk_ids',</span> <span class="pre">'topk_lens',</span> <span class="pre">'topk_scores',</span> <span class="pre">'topk_decoded',</span> <span class="pre">'other_states')</span></em><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._fields" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_fields</span></span><em class="property"> <span class="pre">=</span> <span class="pre">('topk_hyps',</span> <span class="pre">'topk_ids',</span> <span class="pre">'topk_lens',</span> <span class="pre">'topk_scores',</span> <span class="pre">'topk_decoded',</span> <span class="pre">'other_states')</span></em><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._fields" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._make">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">_make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._make" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">_make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._make" title="Permalink to this definition"></a></dt>
 <dd><p>Make a new BeamSearchDecodeOutput object from a sequence or iterable</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._replace">
-<span class="sig-name descname"><span class="pre">_replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._replace" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._replace" title="Permalink to this definition"></a></dt>
 <dd><p>Return a new BeamSearchDecodeOutput object replacing specified fields with new values</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.other_states">
-<span class="sig-name descname"><span class="pre">other_states</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.other_states" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">other_states</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.other_states" title="Permalink to this definition"></a></dt>
 <dd><p>Alias for field number 5</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_decoded">
-<span class="sig-name descname"><span class="pre">topk_decoded</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_decoded" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">topk_decoded</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_decoded" title="Permalink to this definition"></a></dt>
 <dd><p>Alias for field number 4</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_hyps">
-<span class="sig-name descname"><span class="pre">topk_hyps</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_hyps" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">topk_hyps</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_hyps" title="Permalink to this definition"></a></dt>
 <dd><p>Alias for field number 0</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_ids">
-<span class="sig-name descname"><span class="pre">topk_ids</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_ids" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">topk_ids</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_ids" title="Permalink to this definition"></a></dt>
 <dd><p>Alias for field number 1</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_lens">
-<span class="sig-name descname"><span class="pre">topk_lens</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_lens" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">topk_lens</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_lens" title="Permalink to this definition"></a></dt>
 <dd><p>Alias for field number 2</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_scores">
-<span class="sig-name descname"><span class="pre">topk_scores</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_scores" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">topk_scores</span></span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_scores" title="Permalink to this definition"></a></dt>
 <dd><p>Alias for field number 3</p>
 </dd></dl>
 
@@ -249,19 +156,19 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchSharedParams">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">BeamSearchSharedParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchSharedParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchSharedParams" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">BeamSearchSharedParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchSharedParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchSharedParams" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Class defining common beam search params.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchSharedParams.Params">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchSharedParams.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchSharedParams.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchSharedParams.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchSharedParams.Params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchHelper">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">BeamSearchHelper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">BeamSearchHelper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.beam_search_helper.BeamSearchSharedParams" title="lingvo.core.beam_search_helper.BeamSearchSharedParams"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.beam_search_helper.BeamSearchSharedParams</span></code></a></p>
 <p>Helper class for performing beam search.</p>
 <p>The user of this helper class needs to implement three callbacks.</p>
@@ -352,12 +259,12 @@ is called:</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchHelper.Params">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper.Params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep">
-<span class="sig-name descname"><span class="pre">_BeamSearchStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">core_bs_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper._BeamSearchStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_BeamSearchStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">core_bs_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper._BeamSearchStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep" title="Permalink to this definition"></a></dt>
 <dd><p>Extend beam search hyps for one step.</p>
 <blockquote>
 <div><div class="line-block">
@@ -402,7 +309,7 @@ See class header comments for more details.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.BeamSearchHelper.BeamSearchDecode">
-<span class="sig-name descname"><span class="pre">BeamSearchDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beam_search_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper.BeamSearchDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">BeamSearchDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beam_search_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper.BeamSearchDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper.BeamSearchDecode" title="Permalink to this definition"></a></dt>
 <dd><p>Performs beam-search based decoding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -436,7 +343,7 @@ self.params.target_seq_len.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper._GetShapes">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">_GetShapes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_shapes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#_GetShapes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper._GetShapes" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">_GetShapes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_shapes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#_GetShapes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper._GetShapes" title="Permalink to this definition"></a></dt>
 <dd><p>Util for getting nested structure of shapes from structure of tensors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -453,7 +360,7 @@ self.params.target_seq_len.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.MergeBeamSearchOutputs">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">MergeBeamSearchOutputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_search_outputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#MergeBeamSearchOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.MergeBeamSearchOutputs" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">MergeBeamSearchOutputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_search_outputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#MergeBeamSearchOutputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.MergeBeamSearchOutputs" title="Permalink to this definition"></a></dt>
 <dd><p>Merges beam search hyps from multiple decoders.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -473,19 +380,19 @@ beam.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.GreedySearchHelper">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">GreedySearchHelper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.beam_search_helper.</span></span><span class="sig-name descname"><span class="pre">GreedySearchHelper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Helper class for performing greedy decoding.</p>
 <p>The user of this helper class needs to implement three callbacks just as in a
 beam search decoder.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.GreedySearchHelper.Params">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper.Params" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.GreedySearchHelper._GreedySearchStep">
-<span class="sig-name descname"><span class="pre">_GreedySearchStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyp_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyp_lens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper._GreedySearchStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper._GreedySearchStep" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_GreedySearchStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyp_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyp_lens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper._GreedySearchStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper._GreedySearchStep" title="Permalink to this definition"></a></dt>
 <dd><p>Extend greedy search hyps for one step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -520,7 +427,7 @@ See class header comments for more details.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.beam_search_helper.GreedySearchHelper.GreedySearchDecode">
-<span class="sig-name descname"><span class="pre">GreedySearchDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beam_search_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper.GreedySearchDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper.GreedySearchDecode" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">GreedySearchDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_beam_search_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_beam_search_step_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#GreedySearchHelper.GreedySearchDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.GreedySearchHelper.GreedySearchDecode" title="Permalink to this definition"></a></dt>
 <dd><p>Performs greedy-search based decoding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -557,54 +464,37 @@ token is encountered during search.</p></li>
 
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="lingvo.core.bfloat16_variables.html" class="btn btn-neutral float-right" title="lingvo.core.bfloat16_variables module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="lingvo.core.batch_utils.html" class="btn btn-neutral float-left" title="lingvo.core.batch_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lingvo.core.bfloat16_variables.html" class="btn btn-neutral float-right" title="lingvo.core.bfloat16_variables module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2018.
-
-    </p>
+    <p>&#169; Copyright 2018.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>

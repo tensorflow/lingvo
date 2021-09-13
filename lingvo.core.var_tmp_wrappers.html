@@ -1,73 +1,34 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
-  
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
   <title>lingvo.core.var_tmp_wrappers module &mdash; Lingvo  documentation</title>
-  
-
-  
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-
-  
-  
-
-  
-  
-
-  
-
-  
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-    
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-
-    
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.wpm_encoder module" href="lingvo.core.wpm_encoder.html" />
     <link rel="prev" title="lingvo.core.tshape module" href="lingvo.core.tshape.html" /> 
 </head>
 
-<body class="wy-body-for-nav">
-
-   
+<body class="wy-body-for-nav"> 
   <div class="wy-grid-for-nav">
-    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-          
-
-          
             <a href="index.html" class="icon icon-home"> Lingvo
-          
-
-          
           </a>
-
-          
-            
-            
-          
-
-          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -75,18 +36,7 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-
-          
-        </div>
-
-        
-        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
-          
-            
-            
-              
-            
-            
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
@@ -104,121 +54,78 @@
 </li>
 </ul>
 
-            
-          
         </div>
-        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-
-      
-      <nav class="wy-nav-top" aria-label="top navigation">
-        
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Lingvo</a>
-        
       </nav>
 
-
       <div class="wy-nav-content">
-        
         <div class="rst-content">
-        
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div role="navigation" aria-label="breadcrumbs navigation">
-
+          <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-    
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-        
           <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
-        
           <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
-        
       <li>lingvo.core.var_tmp_wrappers module</li>
-    
-    
       <li class="wy-breadcrumbs-aside">
-        
-          
             <a href="_sources/lingvo.core.var_tmp_wrappers.rst.txt" rel="nofollow"> View page source</a>
-          
-        
       </li>
-    
   </ul>
-
-  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-            
-  <div class="section" id="module-lingvo.core.var_tmp_wrappers">
-<span id="lingvo-core-var-tmp-wrappers-module"></span><h1>lingvo.core.var_tmp_wrappers module<a class="headerlink" href="#module-lingvo.core.var_tmp_wrappers" title="Permalink to this headline">¶</a></h1>
+             
+  <section id="module-lingvo.core.var_tmp_wrappers">
+<span id="lingvo-core-var-tmp-wrappers-module"></span><h1>lingvo.core.var_tmp_wrappers module<a class="headerlink" href="#module-lingvo.core.var_tmp_wrappers" title="Permalink to this headline"></a></h1>
 <p>Wrappers of tf.Variable to achieve various temporary effects.</p>
 <p>E.g., such effects include tracking assign ops, and converting between manual
 and auto sharding modes in GShard. These wrappers are intended to be used in
 limited scopes.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.var_tmp_wrappers.</span></span><span class="sig-name descname"><span class="pre">VarWrapperTrackAssign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.var_tmp_wrappers.</span></span><span class="sig-name descname"><span class="pre">VarWrapperTrackAssign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A wrapper of tf.Variable that tracks assignments.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.previous_assigns">
-<span class="sig-name descname"><span class="pre">previous_assigns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.previous_assigns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.previous_assigns" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">previous_assigns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.previous_assigns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.previous_assigns" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.control_after_assigns">
-<span class="sig-name descname"><span class="pre">control_after_assigns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.control_after_assigns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.control_after_assigns" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">control_after_assigns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.control_after_assigns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.control_after_assigns" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.raw_var">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">raw_var</span></span><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.raw_var" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">raw_var</span></span><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.raw_var" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign">
-<span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_add">
-<span class="sig-name descname"><span class="pre">assign_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_add" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">assign_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_add" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_sub">
-<span class="sig-name descname"><span class="pre">assign_sub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign_sub"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_sub" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">assign_sub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign_sub"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_sub" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.var_tmp_wrappers.</span></span><span class="sig-name descname"><span class="pre">StackedVarWrapperWithManualSharding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.var_tmp_wrappers.</span></span><span class="sig-name descname"><span class="pre">StackedVarWrapperWithManualSharding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A wrapper of tf.Variable for stacked variables in manual-sharding mode.</p>
 <p>The variable is sharded on on the leading (stacking) dimension, and the shard
@@ -235,22 +142,22 @@ makes variable read/write compatible with the rest of manually sharded code.</p>
 only happen partially on the stacking dimension only.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.raw_var">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">raw_var</span></span><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.raw_var" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">raw_var</span></span><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.raw_var" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_manual">
-<span class="sig-name descname"><span class="pre">_to_manual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding._to_manual"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_manual" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_to_manual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding._to_manual"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_manual" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_auto">
-<span class="sig-name descname"><span class="pre">_to_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding._to_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_auto" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">_to_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding._to_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_auto" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.value">
-<span class="sig-name descname"><span class="pre">value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.value" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.value" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the variable and converts it to manually sharded mode.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -262,7 +169,7 @@ variable (shard shape with the stacking dimension collapsed).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.read_value">
-<span class="sig-name descname"><span class="pre">read_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.read_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.read_value" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">read_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.read_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.read_value" title="Permalink to this definition"></a></dt>
 <dd><p>Reads the variable and converts it to manually sharded mode.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -274,7 +181,7 @@ variable (shard shape with the stacking dimension collapsed).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign">
-<span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign" title="Permalink to this definition"></a></dt>
 <dd><p>Implements the interface of tf.Variable.assign.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -298,66 +205,49 @@ variable (shard shape with the stacking dimension collapsed).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_add">
-<span class="sig-name descname"><span class="pre">assign_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_add" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">assign_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_add" title="Permalink to this definition"></a></dt>
 <dd><p>Implements the interface of tf.Variable.assign_add.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_sub">
-<span class="sig-name descname"><span class="pre">assign_sub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign_sub"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_sub" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">assign_sub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign_sub"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_sub" title="Permalink to this definition"></a></dt>
 <dd><p>Implements the interface of tf.Variable.assign_sub.</p>
 </dd></dl>
 
 </dd></dl>
 
-</div>
+</section>
 
 
            </div>
-           
           </div>
-          <footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="lingvo.core.wpm_encoder.html" class="btn btn-neutral float-right" title="lingvo.core.wpm_encoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="lingvo.core.tshape.html" class="btn btn-neutral float-left" title="lingvo.core.tshape module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lingvo.core.wpm_encoder.html" class="btn btn-neutral float-right" title="lingvo.core.wpm_encoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>
-        &#169; Copyright 2018.
-
-    </p>
+    <p>&#169; Copyright 2018.</p>
   </div>
-    
-    
-    
-    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    
-    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
 
 </footer>
         </div>
       </div>
-
     </section>
-
   </div>
-  
-
-  <script type="text/javascript">
+  <script>
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-
-  
-  
-    
-   
+  </script> 
 
 </body>
 </html>
