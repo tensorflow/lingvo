@@ -435,8 +435,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span>
         <span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToProto</span><span class="p">(),</span> <span class="n">as_utf8</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span> <span class="s1">&#39;params.pbtxt&#39;</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span>
-                      <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Controller._CreateCheckpointer"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._CreateCheckpointer">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">init_op</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper method for override purposes.&quot;&quot;&quot;</span>
@@ -697,9 +695,6 @@
       <span class="n">py_utils</span><span class="o">.</span><span class="n">LogMultiLines</span><span class="p">(</span><span class="s1">&#39;MODEL ANALYSIS&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                        <span class="s1">&#39;model_analysis.txt&#39;</span><span class="p">)</span>
-    <span class="c1"># Saves the graph def.</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
-                      <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
     <span class="c1"># Saves the trainer params.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
