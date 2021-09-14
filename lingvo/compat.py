@@ -48,9 +48,10 @@ from tensorflow import _major_api_version
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
 if tf2.executing_eagerly():
-  logging.warning("Lingvo with eager execution is not well tested. Consider "
-                  "disabling eager with tf.compat.v1.disable_eager_execution() "
-                  "or proceed at your own risk.")
+  logging.info(
+      "Lingvo with eager execution is in early development. "
+      "Please reach out to go/lingvo-eager-migration with bugs. "
+      "Eager mode can be disable with tf.compat.v1.disable_eager_execution().")
 
 
 def _clone_module(m):
