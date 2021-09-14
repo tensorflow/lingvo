@@ -16,7 +16,6 @@
 """Utilities for model quantization."""
 
 import enum
-from typing import Union
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -26,7 +25,8 @@ from lingvo.core import summary_utils
 import numpy as np
 
 
-class InputDistribution(enum.Enum):
+@enum.unique
+class InputDistribution(str, enum.Enum):
   """Distribution type for the inputs for AqtQdomain.
 
   Symmetric distribution is for signed inputs, here we quantize the inputs using
@@ -34,30 +34,8 @@ class InputDistribution(enum.Enum):
   Positive distribution is for unsigned distribution, here we quantize the
   inputs in range [0, max_val]
   """
-  SYMMETRIC = enum.auto()
-  POSITIVE = enum.auto()
-
-  @classmethod
-  def Parse(cls, spec: Union[str, 'InputDistribution']) -> 'InputDistribution':
-    """Parses or returns an InputDistribution.
-
-    Args:
-      spec: An InputDistribution instance or the case-insensitive name of one of
-        the enum values.
-
-    Returns:
-      An InputDistribution instance.
-    """
-    if isinstance(spec, cls):
-      return spec
-    upper_spec = spec.upper().replace('-', '_')
-    # pylint: disable=unsupported-membership-test
-    if upper_spec not in cls.__members__:
-      raise ValueError(f'Expected input distribution to be one of '
-                       f"{{{', '.join(cls.__members__.keys())}}} (case "
-                       f"insensitive) but got '{spec}'.")
-    # pylint: enable=unsupported-membership-test
-    return cls[upper_spec]
+  SYMMETRIC = 'symmetric'
+  POSITIVE = 'positive'
 
 
 class QuantizableLayer(base_layer.BaseLayer):
@@ -466,7 +444,8 @@ class QuantizableLayer(base_layer.BaseLayer):
       act: The activation tensor to quantize.
       weight: The weight tensor to quantizes.
       w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      act_distribution: Distribution of act; of type InputDistribution or a
+        string representing one of its members. Defaults to SYMMETRIC.
       w_expected_scale_shape: Optional shape to verify if scale shape is
         expected. Defaults to None.
 
@@ -528,7 +507,8 @@ class QuantizableLayer(base_layer.BaseLayer):
       act: The activation tensor to quantize.
       weight: The weight tensor to quantizes.
       w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      act_distribution: Distribution of act; of type InputDistribution or a
+        string representing one of its members. Defaults to SYMMETRIC.
       w_expected_scale_shape: Optional shape to verify if scale shape is
         expected. Defaults to None.
 
@@ -573,8 +553,8 @@ class QuantizableLayer(base_layer.BaseLayer):
                         act_lhs,
                         act_rhs,
                         *,
-                        act_lhs_distribution='symmetric',
-                        act_rhs_distribution='symmetric',
+                        act_lhs_distribution=InputDistribution.SYMMETRIC,
+                        act_rhs_distribution=InputDistribution.SYMMETRIC,
                         domain=None):
     """Quantizes activations for (act * act) matmul AQT style.
 
@@ -584,10 +564,10 @@ class QuantizableLayer(base_layer.BaseLayer):
     Args:
       act_lhs: Left hand side activation.
       act_rhs: Right hand side activation.
-      act_lhs_distribution: Distribution of act_lhs; either an InputDistribution
-        or a string representation of one of its members.
-      act_rhs_distribution: Distribution of act_rhs; either an InputDistribution
-        or a string representation of one of its members.
+      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution
+        or a string representing one of its members. Defaults to SYMMETRIC.
+      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution
+        or a string representing one of its members. Defaults to SYMMETRIC.
       domain: Custom domain to match (defaults to 'default').
 
     Returns:
@@ -1150,7 +1130,7 @@ class QDomain(base_layer.BaseLayer):
                 act,
                 weight,
                 w_feature_axis,
-                act_distribution,
+                act_distribution=InputDistribution.SYMMETRIC,
                 w_expected_scale_shape=None):
     """Quantizes Weights and activations for convolutions.
 
@@ -1161,7 +1141,8 @@ class QDomain(base_layer.BaseLayer):
       act: The activation tensor to quantize.
       weight: The weight tensor to quantizes.
       w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      act_distribution: Distribution of act; of type InputDistribution or a
+        string representing one of its members. Defaults to SYMMETRIC.
       w_expected_scale_shape: Optional shape to verify if scale shape is
         expected. Defaults to None.
 
@@ -1193,7 +1174,7 @@ class QDomain(base_layer.BaseLayer):
                   act,
                   weight,
                   w_feature_axis,
-                  act_distribution,
+                  act_distribution=InputDistribution.SYMMETRIC,
                   w_expected_scale_shape=None):
     """Quantizes weights and activations for (act * w) matmul AQT style.
 
@@ -1204,7 +1185,8 @@ class QDomain(base_layer.BaseLayer):
       act: The activation tensor to quantize.
       weight: The weight tensor to quantizes.
       w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act_lhs; of type InputDistribution.
+      act_distribution: Distribution of act; of type InputDistribution or a
+        string representing one of its members. Defaults to SYMMETRIC.
       w_expected_scale_shape: Optional shape to verify if scale shape is
         expected. Defaults to None.
 
@@ -1278,8 +1260,11 @@ class QDomain(base_layer.BaseLayer):
     del w_name
     return out
 
-  def ToAqtActActInputs(self, act_lhs, act_rhs, act_lhs_distribution,
-                        act_rhs_distribution):
+  def ToAqtActActInputs(self,
+                        act_lhs,
+                        act_rhs,
+                        act_lhs_distribution=InputDistribution.SYMMETRIC,
+                        act_rhs_distribution=InputDistribution.SYMMETRIC):
     """Quantizes activations for (act * act) matmul AQT style.
 
     This only scales, rounds and clips; resulting quantized acts would be
@@ -1288,8 +1273,10 @@ class QDomain(base_layer.BaseLayer):
     Args:
       act_lhs: Left hand side activation.
       act_rhs: Right hand side activation.
-      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution.
-      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution.
+      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution
+        or a string representing one of its members. Defaults to SYMMETRIC.
+      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution
+        or a string representing one of its members. Defaults to SYMMETRIC.
 
     Returns:
       Quantized activations corresponding to act_lhs and act_rhs.
