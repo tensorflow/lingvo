@@ -1145,6 +1145,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             out = activations.GetFn(p.activation)(out)
       return py_utils.ApplyPadding(self.QRPadding(paddings), out)
 
+  def FPropFullSequence(self, theta, inputs, paddings):
+    return self.FProp(theta, inputs, paddings)
+
   @property
   def _is_bn_folded(self):
     """Whether batchnorm folded weights are effectively enabled."""

@@ -2643,6 +2643,43 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(meta.out_shapes[0].ToTensorShape().as_list(),
                        input_dims[:-1] + [params.output_dim])
 
+  def testProjectionLayerFPropFullSequence(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ProjectionLayer.Params()
+      params.name = 'proj'
+      params.batch_norm = False
+      params.has_bias = True
+      params.input_dim = 3
+      params.output_dim = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+
+      proj_layer = layers.ProjectionLayer(params)
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float32)
+      padding = tf.zeros([2, 4, 1], dtype=tf.float32)
+
+      output = proj_layer.FPropFullSequence(proj_layer.theta, inputs, padding)
+      self.evaluate(tf.global_variables_initializer())
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[ 0.        ,  0.0349365 ],
+           [ 0.0119279 ,  0.09175937],
+           [ 0.01156829,  0.        ],
+           [ 0.        ,  0.00982772]],
+          [[ 0.0209812 ,  0.        ],
+           [ 0.00650877,  0.        ],
+           [ 0.        ,  0.],
+           [ 0.        ,  0.13873091]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      actual = self.evaluate(output)
+      print(['actual = ', np.array_repr(actual)])
+      self.assertAllClose(expected_output, actual)
+
 
 class StackingOverTimeLayerTest(test_utils.TestCase, parameterized.TestCase):
 
