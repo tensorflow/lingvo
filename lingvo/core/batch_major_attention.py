@@ -5026,6 +5026,7 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         'pipeline_stage_mesh_dim', None,
         'The mesh dimension to shard the pipeline stage dimension. Set '
         'this only when shard_stages_1d is False.')
+    p.Define('unroll', 'never', 'Unroll the layers: never, eval_only, always.')
     return p
 
   class WrappedStageClass:
@@ -5076,7 +5077,7 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         per_stage_vars=False,
         circular_repeat=p.circular_repeat,
         pipeline_stage_mesh_dim=p.pipeline_stage_mesh_dim,
-        unroll='never')
+        unroll=p.unroll)
     self.CreateChild('pipeline', pipeline_params)
     self.pipeline.body = self.WrappedStageClass(self.pipeline.body)
 
