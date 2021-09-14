@@ -86,7 +86,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_utils.</span></span><span class="sig-name descname"><span class="pre">InputDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#InputDistribution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/enum.html#enum.Enum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3.7/library/enum.html#enum.Enum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
 <p>Distribution type for the inputs for AqtQdomain.</p>
 <p>Symmetric distribution is for signed inputs, here we quantize the inputs using
 symmetric range around 0 i.e. in range [-max, max]. Weights are signed.
@@ -94,28 +94,44 @@ Positive distribution is for unsigned distribution, here we quantize the
 inputs in range [0, max_val]</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution.SYMMETRIC">
-<span class="sig-name descname"><span class="pre">SYMMETRIC</span></span><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.SYMMETRIC" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">SYMMETRIC</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'symmetric'</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.SYMMETRIC" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution.POSITIVE">
-<span class="sig-name descname"><span class="pre">POSITIVE</span></span><em class="property"> <span class="pre">=</span> <span class="pre">2</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.POSITIVE" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">POSITIVE</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'positive'</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.POSITIVE" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution.Parse">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#lingvo.core.quant_utils.InputDistribution" title="lingvo.core.quant_utils.InputDistribution"><span class="pre">lingvo.core.quant_utils.InputDistribution</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.core.quant_utils.InputDistribution" title="lingvo.core.quant_utils.InputDistribution"><span class="pre">lingvo.core.quant_utils.InputDistribution</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#InputDistribution.Parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution.Parse" title="Permalink to this definition"></a></dt>
-<dd><p>Parses or returns an InputDistribution.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>spec</strong> – An InputDistribution instance or the case-insensitive name of one of
-the enum values.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An InputDistribution instance.</p>
-</dd>
-</dl>
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution._generate_next_value_">
+<span class="sig-name descname"><span class="pre">_generate_next_value_</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution._generate_next_value_" title="Permalink to this definition"></a></dt>
+<dd><p>Generate the next value when not given.</p>
+<p>name: the name of the member
+start: the initial start value or None
+count: the number of existing members
+last_value: the last value assigned or None</p>
 </dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution._member_names_">
+<span class="sig-name descname"><span class="pre">_member_names_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">['SYMMETRIC',</span> <span class="pre">'POSITIVE']</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution._member_names_" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution._member_map_">
+<span class="sig-name descname"><span class="pre">_member_map_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{'POSITIVE':</span> <span class="pre">InputDistribution.POSITIVE,</span> <span class="pre">'SYMMETRIC':</span> <span class="pre">InputDistribution.SYMMETRIC}</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution._member_map_" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution._member_type_">
+<span class="sig-name descname"><span class="pre">_member_type_</span></span><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution._member_type_" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.quant_utils.InputDistribution._value2member_map_">
+<span class="sig-name descname"><span class="pre">_value2member_map_</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{'positive':</span> <span class="pre">InputDistribution.POSITIVE,</span> <span class="pre">'symmetric':</span> <span class="pre">InputDistribution.SYMMETRIC}</span></em><a class="headerlink" href="#lingvo.core.quant_utils.InputDistribution._value2member_map_" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -470,7 +486,8 @@ single axis in ‘out’.</p></li>
 <li><p><strong>act</strong> – The activation tensor to quantize.</p></li>
 <li><p><strong>weight</strong> – The weight tensor to quantizes.</p></li>
 <li><p><strong>w_feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
-<li><p><strong>act_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
+<li><p><strong>act_distribution</strong> – Distribution of act; of type InputDistribution or a
+string representing one of its members. Defaults to SYMMETRIC.</p></li>
 <li><p><strong>w_expected_scale_shape</strong> – Optional shape to verify if scale shape is
 expected. Defaults to None.</p></li>
 </ul>
@@ -515,7 +532,8 @@ either integer ot integer emulated in float.</p>
 <li><p><strong>act</strong> – The activation tensor to quantize.</p></li>
 <li><p><strong>weight</strong> – The weight tensor to quantizes.</p></li>
 <li><p><strong>w_feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
-<li><p><strong>act_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
+<li><p><strong>act_distribution</strong> – Distribution of act; of type InputDistribution or a
+string representing one of its members. Defaults to SYMMETRIC.</p></li>
 <li><p><strong>w_expected_scale_shape</strong> – Optional shape to verify if scale shape is
 expected. Defaults to None.</p></li>
 </ul>
@@ -547,7 +565,7 @@ expected. Defaults to None.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs">
-<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'symmetric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'symmetric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InputDistribution.SYMMETRIC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InputDistribution.SYMMETRIC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs" title="Permalink to this definition"></a></dt>
 <dd><p>Quantizes activations for (act * act) matmul AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized acts would be
 either integer or integer emulated in float.</p>
@@ -556,10 +574,10 @@ either integer or integer emulated in float.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>act_lhs</strong> – Left hand side activation.</p></li>
 <li><p><strong>act_rhs</strong> – Right hand side activation.</p></li>
-<li><p><strong>act_lhs_distribution</strong> – Distribution of act_lhs; either an InputDistribution
-or a string representation of one of its members.</p></li>
-<li><p><strong>act_rhs_distribution</strong> – Distribution of act_rhs; either an InputDistribution
-or a string representation of one of its members.</p></li>
+<li><p><strong>act_lhs_distribution</strong> – Distribution of act_lhs; of type InputDistribution
+or a string representing one of its members. Defaults to SYMMETRIC.</p></li>
+<li><p><strong>act_rhs_distribution</strong> – Distribution of act_rhs; of type InputDistribution
+or a string representing one of its members. Defaults to SYMMETRIC.</p></li>
 <li><p><strong>domain</strong> – Custom domain to match (defaults to ‘default’).</p></li>
 </ul>
 </dd>
@@ -1091,7 +1109,7 @@ if None.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.ToAqtConv">
-<span class="sig-name descname"><span class="pre">ToAqtConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtConv" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ToAqtConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InputDistribution.SYMMETRIC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtConv" title="Permalink to this definition"></a></dt>
 <dd><p>Quantizes Weights and activations for convolutions.</p>
 <p>Refer to quantizable_layer.ToAqtConv.</p>
 <dl class="field-list simple">
@@ -1101,7 +1119,8 @@ if None.</p>
 <li><p><strong>act</strong> – The activation tensor to quantize.</p></li>
 <li><p><strong>weight</strong> – The weight tensor to quantizes.</p></li>
 <li><p><strong>w_feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
-<li><p><strong>act_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
+<li><p><strong>act_distribution</strong> – Distribution of act; of type InputDistribution or a
+string representing one of its members. Defaults to SYMMETRIC.</p></li>
 <li><p><strong>w_expected_scale_shape</strong> – Optional shape to verify if scale shape is
 expected. Defaults to None.</p></li>
 </ul>
@@ -1134,7 +1153,7 @@ the feature axes in the output tensor.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.ToAqtInputs">
-<span class="sig-name descname"><span class="pre">ToAqtInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtInputs" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ToAqtInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_feature_axis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InputDistribution.SYMMETRIC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_expected_scale_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtInputs" title="Permalink to this definition"></a></dt>
 <dd><p>Quantizes weights and activations for (act * w) matmul AQT style.</p>
 <p>Refer to quantizable_layer.ToAqtInputs.</p>
 <dl class="field-list simple">
@@ -1144,7 +1163,8 @@ the feature axes in the output tensor.</p></li>
 <li><p><strong>act</strong> – The activation tensor to quantize.</p></li>
 <li><p><strong>weight</strong> – The weight tensor to quantizes.</p></li>
 <li><p><strong>w_feature_axis</strong> – axis corresponding to output channel/feature for weights.</p></li>
-<li><p><strong>act_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
+<li><p><strong>act_distribution</strong> – Distribution of act; of type InputDistribution or a
+string representing one of its members. Defaults to SYMMETRIC.</p></li>
 <li><p><strong>w_expected_scale_shape</strong> – Optional shape to verify if scale shape is
 expected. Defaults to None.</p></li>
 </ul>
@@ -1234,7 +1254,7 @@ single axis in ‘out’.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.quant_utils.QDomain.ToAqtActActInputs">
-<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtActActInputs" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ToAqtActActInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">act_lhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_lhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InputDistribution.SYMMETRIC</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_rhs_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">InputDistribution.SYMMETRIC</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.ToAqtActActInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.ToAqtActActInputs" title="Permalink to this definition"></a></dt>
 <dd><p>Quantizes activations for (act * act) matmul AQT style.</p>
 <p>This only scales, rounds and clips; resulting quantized acts would be
 either integer or integer emulated in float.</p>
@@ -1243,8 +1263,10 @@ either integer or integer emulated in float.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>act_lhs</strong> – Left hand side activation.</p></li>
 <li><p><strong>act_rhs</strong> – Right hand side activation.</p></li>
-<li><p><strong>act_lhs_distribution</strong> – Distribution of act_lhs; of type InputDistribution.</p></li>
-<li><p><strong>act_rhs_distribution</strong> – Distribution of act_rhs; of type InputDistribution.</p></li>
+<li><p><strong>act_lhs_distribution</strong> – Distribution of act_lhs; of type InputDistribution
+or a string representing one of its members. Defaults to SYMMETRIC.</p></li>
+<li><p><strong>act_rhs_distribution</strong> – Distribution of act_rhs; of type InputDistribution
+or a string representing one of its members. Defaults to SYMMETRIC.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

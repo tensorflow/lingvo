@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>enum &mdash; Lingvo  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Lingvo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../lingvo.html">lingvo package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Lingvo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      <li>enum</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for enum</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">MappingProxyType</span><span class="p">,</span> <span class="n">DynamicClassAttribute</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;EnumMeta&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Enum&#39;</span><span class="p">,</span> <span class="s1">&#39;IntEnum&#39;</span><span class="p">,</span> <span class="s1">&#39;Flag&#39;</span><span class="p">,</span> <span class="s1">&#39;IntFlag&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;unique&#39;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_is_descriptor</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns True if obj is a descriptor, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__get__&#39;</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__set__&#39;</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__delete__&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_is_dunder</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns True if a __dunder__ name, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span> <span class="ow">and</span>
+            <span class="n">name</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;__&#39;</span> <span class="ow">and</span>
+            <span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span> <span class="ow">and</span>
+            <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span>
+            <span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_is_sunder</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns True if a _sunder_ name, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span>
+            <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;_&#39;</span> <span class="ow">and</span>
+            <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span> <span class="ow">and</span>
+            <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span>
+            <span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_is_private</span><span class="p">(</span><span class="n">cls_name</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="c1"># do not use `re` as `re` imports `enum`</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="s1">&#39;_</span><span class="si">%s</span><span class="s1">__&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cls_name</span><span class="p">,</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">5</span>
+            <span class="ow">and</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">name</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">pattern</span><span class="p">)]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span> <span class="ow">or</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<span class="k">def</span> <span class="nf">_make_class_unpicklable</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Make the given class un-picklable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_break_on_call_reduce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proto</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%r</span><span class="s1"> cannot be pickled&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">__reduce_ex__</span> <span class="o">=</span> <span class="n">_break_on_call_reduce</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="s1">&#39;&lt;unknown&gt;&#39;</span>
+
+<span class="n">_auto_null</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+<span class="k">class</span> <span class="nc">auto</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Instances are replaced with an appropriate value in Enum class suites.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">_auto_null</span>
+
+
+<span class="k">class</span> <span class="nc">_EnumDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Track enum member order and ensure member names are not reused.</span>
+
+<span class="sd">    EnumMeta will use the names found in self._member_names as the</span>
+<span class="sd">    enumeration member names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_member_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_auto_called</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Changes anything not dundered or not a descriptor.</span>
+
+<span class="sd">        If an enum member name is used twice, an error is raised; duplicate</span>
+<span class="sd">        values are not checked for.</span>
+
+<span class="sd">        Single underscore (sunder) names are reserved.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">_is_private</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cls_name</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="kn">import</span> <span class="nn">warnings</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;private variables, such as </span><span class="si">%r</span><span class="s2">, will be normal attributes in 3.10&quot;</span>
+                        <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">),</span>
+                    <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                    <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                    <span class="p">)</span>
+        <span class="k">if</span> <span class="n">_is_sunder</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s1">&#39;_order_&#39;</span><span class="p">,</span> <span class="s1">&#39;_create_pseudo_member_&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;_generate_next_value_&#39;</span><span class="p">,</span> <span class="s1">&#39;_missing_&#39;</span><span class="p">,</span> <span class="s1">&#39;_ignore_&#39;</span><span class="p">,</span>
+                    <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;_names_ are reserved for future Enum use&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;_generate_next_value_&#39;</span><span class="p">:</span>
+                <span class="c1"># check if members already defined as auto()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auto_called</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;_generate_next_value_ must be defined before members&quot;</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_generate_next_value&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;_ignore_&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span><span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="n">already</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_member_names</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">already</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s1">&#39;_ignore_ cannot specify already set names: </span><span class="si">%r</span><span class="s1">&#39;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">already</span><span class="p">,</span> <span class="p">)</span>
+                            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">_is_dunder</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;__order__&#39;</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;_order_&#39;</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_member_names</span><span class="p">:</span>
+            <span class="c1"># descriptor overwriting an enum?</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Attempted to reuse key: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignore</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">_is_descriptor</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="c1"># enum overwriting a descriptor?</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%r</span><span class="s1"> already defined as: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">auto</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">_auto_null</span><span class="p">:</span>
+                    <span class="n">value</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_next_value</span><span class="p">(</span>
+                            <span class="n">key</span><span class="p">,</span>
+                            <span class="mi">1</span><span class="p">,</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_member_names</span><span class="p">),</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_last_values</span><span class="p">[:],</span>
+                            <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_auto_called</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_member_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+
+<span class="c1"># Dummy value for Enum as EnumMeta explicitly checks for it, but of course</span>
+<span class="c1"># until EnumMeta finishes running the first time the Enum class doesn&#39;t exist.</span>
+<span class="c1"># This is also why there are checks in EnumMeta like `if Enum is not None`</span>
+<span class="n">Enum</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="k">class</span> <span class="nc">EnumMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Metaclass for Enum</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="fm">__prepare__</span><span class="p">(</span><span class="n">metacls</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="c1"># check that previous enum members do not exist</span>
+        <span class="n">metacls</span><span class="o">.</span><span class="n">_check_for_existing_members</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">bases</span><span class="p">)</span>
+        <span class="c1"># create the namespace dict</span>
+        <span class="n">enum_dict</span> <span class="o">=</span> <span class="n">_EnumDict</span><span class="p">()</span>
+        <span class="n">enum_dict</span><span class="o">.</span><span class="n">_cls_name</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="c1"># inherit previous flags and _generate_next_value_ function</span>
+        <span class="n">member_type</span><span class="p">,</span> <span class="n">first_enum</span> <span class="o">=</span> <span class="n">metacls</span><span class="o">.</span><span class="n">_get_mixins_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">bases</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">first_enum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">enum_dict</span><span class="p">[</span><span class="s1">&#39;_generate_next_value_&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                    <span class="n">first_enum</span><span class="p">,</span> <span class="s1">&#39;_generate_next_value_&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="p">)</span>
+        <span class="k">return</span> <span class="n">enum_dict</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">metacls</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">classdict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="c1"># an Enum class is final once enumeration items have been defined; it</span>
+        <span class="c1"># cannot be mixed with other types (int, float, etc.) if it has an</span>
+        <span class="c1"># inherited __new__ unless a new __new__ is defined (or the resulting</span>
+        <span class="c1"># class will fail).</span>
+        <span class="c1">#</span>
+        <span class="c1"># remove any keys listed in _ignore_</span>
+        <span class="n">classdict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;_ignore_&#39;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;_ignore_&#39;</span><span class="p">)</span>
+        <span class="n">ignore</span> <span class="o">=</span> <span class="n">classdict</span><span class="p">[</span><span class="s1">&#39;_ignore_&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">:</span>
+            <span class="n">classdict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">member_type</span><span class="p">,</span> <span class="n">first_enum</span> <span class="o">=</span> <span class="n">metacls</span><span class="o">.</span><span class="n">_get_mixins_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">bases</span><span class="p">)</span>
+        <span class="fm">__new__</span><span class="p">,</span> <span class="n">save_new</span><span class="p">,</span> <span class="n">use_args</span> <span class="o">=</span> <span class="n">metacls</span><span class="o">.</span><span class="n">_find_new_</span><span class="p">(</span>
+                <span class="n">classdict</span><span class="p">,</span> <span class="n">member_type</span><span class="p">,</span> <span class="n">first_enum</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="c1"># save enum items into separate mapping so they don&#39;t get baked into</span>
+        <span class="c1"># the new class</span>
+        <span class="n">enum_members</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">classdict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">classdict</span><span class="o">.</span><span class="n">_member_names</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">classdict</span><span class="o">.</span><span class="n">_member_names</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">classdict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="c1"># adjust the sunders</span>
+        <span class="n">_order_</span> <span class="o">=</span> <span class="n">classdict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_order_&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># check for illegal enum names (any others?)</span>
+        <span class="n">invalid_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">enum_members</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">{</span><span class="s1">&#39;mro&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">invalid_names</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid enum member name: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">invalid_names</span><span class="p">)))</span>
+
+        <span class="c1"># create a default docstring if one has not been provided</span>
+        <span class="k">if</span> <span class="s1">&#39;__doc__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">classdict</span><span class="p">:</span>
+            <span class="n">classdict</span><span class="p">[</span><span class="s1">&#39;__doc__&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;An enumeration.&#39;</span>
+
+        <span class="n">enum_class</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">metacls</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">classdict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+        <span class="n">enum_class</span><span class="o">.</span><span class="n">_member_names_</span> <span class="o">=</span> <span class="p">[]</span>               <span class="c1"># names in definition order</span>
+        <span class="n">enum_class</span><span class="o">.</span><span class="n">_member_map_</span> <span class="o">=</span> <span class="p">{}</span>                 <span class="c1"># name-&gt;value map</span>
+        <span class="n">enum_class</span><span class="o">.</span><span class="n">_member_type_</span> <span class="o">=</span> <span class="n">member_type</span>
+
+        <span class="c1"># save DynamicClassAttribute attributes from super classes so we know</span>
+        <span class="c1"># if we can take the shortcut of storing members in the class dict</span>
+        <span class="n">dynamic_attributes</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">enum_class</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">DynamicClassAttribute</span><span class="p">)</span>
+                <span class="p">}</span>
+
+        <span class="c1"># Reverse value-&gt;name map for hashable values.</span>
+        <span class="n">enum_class</span><span class="o">.</span><span class="n">_value2member_map_</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># If a custom type is mixed into the Enum, and it does not know how</span>
+        <span class="c1"># to pickle itself, pickle.dumps will succeed but pickle.loads will</span>
+        <span class="c1"># fail.  Rather than have the error show up later and possibly far</span>
+        <span class="c1"># from the source, sabotage the pickle protocol for this class so</span>
+        <span class="c1"># that pickle.dumps also fails.</span>
+        <span class="c1">#</span>
+        <span class="c1"># However, if the new class implements its own __reduce_ex__, do not</span>
+        <span class="c1"># sabotage -- it&#39;s on them to make sure it works correctly.  We use</span>
+        <span class="c1"># __reduce_ex__ instead of any of the others as it is preferred by</span>
+        <span class="c1"># pickle over __reduce__, and it handles all pickle protocols.</span>
+        <span class="k">if</span> <span class="s1">&#39;__reduce_ex__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">classdict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">member_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">object</span><span class="p">:</span>
+                <span class="n">methods</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__getnewargs_ex__&#39;</span><span class="p">,</span> <span class="s1">&#39;__getnewargs__&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;__reduce_ex__&#39;</span><span class="p">,</span> <span class="s1">&#39;__reduce__&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">m</span> <span class="ow">in</span> <span class="n">member_type</span><span class="o">.</span><span class="vm">__dict__</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="s1">&#39;__new__&#39;</span> <span class="ow">in</span> <span class="n">classdict</span><span class="p">:</span>
+                        <span class="c1"># too late, sabotage</span>
+                        <span class="n">_make_class_unpicklable</span><span class="p">(</span><span class="n">enum_class</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># final attempt to verify that pickling would work:</span>
+                        <span class="c1"># travel mro until __new__ is found, checking for</span>
+                        <span class="c1"># __reduce__ and friends along the way -- if any of them</span>
+                        <span class="c1"># are found before/when __new__ is found, pickling should</span>
+                        <span class="c1"># work</span>
+                        <span class="n">sabotage</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">for</span> <span class="n">chain</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
+                            <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">chain</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">base</span> <span class="ow">is</span> <span class="nb">object</span><span class="p">:</span>
+                                    <span class="k">continue</span>
+                                <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">m</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="vm">__dict__</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">):</span>
+                                    <span class="c1"># found one, we&#39;re good</span>
+                                    <span class="n">sabotage</span> <span class="o">=</span> <span class="kc">False</span>
+                                    <span class="k">break</span>
+                                <span class="k">elif</span> <span class="s1">&#39;__new__&#39;</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                                    <span class="c1"># not good</span>
+                                    <span class="n">sabotage</span> <span class="o">=</span> <span class="kc">True</span>
+                                    <span class="k">break</span>
+                            <span class="k">if</span> <span class="n">sabotage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="k">break</span>
+                        <span class="k">if</span> <span class="n">sabotage</span><span class="p">:</span>
+                            <span class="n">_make_class_unpicklable</span><span class="p">(</span><span class="n">enum_class</span><span class="p">)</span>
+        <span class="c1"># instantiate them, checking for duplicates as we go</span>
+        <span class="c1"># we instantiate first instead of checking for duplicates first in case</span>
+        <span class="c1"># a custom __new__ is doing something funky with the values -- such as</span>
+        <span class="c1"># auto-numbering ;)</span>
+        <span class="k">for</span> <span class="n">member_name</span> <span class="ow">in</span> <span class="n">classdict</span><span class="o">.</span><span class="n">_member_names</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">enum_members</span><span class="p">[</span><span class="n">member_name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">if</span> <span class="n">member_type</span> <span class="ow">is</span> <span class="nb">tuple</span><span class="p">:</span>   <span class="c1"># special case for tuple enums</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="p">)</span>     <span class="c1"># wrap it one more time</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">use_args</span><span class="p">:</span>
+                <span class="n">enum_member</span> <span class="o">=</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">enum_class</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">enum_member</span><span class="p">,</span> <span class="s1">&#39;_value_&#39;</span><span class="p">):</span>
+                    <span class="n">enum_member</span><span class="o">.</span><span class="n">_value_</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">enum_member</span> <span class="o">=</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">enum_class</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">enum_member</span><span class="p">,</span> <span class="s1">&#39;_value_&#39;</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">member_type</span> <span class="ow">is</span> <span class="nb">object</span><span class="p">:</span>
+                        <span class="n">enum_member</span><span class="o">.</span><span class="n">_value_</span> <span class="o">=</span> <span class="n">value</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">enum_member</span><span class="o">.</span><span class="n">_value_</span> <span class="o">=</span> <span class="n">member_type</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">enum_member</span><span class="o">.</span><span class="n">_value_</span>
+            <span class="n">enum_member</span><span class="o">.</span><span class="n">_name_</span> <span class="o">=</span> <span class="n">member_name</span>
+            <span class="n">enum_member</span><span class="o">.</span><span class="vm">__objclass__</span> <span class="o">=</span> <span class="n">enum_class</span>
+            <span class="n">enum_member</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+            <span class="c1"># If another member with the same value was already defined, the</span>
+            <span class="c1"># new member becomes an alias to the existing one.</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">canonical_member</span> <span class="ow">in</span> <span class="n">enum_class</span><span class="o">.</span><span class="n">_member_map_</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">canonical_member</span><span class="o">.</span><span class="n">_value_</span> <span class="o">==</span> <span class="n">enum_member</span><span class="o">.</span><span class="n">_value_</span><span class="p">:</span>
+                    <span class="n">enum_member</span> <span class="o">=</span> <span class="n">canonical_member</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Aliases don&#39;t appear in member names (only in __members__).</span>
+                <span class="n">enum_class</span><span class="o">.</span><span class="n">_member_names_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">member_name</span><span class="p">)</span>
+            <span class="c1"># performance boost for any member that would not shadow</span>
+            <span class="c1"># a DynamicClassAttribute</span>
+            <span class="k">if</span> <span class="n">member_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dynamic_attributes</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">enum_class</span><span class="p">,</span> <span class="n">member_name</span><span class="p">,</span> <span class="n">enum_member</span><span class="p">)</span>
+            <span class="c1"># now add to _member_map_</span>
+            <span class="n">enum_class</span><span class="o">.</span><span class="n">_member_map_</span><span class="p">[</span><span class="n">member_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">enum_member</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># This may fail if value is not hashable. We can&#39;t add the value</span>
+                <span class="c1"># to the map, and by-value lookups for this value will be</span>
+                <span class="c1"># linear.</span>
+                <span class="n">enum_class</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="n">enum_member</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c1"># double check that repr and friends are not the mixin&#39;s or various</span>
+        <span class="c1"># things break (such as pickle)</span>
+        <span class="c1"># however, if the method is defined in the Enum itself, don&#39;t replace</span>
+        <span class="c1"># it</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;__repr__&#39;</span><span class="p">,</span> <span class="s1">&#39;__str__&#39;</span><span class="p">,</span> <span class="s1">&#39;__format__&#39;</span><span class="p">,</span> <span class="s1">&#39;__reduce_ex__&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">classdict</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">class_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">enum_class</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">obj_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">member_type</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">enum_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">first_enum</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">obj_method</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">obj_method</span> <span class="ow">is</span> <span class="n">class_method</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">enum_class</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">enum_method</span><span class="p">)</span>
+
+        <span class="c1"># replace any other __new__ with our own (as long as Enum is not None,</span>
+        <span class="c1"># anyway) -- again, this is to support pickle</span>
+        <span class="k">if</span> <span class="n">Enum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># if the user defined their own __new__, save it before it gets</span>
+            <span class="c1"># clobbered in case they subclass later</span>
+            <span class="k">if</span> <span class="n">save_new</span><span class="p">:</span>
+                <span class="n">enum_class</span><span class="o">.</span><span class="n">__new_member__</span> <span class="o">=</span> <span class="fm">__new__</span>
+            <span class="n">enum_class</span><span class="o">.</span><span class="fm">__new__</span> <span class="o">=</span> <span class="n">Enum</span><span class="o">.</span><span class="fm">__new__</span>
+
+        <span class="c1"># py3 support for definition order (helps keep py2/py3 code in sync)</span>
+        <span class="k">if</span> <span class="n">_order_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_order_</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">_order_</span> <span class="o">=</span> <span class="n">_order_</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">_order_</span> <span class="o">!=</span> <span class="n">enum_class</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;member order does not match _order_&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">enum_class</span>
+
+    <span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        classes/types should always be True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qualname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Either returns an existing member, or creates a new enum class.</span>
+
+<span class="sd">        This method is used both when an enum class is given a value to match</span>
+<span class="sd">        to an enumeration member (i.e. Color(3)) and for the functional API</span>
+<span class="sd">        (i.e. Color = Enum(&#39;Color&#39;, names=&#39;RED GREEN BLUE&#39;)).</span>
+
+<span class="sd">        When used for the functional API:</span>
+
+<span class="sd">        `value` will be the name of the new class.</span>
+
+<span class="sd">        `names` should be either a string of white-space/comma delimited names</span>
+<span class="sd">        (values will start at `start`), or an iterator/mapping of name, value pairs.</span>
+
+<span class="sd">        `module` should be set to the module this class is being created in;</span>
+<span class="sd">        if it is not set, an attempt to find that module will be made, but if</span>
+<span class="sd">        it fails the class will not be picklable.</span>
+
+<span class="sd">        `qualname` should be set to the actual location this class can be found</span>
+<span class="sd">        at in its module; by default it is set to the global scope.  If this is</span>
+<span class="sd">        not correct, unpickling will fail in some circumstances.</span>
+
+<span class="sd">        `type`, if set, will be mixed in as the first base class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># simple value lookup</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="c1"># otherwise, functional API: we&#39;re creating a new Enum type</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_</span><span class="p">(</span>
+                <span class="n">value</span><span class="p">,</span>
+                <span class="n">names</span><span class="p">,</span>
+                <span class="n">module</span><span class="o">=</span><span class="n">module</span><span class="p">,</span>
+                <span class="n">qualname</span><span class="o">=</span><span class="n">qualname</span><span class="p">,</span>
+                <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span>
+                <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">member</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">member</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;unsupported operand type(s) for &#39;in&#39;: &#39;</span><span class="si">%s</span><span class="s2">&#39; and &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">member</span><span class="p">)</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">member</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span> <span class="ow">and</span> <span class="n">member</span><span class="o">.</span><span class="n">_name_</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span>
+
+    <span class="k">def</span> <span class="fm">__delattr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="c1"># nicer error message when someone tries to delete an attribute</span>
+        <span class="c1"># (see issue19025).</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: cannot delete Enum member.&quot;</span> <span class="o">%</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+                <span class="p">[</span><span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="s1">&#39;__doc__&#39;</span><span class="p">,</span> <span class="s1">&#39;__members__&#39;</span><span class="p">,</span> <span class="s1">&#39;__module__&#39;</span><span class="p">]</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_member_names_</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the enum member matching `name`</span>
+
+<span class="sd">        We use __getattr__ instead of descriptors or inserting into the enum</span>
+<span class="sd">        class&#39; __dict__ in order to support `name` and `value` being both</span>
+<span class="sd">        properties for enum members (which live in the class&#39; __dict__) and</span>
+<span class="sd">        enum members themselves.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">_is_dunder</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns members in definition order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">__members__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a mapping of member name-&gt;value.</span>
+
+<span class="sd">        This mapping lists all enum members, including aliases. Note that this</span>
+<span class="sd">        is a read-only view of the internal mapping.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MappingProxyType</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;enum </span><span class="si">%r</span><span class="s2">&gt;&quot;</span> <span class="o">%</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
+
+    <span class="k">def</span> <span class="fm">__reversed__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns members in reverse definition order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Block attempts to reassign Enum members.</span>
+
+<span class="sd">        A simple assignment to the class namespace only changes one of the</span>
+<span class="sd">        several possible ways to get an Enum member from the Enum class,</span>
+<span class="sd">        resulting in an inconsistent Enumeration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">member_map</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;_member_map_&#39;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">member_map</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Cannot reassign members.&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_create_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">qualname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience method to create a new Enum class.</span>
+
+<span class="sd">        `names` can be:</span>
+
+<span class="sd">        * A string containing member names, separated either with spaces or</span>
+<span class="sd">          commas.  Values are incremented by 1 from `start`.</span>
+<span class="sd">        * An iterable of member names.  Values are incremented by 1 from `start`.</span>
+<span class="sd">        * An iterable of (member name, value) pairs.</span>
+<span class="sd">        * A mapping of member name -&gt; value pairs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">metacls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__class__</span>
+        <span class="n">bases</span> <span class="o">=</span> <span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="p">)</span> <span class="k">if</span> <span class="nb">type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">first_enum</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_mixins_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">bases</span><span class="p">)</span>
+        <span class="n">classdict</span> <span class="o">=</span> <span class="n">metacls</span><span class="o">.</span><span class="fm">__prepare__</span><span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">bases</span><span class="p">)</span>
+
+        <span class="c1"># special processing needed for names?</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span> <span class="ow">and</span> <span class="n">names</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">original_names</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">names</span><span class="p">,</span> <span class="p">[]</span>
+            <span class="n">last_values</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">original_names</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">first_enum</span><span class="o">.</span><span class="n">_generate_next_value_</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">last_values</span><span class="p">[:])</span>
+                <span class="n">last_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+
+        <span class="c1"># Here, names is either an iterable of (name, value) or a mapping.</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">member_name</span><span class="p">,</span> <span class="n">member_value</span> <span class="o">=</span> <span class="n">item</span><span class="p">,</span> <span class="n">names</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">member_name</span><span class="p">,</span> <span class="n">member_value</span> <span class="o">=</span> <span class="n">item</span>
+            <span class="n">classdict</span><span class="p">[</span><span class="n">member_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">member_value</span>
+        <span class="n">enum_class</span> <span class="o">=</span> <span class="n">metacls</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">metacls</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">classdict</span><span class="p">)</span>
+
+        <span class="c1"># TODO: replace the frame hack if a blessed way to know the calling</span>
+        <span class="c1"># module is ever developed</span>
+        <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">module</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">f_globals</span><span class="p">[</span><span class="s1">&#39;__name__&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">):</span>
+                <span class="k">pass</span>
+        <span class="k">if</span> <span class="n">module</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_make_class_unpicklable</span><span class="p">(</span><span class="n">enum_class</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">enum_class</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="n">module</span>
+        <span class="k">if</span> <span class="n">qualname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">enum_class</span><span class="o">.</span><span class="vm">__qualname__</span> <span class="o">=</span> <span class="n">qualname</span>
+
+        <span class="k">return</span> <span class="n">enum_class</span>
+
+    <span class="k">def</span> <span class="nf">_convert_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="nb">filter</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new Enum subclass that replaces a collection of global constants</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># convert all constants from source (or module) that pass filter() to</span>
+        <span class="c1"># a new Enum called name, and export the enum and its members back to</span>
+        <span class="c1"># module;</span>
+        <span class="c1"># also, replace the __reduce_ex__ method so unpickling works in</span>
+        <span class="c1"># previous Python versions</span>
+        <span class="n">module_globals</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">source</span><span class="p">:</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="n">module_globals</span>
+        <span class="c1"># _value2member_map_ is populated in the same order every time</span>
+        <span class="c1"># for a consistent reverse mapping of number to name when there</span>
+        <span class="c1"># are multiple names for the same number.</span>
+        <span class="n">members</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">filter</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># sort by value</span>
+            <span class="n">members</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="c1"># unless some values aren&#39;t comparable, in which case sort by name</span>
+            <span class="n">members</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">members</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="n">module</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__reduce_ex__</span> <span class="o">=</span> <span class="n">_reduce_ex_by_name</span>
+        <span class="n">module_globals</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">__members__</span><span class="p">)</span>
+        <span class="n">module_globals</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_check_for_existing_members</span><span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">bases</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">chain</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">chain</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">Enum</span><span class="p">)</span> <span class="ow">and</span> <span class="n">base</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: cannot extend enumeration </span><span class="si">%r</span><span class="s2">&quot;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">base</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+                            <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_mixins_</span><span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">bases</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the type for creating enum members, and the first inherited</span>
+<span class="sd">        enum class.</span>
+
+<span class="sd">        bases: the tuple of bases that was given to __new__</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bases</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">object</span><span class="p">,</span> <span class="n">Enum</span>
+
+        <span class="k">def</span> <span class="nf">_find_data_type</span><span class="p">(</span><span class="n">bases</span><span class="p">):</span>
+            <span class="n">data_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">chain</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
+                <span class="n">candidate</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">chain</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">base</span> <span class="ow">is</span> <span class="nb">object</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">base</span><span class="o">.</span><span class="n">_member_type_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">object</span><span class="p">:</span>
+                            <span class="n">data_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">_member_type_</span><span class="p">)</span>
+                            <span class="k">break</span>
+                    <span class="k">elif</span> <span class="s1">&#39;__new__&#39;</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+                            <span class="k">continue</span>
+                        <span class="n">data_types</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">candidate</span> <span class="ow">or</span> <span class="n">base</span><span class="p">)</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">candidate</span> <span class="o">=</span> <span class="n">candidate</span> <span class="ow">or</span> <span class="n">base</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_types</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%r</span><span class="s1">: too many data types: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">data_types</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">data_types</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data_types</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># ensure final parent class is an Enum derivative, find any concrete</span>
+        <span class="c1"># data type, and check that Enum has no members</span>
+        <span class="n">first_enum</span> <span class="o">=</span> <span class="n">bases</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">first_enum</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;new enumerations should be created as &quot;</span>
+                    <span class="s2">&quot;`EnumName([mixin_type, ...] [data_type,] enum_type)`&quot;</span><span class="p">)</span>
+        <span class="n">member_type</span> <span class="o">=</span> <span class="n">_find_data_type</span><span class="p">(</span><span class="n">bases</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">object</span>
+        <span class="k">if</span> <span class="n">first_enum</span><span class="o">.</span><span class="n">_member_names_</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Cannot extend enumerations&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">member_type</span><span class="p">,</span> <span class="n">first_enum</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_find_new_</span><span class="p">(</span><span class="n">classdict</span><span class="p">,</span> <span class="n">member_type</span><span class="p">,</span> <span class="n">first_enum</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the __new__ to be used for creating the enum members.</span>
+
+<span class="sd">        classdict: the class dictionary given to __new__</span>
+<span class="sd">        member_type: the data type whose __new__ will be used by default</span>
+<span class="sd">        first_enum: enumeration to check for an overriding __new__</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># now find the correct __new__, checking to see of one was defined</span>
+        <span class="c1"># by the user; also check earlier enum classes in case a __new__ was</span>
+        <span class="c1"># saved as __new_member__</span>
+        <span class="fm">__new__</span> <span class="o">=</span> <span class="n">classdict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;__new__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># should __new__ be saved as __new_member__ later?</span>
+        <span class="n">save_new</span> <span class="o">=</span> <span class="fm">__new__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="fm">__new__</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># check all possibles for __new_member__ before falling back to</span>
+            <span class="c1"># __new__</span>
+            <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;__new_member__&#39;</span><span class="p">,</span> <span class="s1">&#39;__new__&#39;</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">possible</span> <span class="ow">in</span> <span class="p">(</span><span class="n">member_type</span><span class="p">,</span> <span class="n">first_enum</span><span class="p">):</span>
+                    <span class="n">target</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">possible</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span>
+                            <span class="kc">None</span><span class="p">,</span>
+                            <span class="kc">None</span><span class="o">.</span><span class="fm">__new__</span><span class="p">,</span>
+                            <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">,</span>
+                            <span class="n">Enum</span><span class="o">.</span><span class="fm">__new__</span><span class="p">,</span>
+                            <span class="p">}:</span>
+                        <span class="fm">__new__</span> <span class="o">=</span> <span class="n">target</span>
+                        <span class="k">break</span>
+                <span class="k">if</span> <span class="fm">__new__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="fm">__new__</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span>
+
+        <span class="c1"># if a non-object.__new__ is used then whatever value/tuple was</span>
+        <span class="c1"># assigned to the enum member name will be passed to __new__ and to the</span>
+        <span class="c1"># new enum member&#39;s __init__</span>
+        <span class="k">if</span> <span class="fm">__new__</span> <span class="ow">is</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">:</span>
+            <span class="n">use_args</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">use_args</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="fm">__new__</span><span class="p">,</span> <span class="n">save_new</span><span class="p">,</span> <span class="n">use_args</span>
+
+
+<span class="k">class</span> <span class="nc">Enum</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">EnumMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generic enumeration.</span>
+
+<span class="sd">    Derive from this class to define new enumerations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># all enum instances are actually created during class construction</span>
+        <span class="c1"># without calling this method; this method is called by the metaclass&#39;</span>
+        <span class="c1"># __call__ (i.e. Color(3) ), and by pickle</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">cls</span><span class="p">:</span>
+            <span class="c1"># For lookups like Color(Color.RED)</span>
+            <span class="k">return</span> <span class="n">value</span>
+        <span class="c1"># by-value search for a matching enum member</span>
+        <span class="c1"># see if it&#39;s in the reverse mapping (for hashable values)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="p">[</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="c1"># Not found, no need to do long O(n) search</span>
+            <span class="k">pass</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="c1"># not there, now do long search -- O(n) behavior</span>
+            <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_member_map_</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">member</span><span class="o">.</span><span class="n">_value_</span> <span class="o">==</span> <span class="n">value</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">member</span>
+        <span class="c1"># still not found -- try _missing_ hook</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">exc</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_missing_</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">exc</span> <span class="o">=</span> <span class="n">e</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">result</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ve_exc</span> <span class="o">=</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%r</span><span class="s2"> is not a valid </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">exc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ve_exc</span>
+                <span class="k">elif</span> <span class="n">exc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">exc</span> <span class="o">=</span> <span class="ne">TypeError</span><span class="p">(</span>
+                            <span class="s1">&#39;error in </span><span class="si">%s</span><span class="s1">._missing_: returned </span><span class="si">%r</span><span class="s1"> instead of None or a valid member&#39;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+                            <span class="p">)</span>
+                <span class="n">exc</span><span class="o">.</span><span class="n">__context__</span> <span class="o">=</span> <span class="n">ve_exc</span>
+                <span class="k">raise</span> <span class="n">exc</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="c1"># ensure all variables that could hold an exception are destroyed</span>
+            <span class="n">exc</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">ve_exc</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_generate_next_value_</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">last_values</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate the next value when not given.</span>
+
+<span class="sd">        name: the name of the member</span>
+<span class="sd">        start: the initial start value or None</span>
+<span class="sd">        count: the number of existing members</span>
+<span class="sd">        last_value: the last value assigned or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">last_value</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">last_values</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">last_value</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">start</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_missing_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">%s</span><span class="s2">.</span><span class="si">%s</span><span class="s2">: </span><span class="si">%r</span><span class="s2">&gt;&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns all members and all public methods</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">added_behavior</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">m</span>
+                <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">mro</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span>
+                <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span> <span class="ow">and</span> <span class="n">m</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_member_map_</span>
+                <span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span> <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">([</span><span class="s1">&#39;__class__&#39;</span><span class="p">,</span> <span class="s1">&#39;__doc__&#39;</span><span class="p">,</span> <span class="s1">&#39;__module__&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">added_behavior</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns format using actual value type unless __str__ has been overridden.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># mixed-in Enums should use the mixed-in type&#39;s __format__, otherwise</span>
+        <span class="c1"># we can get strange results with the Enum name showing up instead of</span>
+        <span class="c1"># the value</span>
+
+        <span class="c1"># pure Enum branch, or branch with __str__ explicitly overridden</span>
+        <span class="n">str_overridden</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__str__</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Enum</span><span class="o">.</span><span class="fm">__str__</span><span class="p">,</span> <span class="n">Flag</span><span class="o">.</span><span class="fm">__str__</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_member_type_</span> <span class="ow">is</span> <span class="nb">object</span> <span class="ow">or</span> <span class="n">str_overridden</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="nb">str</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># mix-in branch</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_member_type_</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__format__</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__reduce_ex__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proto</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">,</span> <span class="p">)</span>
+
+    <span class="c1"># DynamicClassAttribute is used to provide access to the `name` and</span>
+    <span class="c1"># `value` properties of enum members while keeping some measure of</span>
+    <span class="c1"># protection from modification, while still allowing for an enumeration</span>
+    <span class="c1"># to have members named `name` and `value`.  This works because enumeration</span>
+    <span class="c1"># members are not set directly on the enum class -- __getattr__ is</span>
+    <span class="c1"># used to look them up.</span>
+
+    <span class="nd">@DynamicClassAttribute</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The name of the Enum member.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span>
+
+    <span class="nd">@DynamicClassAttribute</span>
+    <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The value of the Enum member.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span>
+
+
+<span class="k">class</span> <span class="nc">IntEnum</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Enum where members are also (and must be) ints&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_reduce_ex_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proto</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+<span class="k">class</span> <span class="nc">Flag</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Support for flags</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_generate_next_value_</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">last_values</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate the next value when not given.</span>
+
+<span class="sd">        name: the name of the member</span>
+<span class="sd">        start: the initial start value or None</span>
+<span class="sd">        count: the number of existing members</span>
+<span class="sd">        last_value: the last value assigned or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">count</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">start</span> <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">last_value</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">last_values</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">high_bit</span> <span class="o">=</span> <span class="n">_high_bit</span><span class="p">(</span><span class="n">last_value</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Invalid Flag value: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">last_value</span><span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">high_bit</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_missing_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns member (possibly creating it) if one can be found for value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">original_value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="o">~</span><span class="n">value</span>
+        <span class="n">possible_member</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_pseudo_member_</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">original_value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">possible_member</span> <span class="o">=</span> <span class="o">~</span><span class="n">possible_member</span>
+        <span class="k">return</span> <span class="n">possible_member</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_pseudo_member_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a composite member iff value contains only members.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pseudo_member</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pseudo_member</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># verify all bits are accounted for</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">extra_flags</span> <span class="o">=</span> <span class="n">_decompose</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">extra_flags</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%r</span><span class="s2"> is not a valid </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>
+            <span class="c1"># construct a singleton enum pseudo-member</span>
+            <span class="n">pseudo_member</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+            <span class="n">pseudo_member</span><span class="o">.</span><span class="n">_name_</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">pseudo_member</span><span class="o">.</span><span class="n">_value_</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="c1"># use setdefault in case another thread already created a composite</span>
+            <span class="c1"># with this value</span>
+            <span class="n">pseudo_member</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">pseudo_member</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pseudo_member</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns True if self has at least the same flags set as other.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;unsupported operand type(s) for &#39;in&#39;: &#39;</span><span class="si">%s</span><span class="s2">&#39; and &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">_value_</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_value_</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+        <span class="n">members</span><span class="p">,</span> <span class="n">uncovered</span> <span class="o">=</span> <span class="n">_decompose</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;&lt;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&gt;&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">_name_</span> <span class="ow">or</span> <span class="n">m</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">members</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">,</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span><span class="p">)</span>
+        <span class="n">members</span><span class="p">,</span> <span class="n">uncovered</span> <span class="o">=</span> <span class="n">_decompose</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">members</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_name_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">members</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">_name_</span> <span class="ow">or</span> <span class="n">m</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">members</span><span class="p">]),</span>
+                    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span> <span class="o">|</span> <span class="n">other</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span> <span class="o">&amp;</span> <span class="n">other</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__xor__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span> <span class="o">^</span> <span class="n">other</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">members</span><span class="p">,</span> <span class="n">uncovered</span> <span class="o">=</span> <span class="n">_decompose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+        <span class="n">inverted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">members</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">_value_</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">):</span>
+                <span class="n">inverted</span> <span class="o">=</span> <span class="n">inverted</span> <span class="o">|</span> <span class="n">m</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">inverted</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IntFlag</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">Flag</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Support for integer-based Flags</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_missing_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns member (possibly creating it) if one can be found for value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%r</span><span class="s2"> is not a valid </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">))</span>
+        <span class="n">new_member</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_pseudo_member_</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_member</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_pseudo_member_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a composite member iff value contains only members.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pseudo_member</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pseudo_member</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">need_to_create</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+            <span class="c1"># get unaccounted for bits</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">extra_flags</span> <span class="o">=</span> <span class="n">_decompose</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="c1"># timer = 10</span>
+            <span class="k">while</span> <span class="n">extra_flags</span><span class="p">:</span>
+                <span class="c1"># timer -= 1</span>
+                <span class="n">bit</span> <span class="o">=</span> <span class="n">_high_bit</span><span class="p">(</span><span class="n">extra_flags</span><span class="p">)</span>
+                <span class="n">flag_value</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">bit</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">flag_value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_value2member_map_</span> <span class="ow">and</span>
+                        <span class="n">flag_value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">need_to_create</span>
+                        <span class="p">):</span>
+                    <span class="n">need_to_create</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flag_value</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">extra_flags</span> <span class="o">==</span> <span class="o">-</span><span class="n">flag_value</span><span class="p">:</span>
+                    <span class="n">extra_flags</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">extra_flags</span> <span class="o">^=</span> <span class="n">flag_value</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">need_to_create</span><span class="p">):</span>
+                <span class="c1"># construct singleton pseudo-members</span>
+                <span class="n">pseudo_member</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="n">pseudo_member</span><span class="o">.</span><span class="n">_name_</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">pseudo_member</span><span class="o">.</span><span class="n">_value_</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="c1"># use setdefault in case another thread already created a composite</span>
+                <span class="c1"># with this value</span>
+                <span class="n">pseudo_member</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">pseudo_member</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pseudo_member</span>
+
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span> <span class="o">|</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__xor__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="nb">int</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span> <span class="o">^</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+
+    <span class="fm">__ror__</span> <span class="o">=</span> <span class="fm">__or__</span>
+    <span class="fm">__rand__</span> <span class="o">=</span> <span class="fm">__and__</span>
+    <span class="fm">__rxor__</span> <span class="o">=</span> <span class="fm">__xor__</span>
+
+    <span class="k">def</span> <span class="fm">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">_high_bit</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    returns index of highest bit, or -1 if value is zero or negative</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+
+<span class="k">def</span> <span class="nf">unique</span><span class="p">(</span><span class="n">enumeration</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class decorator for enumerations ensuring unique member values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">duplicates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">enumeration</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">member</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">duplicates</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">member</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">duplicates</span><span class="p">:</span>
+        <span class="n">alias_details</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="p">[</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> -&gt; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">alias</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">alias</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="n">duplicates</span><span class="p">])</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;duplicate values found in </span><span class="si">%r</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">enumeration</span><span class="p">,</span> <span class="n">alias_details</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">enumeration</span>
+
+<span class="k">def</span> <span class="nf">_decompose</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract all members from the value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># _decompose is only called if the value is not named</span>
+    <span class="n">not_covered</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="n">negative</span> <span class="o">=</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span>
+    <span class="n">members</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">member</span> <span class="ow">in</span> <span class="n">flag</span><span class="p">:</span>
+        <span class="n">member_value</span> <span class="o">=</span> <span class="n">member</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">if</span> <span class="n">member_value</span> <span class="ow">and</span> <span class="n">member_value</span> <span class="o">&amp;</span> <span class="n">value</span> <span class="o">==</span> <span class="n">member_value</span><span class="p">:</span>
+            <span class="n">members</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">member</span><span class="p">)</span>
+            <span class="n">not_covered</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">member_value</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">negative</span><span class="p">:</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">not_covered</span>
+        <span class="k">while</span> <span class="n">tmp</span><span class="p">:</span>
+            <span class="n">flag_value</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="n">_high_bit</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">flag_value</span> <span class="ow">in</span> <span class="n">flag</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="p">:</span>
+                <span class="n">members</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flag</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="p">[</span><span class="n">flag_value</span><span class="p">])</span>
+                <span class="n">not_covered</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">flag_value</span>
+            <span class="n">tmp</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">flag_value</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">members</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">flag</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="p">:</span>
+        <span class="n">members</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flag</span><span class="o">.</span><span class="n">_value2member_map_</span><span class="p">[</span><span class="n">value</span><span class="p">])</span>
+    <span class="n">members</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">_value_</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">members</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">value</span><span class="p">:</span>
+        <span class="c1"># we have the breakdown, don&#39;t need the value member itself</span>
+        <span class="n">members</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">members</span><span class="p">,</span> <span class="n">not_covered</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
