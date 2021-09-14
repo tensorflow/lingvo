@@ -113,9 +113,10 @@
 <span class="c1"># pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top</span>
 
 <span class="k">if</span> <span class="n">tf2</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
-  <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Lingvo with eager execution is not well tested. Consider &quot;</span>
-                  <span class="s2">&quot;disabling eager with tf.compat.v1.disable_eager_execution() &quot;</span>
-                  <span class="s2">&quot;or proceed at your own risk.&quot;</span><span class="p">)</span>
+  <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+      <span class="s2">&quot;Lingvo with eager execution is in early development. &quot;</span>
+      <span class="s2">&quot;Please reach out to go/lingvo-eager-migration with bugs. &quot;</span>
+      <span class="s2">&quot;Eager mode can be disable with tf.compat.v1.disable_eager_execution().&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="_clone_module"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat._clone_module">[docs]</a><span class="k">def</span> <span class="nf">_clone_module</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
