@@ -1210,6 +1210,9 @@
             <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="n">out</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="ProjectionLayer.FPropFullSequence"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.FPropFullSequence">[docs]</a>  <span class="k">def</span> <span class="nf">FPropFullSequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span></div>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_is_bn_folded</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Whether batchnorm folded weights are effectively enabled.&quot;&quot;&quot;</span>
