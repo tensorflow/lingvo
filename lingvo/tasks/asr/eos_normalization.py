@@ -73,7 +73,7 @@ def NormalizeTrailingEos(ids: tf.Tensor,
       length.
   """
   new_ids = FillPaddingPos(ids, id_len, padding_value=eos_id)
-  batch_size, max_len = py_utils.GetShape(new_ids)
+  batch_size, max_len = py_utils.GetShape(new_ids, 2)
   indices_x = tf.range(batch_size)
   indices_y = tf.maximum(id_len - 1, 0)
   indices = tf.concat([indices_x[:, tf.newaxis], indices_y[:, tf.newaxis]],
