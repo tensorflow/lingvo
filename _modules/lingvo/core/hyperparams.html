@@ -239,7 +239,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_value</span></div></div>
 
 
-<div class="viewcode-block" id="CopyFieldsTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.CopyFieldsTo">[docs]</a><span class="k">def</span> <span class="nf">CopyFieldsTo</span><span class="p">(</span><span class="n">from_p</span><span class="p">,</span> <span class="n">to_p</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CopyFieldsTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.CopyFieldsTo">[docs]</a><span class="k">def</span> <span class="nf">CopyFieldsTo</span><span class="p">(</span><span class="n">from_p</span><span class="p">,</span> <span class="n">to_p</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_unknown_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Copy fields from one Params to another, with optional skipped params.</span>
 
 <span class="sd">  Preserves `type(to_p.Instantiate())`. Use `from_p.Copy()` instead if requiring</span>
@@ -250,6 +250,10 @@
 <span class="sd">    to_p: Destination params to copy to.</span>
 <span class="sd">    skip: A string, a list of strings or None. Param names to skip.</span>
 <span class="sd">      Automatically skips InstantiableParams&#39; &#39;cls&#39; parameter.</span>
+<span class="sd">    ignore_unknown_keys: if False: it will copy all keys and</span>
+<span class="sd">      it will fail if from_p has a key that does not exist in to_p.</span>
+<span class="sd">      If True: it will copy only keys which are common; it will not fail if</span>
+<span class="sd">      there is no common keys at all; it will ignore keys which are different.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The updated to_p.</span>
@@ -260,13 +264,15 @@
     <span class="n">skip</span> <span class="o">=</span> <span class="p">[</span><span class="n">skip</span><span class="p">]</span>
 
   <span class="n">skip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">)</span>
-  <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">from_p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">skip</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">from_p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">skip</span><span class="p">:</span>
       <span class="k">continue</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
-      <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()})</span>
+    <span class="k">if</span> <span class="n">ignore_unknown_keys</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_p</span><span class="p">:</span>
+      <span class="k">continue</span>  <span class="c1"># with ignore_unknown_keys=True, ignore keys which are different</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
+      <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">Copy</span><span class="p">()})</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="p">})</span>
+      <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="p">})</span>
   <span class="k">return</span> <span class="n">to_p</span></div>
 
 
@@ -374,6 +380,10 @@
     <span class="n">res</span><span class="o">.</span><span class="n">_immutable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span>
     <span class="c1"># pylint: enable=protected-access</span>
     <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="Params.MergeCommonKeysFrom"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.MergeCommonKeysFrom">[docs]</a>  <span class="k">def</span> <span class="nf">MergeCommonKeysFrom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">ParamsT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParamsT</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Merges common keys content from other with itself.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">CopyFieldsTo</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">ignore_unknown_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
   <span class="c1"># TODO(sadovsky):</span>
   <span class="c1"># - Maybe let users specify whether this parameter is allowed to have</span>
