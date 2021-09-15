@@ -869,10 +869,8 @@ class GroupNormLayer(base_layer.BaseLayer):
 
       if paddings is None and not p.cumulative:
         # Fast path on tpu without reshape.
-        counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
+        group_mean, group_variance = tf.nn.moments(
             x, axes=reduce_over_dims, keepdims=True)
-        group_mean, group_variance = tf.nn.normalize_moments(
-            counts, means_ss, variance_ss, None)
       else:
         expanded_paddings = tf.reshape(
             paddings, input_shape[:2] + [1] * (expanded_rank - 2))
