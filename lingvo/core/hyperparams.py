@@ -174,7 +174,7 @@ class _Param:
     return self._default_value
 
 
-def CopyFieldsTo(from_p, to_p, skip=None):
+def CopyFieldsTo(from_p, to_p, skip=None, ignore_unknown_keys=False):
   """Copy fields from one Params to another, with optional skipped params.
 
   Preserves `type(to_p.Instantiate())`. Use `from_p.Copy()` instead if requiring
@@ -185,6 +185,10 @@ def CopyFieldsTo(from_p, to_p, skip=None):
     to_p: Destination params to copy to.
     skip: A string, a list of strings or None. Param names to skip.
       Automatically skips InstantiableParams' 'cls' parameter.
+    ignore_unknown_keys: if False: it will copy all keys and
+      it will fail if from_p has a key that does not exist in to_p.
+      If True: it will copy only keys which are common; it will not fail if
+      there is no common keys at all; it will ignore keys which are different.
 
   Returns:
     The updated to_p.
@@ -195,13 +199,15 @@ def CopyFieldsTo(from_p, to_p, skip=None):
     skip = [skip]
 
   skip.append('cls')
-  for n, p in from_p.IterParams():
-    if n in skip:
+  for key, value in from_p.IterParams():
+    if key in skip:
       continue
-    if isinstance(p, Params):
-      to_p.Set(**{n: p.Copy()})
+    if ignore_unknown_keys and key not in to_p:
+      continue  # with ignore_unknown_keys=True, ignore keys which are different
+    if isinstance(value, Params):
+      to_p.Set(**{key: value.Copy()})
     else:
-      to_p.Set(**{n: p})
+      to_p.Set(**{key: value})
   return to_p
 
 
@@ -309,6 +315,10 @@ class Params:
     res._immutable = self._immutable
     # pylint: enable=protected-access
     return res
+
+  def MergeCommonKeysFrom(self, other: ParamsT) -> ParamsT:
+    """Merges common keys content from other with itself."""
+    return CopyFieldsTo(other, self, ignore_unknown_keys=True)
 
   # TODO(sadovsky):
   # - Maybe let users specify whether this parameter is allowed to have

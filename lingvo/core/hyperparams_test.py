@@ -16,9 +16,9 @@
 """Tests for hyperparams."""
 
 import collections
+import dataclasses
 import enum
 
-import dataclasses
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import hyperparams_pb2
@@ -129,6 +129,36 @@ class ParamsTest(test_utils.TestCase):
     hyperparams.CopyFieldsTo(source, dest, skip=['b', 'c'])
     self.assertEqual(source.a, dest.a)
     self.assertNotIn('b', dest)
+    self.assertNotIn('c', dest)
+
+  def testCopyFieldsToMissingKeyInDest(self):
+    source = hyperparams.Params()
+    dest = hyperparams.Params()
+    source.Define('a', 'a', '')
+    dest.Define('b', 'b', '')
+    with self.assertRaises(AttributeError):
+      hyperparams.CopyFieldsTo(source, dest)
+
+  def testCopyFieldsToMoreKeyInDest(self):
+    source = hyperparams.Params()
+    dest = hyperparams.Params()
+    source.Define('b', 'b', '')
+    dest.Define('b', '', '')
+    dest.Define('a', 'a', '')
+    hyperparams.CopyFieldsTo(source, dest)
+    self.assertEqual(dest.b, source.b)
+    self.assertEqual('a', dest.a)
+
+  def testCopyFieldsToDifferentKeysWithMerge(self):
+    source = hyperparams.Params()
+    dest = hyperparams.Params()
+    source.Define('a', 'a', '')
+    source.Define('c', 'c', '')
+    dest.Define('a', '', '')
+    dest.Define('b', 'b', '')
+    hyperparams.CopyFieldsTo(source, dest, ignore_unknown_keys=True)
+    self.assertEqual(source.a, dest.a)
+    self.assertEqual('b', dest.b)
     self.assertNotIn('c', dest)
 
   def testCopyFieldsToDoesNotCopyClass(self):
@@ -794,6 +824,25 @@ escaping_single : 'In "quotes"'
     self.assertIsInstance(obj, InstantiableClass)
     self.assertEqual(obj.params.new_param, 'hi')
     self.assertEqual(obj.other, 15)
+
+  def testMergeCommonKeysFrom(self):
+    source = hyperparams.Params()
+    source.Define('a', 'a', '')
+    source.Define('b', 'b', '')
+
+    dest = hyperparams.Params()
+    dest.Define('a', '', '')
+    dest.Define('d', 'd', '')
+    dest.MergeCommonKeysFrom(source)
+    self.assertEqual(source.a, dest.a)
+    self.assertEqual(dest.d, 'd')
+    self.assertNotIn('b', dest)
+
+  def testMergeCommonKeysFromDoesNotCopyClass(self):
+    source = hyperparams.InstantiableParams(hyperparams.Params)
+    dest = hyperparams.InstantiableParams(hyperparams.InstantiableParams)
+    dest.MergeCommonKeysFrom(source)
+    self.assertEqual(dest.cls, hyperparams.InstantiableParams)
 
 
 if __name__ == '__main__':
