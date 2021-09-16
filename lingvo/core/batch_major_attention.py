@@ -5149,10 +5149,9 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         'ExtendStep',
         query_vec,
         padded_per_stage_states=[cached_states],
+        kwargs_no_batch={'time_step': time_step},
         aux_vec=aux_vec,
         aux_paddings=aux_paddings,
-        time_step=tf.broadcast_to(time_step,
-                                  py_utils.GetShape(query_vec)[:1]),
         use_short_seq_opt=use_short_seq_opt,
         **kwargs)
 

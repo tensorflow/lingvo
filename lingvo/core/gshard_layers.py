@@ -467,11 +467,23 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           'When using single_stage_body, non-trainable vars are only supported '
           'when per_stage_vars=False and shard_stages_1d=True.')
 
-  def BodyFProp(self, theta, fn_name, iteration, num_microbatches, *args,
+  def BodyFProp(self,
+                theta,
+                fn_name,
+                iteration,
+                num_microbatches,
+                *args,
+                kwargs_no_batch=None,
                 **kwargs):
     p = self.params
     outputs, control_out, aux_losses = self._BodyFPropInternal(
-        theta, fn_name, iteration, num_microbatches, *args, **kwargs)
+        theta,
+        fn_name,
+        iteration,
+        num_microbatches,
+        *args,
+        kwargs_no_batch=kwargs_no_batch,
+        **kwargs)
 
     outer_aux_loss_context = py_utils.AuxLossContext.Current()
     if outer_aux_loss_context:
@@ -505,8 +517,14 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       repeat_id = tf.zeros_like(stage_ids)
     return microbatch_ids, repeat_id
 
-  def _BodyFPropInternal(self, theta, fn_name, iteration, num_microbatches,
-                         *args, **kwargs):
+  def _BodyFPropInternal(self,
+                         theta,
+                         fn_name,
+                         iteration,
+                         num_microbatches,
+                         *args,
+                         kwargs_no_batch=None,
+                         **kwargs):
     p = self.params
     wrappers = []
 
@@ -537,6 +555,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           return outs, control_out, al_ctx.aux_losses
 
     if p.stage_parallel_body is not None:
+      for key, val in (kwargs_no_batch or {}).items():
+        kwargs[key] = val
       return _BodyFProp(theta, *args, **kwargs)
 
     theta_args = py_utils.NestedMap(theta=theta, args=args)
@@ -556,7 +576,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       seeds = gshard_utils.Replicate(seeds)
 
       def _ToManual(x, var=None):
-        if not isinstance(x, (tf.Operation, tf.Tensor)):
+        if not isinstance(x, (tf.Operation, tf.Tensor, tf.Variable)):
           return x
         if var is None:
           sharding = gshard_utils.GetMeshSplitSharding(
@@ -611,6 +631,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return _ToManualReplicate(x)[microbatch_id]
 
       one_stage_theta_args.kwargs = tf.nest.map_structure(_KwargSlice, kwargs)
+      for key, val in (kwargs_no_batch or {}).items():
+        one_stage_theta_args.kwargs[key] = tf.nest.map_structure(
+            _ToManualReplicate, val)
 
       # Wrap non-trainable vars with StackedVarWrapperWithManualSharding, in
       # case they are accessed directly in FProp (e.g., batch norm vars).
@@ -663,6 +686,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         return tf.gather(x, microbatch_id)
 
       theta_args.kwargs = tf.nest.map_structure(_KwargSlice, kwargs)
+      for key, val in (kwargs_no_batch or {}).items():
+        theta_args.kwargs[key] = val
       return tf.vectorized_map(
           _BodyFProp, theta_args, fallback_to_while_loop=False)
 
@@ -740,7 +765,13 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
     return padded
 
-  def FPropFn(self, theta, fn_name, *args, padded_per_stage_states, **kwargs):
+  def FPropFn(self,
+              theta,
+              fn_name,
+              *args,
+              padded_per_stage_states,
+              kwargs_no_batch=None,
+              **kwargs):
     """Runs forward pass on a specified function."""
     p = self.params
 
@@ -921,10 +952,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       def _BodyFPropWithAuxLoss():
         with py_utils.AuxLossContext(reentrant=True) as al_ctx:
-          fprop_outputs, ctrl = self.BodyFProp(theta, fn_name, state0.iteration,
-                                               num_microbatches,
-                                               *selected_inputs,
-                                               *per_stage_states, **kwargs)
+          fprop_outputs, ctrl = self.BodyFProp(
+              theta,
+              fn_name,
+              state0.iteration,
+              num_microbatches,
+              *selected_inputs,
+              *per_stage_states,
+              kwargs_no_batch=kwargs_no_batch,
+              **kwargs)
           aux_losses = al_ctx.aux_losses
         return fprop_outputs, ctrl, aux_losses
 
@@ -1011,7 +1047,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           extras={},
           allow_implicit_capture=p.allow_implicit_capture,
           allowed_tensor_captures=self._non_trainable_vars + [
-              x for x in py_utils.Flatten(kwargs)
+              x for x in py_utils.Flatten([kwargs, kwargs_no_batch])
               if isinstance(x, (tf.Operation, tf.Tensor))
           ],
           backward_cleanup=(_RestoreVarsToFinal
