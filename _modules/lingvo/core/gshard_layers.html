@@ -532,11 +532,23 @@
           <span class="s1">&#39;When using single_stage_body, non-trainable vars are only supported &#39;</span>
           <span class="s1">&#39;when per_stage_vars=False and shard_stages_1d=True.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">theta</span><span class="p">,</span>
+                <span class="n">fn_name</span><span class="p">,</span>
+                <span class="n">iteration</span><span class="p">,</span>
+                <span class="n">num_microbatches</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">outputs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">aux_losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BodyFPropInternal</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">fn_name</span><span class="p">,</span>
+        <span class="n">iteration</span><span class="p">,</span>
+        <span class="n">num_microbatches</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="n">kwargs_no_batch</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">outer_aux_loss_context</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">outer_aux_loss_context</span><span class="p">:</span>
@@ -570,8 +582,14 @@
       <span class="n">repeat_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">stage_ids</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">microbatch_ids</span><span class="p">,</span> <span class="n">repeat_id</span></div>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._BodyFPropInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_BodyFPropInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">,</span>
-                         <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._BodyFPropInternal"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._BodyFPropInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_BodyFPropInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">theta</span><span class="p">,</span>
+                         <span class="n">fn_name</span><span class="p">,</span>
+                         <span class="n">iteration</span><span class="p">,</span>
+                         <span class="n">num_microbatches</span><span class="p">,</span>
+                         <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                         <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">wrappers</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -602,6 +620,8 @@
           <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">al_ctx</span><span class="o">.</span><span class="n">aux_losses</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="n">kwargs_no_batch</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
       <span class="k">return</span> <span class="n">_BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">theta_args</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
@@ -621,7 +641,7 @@
       <span class="n">seeds</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Replicate</span><span class="p">(</span><span class="n">seeds</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_ToManual</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)):</span>
           <span class="k">return</span> <span class="n">x</span>
         <span class="k">if</span> <span class="n">var</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">sharding</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetMeshSplitSharding</span><span class="p">(</span>
@@ -676,6 +696,9 @@
         <span class="k">return</span> <span class="n">_ToManualReplicate</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="n">microbatch_id</span><span class="p">]</span>
 
       <span class="n">one_stage_theta_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_KwargSlice</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="n">kwargs_no_batch</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">one_stage_theta_args</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+            <span class="n">_ToManualReplicate</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
       <span class="c1"># Wrap non-trainable vars with StackedVarWrapperWithManualSharding, in</span>
       <span class="c1"># case they are accessed directly in FProp (e.g., batch norm vars).</span>
@@ -728,6 +751,8 @@
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">microbatch_id</span><span class="p">)</span>
 
       <span class="n">theta_args</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_KwargSlice</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="n">kwargs_no_batch</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">theta_args</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">vectorized_map</span><span class="p">(</span>
           <span class="n">_BodyFProp</span><span class="p">,</span> <span class="n">theta_args</span><span class="p">,</span> <span class="n">fallback_to_while_loop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
@@ -805,7 +830,13 @@
 
     <span class="k">return</span> <span class="n">padded</span></div>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.FPropFn"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FPropFn">[docs]</a>  <span class="k">def</span> <span class="nf">FPropFn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">padded_per_stage_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.FPropFn"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.FPropFn">[docs]</a>  <span class="k">def</span> <span class="nf">FPropFn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">theta</span><span class="p">,</span>
+              <span class="n">fn_name</span><span class="p">,</span>
+              <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+              <span class="n">padded_per_stage_states</span><span class="p">,</span>
+              <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs forward pass on a specified function.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -986,10 +1017,15 @@
 
       <span class="k">def</span> <span class="nf">_BodyFPropWithAuxLoss</span><span class="p">():</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="p">(</span><span class="n">reentrant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">al_ctx</span><span class="p">:</span>
-          <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
-                                               <span class="n">num_microbatches</span><span class="p">,</span>
-                                               <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
-                                               <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+          <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span>
+              <span class="n">theta</span><span class="p">,</span>
+              <span class="n">fn_name</span><span class="p">,</span>
+              <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
+              <span class="n">num_microbatches</span><span class="p">,</span>
+              <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
+              <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span>
+              <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="n">kwargs_no_batch</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
           <span class="n">aux_losses</span> <span class="o">=</span> <span class="n">al_ctx</span><span class="o">.</span><span class="n">aux_losses</span>
         <span class="k">return</span> <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">aux_losses</span>
 
@@ -1076,7 +1112,7 @@
           <span class="n">extras</span><span class="o">=</span><span class="p">{},</span>
           <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">,</span>
           <span class="n">allowed_tensor_captures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="o">+</span> <span class="p">[</span>
-              <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+              <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">kwargs_no_batch</span><span class="p">])</span>
               <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">))</span>
           <span class="p">],</span>
           <span class="n">backward_cleanup</span><span class="o">=</span><span class="p">(</span><span class="n">_RestoreVarsToFinal</span>
