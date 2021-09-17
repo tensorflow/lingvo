@@ -4946,6 +4946,9 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       res += [paddings]
     if collect_per_layer_output:
       res += [all_outs]
+
+    if len(res) == 1:
+      return res[0]
     return tuple(res)
 
   def InitStates(self, theta, *args, **kwargs):
