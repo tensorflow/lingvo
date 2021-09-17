@@ -244,8 +244,7 @@ class FrameToTFE(object):
     })
     # Extract camera image data and the calibrations.
     self.extract_camera_images(feature, item.images, camera_calibrations_dict)
-    self.extract_camera_calibrations(feature,
-                                     list(camera_calibrations_dict.values()))
+    self.extract_camera_calibrations(feature, camera_calibrations_dict.values())
 
     return key, output
 
@@ -295,8 +294,11 @@ class FrameToTFE(object):
       ri_flow = None
     return ri, ri_flow
 
-  def extract_camera_images(self, feature, camera_images,
-                            camera_calibrations_dict):
+  def extract_camera_images(self,
+                            feature,
+                            camera_images,
+                            camera_calibrations_dict,
+                            include_image_bytes=True):
     """Extract the images into the tf.Example feature map.
 
     Args:
@@ -304,14 +306,16 @@ class FrameToTFE(object):
       camera_images: A repeated car.open_dataset.CameraImage proto.
       camera_calibrations_dict: A dictionary maps camera name to
         car.open_dataset.CameraCalibration proto.
+      include_image_bytes: Whether to add the image bytes to the output.
     """
     for camera_image in camera_images:
       camera_name = camera_image.name
       camera_calibration = camera_calibrations_dict[camera_name]
       real_name = dataset_pb2.CameraName.Name.Name(camera_name)
-      feature['image_%s' % real_name].bytes_list.value[:] = [
-          tf.compat.as_bytes(camera_image.image)
-      ]
+      if include_image_bytes:
+        feature['image_%s' % real_name].bytes_list.value[:] = [
+            tf.compat.as_bytes(camera_image.image)
+        ]
       feature['image_%s_shape' % real_name].int64_list.value[:] = ([
           camera_calibration.height, camera_calibration.width, 3
       ])
