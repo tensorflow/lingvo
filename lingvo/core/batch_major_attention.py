@@ -4887,7 +4887,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
             aux_paddings=None,
             per_step_padding_override=None,
             segment_mask=None,
-            aux_segment_mask=None):
+            aux_segment_mask=None,
+            collect_per_layer_output=False):
     """Stacked Transformer layer.
 
     Args:
@@ -4902,10 +4903,16 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         [batch, target_time, target_time] if not None.
       segment_mask:     [batch, 1, target_time, target_time]
       aux_segment_mask: [batch, 1, target_time, source_time]
+      collect_per_layer_output: A Python bool, if to return per-xformer-layer
+        output.
 
     Returns:
-      (context, paddings), where the context vector has shape [batch,
-      target_time, dim].
+      (context, (optional)paddings, (optional)all_layer_outputs):
+        - context vector:   [batch, target_time, dim]
+        - paddings:         [batch, target_time], returned only if input
+          paddings is not None.
+        - all_layer_outputs: A list of xformer layer outputs, each has the same
+          shape as context_vector.
     """
     p = self.params
     x_out = query_vec
@@ -4914,6 +4921,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       batch_size, seq_length, _ = py_utils.GetShape(query_vec)
       paddings = tf.zeros((batch_size, seq_length), dtype=query_vec.dtype)
 
+    all_outs = []
     with tf.name_scope(p.name):
       for i in range(p.num_layers):
         x_in = x_out
@@ -4927,15 +4935,18 @@ class StackedTransformerLayers(base_layer.BaseLayer):
               per_step_padding_override=per_step_padding_override,
               segment_mask=segment_mask,
               aux_segment_mask=aux_segment_mask)
+          all_outs.append(x_out)
     if p.final_layer_norm:
       # Place on the last device.
       with tf.device(self._GetDeviceOfLayer(p.num_layers - 1)):
         x_out = self.final_ln.FProp(theta.final_ln, x_out)
 
-    if not has_paddings:
-      return x_out
-
-    return x_out, paddings
+    res = [x_out]
+    if has_paddings:
+      res += [paddings]
+    if collect_per_layer_output:
+      res += [all_outs]
+    return tuple(res)
 
   def InitStates(self, theta, *args, **kwargs):
     return py_utils.NestedMap(x_layers=[
