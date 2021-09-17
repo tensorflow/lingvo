@@ -542,7 +542,7 @@
                 <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">outputs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">aux_losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BodyFPropInternal</span><span class="p">(</span>
+    <span class="n">outputs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">context_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BodyFPropInternal</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span>
         <span class="n">fn_name</span><span class="p">,</span>
         <span class="n">iteration</span><span class="p">,</span>
@@ -553,9 +553,11 @@
 
     <span class="n">outer_aux_loss_context</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">outer_aux_loss_context</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">aux_loss</span> <span class="ow">in</span> <span class="n">aux_losses</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">aux_loss</span> <span class="ow">in</span> <span class="n">context_tensors</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">:</span>
         <span class="n">aux_loss</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">])</span>
         <span class="n">outer_aux_loss_context</span><span class="o">.</span><span class="n">AddLoss</span><span class="p">(</span><span class="n">aux_loss</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">context_tensors</span><span class="o">.</span><span class="n">tpu_summary_tensors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">tensor</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">control_out</span></div>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFPropNoMicrobatching"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFPropNoMicrobatching">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFPropNoMicrobatching</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -608,17 +610,21 @@
         <span class="c1"># Create an inner aux loss context, and extract the aux losses as extra</span>
         <span class="c1"># outputs so that the function can be vectorized.</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="p">(</span><span class="n">reentrant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">al_ctx</span><span class="p">:</span>
-          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
-            <span class="n">outs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_iter_00000</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
-                                                          <span class="o">**</span><span class="n">x</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
-          <span class="k">else</span><span class="p">:</span>
-            <span class="n">outs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">x</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
-          <span class="k">if</span> <span class="ow">not</span> <span class="n">wrappers</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">al_ctx</span><span class="o">.</span><span class="n">aux_losses</span>
-          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
-              <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">control_after_assigns</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wrappers</span><span class="p">]):</span>
-            <span class="n">control_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-          <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">al_ctx</span><span class="o">.</span><span class="n">aux_losses</span>
+          <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">TpuSummaryTensorContext</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+              <span class="n">outs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_iter_00000</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
+                                                            <span class="o">**</span><span class="n">x</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+              <span class="n">outs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)(</span><span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">x</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">context_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                <span class="n">tpu_summary_tensors</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuSummaryTensors</span><span class="p">(),</span>
+                <span class="n">aux_losses</span><span class="o">=</span><span class="n">al_ctx</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">wrappers</span><span class="p">:</span>
+              <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">context_tensors</span>
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">control_after_assigns</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">wrappers</span><span class="p">]):</span>
+              <span class="n">control_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">context_tensors</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="n">kwargs_no_batch</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -716,7 +722,7 @@
             <span class="c1"># If there are any internal annotations in the stage, they will be</span>
             <span class="c1"># subgrouped with manual partitioning on stage_mesh_dim.</span>
             <span class="k">with</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">ManualMeshDimContext</span><span class="p">(</span><span class="n">stage_mesh_dim</span><span class="p">):</span>
-              <span class="n">one_stage_outputs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">aux_losses</span> <span class="o">=</span> <span class="n">_BodyFProp</span><span class="p">(</span>
+              <span class="n">one_stage_outputs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">context_tensors</span> <span class="o">=</span> <span class="n">_BodyFProp</span><span class="p">(</span>
                   <span class="n">one_stage_theta_args</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">_ToAuto</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -738,8 +744,8 @@
       <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">_ToAuto</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetStepSeed</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="c1"># Convert aux losses to per-stage vector losses.</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToAuto</span><span class="p">,</span> <span class="n">one_stage_outputs</span><span class="p">)</span>
-      <span class="n">aux_losses</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToAuto</span><span class="p">,</span> <span class="n">aux_losses</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">aux_losses</span>
+      <span class="n">context_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_ToAuto</span><span class="p">,</span> <span class="n">context_tensors</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">control_out</span><span class="p">,</span> <span class="n">context_tensors</span>
 
     <span class="k">else</span><span class="p">:</span>
       <span class="n">stage_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span>
@@ -974,6 +980,8 @@
                               <span class="n">shapes</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">arg_list</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_summary_structure</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="k">def</span> <span class="nf">_CellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_and_per_stage_states</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Recurrent cell function wrapper of body.FProp.&quot;&quot;&quot;</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs_and_per_stage_states</span><span class="o">.</span><span class="n">inputs</span>
@@ -1018,17 +1026,20 @@
 
       <span class="k">def</span> <span class="nf">_BodyFPropWithAuxLoss</span><span class="p">():</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="p">(</span><span class="n">reentrant</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">al_ctx</span><span class="p">:</span>
-          <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span>
-              <span class="n">theta</span><span class="p">,</span>
-              <span class="n">fn_name</span><span class="p">,</span>
-              <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
-              <span class="n">num_microbatches</span><span class="p">,</span>
-              <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
-              <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span>
-              <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="n">kwargs_no_batch</span><span class="p">,</span>
-              <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-          <span class="n">aux_losses</span> <span class="o">=</span> <span class="n">al_ctx</span><span class="o">.</span><span class="n">aux_losses</span>
-        <span class="k">return</span> <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">aux_losses</span>
+          <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">TpuSummaryTensorContext</span><span class="p">():</span>
+            <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BodyFProp</span><span class="p">(</span>
+                <span class="n">theta</span><span class="p">,</span>
+                <span class="n">fn_name</span><span class="p">,</span>
+                <span class="n">state0</span><span class="o">.</span><span class="n">iteration</span><span class="p">,</span>
+                <span class="n">num_microbatches</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">selected_inputs</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">per_stage_states</span><span class="p">,</span>
+                <span class="n">kwargs_no_batch</span><span class="o">=</span><span class="n">kwargs_no_batch</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">context_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                <span class="n">tpu_summary_tensors</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuSummaryTensors</span><span class="p">(),</span>
+                <span class="n">aux_losses</span><span class="o">=</span><span class="n">al_ctx</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">context_tensors</span>
 
       <span class="k">if</span> <span class="n">assigns</span><span class="p">:</span>
         <span class="c1"># Group the dependencies into a single no_op to avoid quadratic number</span>
@@ -1036,9 +1047,9 @@
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">assigns</span><span class="p">):</span>
           <span class="n">ctrl_before</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">ctrl_before</span><span class="p">]):</span>
-          <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">aux_losses</span> <span class="o">=</span> <span class="n">_BodyFPropWithAuxLoss</span><span class="p">()</span>
+          <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">context_tensors</span> <span class="o">=</span> <span class="n">_BodyFPropWithAuxLoss</span><span class="p">()</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">aux_losses</span> <span class="o">=</span> <span class="n">_BodyFPropWithAuxLoss</span><span class="p">()</span>
+        <span class="n">fprop_outputs</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">context_tensors</span> <span class="o">=</span> <span class="n">_BodyFPropWithAuxLoss</span><span class="p">()</span>
       <span class="n">fprop_outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fprop_outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected_inputs</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_stage_states</span><span class="p">)</span>
 
@@ -1069,14 +1080,33 @@
           <span class="n">_NewValueIfValidIter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="p">,</span>
           <span class="n">state0</span><span class="o">.</span><span class="n">non_trainable_vars</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">aux_losses</span><span class="p">:</span>
-        <span class="n">aux_losses</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">aux_loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">aux_losses</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">context_tensors</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">:</span>
+        <span class="n">context_tensors</span><span class="o">.</span><span class="n">aux_losses</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">([</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">aux_loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">context_tensors</span><span class="o">.</span><span class="n">aux_losses</span>
+        <span class="p">])</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
-            <span class="n">_NewValueIfValidIter</span><span class="p">(</span><span class="n">aux_losses</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">aux_losses</span><span class="p">)))</span>
+            <span class="n">_NewValueIfValidIter</span><span class="p">(</span><span class="n">context_tensors</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">,</span>
+                                 <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">context_tensors</span><span class="o">.</span><span class="n">aux_losses</span><span class="p">)))</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">aux_loss</span>
-      <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span><span class="p">:</span>
+        <span class="c1"># Skip summary tensors when there are non-trainable vars. Recurrent()</span>
+        <span class="c1"># uses reflection to figure out the signature, but that causes problems</span>
+        <span class="c1"># for stateful computation.</span>
+        <span class="n">extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_summary_structure</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">context_tensors</span><span class="o">.</span><span class="n">tpu_summary_tensors</span><span class="p">)</span>
+        <span class="c1"># Set the value/weight of the summary tensors to 0 for bubble</span>
+        <span class="c1"># iterations.</span>
+        <span class="n">context_tensors</span><span class="o">.</span><span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_NewValueIfValidIter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span>
+            <span class="n">context_tensors</span><span class="o">.</span><span class="n">tpu_summary_tensors</span><span class="p">)</span>
+        <span class="n">extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">tpu_summary_tensors</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span>
+                <span class="n">context_tensors</span><span class="o">.</span><span class="n">tpu_summary_tensors</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs_nmap</span> <span class="o">=</span> <span class="n">_ArgsToState</span><span class="p">(</span><span class="n">padded_inputs</span><span class="p">)</span>
@@ -1104,20 +1134,22 @@
           <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()]</span>
 
       <span class="c1"># Runs body.FProp k times using Recurrent where k = dim 0 of inputs_nmap.</span>
-      <span class="n">accum</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
+      <span class="n">accum</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">accum_extras</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">=</span><span class="n">theta_body</span><span class="p">,</span>
           <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
           <span class="n">inputs</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
               <span class="n">inputs</span><span class="o">=</span><span class="n">inputs_nmap</span><span class="p">,</span> <span class="n">per_stage_states</span><span class="o">=</span><span class="n">padded_per_stage_states</span><span class="p">),</span>
           <span class="n">cell_fn</span><span class="o">=</span><span class="n">_CellFn</span><span class="p">,</span>
-          <span class="n">extras</span><span class="o">=</span><span class="p">{},</span>
+          <span class="c1"># Use {} to avoid reflection call that affects non trainable vars.</span>
+          <span class="n">extras</span><span class="o">=</span><span class="p">{}</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
           <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">,</span>
           <span class="n">allowed_tensor_captures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="o">+</span> <span class="p">[</span>
               <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">kwargs_no_batch</span><span class="p">])</span>
               <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Operation</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">))</span>
           <span class="p">],</span>
           <span class="n">backward_cleanup</span><span class="o">=</span><span class="p">(</span><span class="n">_RestoreVarsToFinal</span>
-                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+          <span class="n">return_acc_extras</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="c1"># Retrieves fprop outputs.</span>
       <span class="k">def</span> <span class="nf">_ExtractLastStage</span><span class="p">(</span><span class="n">outp</span><span class="p">):</span>
@@ -1147,6 +1179,15 @@
       <span class="n">aux_loss_context</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">aux_loss_context</span><span class="p">:</span>
         <span class="n">aux_loss_context</span><span class="o">.</span><span class="n">AddLoss</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">aux_loss</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_summary_structure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_summary_structure</span><span class="p">,</span> <span class="n">accum_extras</span><span class="o">.</span><span class="n">tpu_summary_tensors</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tpu_summary_tensors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="k">for</span> <span class="n">stage_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+            <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvg</span><span class="p">(</span><span class="n">value</span><span class="p">[:,</span> <span class="n">stage_id</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+                                        <span class="n">weight</span><span class="p">[:,</span> <span class="n">stage_id</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">AddTpuSummaryTensor</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/stage_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">stage_id</span><span class="p">),</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
 
       <span class="n">output_tensors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_MaybeReplicateNumMicrobatches</span><span class="p">,</span>
                                              <span class="n">output_tensors</span><span class="p">)</span>

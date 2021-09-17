@@ -5935,12 +5935,27 @@
 
 <span class="n">_TPU_SUMMARY_TENSORS_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_tpu_summary_tensors&#39;</span><span class="p">)</span>
 
-<span class="n">_get_tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_TPU_SUMMARY_TENSORS_KEY</span><span class="p">,</span>
-                                             <span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+<span class="n">_TPU_SUMMARY_CONTEXTS</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="_GetTpuSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._GetTpuSummaryTensor">[docs]</a><span class="k">def</span> <span class="nf">_GetTpuSummaryTensor</span><span class="p">():</span>
+  <span class="k">if</span> <span class="n">_TPU_SUMMARY_CONTEXTS</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_TPU_SUMMARY_CONTEXTS</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_TPU_SUMMARY_TENSORS_KEY</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">[])()</span></div>
+
+
+<div class="viewcode-block" id="TpuSummaryTensorContext"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.TpuSummaryTensorContext">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">TpuSummaryTensorContext</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Creates a context where AddTpuSummaryTensor() will add tensors.&quot;&quot;&quot;</span>
+  <span class="n">_TPU_SUMMARY_CONTEXTS</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">([])</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_TPU_SUMMARY_CONTEXTS</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="AddTpuSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.AddTpuSummaryTensor">[docs]</a><span class="k">def</span> <span class="nf">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Adds tensor to global collection of summaries.</span>
+  <span class="sd">&quot;&quot;&quot;Adds tensor to global collection of summaries, or a local context if any.</span>
 
 <span class="sd">  This needs to be used in situations where tf.summary() could be used but</span>
 <span class="sd">  currently tf.summary is not supported. Use py_utils.AddTpuSummaryTensor() in</span>
@@ -5961,7 +5976,7 @@
 <span class="sd">    value: metric value tensor</span>
 <span class="sd">    weight: weight tensor for weighted metrics</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_get_tpu_summary_tensors</span><span class="p">()</span>
+  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_GetTpuSummaryTensor</span><span class="p">()</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
   <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
   <span class="n">x</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
@@ -5975,7 +5990,7 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A dict containing str keys and (metric, weight) pairs as values</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_get_tpu_summary_tensors</span><span class="p">()</span>
+  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_GetTpuSummaryTensor</span><span class="p">()</span>
   <span class="k">return</span> <span class="p">{</span>
       <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name_scope</span><span class="p">)):</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
       <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tpu_summary_tensors</span>
@@ -5983,7 +5998,7 @@
 
 
 <div class="viewcode-block" id="ClearTpuSummaryTensors"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ClearTpuSummaryTensors">[docs]</a><span class="k">def</span> <span class="nf">ClearTpuSummaryTensors</span><span class="p">():</span>
-  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_get_tpu_summary_tensors</span><span class="p">()</span>
+  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_GetTpuSummaryTensor</span><span class="p">()</span>
   <span class="k">del</span> <span class="n">tpu_summary_tensors</span><span class="p">[:]</span></div>
 
 

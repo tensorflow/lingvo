@@ -3003,9 +3003,20 @@ loop state.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.py_utils._GetTpuSummaryTensor">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">_GetTpuSummaryTensor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_GetTpuSummaryTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils._GetTpuSummaryTensor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.py_utils.TpuSummaryTensorContext">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">TpuSummaryTensorContext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#TpuSummaryTensorContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.TpuSummaryTensorContext" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a context where AddTpuSummaryTensor() will add tensors.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.AddTpuSummaryTensor">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">AddTpuSummaryTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#AddTpuSummaryTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.AddTpuSummaryTensor" title="Permalink to this definition"></a></dt>
-<dd><p>Adds tensor to global collection of summaries.</p>
+<dd><p>Adds tensor to global collection of summaries, or a local context if any.</p>
 <p>This needs to be used in situations where tf.summary() could be used but
 currently tf.summary is not supported. Use py_utils.AddTpuSummaryTensor() in
 low level code to add summary tensors to global collection of summaries.

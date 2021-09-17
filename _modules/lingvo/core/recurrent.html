@@ -691,7 +691,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">Forward</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_backward</span> <span class="o">=</span> <span class="n">Backward</span>
 
-<div class="viewcode-block" id="_Recurrent.Compute"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent.Compute">[docs]</a>  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="_Recurrent.Compute"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent.Compute">[docs]</a>  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_acc_extras</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run the computation.&quot;&quot;&quot;</span>
     <span class="n">run</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">,</span>
@@ -708,7 +708,10 @@
     <span class="k">del</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="p">[</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">]</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">final_state</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_step_seed&#39;</span><span class="p">))</span>
 
-    <span class="k">return</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">final_state</span></div></div>
+    <span class="k">if</span> <span class="n">return_acc_extras</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">final_state</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_extras</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">final_state</span></div></div>
 
 
 <div class="viewcode-block" id="_ReflectOnCellFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._ReflectOnCellFn">[docs]</a><span class="k">def</span> <span class="nf">_ReflectOnCellFn</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span>
@@ -1049,7 +1052,8 @@
               <span class="n">accumulator_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
               <span class="n">allowed_tensor_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-              <span class="n">backward_cleanup</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+              <span class="n">backward_cleanup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">return_acc_extras</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Compute a recurrent neural net.</span>
 
 <span class="sd">  Roughly, `Recurrent()` computes the following::</span>
@@ -1108,6 +1112,7 @@
 <span class="sd">    backward_cleanup: A callback function (no argument) to be invoked after the</span>
 <span class="sd">      backward pass, which returns a list of control dependencies. Could be used</span>
 <span class="sd">      to clean up side effects during recompute.</span>
+<span class="sd">    return_acc_extras: If True, also returns the accumulated extras.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    `accumulate_state` and the final state.</span>
@@ -1161,7 +1166,7 @@
   <span class="k">if</span> <span class="n">accumulator_layer</span><span class="p">:</span>
     <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Enable</span><span class="p">())</span>
 
-  <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span> <span class="o">=</span> <span class="n">_Recurrent</span><span class="p">(</span>
+  <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_Recurrent</span><span class="p">(</span>
       <span class="n">cell_fn</span><span class="o">=</span><span class="n">cell_fn</span><span class="p">,</span>
       <span class="n">cell_grad</span><span class="o">=</span><span class="n">cell_grad</span><span class="p">,</span>
       <span class="n">cell_type</span><span class="o">=</span><span class="n">cell_type</span><span class="p">,</span>
@@ -1172,14 +1177,17 @@
       <span class="n">extras</span><span class="o">=</span><span class="n">extras</span><span class="p">,</span>
       <span class="n">accumulator_layer</span><span class="o">=</span><span class="n">accumulator_layer</span><span class="p">,</span>
       <span class="n">implicit_captures</span><span class="o">=</span><span class="n">implicit_captures</span><span class="p">,</span>
-      <span class="n">backward_cleanup</span><span class="o">=</span><span class="n">backward_cleanup</span><span class="p">)</span><span class="o">.</span><span class="n">Compute</span><span class="p">()</span>
+      <span class="n">backward_cleanup</span><span class="o">=</span><span class="n">backward_cleanup</span><span class="p">)</span><span class="o">.</span><span class="n">Compute</span><span class="p">(</span><span class="n">return_acc_extras</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
   <span class="c1"># TODO(b/129159299): The ResetStepSeed below is needed to work around this</span>
   <span class="c1"># bug, which is a problem with global tensors being shared by different</span>
   <span class="c1"># inference graphs. It should be removed once the bug is fixed.</span>
   <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeResetStepSeedFromScope</span><span class="p">()</span>
 
-  <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span></div>
+  <span class="k">if</span> <span class="n">return_acc_extras</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span><span class="p">,</span> <span class="n">acc_extras</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span></div>
 
 
 <div class="viewcode-block" id="_Link"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Link">[docs]</a><span class="k">class</span> <span class="nc">_Link</span><span class="p">:</span>
