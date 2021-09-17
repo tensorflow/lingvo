@@ -1854,7 +1854,7 @@
 
 <div class="viewcode-block" id="MoEBuilder._FeedForwardNetworksApplyGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._FeedForwardNetworksApplyGating">[docs]</a>  <span class="k">def</span> <span class="nf">_FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Split API is deprecated. &#39;</span>
                          <span class="s1">&#39;Use device_mesh and MeshSplit.&#39;</span><span class="p">)</span>
 
@@ -2114,6 +2114,24 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
                     <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MeshSplit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tensor_split_dims_mapping</span><span class="p">))</span></div>
 
+<div class="viewcode-block" id="DenseBuilder.MoE"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.MoE">[docs]</a>  <span class="k">def</span> <span class="nf">MoE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns layer params to compute (outputs, scalar_aux_loss).&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">input_endpoints</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;vec-&gt;input_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;input_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;segment_id-&gt;segment_id_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;segment_id_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedFeedForwardNetworksWeights</span><span class="p">(</span><span class="n">name</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;input_split,segment_id_split,wi,wo-&gt;outputs_pre_split,aux_loss&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedMoEPositionWiseFeedForwardNetworks</span><span class="p">(</span><span class="s1">&#39;ffw&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">)))</span></div>
+
 <div class="viewcode-block" id="DenseBuilder._ShardedFeedForwardNetworksWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder._ShardedFeedForwardNetworksWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedFeedForwardNetworksWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the sharded weights for the two layer feedforward nets.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2161,7 +2179,8 @@
     <span class="n">reshape_input</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ReshapeInputLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">num_groups</span><span class="o">=</span><span class="n">num_groups</span><span class="p">,</span>
         <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span>
-        <span class="n">model_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">())</span>
+        <span class="n">model_dims</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">(),</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;wo&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
