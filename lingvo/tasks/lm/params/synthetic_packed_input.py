@@ -293,7 +293,6 @@ class ShardedAdam(optimizer.Adam):
       tf.logging.info('Applying gradient aggregation.')
       opt = optimizer.GradientAggregationOptimizer(
           opt, p.num_micro_batches, apply_crs_to_grad=True)
-      self._cached_opt = opt
     return opt
 
 

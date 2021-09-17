@@ -44,8 +44,7 @@ class Base(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
 
-    # Whether to cache the optimizer creation.
-    self._cache_optimizer = False
+    self._supports_eager = False
     # The cached optimizer.
     self._optimizer = None
 
@@ -79,25 +78,27 @@ class Base(base_layer.BaseLayer):
     Returns:
       The variable update op.
     """
-    # In eager mode, we cache the optimizer to avoid recreating variables
-    # when the training step is wrapped in tf.function.
-    if self._cache_optimizer:
-      if self._optimizer is None:
-        self._optimizer = self.GetOptimizer(lr)
-      else:
+    if py_utils.IsEagerMode() and not self._supports_eager:
+      raise ValueError(
+          f'{type(self)} does not support eager mode. '
+          'Please use a different optimizer or file a bug to add support.')
+
+    if self._optimizer is None:
+      self._optimizer = self.GetOptimizer(lr)
+    else:
+      if py_utils.IsEagerMode():
         # TODO(jiaweix): we need a mechanism for V1 optimizers
         self._optimizer.learning_rate = lr
-      optimizer = self._optimizer
-    else:
-      optimizer = self.GetOptimizer(lr)
+      else:
+        self._optimizer = self.GetOptimizer(lr)
 
     def _Apply():
       if self.params.use_bf16_gradients_ar:
-        return optimizer.apply_gradients(
+        return self._optimizer.apply_gradients(
             [(tf.cast(g, tf.float32), v) for (v, g) in var_grad.Flatten()],
             name='meta_backprop')
       else:
-        return optimizer.apply_gradients(
+        return self._optimizer.apply_gradients(
             [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
 
     # Many optimizers, e.g., Adam, Adagrad, etc., create
@@ -109,7 +110,7 @@ class Base(base_layer.BaseLayer):
                            reuse=self.VarReuseForSlotVars())):
         var_update_op = _Apply()
     if self.params.add_summary_in_apply:
-      self.AddSummary(lr, optimizer, var_grad)
+      self.AddSummary(lr, self._optimizer, var_grad)
     return var_update_op
 
   def ApplyPostTrainingLoop(self):
@@ -251,6 +252,10 @@ class CompositeOptimizer(Base):
 
 class SGD(Base):
   """SGD."""
+
+  def __init__(self, params):
+    super().__init__(params)
+    self._supports_eager = True
 
   def GetOptimizer(self, lr):
     return tf.train.GradientDescentOptimizer(lr)
@@ -398,7 +403,7 @@ class AdamV2(Base):
 
   def __init__(self, params):
     super().__init__(params)
-    self._cache_optimizer = True
+    self._supports_eager = True
 
   @classmethod
   def ParamsA(cls):
@@ -1043,7 +1048,7 @@ class XLAShardingAdafactor(Base):
     else:
       decay_rate = _AdafactorDecayRateAdam(params.beta2)
 
-    opt = XLAShardingAdafactorOptimizer(
+    return XLAShardingAdafactorOptimizer(
         learning_rate=lr,
         factored=params.factored,
         clipping_threshold=params.clipping_threshold,
@@ -1053,8 +1058,6 @@ class XLAShardingAdafactor(Base):
         min_dim_size_to_factor=params.min_dim_size_to_factor,
         cond_is_finite=params.cond_is_finite,
         name=params.name)
-    self._cached_opt = opt
-    return opt
 
   def AddSummary(self, lr, optimizer, var_grad):
     summary_utils.scalar('adafactor_lr', lr)
@@ -1177,5 +1180,4 @@ class XLAShardingAdafactorAccuGrad(XLAShardingAdafactor):
       tf.logging.info('Applying gradient aggregation.')
       optimizer = GradientAggregationOptimizer(
           optimizer, params.num_micro_batches, apply_crs_to_grad=True)
-      self._cached_opt = optimizer
     return optimizer
