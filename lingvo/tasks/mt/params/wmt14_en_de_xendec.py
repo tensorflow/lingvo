@@ -101,35 +101,32 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
     p.vocab_file = os.path.join(self.DATADIR, self.VOCAB)
     return p
 
-  def Dev(self):
-    """newstest2013 is used for development."""
-
-    p = base_config.InitTrainDatasetParams()
+  def _EvalParams(self):
+    """Input generator params for WMT'14 En->De."""
+    p = input_generator.NmtInput.Params()
+    p.tokenizer.vocab_size = self.vocab_size
     p.file_random_seed = 27182818
     p.file_parallelism = 1
     p.file_buffer_size = 1
-
     p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 137, 200]
-    p.bucket_batch_limit = [64] * 8 + [16] * 2
-    p.file_pattern = os.path.join(self.DATADIR, self.DATADEV)
+    p.bucket_batch_limit = [16] * 8 + [4] * 2
+    return p
+
+  def Dev(self):
+    """newstest2013 is used for development."""
+
+    p = self._EvalParams()
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, self.DATADEV)
     p.tokenizer.token_vocab_filepath = os.path.join(self.DATADIR, self.VOCAB)
-    p.natural_order_model = True
     p.num_samples = 3000
     return p
 
   def Test(self):
     """newstest2014 is used for test."""
 
-    p = base_config.InitTrainDatasetParams()
-    p.file_random_seed = 27182818
-    p.file_parallelism = 1
-    p.file_buffer_size = 1
-
-    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 137, 200]
-    p.bucket_batch_limit = [64] * 8 + [16] * 2
-    p.file_pattern = os.path.join(self.DATADIR, self.DATATEST)
+    p = self._EvalParams()
+    p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, self.DATATEST)
     p.tokenizer.token_vocab_filepath = os.path.join(self.DATADIR, self.VOCAB)
-    p.natural_order_model = True
     p.num_samples = 3003
     return p
 
