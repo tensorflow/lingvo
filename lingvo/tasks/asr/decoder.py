@@ -1190,6 +1190,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       attention_map = py_utils.NestedMap(
           probs=accumulated_states.atten_probs,
           contexts=accumulated_states.atten_context)
+      # Add LM logits [time, batch, dim] to predictions if exist
+      lm_output = state0.fusion_states.Get('lm_output', None)
+      if lm_output is not None:
+        predictions.lm_logits = tf.transpose(lm_output, [1, 0, 2])
       for k, v in additional_atten_probs:
         attention_map[k] = v
       # Transpose attention probs from [target_length, batch, source_length] to
