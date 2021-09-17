@@ -5870,12 +5870,27 @@ def ReadVariable(var_op):
 
 _TPU_SUMMARY_TENSORS_KEY = ('__lingvo_tpu_summary_tensors')
 
-_get_tpu_summary_tensors = _CollectionGetter(_TPU_SUMMARY_TENSORS_KEY,
-                                             lambda: [])
+_TPU_SUMMARY_CONTEXTS = ThreadLocalStack()
+
+
+def _GetTpuSummaryTensor():
+  if _TPU_SUMMARY_CONTEXTS.stack:
+    return _TPU_SUMMARY_CONTEXTS.stack[-1]
+  return _CollectionGetter(_TPU_SUMMARY_TENSORS_KEY, lambda: [])()
+
+
+@contextlib.contextmanager
+def TpuSummaryTensorContext():
+  """Creates a context where AddTpuSummaryTensor() will add tensors."""
+  _TPU_SUMMARY_CONTEXTS.stack.append([])
+  try:
+    yield
+  finally:
+    _TPU_SUMMARY_CONTEXTS.stack.pop()
 
 
 def AddTpuSummaryTensor(name, value, weight=1.0):
-  """Adds tensor to global collection of summaries.
+  """Adds tensor to global collection of summaries, or a local context if any.
 
   This needs to be used in situations where tf.summary() could be used but
   currently tf.summary is not supported. Use py_utils.AddTpuSummaryTensor() in
@@ -5896,7 +5911,7 @@ def AddTpuSummaryTensor(name, value, weight=1.0):
     value: metric value tensor
     weight: weight tensor for weighted metrics
   """
-  tpu_summary_tensors = _get_tpu_summary_tensors()
+  tpu_summary_tensors = _GetTpuSummaryTensor()
   x = NestedMap()
   x.name = name
   x.value = value, tf.convert_to_tensor(weight)
@@ -5910,7 +5925,7 @@ def GetTpuSummaryTensors():
   Returns:
     A dict containing str keys and (metric, weight) pairs as values
   """
-  tpu_summary_tensors = _get_tpu_summary_tensors()
+  tpu_summary_tensors = _GetTpuSummaryTensor()
   return {
       '%s/%s' % (x.name, SanitizeScopeKey(x.name_scope)): x.value
       for x in tpu_summary_tensors
@@ -5918,7 +5933,7 @@ def GetTpuSummaryTensors():
 
 
 def ClearTpuSummaryTensors():
-  tpu_summary_tensors = _get_tpu_summary_tensors()
+  tpu_summary_tensors = _GetTpuSummaryTensor()
   del tpu_summary_tensors[:]
 
 

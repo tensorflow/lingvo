@@ -477,7 +477,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                 kwargs_no_batch=None,
                 **kwargs):
     p = self.params
-    outputs, control_out, aux_losses = self._BodyFPropInternal(
+    outputs, control_out, context_tensors = self._BodyFPropInternal(
         theta,
         fn_name,
         iteration,
@@ -488,9 +488,11 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
     outer_aux_loss_context = py_utils.AuxLossContext.Current()
     if outer_aux_loss_context:
-      for aux_loss in aux_losses:
+      for aux_loss in context_tensors.aux_losses:
         aux_loss.set_shape([p.num_stages])
         outer_aux_loss_context.AddLoss(aux_loss)
+    for name, (tensor, weight) in context_tensors.tpu_summary_tensors.items():
+      py_utils.AddTpuSummaryTensor(name, tensor, weight)
     return outputs, control_out
 
   def BodyFPropNoMicrobatching(self, theta, fn_name, *args, **kwargs):
@@ -543,17 +545,21 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         # Create an inner aux loss context, and extract the aux losses as extra
         # outputs so that the function can be vectorized.
         with py_utils.AuxLossContext(reentrant=True) as al_ctx:
-          if p.per_stage_vars:
-            outs = getattr(self.body_iter_00000, fn_name)(x.theta, *x.args,
-                                                          **x.kwargs)
-          else:
-            outs = getattr(self.body, fn_name)(x.theta, *x.args, **x.kwargs)
-          if not wrappers:
-            return outs, tf.zeros([], dtype=tf.int32), al_ctx.aux_losses
-          with tf.control_dependencies(
-              [w.control_after_assigns() for w in wrappers]):
-            control_out = tf.zeros([], dtype=tf.int32)
-          return outs, control_out, al_ctx.aux_losses
+          with py_utils.TpuSummaryTensorContext():
+            if p.per_stage_vars:
+              outs = getattr(self.body_iter_00000, fn_name)(x.theta, *x.args,
+                                                            **x.kwargs)
+            else:
+              outs = getattr(self.body, fn_name)(x.theta, *x.args, **x.kwargs)
+            context_tensors = py_utils.NestedMap(
+                tpu_summary_tensors=py_utils.GetTpuSummaryTensors(),
+                aux_losses=al_ctx.aux_losses)
+            if not wrappers:
+              return outs, tf.zeros([], dtype=tf.int32), context_tensors
+            with tf.control_dependencies(
+                [w.control_after_assigns() for w in wrappers]):
+              control_out = tf.zeros([], dtype=tf.int32)
+            return outs, control_out, context_tensors
 
     if p.stage_parallel_body is not None:
       for key, val in (kwargs_no_batch or {}).items():
@@ -651,7 +657,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
             # If there are any internal annotations in the stage, they will be
             # subgrouped with manual partitioning on stage_mesh_dim.
             with gshard_utils.ManualMeshDimContext(stage_mesh_dim):
-              one_stage_outputs, control_out, aux_losses = _BodyFProp(
+              one_stage_outputs, control_out, context_tensors = _BodyFProp(
                   one_stage_theta_args)
 
       def _ToAuto(x):
@@ -673,8 +679,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       py_utils.ResetStepSeed(_ToAuto(py_utils.GetStepSeed())[-1])
       # Convert aux losses to per-stage vector losses.
       outputs = tf.nest.map_structure(_ToAuto, one_stage_outputs)
-      aux_losses = tf.nest.map_structure(_ToAuto, aux_losses)
-      return outputs, control_out, aux_losses
+      context_tensors = tf.nest.map_structure(_ToAuto, context_tensors)
+      return outputs, control_out, context_tensors
 
     else:
       stage_id = tf.range(p.num_stages)
@@ -909,6 +915,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
                               shapes[idx])
       return arg_list
 
+    self._tpu_summary_structure = None
+
     def _CellFn(theta, state0, inputs_and_per_stage_states):
       """Recurrent cell function wrapper of body.FProp."""
       inputs = inputs_and_per_stage_states.inputs
@@ -953,17 +961,20 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       def _BodyFPropWithAuxLoss():
         with py_utils.AuxLossContext(reentrant=True) as al_ctx:
-          fprop_outputs, ctrl = self.BodyFProp(
-              theta,
-              fn_name,
-              state0.iteration,
-              num_microbatches,
-              *selected_inputs,
-              *per_stage_states,
-              kwargs_no_batch=kwargs_no_batch,
-              **kwargs)
-          aux_losses = al_ctx.aux_losses
-        return fprop_outputs, ctrl, aux_losses
+          with py_utils.TpuSummaryTensorContext():
+            fprop_outputs, ctrl = self.BodyFProp(
+                theta,
+                fn_name,
+                state0.iteration,
+                num_microbatches,
+                *selected_inputs,
+                *per_stage_states,
+                kwargs_no_batch=kwargs_no_batch,
+                **kwargs)
+            context_tensors = py_utils.NestedMap(
+                tpu_summary_tensors=py_utils.GetTpuSummaryTensors(),
+                aux_losses=al_ctx.aux_losses)
+        return fprop_outputs, ctrl, context_tensors
 
       if assigns:
         # Group the dependencies into a single no_op to avoid quadratic number
@@ -971,9 +982,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         with tf.control_dependencies(assigns):
           ctrl_before = tf.no_op()
         with tf.control_dependencies([ctrl_before]):
-          fprop_outputs, ctrl, aux_losses = _BodyFPropWithAuxLoss()
+          fprop_outputs, ctrl, context_tensors = _BodyFPropWithAuxLoss()
       else:
-        fprop_outputs, ctrl, aux_losses = _BodyFPropWithAuxLoss()
+        fprop_outputs, ctrl, context_tensors = _BodyFPropWithAuxLoss()
       fprop_outputs = _ToTuple(fprop_outputs)
       assert len(fprop_outputs) == len(selected_inputs) + len(per_stage_states)
 
@@ -1004,14 +1015,33 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           _NewValueIfValidIter, self._non_trainable_vars,
           state0.non_trainable_vars)
 
-      if aux_losses:
-        aux_losses = tf.add_n(
-            [tf.cast(l, state0.aux_loss.dtype) for l in aux_losses])
+      if context_tensors.aux_losses:
+        context_tensors.aux_losses = tf.add_n([
+            tf.cast(l, state0.aux_loss.dtype)
+            for l in context_tensors.aux_losses
+        ])
         state1.aux_loss = state0.aux_loss + tf.reduce_sum(
-            _NewValueIfValidIter(aux_losses, tf.zeros_like(aux_losses)))
+            _NewValueIfValidIter(context_tensors.aux_losses,
+                                 tf.zeros_like(context_tensors.aux_losses)))
       else:
         state1.aux_loss = state0.aux_loss
-      return state1, py_utils.NestedMap()
+      if self._non_trainable_vars:
+        # Skip summary tensors when there are non-trainable vars. Recurrent()
+        # uses reflection to figure out the signature, but that causes problems
+        # for stateful computation.
+        extras = py_utils.NestedMap()
+      else:
+        self._tpu_summary_structure = tf.nest.map_structure(
+            lambda _: None, context_tensors.tpu_summary_tensors)
+        # Set the value/weight of the summary tensors to 0 for bubble
+        # iterations.
+        context_tensors.tpu_summary_tensors = tf.nest.map_structure(
+            lambda x: _NewValueIfValidIter(x, tf.zeros_like(x)),
+            context_tensors.tpu_summary_tensors)
+        extras = py_utils.NestedMap(
+            tpu_summary_tensors=tf.nest.flatten(
+                context_tensors.tpu_summary_tensors))
+      return state1, extras
 
     with tf.name_scope(p.name):
       inputs_nmap = _ArgsToState(padded_inputs)
@@ -1039,20 +1069,22 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
           return [tf.no_op()]
 
       # Runs body.FProp k times using Recurrent where k = dim 0 of inputs_nmap.
-      accum, outputs = recurrent.Recurrent(
+      accum, outputs, accum_extras = recurrent.Recurrent(
           theta=theta_body,
           state0=state0,
           inputs=py_utils.NestedMap(
               inputs=inputs_nmap, per_stage_states=padded_per_stage_states),
           cell_fn=_CellFn,
-          extras={},
+          # Use {} to avoid reflection call that affects non trainable vars.
+          extras={} if self._non_trainable_vars else None,
           allow_implicit_capture=p.allow_implicit_capture,
           allowed_tensor_captures=self._non_trainable_vars + [
               x for x in py_utils.Flatten([kwargs, kwargs_no_batch])
               if isinstance(x, (tf.Operation, tf.Tensor))
           ],
           backward_cleanup=(_RestoreVarsToFinal
-                            if self._non_trainable_vars else None))
+                            if self._non_trainable_vars else None),
+          return_acc_extras=True)
 
       # Retrieves fprop outputs.
       def _ExtractLastStage(outp):
@@ -1082,6 +1114,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       aux_loss_context = py_utils.AuxLossContext.Current()
       if aux_loss_context:
         aux_loss_context.AddLoss(outputs.aux_loss)
+
+      if self._tpu_summary_structure is not None:
+        tpu_summary_tensors = tf.nest.pack_sequence_as(
+            self._tpu_summary_structure, accum_extras.tpu_summary_tensors)
+        for key, (value, weight) in tpu_summary_tensors.items():
+          for stage_id in range(p.num_stages):
+            v, w = py_utils.WeightedAvg(value[:, stage_id, ...],
+                                        weight[:, stage_id, ...])
+            py_utils.AddTpuSummaryTensor('%s/stage_%s' % (key, stage_id), v, w)
 
       output_tensors = tf.nest.map_structure(_MaybeReplicateNumMicrobatches,
                                              output_tensors)

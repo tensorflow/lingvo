@@ -626,7 +626,7 @@ class _Recurrent:
     self._forward = Forward
     self._backward = Backward
 
-  def Compute(self):
+  def Compute(self, return_acc_extras=False):
     """Run the computation."""
     run = py_utils.CallDefun(
         self._forward,
@@ -643,7 +643,10 @@ class _Recurrent:
     del run.acc_state['_step_seed']
     py_utils.ResetStepSeed(run.final_state.pop('_step_seed'))
 
-    return run.acc_state, run.final_state
+    if return_acc_extras:
+      return run.acc_state, run.final_state, run.acc_extras
+    else:
+      return run.acc_state, run.final_state
 
 
 def _ReflectOnCellFn(cell_fn,
@@ -984,7 +987,8 @@ def Recurrent(theta,
               accumulator_layer=None,
               allow_implicit_capture=False,
               allowed_tensor_captures=None,
-              backward_cleanup=None):
+              backward_cleanup=None,
+              return_acc_extras=False):
   """Compute a recurrent neural net.
 
   Roughly, `Recurrent()` computes the following::
@@ -1043,6 +1047,7 @@ def Recurrent(theta,
     backward_cleanup: A callback function (no argument) to be invoked after the
       backward pass, which returns a list of control dependencies. Could be used
       to clean up side effects during recompute.
+    return_acc_extras: If True, also returns the accumulated extras.
 
   Returns:
     `accumulate_state` and the final state.
@@ -1096,7 +1101,7 @@ def Recurrent(theta,
   if accumulator_layer:
     accumulator_layer.accumulators.Transform(lambda x: x.Enable())
 
-  acc_state, final_state = _Recurrent(
+  acc_state, final_state, acc_extras = _Recurrent(
       cell_fn=cell_fn,
       cell_grad=cell_grad,
       cell_type=cell_type,
@@ -1107,14 +1112,17 @@ def Recurrent(theta,
       extras=extras,
       accumulator_layer=accumulator_layer,
       implicit_captures=implicit_captures,
-      backward_cleanup=backward_cleanup).Compute()
+      backward_cleanup=backward_cleanup).Compute(return_acc_extras=True)
 
   # TODO(b/129159299): The ResetStepSeed below is needed to work around this
   # bug, which is a problem with global tensors being shared by different
   # inference graphs. It should be removed once the bug is fixed.
   py_utils.MaybeResetStepSeedFromScope()
 
-  return acc_state, final_state
+  if return_acc_extras:
+    return acc_state, final_state, acc_extras
+  else:
+    return acc_state, final_state
 
 
 class _Link:
