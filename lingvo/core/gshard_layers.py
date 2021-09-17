@@ -136,7 +136,8 @@ class ShardedVarLayer(VarLayer):
       if split_dims is not None:
         # Fix the rank difference between variable shape and annotation
         # due to variable shape prefix introduced in builder_layers.RepeatLayer.
-        shape_prefix_len = len(self.vars[k].shape) - len(split_dims)
+        shape_prefix_len = len(self.vars[k].shape) - len(split_dims) - len(
+            gshard_utils.GetMeshSplitDimPrefixContext())
         split_dims = [-1] * shape_prefix_len + split_dims
       gshard_utils.MeshSplit(
           self.vars[k], p.device_mesh, split_dims, use_sharding_op=False)
@@ -1477,7 +1478,7 @@ class ReshapeInputLayer(base_layer.BaseLayer):
       inputs = tf.reshape(
           orig_inputs, [p.num_groups, group_size] + model_dims,
           name='grouped_inputs')
-      if p.num_devices > 1:
+      if p.num_devices and p.num_devices > 1:
         inputs = gshard_utils.Split(inputs, 0, p.num_devices)
     paddings = tf.reshape(paddings, py_utils.GetShape(inputs)[:2])
     return inputs, paddings

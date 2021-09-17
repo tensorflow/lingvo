@@ -1789,7 +1789,7 @@ class MoEBuilder(builder.Base):
 
   def _FeedForwardNetworksApplyGating(self, name):
     p = self.params
-    if p.num_devices > 1:
+    if p.num_devices and p.num_devices > 1:
       tf.logging.warning('Split API is deprecated. '
                          'Use device_mesh and MeshSplit.')
 
@@ -2049,6 +2049,24 @@ class DenseBuilder(MoEBuilder):
     return self._Fn(name,
                     lambda x: self._MeshSplit(x, tensor_split_dims_mapping))
 
+  def MoE(self, name, decoder=False):
+    """Returns layer params to compute (outputs, scalar_aux_loss)."""
+    if decoder:
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
+    p = self.params
+    return self._Graph(
+        name, input_endpoints, ['outputs', 'aux_loss'],
+        ('vec->input_split', self.MeshSplit('input_split', p.blm_split)),
+        ('segment_id->segment_id_split',
+         self.MeshSplit('segment_id_split', p.blm_split[:-1])),
+        ('->wi,wo', self._ShardedFeedForwardNetworksWeights(name)),
+        ('input_split,segment_id_split,wi,wo->outputs_pre_split,aux_loss',
+         self._ShardedMoEPositionWiseFeedForwardNetworks('ffw')),
+        ('outputs_pre_split->outputs',
+         self.MeshSplit('outputs_split', p.blm_split)))
+
   def _ShardedFeedForwardNetworksWeights(self, name, model_dim=None):
     """Gets the sharded weights for the two layer feedforward nets."""
     p = self.params
@@ -2096,7 +2114,8 @@ class DenseBuilder(MoEBuilder):
     reshape_input = gshard_layers.ReshapeInputLayer.Params().Set(
         num_groups=num_groups,
         num_devices=p.num_devices,
-        model_dims=self._ReshapedModelDims())
+        model_dims=self._ReshapedModelDims(),
+        device_mesh=p.device_mesh)
 
     return self._Graph(
         name, ['inputs', 'segment_id', 'wi', 'wo'], ['outputs', 'aux_loss'],

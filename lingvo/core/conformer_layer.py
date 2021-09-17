@@ -442,9 +442,16 @@ def _AttenCtxIsSet(atten_context):
   return atten_context is not None and atten_context >= 0
 
 
-def GShardMoELayerParams(num_devices, num_groups, num_experts,
-                         per_expert_capacity_dim):
-  return gshard_builder.MoEBuilder.Params().Set(
+def GShardMoELayerParams(num_devices,
+                         num_groups,
+                         num_experts,
+                         per_expert_capacity_dim,
+                         use_densebuilder=False):
+  if use_densebuilder:
+    moe_cls = gshard_builder.DenseBuilder
+  else:
+    moe_cls = gshard_builder.MoEBuilder
+  return moe_cls.Params().Set(
       num_devices=num_devices,
       num_groups=num_groups,
       e_dim=num_experts,
@@ -703,9 +710,9 @@ class ConformerLayer(base_layer.BaseLayer):
         dropout_rate=dropout_prob,
         moe_hidden_dim=hidden_dim,
         moe_activation=activation)
-    if moe_builder_p.num_devices is None:
-      tf.logging.info('moe_builder_p=%s', moe_builder_p)
-      raise ValueError('num_devices must be specified for MoEBuilder.')
+    if moe_builder_p.cls == gshard_builder.MoEBuilder:
+      if moe_builder_p.num_devices is None:
+        raise ValueError('num_devices must be specified for MoEBuilder.')
     if residual_weight != 0.5:
       raise ValueError('residual_weight must be 0.5')
     return moe_builder_p
@@ -857,6 +864,11 @@ class ConformerLayer(base_layer.BaseLayer):
       out_nmap.features = moe_out.vec
       aux_loss = moe_out.aux_loss
       if 'aux_loss' in in_nmap:
+        assert not aux_loss.shape.rank, 'MoE aux-loss should be a scalar.'
+        if len(py_utils.GetShape(in_nmap.aux_loss)) == 1:
+          b_size = py_utils.GetShape(in_nmap.aux_loss)[0]
+          aux_loss = tf.tile(tf.expand_dims(aux_loss, axis=0), [b_size])
+        assert in_nmap.aux_loss.shape.rank == aux_loss.shape.rank
         aux_loss += in_nmap.aux_loss
       # Add 'aux_loss' in out_nmap.
       out_nmap.aux_loss = aux_loss
@@ -1036,7 +1048,16 @@ def ApplyGshard(conformer_tpl,
                 lconv_hwim_w_split=None,
                 lconv_fd_w_split=None,
                 lconv_blf_activation_split=None,
-                lconv_bld_activation_split=None):
+                lconv_bld_activation_split=None,
+                moe_device_mesh_shape=None,
+                moe_emh_split=None,
+                moe_ehm_split=None,
+                moe_eah_split=None,
+                moe_eam_split=None,
+                moe_egcm_split=None,
+                moe_gecm_split=None,
+                moe_gsec_split=None,
+                moe_blm_split=None):
   """Applies gshard on conformer params.
 
   Args:
@@ -1063,6 +1084,15 @@ def ApplyGshard(conformer_tpl,
       shape of [batch, seq_len, ff_hidden_dim].
     lconv_bld_activation_split: Mesh split of the activations in lconv with the
       shape of [batch, seq_len, model_dim].
+    moe_device_mesh_shape: Device mesh shape for MoE params.
+    moe_emh_split: split dimension for MoE EMH activation. See: gshard_layers.
+    moe_ehm_split: split dimension for MoE EHM activation. See: gshard_layers.
+    moe_eah_split: split dimension for MoE EAH activation. See: gshard_layers.
+    moe_eam_split: split dimension for MoE EAH activation. See: gshard_layers.
+    moe_egcm_split: split dimension for MoE EGCM activation. See: gshard_layers.
+    moe_gecm_split: split dimension for MoE GECM activation. See: gshard_layers.
+    moe_gsec_split: split dimension for MoE GSEC activation. See: gshard_layers.
+    moe_blm_split: split dimension for MoE BLM activation. See: gshard_layers.
 
   Returns:
     The updated conformer_tpl.
@@ -1078,14 +1108,41 @@ def ApplyGshard(conformer_tpl,
   conformer_tpl.trans_atten_tpl.atten_tpl.activation_split_dims_mapping.bld = (
       atten_bld_activation_split)
   # TODO(jamesqin): support residual_proj xla sharding too.
-  conformer_tpl.fflayer_start_tpl.fflayer_tpl.Set(
-      device_mesh=device_mesh,
-      weight_split_dims_mapping_list=proj_w_split_list,
-      activation_split_dims_mapping_list=proj_activation_split_list)
-  conformer_tpl.fflayer_end_tpl.fflayer_tpl.Set(
-      device_mesh=device_mesh,
-      weight_split_dims_mapping_list=proj_w_split_list,
-      activation_split_dims_mapping_list=proj_activation_split_list)
+
+  def _ApplyGshardToMoELayer(fflayer_tpl):
+    if not issubclass(fflayer_tpl.cls, gshard_builder.DenseBuilder):
+      return
+    fflayer_tpl.device_mesh = device_mesh
+    fflayer_tpl.device_mesh_shape = moe_device_mesh_shape
+    fflayer_tpl.emh_split = moe_emh_split
+    fflayer_tpl.ehm_split = moe_ehm_split
+    fflayer_tpl.eah_split = moe_eah_split
+    fflayer_tpl.eam_split = moe_eam_split
+    fflayer_tpl.egcm_split = moe_egcm_split
+    fflayer_tpl.gecm_split = moe_gecm_split
+    fflayer_tpl.gsec_split = moe_gsec_split
+    fflayer_tpl.blm_split = moe_blm_split
+
+  # Set sharding in FFLayers.
+  if not issubclass(conformer_tpl.fflayer_start_tpl.cls,
+                    gshard_builder.MoEBuilder):
+    conformer_tpl.fflayer_start_tpl.fflayer_tpl.Set(
+        device_mesh=device_mesh,
+        weight_split_dims_mapping_list=proj_w_split_list,
+        activation_split_dims_mapping_list=proj_activation_split_list)
+  else:
+    _ApplyGshardToMoELayer(conformer_tpl.fflayer_start_tpl)
+
+  if not issubclass(conformer_tpl.fflayer_end_tpl.cls,
+                    gshard_builder.MoEBuilder):
+    conformer_tpl.fflayer_end_tpl.fflayer_tpl.Set(
+        device_mesh=device_mesh,
+        weight_split_dims_mapping_list=proj_w_split_list,
+        activation_split_dims_mapping_list=proj_activation_split_list)
+  else:
+    _ApplyGshardToMoELayer(conformer_tpl.fflayer_end_tpl)
+
+  # Set sharding in LConv layer.
   conformer_tpl.lconv_tpl.Set(
       split_act_gated_linear_start=True, device_mesh=device_mesh)
   lconv_w_split = conformer_tpl.lconv_tpl.weight_split_dims_mapping
