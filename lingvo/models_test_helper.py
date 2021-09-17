@@ -66,6 +66,7 @@ def _StubOutCreateVariable(variable_cache):
         var = variable_cache[key]
       else:
         var = tf.zeros(shape, dtype)
+        var.trainable = trainable
         variable_cache[key] = var
     return var
 
