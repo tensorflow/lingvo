@@ -359,6 +359,11 @@ class Adam(Base):
 
   @classmethod
   def Params(cls):
+    if py_utils.IsEagerMode():
+      tf.logging.warning('Adam optimizer is not supported in eager mode. '
+                         'Automatically converting to AdamV2.')
+      return AdamV2.Params()
+
     p = super().Params()
     p.Define('beta1', 0.9, 'Beta1 for Adam.')
     p.Define('beta2', 0.999, 'Beta2 for Adam.')
