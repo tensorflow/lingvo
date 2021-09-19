@@ -1181,6 +1181,18 @@ def WeightParams(shape,
       '   tensor_split_dims_mapping=[-1, -1, 1], in this case, the third dim'
       '   of the variable is split along the second dim of the mesh. Each '
       '   split of the variable is of the shape [x, y, z/4].')
+
+  # The following two flags are used in Jax only.
+  p.Define(
+      'repeat_prefix', None,
+      'If not None, the full shape of this var is repeat_prefix+shape. '
+      'For example, if repeat_prefix=[16, 2], and shape=[512, 1024], then '
+      'real shape of variable is [16, 2, 512, 1024]. "repeat_prefix" is '
+      'often used if a layer is to be used in a recurrent loop, where '
+      'logically there are n sub-layers, but for performance/hbm usage '
+      'reasons we stack all the variables in creating those n-layers.')
+  p.Define('repeat_prefix_split_dims_mapping', None,
+           'Tensor split dims mapping for the repeat_prefix dims.')
   return p
 
 
