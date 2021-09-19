@@ -1246,6 +1246,18 @@
       <span class="s1">&#39;   tensor_split_dims_mapping=[-1, -1, 1], in this case, the third dim&#39;</span>
       <span class="s1">&#39;   of the variable is split along the second dim of the mesh. Each &#39;</span>
       <span class="s1">&#39;   split of the variable is of the shape [x, y, z/4].&#39;</span><span class="p">)</span>
+
+  <span class="c1"># The following two flags are used in Jax only.</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+      <span class="s1">&#39;repeat_prefix&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+      <span class="s1">&#39;If not None, the full shape of this var is repeat_prefix+shape. &#39;</span>
+      <span class="s1">&#39;For example, if repeat_prefix=[16, 2], and shape=[512, 1024], then &#39;</span>
+      <span class="s1">&#39;real shape of variable is [16, 2, 512, 1024]. &quot;repeat_prefix&quot; is &#39;</span>
+      <span class="s1">&#39;often used if a layer is to be used in a recurrent loop, where &#39;</span>
+      <span class="s1">&#39;logically there are n sub-layers, but for performance/hbm usage &#39;</span>
+      <span class="s1">&#39;reasons we stack all the variables in creating those n-layers.&#39;</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;repeat_prefix_split_dims_mapping&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+           <span class="s1">&#39;Tensor split dims mapping for the repeat_prefix dims.&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">p</span></div>
 
 
