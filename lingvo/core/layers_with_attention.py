@@ -815,6 +815,8 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'expert_weight_shards', 1,
         'Shard each expert params into this many number of shards to reduce'
         ' the size of individual weight params.')
+    p.Define('second_expert_policy', 'all',
+             'How to pick second expert: all, sampling or random.')
 
     # SPMD partition related params.
     # M - model_dim, for both inputs and outputs.
@@ -1011,7 +1013,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
           expert_capacity_dim=0,  # automatically decided.
           fprop_dtype=tf.float32,
           use_xla_sharding=False,
-          second_expert_policy='all',
+          second_expert_policy=p.second_expert_policy,
           second_expert_threshold=0.0,
           # legacy_mtf_behavior=True doesn't normalize gates when one expert is
           # being dropped. This is more appropriate for routing decisions like
