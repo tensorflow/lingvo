@@ -56,6 +56,7 @@ class BaseRunner:
     # Set in subclasses.
     self._job_name = ''
     self._daemon = False
+    self._verbose_enqueue_logging = False
 
     self._params = trial.OverrideModelParams(p)
     tf.logging.info('=' * 60)
@@ -75,8 +76,9 @@ class BaseRunner:
 
     # To early terminate a runner, we set max_steps here and that will trigger
     # appropriate ShouldStop behavior in the threads. This is used by Vizier
-    # to early stop a trial.
-    self._max_steps = None
+    # to early stop a trial and also EarlyStop to stop training based on
+    # metrics.
+    self._max_steps_for_early_stop = None
 
     self._train_dir = os.path.join(self._logdir, 'train')
     tf.io.gfile.makedirs(self._train_dir)
@@ -89,10 +91,9 @@ class BaseRunner:
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
     # The actual EarlyStop object.
     self._early_stop = None
-    # Whether the training thread has decided to early stop.
-    self._should_early_stop = False
     if p.train.early_stop and p.train.early_stop.window:
       self._early_stop = p.train.early_stop.Instantiate()
+      self._verbose_enqueue_logging = True
       with self._graph.as_default():
         self._early_stop.FProp(None)
 
@@ -133,6 +134,9 @@ class BaseRunner:
           os.path.join(self._logdir, jobname), metric_name, global_step,
           metric_value)
 
+  def _ShouldEarlyStop(self, sess):
+    return self._early_stop and self._early_stop.Stop(sess)
+
   def _ShouldStop(self, sess, step=None, check_early_stop=True):
     """Check if the runner should stop.
 
@@ -155,20 +159,13 @@ class BaseRunner:
                       self.params.train.max_steps)
       return True
 
-    if self._max_steps and step >= self._max_steps:
-      tf.logging.info('ShouldStop: step:%6d _max_steps:%6d', step,
-                      self._max_steps)
+    if self._max_steps_for_early_stop and step >= self._max_steps_for_early_stop:
+      tf.logging.info('ShouldStop: step:%6d _max_steps_for_early_stop:%6d',
+                      step, self._max_steps_for_early_stop)
       return True
 
-    if check_early_stop and self._early_stop and self._early_stop.Stop(sess):
+    if check_early_stop and self._ShouldEarlyStop(sess):
       tf.logging.info('ShouldStop: Early stopping.')
-      # Signal the enqueue-thread that the training thread has decided to stop.
-      self._should_early_stop = True
-      return True
-
-    if not check_early_stop and self._should_early_stop:
-      tf.logging.info(
-          'ShouldStop: Early stopped, early_stop set by other thread.')
       return True
 
     if self._trial.ShouldStop():
@@ -390,7 +387,7 @@ class BaseRunner:
         global_step = sess.run(gsteps)
         if global_enqueue_steps is None:
           global_enqueue_steps = global_step
-        if local_enqueue_steps % 1000 == 0:
+        if local_enqueue_steps % 1000 == 0 or self._verbose_enqueue_logging:
           tf.logging.info(
               'Current global_enqueue_steps: %d, '
               'local_enqueue_steps: %d, global_step: %d', global_enqueue_steps,
@@ -401,8 +398,7 @@ class BaseRunner:
                                                  p.train.tpu_steps_per_loop *
                                                  p.train.tpu_steps_per_loop)
           # In TPU Training, the training thread in TrainerTpu is responsible
-          # for checking early stop since it only runs every
-          # tpu_steps_per_loop.
+          # for checking early stop via _ShouldEarlyStop.
           check_early_stop = False
         else:
           global_steps_with_available_data = global_enqueue_steps

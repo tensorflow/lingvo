@@ -731,15 +731,26 @@ class TrainerTpu(base_runner.BaseRunner):
         if FLAGS.checkpoint_in_trainer_tpu:
           # Init/restore variable if needed.
           self.checkpointer.RestoreIfNeeded(sess)
-        if self._trial.ShouldStopAndMaybeReport(global_step, eval_metrics):
+
+        if self._trial.ShouldStopAndMaybeReport(
+            global_step, eval_metrics) or self._ShouldEarlyStop(sess):
           # Early terminate gracefully by setting a new max step horizon: three
           # more TPU steps to ensure that the enqueue ops can gracefully
-          # terminate as well.
-          if self._max_steps is None:
-            self._max_steps = global_step + 3 * self._steps_per_loop
-            tf.logging.info('Early stopping at step: %d', self._max_steps)
+          # terminate as well. Otherwise, the enqueue thread may be stuck, e.g.,
+          # when the queue is filled and the enqueue thread is blocked when
+          # pushing new data to the queue, if the trainer thread decides to
+          # early stop (i.e., `self._ShouldEarlyStop(sess)` is true), then the
+          # enqueue thread could be blocked forever as the trainer thread would
+          # never consume any new data from the queue. After setting the new
+          # max step horizon, the trainer thread would continue run for 3 loops
+          # (3K global steps usually), so the enqueue thread could get a chance
+          # to move forward and run `_ShouldStop()` to stop gracefully.
+          if self._max_steps_for_early_stop is None:
+            self._max_steps_for_early_stop = global_step + 3 * self._steps_per_loop
+            tf.logging.info('Early stopping at step: %d',
+                            self._max_steps_for_early_stop)
 
-        if self._ShouldStop(sess, global_step):
+        if self._ShouldStop(sess, global_step, check_early_stop=False):
           tf.logging.info('Training finished.')
           if FLAGS.checkpoint_in_trainer_tpu:
             self.checkpointer.Save(sess, global_step)
