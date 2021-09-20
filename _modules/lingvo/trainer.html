@@ -796,15 +796,26 @@
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
           <span class="c1"># Init/restore variable if needed.</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStopAndMaybeReport</span><span class="p">(</span>
+            <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldEarlyStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
           <span class="c1"># Early terminate gracefully by setting a new max step horizon: three</span>
           <span class="c1"># more TPU steps to ensure that the enqueue ops can gracefully</span>
-          <span class="c1"># terminate as well.</span>
-          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Early stopping at step: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">)</span>
+          <span class="c1"># terminate as well. Otherwise, the enqueue thread may be stuck, e.g.,</span>
+          <span class="c1"># when the queue is filled and the enqueue thread is blocked when</span>
+          <span class="c1"># pushing new data to the queue, if the trainer thread decides to</span>
+          <span class="c1"># early stop (i.e., `self._ShouldEarlyStop(sess)` is true), then the</span>
+          <span class="c1"># enqueue thread could be blocked forever as the trainer thread would</span>
+          <span class="c1"># never consume any new data from the queue. After setting the new</span>
+          <span class="c1"># max step horizon, the trainer thread would continue run for 3 loops</span>
+          <span class="c1"># (3K global steps usually), so the enqueue thread could get a chance</span>
+          <span class="c1"># to move forward and run `_ShouldStop()` to stop gracefully.</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Early stopping at step: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">check_early_stop</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
