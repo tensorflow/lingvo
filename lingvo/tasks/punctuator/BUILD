@@ -26,6 +26,7 @@ py_test(
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
     python_version = "PY3",
+    shard_count = 3,
     srcs_version = "PY3",
     deps = [
         ":input_generator",
