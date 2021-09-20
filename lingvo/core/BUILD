@@ -1201,6 +1201,7 @@ py_library(
         ":adagraft",
         ":base_layer",
         ":distributed_shampoo",
+        ":gshard_utils",
         ":py_utils",
         ":summary_utils",
         "//lingvo:compat",

@@ -15,6 +15,7 @@
 # ==============================================================================
 """Programs for interleaving execution on TPU."""
 
+import contextlib
 import multiprocessing.dummy
 import os
 import queue
@@ -151,19 +152,27 @@ class BaseProgram:
     # Initialize on first use, so that subclasses can override the
     # implementation without creating a default FileWriter in the constructor.
     if self._summary_writer_obj is None:
-      self._summary_writer_obj = tf.summary.FileWriter(self._program_dir)
-      # Apply a custom Tensorboard layout for input data stats if writing
-      # TF summaries for input data stats is enabled and a custom layout is
-      # defined by the input generator.
-      if (self._task.input.input_data_summary_layout is not None and
-          self._write_train_input_stats):
-        self._summary_writer_obj.add_summary(
-            self._task.input.input_data_summary_layout)
+      if py_utils.IsEagerMode():
+        self._summary_writer_obj = tf.compat.v2.summary.create_file_writer(
+            self._program_dir)
+      else:
+        self._summary_writer_obj = tf.summary.FileWriter(self._program_dir)
+        # Apply a custom Tensorboard layout for input data stats if writing
+        # TF summaries for input data stats is enabled and a custom layout is
+        # defined by the input generator.
+        if (self._task.input.input_data_summary_layout is not None and
+            self._write_train_input_stats):
+          self._summary_writer_obj.add_summary(
+              self._task.input.input_data_summary_layout)
     return self._summary_writer_obj
 
   def _SummarizeValue(self, steps, tag, value):
-    self._summary_writer.add_summary(
-        metrics.CreateScalarSummary(tag, value), steps)
+    if py_utils.IsEagerMode():
+      with self._summary_writer.as_default():
+        tf.compat.v2.summary.scalar(tag, value, step=steps)
+    else:
+      self._summary_writer.add_summary(
+          metrics.CreateScalarSummary(tag, value), steps)
 
   def _WriteSummaries(self, job_name, global_step, summaries):
     """Write summaries to be viewed by TensorBoard.
@@ -175,16 +184,24 @@ class BaseProgram:
     """
     if not summaries:
       return
-    for unused_name, summary in sorted(summaries.items()):
-      self._summary_writer.add_summary(summary, global_step)
-      if summary.value:
-        for value in summary.value:
-          if value.HasField('simple_value'):
-            tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
-                            global_step, value.tag, value.simple_value)
-      self._summary_writer.flush()
+    with contextlib.ExitStack() as stack:
+      if py_utils.IsEagerMode():
+        stack.enter_context(self._summary_writer.as_default())
+      for unused_name, summary in sorted(summaries.items()):
+        if py_utils.IsEagerMode():
+          # TODO(laigd): make this work with v1 summaries.
+          # tf.compat.v2.summary.scalar(tag, value, step=steps)
+          pass
+        else:
+          self._summary_writer.add_summary(summary, global_step)
+        if summary.value:
+          for value in summary.value:
+            if value.HasField('simple_value'):
+              tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
+                              global_step, value.tag, value.simple_value)
+        self._summary_writer.flush()
 
-  def _WriteInputDataStats(self, sess):
+  def _WriteInputDataStats(self, sess=None):
     """Write input data stats for model training as TF summaries.
 
     Args:
@@ -201,7 +218,7 @@ class BaseProgram:
       self._summary_writer.add_summary(summary_str, global_step)
       self._summary_writer.flush()
 
-  def _InfeedLoop(self, sess):
+  def _InfeedLoop(self, sess=None):
     """Infeed loop for input generator for batched data and input data stats."""
     tf.logging.info(f'_InfeedLoop start {self._program_name} '
                     f'on dataset {self.params.dataset_name}')
@@ -257,7 +274,7 @@ class BaseProgram:
     else:
       tf.logging.info('Status: %s', msg)
 
-  def Compile(self, sess):
+  def Compile(self, sess=None):
     """Compile the program using the given session handle."""
     self.SetStatusMessage('Init inputs %s' % self._program_name)
     self._task.input.Initialize(sess)
@@ -273,7 +290,7 @@ class BaseProgram:
             proto.status_error_message))
       tf.logging.info('Compiling %s done.', self._program_name)
 
-  def Run(self, sess, threadpool=None):
+  def Run(self, sess=None, threadpool=None):
     """Execute the program using the given session handle.
 
     Args:
@@ -290,13 +307,21 @@ class BaseProgram:
     pass
 
   def CreateCheckpointer(self, init_op=None):
-    self._checkpointer = checkpointer.Checkpointer(
-        self._checkpoint_dir, self._model, init_op=init_op)
+    if py_utils.IsEagerMode():
+      # TODO(laigd): implement eager checkpointing.
+      pass
+    else:
+      self._checkpointer = checkpointer.Checkpointer(
+          self._checkpoint_dir, self._model, init_op=init_op)
 
-  def RestoreIfNeeded(self, sess):
-    self._checkpointer.RestoreIfNeeded(sess)
+  def RestoreIfNeeded(self, sess=None):
+    if py_utils.IsEagerMode():
+      # TODO(laigd): implement eager checkpointing.
+      pass
+    else:
+      self._checkpointer.RestoreIfNeeded(sess)
 
-  def SaveProgramState(self, sess, global_step):
+  def SaveProgramState(self, sess=None, global_step=None):
     """Saves program state information that need to be loaded during restore."""
     pass
 
@@ -319,7 +344,7 @@ class BaseProgram:
 
   def _OutfeedEnqueue(self, per_example_tensors):
     if not per_example_tensors:
-      return tf.no_op()
+      return tf.constant(0.0)
     per_example_tensors = py_utils.NestedMap(per_example_tensors)
     device = tpu.core(0) if self.spmd else ''
     with tf.device(device):
@@ -346,7 +371,7 @@ class TrainProgram(BaseProgram):
       A dict of per-example tensors from the latest TpuTrainStep.
     """
     if not per_example_tensors:
-      return tf.no_op()
+      return tf.constant(0.0)
 
     tensor_shapes = [
         py_utils.GetShape(per_example_tensors[key])
@@ -411,6 +436,41 @@ class TrainProgram(BaseProgram):
     concatenated_arrays = [array.concat() for array in output_arrays]
     return dict(zip(sorted(per_example_tensors), concatenated_arrays))
 
+  def TpuTrainStep(self, *args):
+    """Train a shard of a batch on a single TPU core.
+
+    Args:
+      *args: metrics values from previous steps.
+
+    Returns:
+      New summed metrics values and a train_op.
+    """
+    with tf.name_scope('tpu_train'):
+      with py_utils.OpportunisticVariableReuseScope(True):
+        with contextlib.ExitStack() as stack:
+          if py_utils.IsEagerMode():
+            stack.enter_context(py_utils.GradientTape())
+          self._model.ConstructFPropBPropGraph()
+      per_step_eval_metrics = self._eval_metrics.SetMetrics(
+          self._task.eval_metrics, args)
+      outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
+      summed_metrics = []
+      assert len(per_step_eval_metrics) == len(args)
+      with tf.control_dependencies([outfeed_op]):
+        for x, y in zip(per_step_eval_metrics, args):
+          summed_metrics.append(x + y)
+      return summed_metrics + [self._task.train_op]
+
+  @tpu_function.on_device_training_loop
+  def TpuTrainLoop(self):
+    loop_result = tpu_training_loop.repeat(
+        self._steps_per_loop,
+        self.TpuTrainStep,
+        inputs=self._eval_metrics.initial_values,
+        name='train_loop')
+    # Final metrics are the avg across self._steps_per_loop steps.
+    return self._eval_metrics.FinalizeMetrics(loop_result)
+
   def BuildTpuSubgraph(self):
     tf.logging.info('TrainProgram BuildTpuSubGraph')
     p = self.params
@@ -419,71 +479,62 @@ class TrainProgram(BaseProgram):
         self._task_params.input.use_partitioned_infeed_queue)
 
     self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
-    data_parallelism = self.data_parallelism
 
     with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
-    self._task.input.CreateTpuEnqueueOps()
-    self._task.input.CreateTpuEmbeddingEnqueueOps()
+    if not py_utils.IsEagerMode():
+      self._task.input.CreateTpuEnqueueOps()
+      self._task.input.CreateTpuEmbeddingEnqueueOps()
 
-    def TpuTrainStep(*args):
-      """Train a shard of a batch on a single TPU core.
+    def TrainFunc():
+      if py_utils.IsEagerMode():
+        # Run the infeed loop in the same function that runs the training loop,
+        # so that infeed enqueue/dequeue ops are created by the same
+        # InfeedQueue.
+        def InfeedBody(i):
+          self._task.input.CreateTpuEnqueueOps()
+          return i + 1
 
-      Args:
-        *args: metrics values from previous steps.
+        tf.while_loop(
+            cond=lambda i: i < self._steps_per_loop,
+            body=InfeedBody,
+            loop_vars=[tf.constant(0)])
 
-      Returns:
-        New summed metrics values and a train_op.
-      """
-      with tf.name_scope('tpu_train'):
-        with py_utils.OpportunisticVariableReuseScope(True):
-          self._model.ConstructFPropBPropGraph()
-        per_step_eval_metrics = self._eval_metrics.SetMetrics(
-            self._task.eval_metrics, args)
-        outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
-        summed_metrics = []
-        assert len(per_step_eval_metrics) == len(args)
-        with tf.control_dependencies([outfeed_op]):
-          for x, y in zip(per_step_eval_metrics, args):
-            summed_metrics.append(x + y)
-        return summed_metrics + [self._task.train_op]
+      # TODO(laigd): investigate how to run compilation only to catch errors
+      # earlier.
+      self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
+          lambda: self.TpuTrainLoop(),  # pylint:disable=unnecessary-lambda
+          num_shards=self.data_parallelism,
+          device_assignment=py_utils.GetTpuDeviceAssignment())
+      outfeed = self._OutfeedDequeueLoop(self._task.per_example_tensors,
+                                         self._steps_per_loop,
+                                         self.data_parallelism)
 
-    @tpu_function.on_device_training_loop
-    def TpuTrain():
-      loop_result = tpu_training_loop.repeat(
-          self._steps_per_loop,
-          TpuTrainStep,
-          inputs=self._eval_metrics.initial_values,
-          name='train_loop')
-      # Final metrics are the avg across self._steps_per_loop steps.
-      return self._eval_metrics.FinalizeMetrics(loop_result)
+      def _ConstructPostTrainingLoop(metric_values, outfeed):
+        """Returns the op for tpu training with tail cpu computation."""
+        # Adds a tail computation that is run after the tpu_training loop
+        # step finishes. This allows us to run certain computation that
+        # acts on the variable between tpu_train_loop iterations and
+        # amortizing the cost of the operations. Alternative of running
+        # tpu.outside_compilation & using tf.cond is expenseive.
+        with tf.control_dependencies(metric_values):
+          self._model.ConstructPostTrainingLoop(outfeed)
+          with tf.control_dependencies([self._task.post_training_loop_op]):
+            return [[tf.identity(o) for o in metric_values], outfeed]
 
-    self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
-        TpuTrain,
-        num_shards=data_parallelism,
-        device_assignment=py_utils.GetTpuDeviceAssignment())
-    outfeed_dequeue_op = self._OutfeedDequeueLoop(
-        self._task.per_example_tensors, self._steps_per_loop,
-        self.num_splits_per_client)
+      # Get metric result from a single replica; they are all same here
+      # because TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
+      metric_values = [t[0] for t in batch_parallel_res]
+      return _ConstructPostTrainingLoop(metric_values, outfeed)
 
-    # Get metric result from a single replica; they are all same here.
+    if py_utils.IsEagerMode():
+      self.tpu_ops = (
+          tf.function(autograph=False)(TrainFunc).get_concrete_function())
+    else:
+      self.tpu_ops = TrainFunc()
 
-    def _ConstructPostTrainingLoop(train_loop_op, outfeed_dequeue_op):
-      """Returns the op for tpu training with tail cpu computation."""
-      # Adds a tail computation that is run after the tpu_training loop
-      # step finishes. This allows us to run certain computation that
-      # acts on the variable between tpu_train_loop iterations and
-      # amortizing the cost of the operations. Alternative of running
-      # tpu.outside_compilation & using tf.cond is expenseive.
-      with tf.control_dependencies(train_loop_op):
-        self._model.ConstructPostTrainingLoop(outfeed_dequeue_op)
-        with tf.control_dependencies([self._task.post_training_loop_op]):
-          return ([[tf.identity(o) for o in train_loop_op], outfeed_dequeue_op])
-
-    # Get metric result from a single replica; they are all same here.
-    all_tpu_ops = [t[0] for t in batch_parallel_res]
-    self.tpu_ops = (_ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
+    # Write model analysis.
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
         self._model)
     tf.logging.info('Total params=%d', self._total_num_params)
@@ -494,26 +545,34 @@ class TrainProgram(BaseProgram):
     except tf.errors.NotFoundError as e:
       tf.logging.info('Failed to write model analysis %s', e)
 
-    return self.tpu_ops
-
-  def Run(self, sess):
+  def Run(self, sess=None):
     # Prevent overtraining.
-    task_global_step = sess.run(self._task.global_step)
+    if py_utils.IsEagerMode():
+      task_global_step = self._task.global_step.numpy()
+    else:
+      task_global_step = sess.run(self._task.global_step)
     if self._ShouldStop(task_global_step):
       return True
 
-    infeed_future = self._infeed_pool.apply_async(
-        self._InfeedLoop, args=(sess,))
-    ary = sess.run(self.tpu_ops)
-    infeed_future.wait()
-
-    values = ary[0]
-    outfeeds = ary[1]
+    if py_utils.IsEagerMode():
+      values, outfeeds = self.tpu_ops()
+    else:
+      infeed_future = self._infeed_pool.apply_async(
+          self._InfeedLoop, args=(sess,))
+      values, outfeeds = sess.run(self.tpu_ops)
+      infeed_future.wait()
 
     self._eval_metrics.PackMetricsValues(values)
     eval_metrics = self._eval_metrics.metrics
+    if py_utils.IsEagerMode():
+      eval_metrics = {
+          k: (v[0].numpy(), v[1].numpy()) for k, v in eval_metrics.items()
+      }
 
-    global_step = sess.run(self._model.global_step)
+    if py_utils.IsEagerMode():
+      global_step = self._model.global_step.numpy()
+    else:
+      global_step = sess.run(self._model.global_step)
     step_rate, example_rate, total_examples = (
         self._step_rate_tracker.ComputeStepRate(
             global_step,
@@ -531,11 +590,15 @@ class TrainProgram(BaseProgram):
     self.SetStatusMessage('Executing train program at step %d %s' %
                           (global_step, ','.join(status_strs)))
 
-    task_global_step = sess.run(self._task.global_step)
-    summaries = self._task.ProcessFPropResults(sess, task_global_step,
-                                               eval_metrics, outfeeds)
-    self._WriteSummaries(
-        os.path.basename(self._program_dir), global_step, summaries)
+    if py_utils.IsEagerMode():
+      task_global_step = self._task.global_step.numpy()
+      # TODO(laigd): ProcessFPropResults doesn't work yet.
+    else:
+      task_global_step = sess.run(self._task.global_step)
+      summaries = self._task.ProcessFPropResults(sess, task_global_step,
+                                                 eval_metrics, outfeeds)
+      self._WriteSummaries(
+          os.path.basename(self._program_dir), global_step, summaries)
 
     vizier_early_stop = self._ReportVizierMetrics(
         global_step, self._eval_metrics.ToAverageMetrics())
@@ -591,43 +654,74 @@ class EvalProgram(BaseProgram):
     p = self.params
     with cluster_factory.SetEval(True):
       self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
-      data_parallelism = self.data_parallelism
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      self._task.input.CreateTpuEnqueueOps()
-      self._task.input.CreateTpuEmbeddingEnqueueOps()
+      if not py_utils.IsEagerMode():
+        self._task.input.CreateTpuEnqueueOps()
+        self._task.input.CreateTpuEmbeddingEnqueueOps()
 
-      # XLA thinks self.TpuEvalLoop() requires 1 argument due to self
-      # Trick it with wrapper function
-      def TpuEvalLoopWrapper():
-        return self.TpuEvalLoop()
+      def EvalFunc():
+        if py_utils.IsEagerMode():
+          # Run the infeed loop in the same function that runs the training loop
+          # so that infeed enqueue/dequeue ops are created by the same
+          # InfeedQueue.
+          def InfeedBody(i):
+            self._task.input.CreateTpuEnqueueOps()
+            return i + 1
 
-      self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
-          TpuEvalLoopWrapper,
-          num_shards=data_parallelism,
-          device_assignment=py_utils.GetTpuDeviceAssignment())
+          tf.while_loop(
+              cond=lambda i: i < self._steps_per_loop,
+              body=InfeedBody,
+              loop_vars=[tf.constant(0)])
 
-      # Get metric result from a single replica; they are all same here because
-      # TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
-      self.tpu_ops = [[t[0] for t in batch_parallel_res]]
-      return self.tpu_ops
+        # TODO(laigd): investigate how to run compilation only to catch errors
+        # earlier.
+        self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
+            lambda: self.TpuEvalLoop(),  # pylint:disable=unnecessary-lambda
+            num_shards=self.data_parallelism,
+            device_assignment=py_utils.GetTpuDeviceAssignment())
 
-  def Run(self, sess):
-    global_step = sess.run(self._model.global_step)
+        # Get metric result from a single replica; they are all same here
+        # because TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
+        return [t[0] for t in batch_parallel_res]
+
+      if py_utils.IsEagerMode():
+        self.tpu_ops = (
+            tf.function(autograph=False)(EvalFunc).get_concrete_function())
+      else:
+        self.tpu_ops = EvalFunc()
+
+  def Run(self, sess=None):
+    if py_utils.IsEagerMode():
+      global_step = self._model.global_step.numpy()
+    else:
+      global_step = sess.run(self._model.global_step)
 
     if self._task.input.params.resettable:
-      tf.logging.info('Resetting input_generator.')
-      self._task.input.Reset(sess)
+      if py_utils.IsEagerMode():
+        # TODO(laigd): reset input generator.
+        raise ValueError('Input_generator resetting is not yet supported.')
+      else:
+        tf.logging.info('Resetting input_generator.')
+        self._task.input.Reset(sess)
 
-    infeed_future = self._infeed_pool.apply_async(
-        self._InfeedLoop, args=(sess,))
-    ary = sess.run(self.tpu_ops)
-    infeed_future.wait()
-    values = ary[0]
+    if py_utils.IsEagerMode():
+      values = self.tpu_ops()
+    else:
+      infeed_future = self._infeed_pool.apply_async(
+          self._InfeedLoop, args=(sess,))
+      values = sess.run(self.tpu_ops)
+      infeed_future.wait()
+
     status_strs = []
     self._eval_metrics.PackMetricsValues(values)
-    for key, (val, _) in sorted(self._eval_metrics.metrics.items()):
+    eval_metrics = self._eval_metrics.metrics
+    if py_utils.IsEagerMode():
+      eval_metrics = {
+          k: (v[0].numpy(), v[1].numpy()) for k, v in eval_metrics.items()
+      }
+    for key, (val, _) in sorted(eval_metrics.items()):
       self._SummarizeValue(global_step, key, val)
       tf.logging.info((global_step, key, val))
       status_strs.append('%s=%s' % (key, val))
@@ -675,9 +769,10 @@ class DecodeProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
-    self._task.input.CreateTpuEnqueueOps()
-    self._task.input.CreateCpuPassthroughEnqueueOps()
-    self._task.input.CreateTpuEmbeddingEnqueueOps()
+    if not py_utils.IsEagerMode():
+      self._task.input.CreateTpuEnqueueOps()
+      self._task.input.CreateTpuEmbeddingEnqueueOps()
+      self._task.input.CreateCpuPassthroughEnqueueOps()
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
@@ -696,7 +791,7 @@ class DecodeProgram(BaseProgram):
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
     self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
 
-  def _DecodeUntilOutOfRangeInfeedLoop(self, sess, infeed_step_queue):
+  def _DecodeUntilOutOfRangeInfeedLoop(self, sess=None, infeed_step_queue=None):
     """Infeed loop that stops when it runs out of data (OutOfRange error)."""
     tf.logging.info(f'_InfeedLoop start {self._program_name} '
                     f'on dataset {self.params.dataset_name}')
@@ -722,7 +817,6 @@ class DecodeProgram(BaseProgram):
     py_utils.ResetStepSeed()
     with cluster_factory.SetEval(True):
       self._CompileDecodeFn()
-    return None
 
   def _DecodeStep(self,
                   sess,
@@ -802,7 +896,7 @@ class DecodeProgram(BaseProgram):
     # Result is not returned as a signal for "done", unlike for training.
     self._ReportVizierMetrics(global_step, dec_metrics)
 
-  def Run(self, sess, threadpool=None):
+  def Run(self, sess=None, threadpool=None):
     """Setup and execute Decode program."""
     global_step = sess.run(self._model.global_step)
     self.SetStatusMessage(
@@ -935,7 +1029,6 @@ class ExperimentalDecodeProgram(DecodeProgram):
         self._task_params.input.use_partitioned_infeed_queue)
     with cluster_factory.SetEval(True):
       self._CompileDecodeLoop()
-    return
 
   def _OutfeedDequeue(self):
     """Collect outfeed dequeue from all devices.
@@ -962,10 +1055,10 @@ class ExperimentalDecodeProgram(DecodeProgram):
             outfeed_ops[idx_outfeed] = outfeed_ops[idx_outfeed] + [out_feed]
     return [tf.concat(per_outfeed, axis=0) for per_outfeed in outfeed_ops]
 
-  def _DecodeLoop(self, sess):
+  def _DecodeLoop(self, sess=None):
     sess.run(self.decode_loop)
 
-  def Run(self, sess, threadpool=None):
+  def Run(self, sess=None, threadpool=None):
     global_step = sess.run(self._model.global_step)
     self.SetStatusMessage(
         f'Executing decode program on dataset {self.params.dataset_name} '
@@ -1053,7 +1146,6 @@ class MLPerfTrainDecodeProgram(BaseProgram):
                            self._ml_perf.warmup_steps)
 
     self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
-    data_parallelism = self.data_parallelism
     with py_utils.OpportunisticVariableReuseScope(True):
       self._train_model = self._train_task_params.Instantiate()
     self._train_task = self._train_model.GetTask()
@@ -1103,15 +1195,17 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
         TrainAndDecode,
-        num_shards=data_parallelism,
+        num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
 
     self.decode_tensors = py_utils.NestedMap(self.decode_nm)
     self.decode_tensors = self.decode_tensors.Pack(batch_parallel_res)
     self.cpu_pt = self._decode_task.input.DequeueCpuPassthrough()
-    return None
 
-  def _InfeedLoop(self, sess):
+  def _InfeedLoop(self, sess=None):
+    if py_utils.IsEagerMode():
+      # Eager mode infeed is run as part of the device loop.
+      return
     tf.logging.info('_InfeedLoop start')
     try:
       for i in range(self._train_steps_per_loop):
@@ -1133,11 +1227,11 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       tf.logging.info('_InfeedLoop exception %r %s', e, e)
       raise
 
-  def _TrainAndDecode(self, sess):
+  def _TrainAndDecode(self, sess=None):
     decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
     self._decode_task.PostProcessDecodeOut(decode_out_dict, self.dec_metrics)
 
-  def Run(self, sess):
+  def Run(self, sess=None):
     global_step = sess.run(self._model.global_step)
     self.dec_metrics = self._decode_task.CreateDecoderMetrics()
     # Start TPU program thread.
@@ -1267,6 +1361,10 @@ class SimpleProgramSchedule:
 
     self.eval_programs = []
     for eval_program in p.eval_programs:
+      if py_utils.IsEagerMode() and issubclass(
+          eval_program.cls, (DecodeProgram, ExperimentalDecodeProgram)):
+        # TODO(jonathanasdf): Support DecodeProgram in eager mode.
+        continue
       self.eval_programs.append(
           eval_program.Instantiate(
               shared_model=shared_model, trial=trial, **kwargs))
@@ -1275,7 +1373,7 @@ class SimpleProgramSchedule:
   def Programs(self):
     return self._programs
 
-  def Run(self, sess, threadpool):
+  def Run(self, sess=None, threadpool=None):
     """Execute the program schedule."""
     p = self.params
     start_time = time.time()
@@ -1479,7 +1577,7 @@ class MLPerfProgramSchedule:
   def Programs(self):
     return self._programs
 
-  def Run(self, sess, threadpool):
+  def Run(self, sess=None, threadpool=None):
     """Execute the program schedule."""
     del threadpool  # Unused.
     p = self.params
