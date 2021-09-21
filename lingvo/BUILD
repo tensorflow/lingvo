@@ -202,6 +202,7 @@ py_library(
         ":model_imports_no_params",
         ":model_registry",
         ":trainer_impl",
+        ":trainer_utils",
         # Implicit network file system dependency.
         # Implicit python proto dependency.
         # Implicit IPython dependency.
@@ -346,4 +347,10 @@ py_library(
         "//lingvo/core:tpu_embedding_layers",
         # Implicit tensorflow grpc dependency.
     ],
+)
+
+py_library(
+    name = "trainer_utils",
+    srcs = ["trainer_utils.py"],
+    deps = [":compat"],
 )

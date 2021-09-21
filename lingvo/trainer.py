@@ -38,6 +38,7 @@ from lingvo import executor
 from lingvo import model_imports
 from lingvo import model_registry
 from lingvo import trainer_impl
+from lingvo import trainer_utils  # pylint: disable=unused-import
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import base_model_params
@@ -63,14 +64,6 @@ from tensorflow.python.tpu import training_loop as tpu_training_loop
 from tensorflow.python.tpu.ops import tpu_ops
 # pylint:enable=g-direct-tensorflow-import
 
-tf.flags.DEFINE_string(
-    'model', None, 'Name of the model class to train.'
-    'Must be a model defined in the model_registry.')
-tf.flags.DEFINE_string(
-    'model_task_name', '', 'For multitask models: '
-    'select task to train/evaluate/decode. '
-    'Empty means to sample a task (training only).')
-tf.flags.DEFINE_string('logdir', '', 'Log directory.')
 tf.flags.DEFINE_bool(
     'interactive', False,
     'If True, enter interactive IPython for the controller job.')
@@ -94,19 +87,12 @@ tf.flags.DEFINE_string(
     'inspect_evaler: print evaler dataset names; '
     'inspect_decoder: print decoder dataset names; '
     'write_inference_graph: write inference graphs to logdir.')
-tf.flags.DEFINE_string('job', '', 'trainer/controller/eval, etc.')
-tf.flags.DEFINE_integer('task', 0, 'Task id within the job.')
 
 tf.flags.DEFINE_string('controller_job', '/job:controller', 'Job name.')
 tf.flags.DEFINE_integer('controller_gpus', 0, 'Number of controller GPUs.')
 
-tf.flags.DEFINE_string('worker_job', '/job:trainer', 'Job name.')
-tf.flags.DEFINE_list('additional_worker_jobs', [],
-                     'Additional worker job names.')
 tf.flags.DEFINE_integer('worker_replicas', 1, 'Number of replicas.')
 tf.flags.DEFINE_integer('worker_gpus', 0, 'Number of gpus to use per replica.')
-tf.flags.DEFINE_integer('worker_tpus', 0, 'Number of tpus to use per replica.')
-tf.flags.DEFINE_integer('worker_num_tpu_hosts', 0, 'Number of tpu hosts.')
 tf.flags.DEFINE_integer('worker_split_size', 1,
                         'Number of devices for one split.')
 
