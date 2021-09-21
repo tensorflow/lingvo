@@ -1082,7 +1082,10 @@ class MoEBuilder(builder.Base):
       layer params for TransformerDecoder SelfAttention.
     """
     p = self.params
-    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+    state_shape = [
+        None, None, p.attention_num_memory_heads or p.attention_num_heads,
+        p.attention_key_value_dim
+    ]
 
     # pyformat: disable
     return self._Graph(
@@ -1271,7 +1274,10 @@ class MoEBuilder(builder.Base):
     else:
       assert p.relative_attention_type == 'bias', p.relative_attention_type
 
-    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+    state_shape = [
+        None, None, p.attention_num_memory_heads or p.attention_num_heads,
+        p.attention_key_value_dim
+    ]
 
     # pyformat: disable
     return self._Graph(
@@ -1330,7 +1336,10 @@ class MoEBuilder(builder.Base):
     else:
       assert p.relative_attention_type == 'bias', p.relative_attention_type
 
-    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+    state_shape = [
+        None, None, p.attention_num_memory_heads or p.attention_num_heads,
+        p.attention_key_value_dim
+    ]
 
     # pyformat: disable
     return self._Graph(
@@ -2214,7 +2223,10 @@ class DenseBuilder(MoEBuilder):
     else:
       assert p.relative_attention_type == 'bias', p.relative_attention_type
 
-    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+    state_shape = [
+        None, None, p.attention_num_memory_heads or p.attention_num_heads,
+        p.attention_key_value_dim
+    ]
 
     def _Output(o, h1, h2, wo1, wo2):
       h = tf.math.multiply(h1, h2)
@@ -2912,7 +2924,10 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
     def _ComputeBias(segment_id, segment_pos):
       return self._DecNotVisible(segment_id, segment_pos) * (-1e+09)
 
-    state_shape = [None, None, p.attention_num_heads, p.attention_key_value_dim]
+    state_shape = [
+        None, None, p.attention_num_memory_heads or p.attention_num_heads,
+        p.attention_key_value_dim
+    ]
 
     if conv_kernel_size is not None:
       norm_layer = self._LNConv('ln', conv_kernel_size)
