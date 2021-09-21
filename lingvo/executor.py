@@ -227,11 +227,11 @@ class ExecutorTpu(base_runner.BaseRunner):
       try:
         if py_utils.IsEagerMode():
           assert tf.executing_eagerly()
-          tf.logging.info(f'FLAGS.tpu: {FLAGS.tpu_cluster_bns}')
+          tf.logging.info(f'FLAGS.tf_worker_address: {FLAGS.tf_worker_address}')
 
           # Connect to the TPU runtime.
           resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-              FLAGS.tpu_cluster_bns, job_name=FLAGS.worker_job[len('/job:'):])
+              FLAGS.tf_worker_address, job_name=FLAGS.worker_job[len('/job:'):])
           tf.config.experimental_connect_to_cluster(resolver)
           topology = tf.tpu.experimental.initialize_tpu_system(resolver)
         else:
