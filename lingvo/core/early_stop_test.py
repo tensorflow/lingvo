@@ -93,8 +93,7 @@ class EarlyStopTest(test_utils.TestCase):
 
   def testEarlyStopDefaultIsNoOp(self):
     p = early_stop.EarlyStop.Params()
-    es = early_stop.EarlyStop(p)
-    es.FProp(None)
+    es = p.Instantiate()
     mh = early_stop.MetricHistory
     a = mh.ConditionalAppend(es.params.metric_history.jobname,
                              es.params.metric_history.metric, 1, 10.0)
@@ -115,8 +114,7 @@ class EarlyStopTest(test_utils.TestCase):
     p.metric_history.local_filesystem = True
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
 
-    es = early_stop.EarlyStop(p)
-    es.FProp(None)
+    es = p.Instantiate()
     with self.session() as sess:
       jobname = es.metric_history.params.jobname
       metric = es.metric_history.params.metric
@@ -155,8 +153,7 @@ class EarlyStopTest(test_utils.TestCase):
     p.metric_history.metric = 'canonical_bleu'
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
 
-    es = early_stop.EarlyStop(p)
-    es.FProp(None)
+    es = p.Instantiate()
     with self.session() as sess:
       jobname = es.metric_history.params.jobname
       metric = es.metric_history.params.metric
@@ -199,8 +196,7 @@ class EarlyStopTest(test_utils.TestCase):
     p.metric_history.tfevent_file = True
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
 
-    es = early_stop.EarlyStop(p)
-    es.FProp(None)
+    es = p.Instantiate()
     with self.session() as sess:
       self.assertTrue(es.Stop(sess))
       self.assertEqual(es.best_step, 102600)

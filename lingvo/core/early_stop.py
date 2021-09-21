@@ -151,13 +151,23 @@ class EarlyStop:
 
   def __init__(self, params):
     self.params = params.Copy()
-    if self.params.window:
-      self._metric_history = MetricHistory(self.params.metric_history)
-    else:
-      self._metric_history = None
-    self._node = None
     self._best_step = 0
     self._last_step = 0
+
+    if self.params.window:
+      self._metric_history = MetricHistory(self.params.metric_history)
+
+      @tf.function
+      def BestStep():
+        return ops.best_step(self.metric_history.hist_file,
+                             self.params.tolerance,
+                             self.metric_history.minimize,
+                             self.metric_history.metric)
+
+      self._node = BestStep
+    else:
+      self._metric_history = None
+      self._node = None
 
   @property
   def metric_history(self):
@@ -171,38 +181,9 @@ class EarlyStop:
   def last_step(self):
     return self._last_step
 
-  def FProp(self, theta):
-    """Creates an op to determine the best step from the metric history file.
-
-    Args:
-      theta: Not currently used.
-    Returns:
-      The created op.
-
-    This uses BestStepOp rather than reading the file directly from python in
-    order to ensure compatibility with DevBasedSchedule for learning-rate decay.
-    It is natural to use dev-based decay and early stopping together, for
-    example decaying when dev-set perplexity hasn't improved for n steps, and
-    stopping when it hasn't improved for 3n steps.
-    """
-    del theta  # not used
-    if self.params.window:
-
-      @tf.function
-      def BestStep():
-        return ops.best_step(self.metric_history.hist_file,
-                             self.params.tolerance,
-                             self.metric_history.minimize,
-                             self.metric_history.metric)
-
-      self._node = BestStep
-    else:
-      self._node = None
-    return self._node
-
   def Stop(self, session=None):
     """Returns true if stop criterion is met."""
-    if self.params.window and self._node is not None:
+    if self._node is not None:
       if py_utils.IsEagerMode():
         self._best_step, self._last_step = self._node()
       else:

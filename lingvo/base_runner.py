@@ -97,10 +97,6 @@ class BaseRunner:
     if p.train.early_stop and p.train.early_stop.window:
       self._early_stop = p.train.early_stop.Instantiate()
       self._verbose_enqueue_logging = True
-      with contextlib.ExitStack() as stack:
-        if not py_utils.IsEagerMode():
-          stack.enter_context(self._graph.as_default())
-        self._early_stop.FProp(None)
 
     self._SetStatusMessage('Starting ...')
     self._cluster = cluster_factory.Cluster(self.params.cluster)
