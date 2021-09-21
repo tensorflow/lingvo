@@ -219,6 +219,8 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
              'The names of the cameras from which images will be extracted.')
     p.Define('image_shape', [1280, 1920, 3],
              'The shape that images are cropped to.')
+    p.Define('decode_image', True,
+             'Whether to decode and return the actual image.')
     return p
 
   def FeatureMap(self):
@@ -228,7 +230,9 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
     features['pose'] = tf.io.VarLenFeature(dtype=tf.float32)
 
     for camera_name in p.camera_names:
-      features['image_%s' % camera_name] = tf.io.VarLenFeature(dtype=tf.string)
+      if p.decode_image:
+        features['image_%s' %
+                 camera_name] = tf.io.VarLenFeature(dtype=tf.string)
       features['image_%s_shape' % camera_name] = (
           tf.io.VarLenFeature(dtype=tf.int64))
       features['camera_%s_intrinsics' %
@@ -259,11 +263,14 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
     for camera_name in p.camera_names:
       image_shape = tf.reshape(
           _Dense(features['image_%s_shape' % camera_name]), [-1])
-      image = tf.io.decode_png(
-          tf.strings.reduce_join(
-              _Dense(features['image_%s' % camera_name], default_value='')))
-      image = tf.reshape(image, image_shape)
-      image = py_utils.PadOrTrimTo(image, p.image_shape)
+
+      if p.decode_image:
+        image = tf.io.decode_png(
+            tf.strings.reduce_join(
+                _Dense(features['image_%s' % camera_name], default_value='')))
+        image = tf.reshape(image, image_shape)
+        image = py_utils.PadOrTrimTo(image, p.image_shape)
+
       intrinsics = tf.reshape(
           _Dense(features['camera_%s_intrinsics' % camera_name]), [9])
       extrinsics = tf.reshape(
@@ -273,7 +280,8 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
           _Dense(features['image_%s_velocity' % camera_name]), [6])
 
       outputs[camera_name] = py_utils.NestedMap()
-      outputs[camera_name]['image'] = tf.cast(image, p.image_output_dtype)
+      if p.decode_image:
+        outputs[camera_name]['image'] = tf.cast(image, p.image_output_dtype)
       outputs[camera_name]['intrinsics'] = intrinsics
       outputs[camera_name]['extrinsics'] = extrinsics
       outputs[camera_name]['pose'] = pose
@@ -296,7 +304,8 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
     shapes = py_utils.NestedMap()
     for camera_name in p.camera_names:
       shapes[camera_name] = py_utils.NestedMap()
-      shapes[camera_name]['image'] = tf.TensorShape(p.image_shape)
+      if p.decode_image:
+        shapes[camera_name]['image'] = tf.TensorShape(p.image_shape)
       # 1d Array of [f_u, f_v, c_u, c_v, k{1, 2}, p{1, 2}, k{3}].
       # Note that this intrinsic corresponds to the images after scaling.
       # Camera model: pinhole camera.
@@ -323,7 +332,8 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
     dtypes = py_utils.NestedMap()
     for camera_name in p.camera_names:
       dtypes[camera_name] = py_utils.NestedMap()
-      dtypes[camera_name]['image'] = p.image_output_dtype
+      if p.decode_image:
+        dtypes[camera_name]['image'] = p.image_output_dtype
       dtypes[camera_name]['intrinsics'] = tf.float32
       dtypes[camera_name]['extrinsics'] = tf.float32
       dtypes[camera_name]['pose'] = tf.float32
