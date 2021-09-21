@@ -733,6 +733,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":hyperparams",
+        ":py_utils",
         "//lingvo:compat",
         "//lingvo/core/ops",
     ],

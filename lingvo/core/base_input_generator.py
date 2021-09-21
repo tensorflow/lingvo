@@ -232,7 +232,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
 
-  def Initialize(self, sess):
+  def Initialize(self, sess=None):
     """Initialize using a session."""
     if 'datasource' in self.children:
       self.datasource.Initialize(sess)
@@ -807,7 +807,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       ret += [split]
     return ret
 
-  def Reset(self, sess):
+  def Reset(self, sess=None):
     """Reset the input-generator.
 
     Override so that the input_generator reproduces examples as if from a fresh
@@ -1486,7 +1486,7 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
         sub=ds[0], fn='ProcessDataset')
     return ds
 
-  def Reset(self, sess):
+  def Reset(self, sess=None):
     self.datasource.Reset(sess)
 
   def GetPreprocessedInputBatch(self):

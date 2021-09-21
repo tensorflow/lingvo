@@ -19,6 +19,7 @@ import os
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import ops
+from lingvo.core import py_utils
 
 
 class MetricHistory:
@@ -186,18 +187,26 @@ class EarlyStop:
     """
     del theta  # not used
     if self.params.window:
-      self._node = ops.best_step(self.metric_history.hist_file,
-                                 self.params.tolerance,
-                                 self.metric_history.minimize,
-                                 self.metric_history.metric)
+
+      @tf.function
+      def BestStep():
+        return ops.best_step(self.metric_history.hist_file,
+                             self.params.tolerance,
+                             self.metric_history.minimize,
+                             self.metric_history.metric)
+
+      self._node = BestStep
     else:
       self._node = None
     return self._node
 
-  def Stop(self, session):
+  def Stop(self, session=None):
     """Returns true if stop criterion is met."""
     if self.params.window and self._node is not None:
-      self._best_step, self._last_step = session.run(self._node)
+      if py_utils.IsEagerMode():
+        self._best_step, self._last_step = self._node()
+      else:
+        self._best_step, self._last_step = session.run(self._node())
       s = (
           self._last_step - self._best_step > self.params.window and
           self._last_step >= self.params.min_steps)

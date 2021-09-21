@@ -62,12 +62,12 @@ class DataSource(base_layer.BaseLayer):
       if isinstance(child, DataSource):
         child.SetInputGenerator(input_generator)
 
-  def Initialize(self, sess):
+  def Initialize(self, sess=None):
     for child in self._children_list:
       if isinstance(child, DataSource):
         child.Initialize(sess)
 
-  def Reset(self, sess):
+  def Reset(self, sess=None):
     for child in self._children_list:
       if isinstance(child, DataSource):
         child.Reset(sess)
@@ -387,12 +387,12 @@ class TFDatasetSource(DataSource):
       it = tf.data.make_initializable_iterator(ds)
     self._iterator[self.host_id] = it
 
-  def Initialize(self, sess):
+  def Initialize(self, sess=None):
     if not tf.executing_eagerly():
       sess.run([it.initializer for it in self._iterator.values()])
     super().Initialize(sess)
 
-  def Reset(self, sess):
+  def Reset(self, sess=None):
     if tf.executing_eagerly():
       self._iterator = {key: iter(ds) for key, ds in self._dataset.items()}
     else:
@@ -793,7 +793,7 @@ class TFDataServiceSource(TFDatasetTransform):
 
     return dataset
 
-  def Reset(self, sess):
+  def Reset(self, sess=None):
     # TFDataServiceSource should not be used for eval/decode, as it does not
     # have at-most-once guarantees for parallel_epochs mode.
     raise ValueError('TFDataServiceSource does not support reset.')

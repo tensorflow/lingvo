@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""An experimental new unified TPU executor."""
+"""A multi-program TPU executor."""
 
+import contextlib
 import multiprocessing.dummy
 import os
 import time
@@ -143,7 +144,7 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
 
 
 class ExecutorTpu(base_runner.BaseRunner):
-  """An experimental runner that does arbitrary multi-program execution on TPU.
+  """An runner that does arbitrary multi-program execution on TPU.
 
   Overview of operation:
 
@@ -168,7 +169,6 @@ class ExecutorTpu(base_runner.BaseRunner):
     super().__init__(train_cfg, *args, **kwargs)
 
     data_parallelism = self._cluster.num_splits_per_client
-
     assert data_parallelism
     num_devices_per_split = self._cluster.num_devices_per_split
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
@@ -225,18 +225,28 @@ class ExecutorTpu(base_runner.BaseRunner):
     def _WaitTillInit(job=None):
       """Wait until the model is ready."""
       try:
-        # tpu.initialize_system() is called with None as embedding_config, as
-        # embedding_config is not available yet. Later in _Loop, it is called
-        # with the correct embedding_config. Since it cannot be called twice in
-        # the same graph with different embedding_config, we use a dummy_graph
-        # here.
-        dummy_graph = tf.Graph()
-        with dummy_graph.as_default():
-          tpu_initialize_system_op = tf.tpu.initialize_system(
-              embedding_config=None, job=job)
+        if py_utils.IsEagerMode():
+          assert tf.executing_eagerly()
+          tf.logging.info(f'FLAGS.tpu: {FLAGS.tpu_cluster_bns}')
 
-        with self._GetSession(graph=dummy_graph) as sess:
-          topology = sess.run(tpu_initialize_system_op)
+          # Connect to the TPU runtime.
+          resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+              FLAGS.tpu_cluster_bns, job_name=FLAGS.worker_job[len('/job:'):])
+          tf.config.experimental_connect_to_cluster(resolver)
+          topology = tf.tpu.experimental.initialize_tpu_system(resolver)
+        else:
+          # tpu.initialize_system() is called with None as embedding_config, as
+          # embedding_config is not available yet. Later in _Loop, it is called
+          # with the correct embedding_config. Since it cannot be called twice
+          # in the same graph with different embedding_config, we use a
+          # dummy_graph here.
+          dummy_graph = tf.Graph()
+          with dummy_graph.as_default():
+            tpu_initialize_system_op = tf.tpu.initialize_system(
+                embedding_config=None, job=job)
+
+          with self._GetSession(graph=dummy_graph) as sess:
+            topology = sess.run(tpu_initialize_system_op)
 
         if train_cfg.train.tpu_computation_shape is None:
           computation_shape = py_utils.ComputationShape(num_devices_per_split,
@@ -302,31 +312,43 @@ class ExecutorTpu(base_runner.BaseRunner):
       if program._should_report_metrics:
         self._should_report_metrics = True
 
-    with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
-        with py_utils.VariableStore(), py_utils.VariableRenameScope(
-            self._variable_renaming_rules):
-          global_step = py_utils.GetOrCreateGlobalStepVar()
-          if issubclass(train_cfg.cls, base_model.MultiTaskModel):
-            if train_cfg.train.ema_decay > 0:
-              # Create a global ExponentialMovingAverage object and share it
-              # across all subtasks.
-              ema = tf.train.ExponentialMovingAverage(
-                  decay=train_cfg.train.ema_decay, num_updates=global_step)
-              py_utils.SetExponentialMovingAverage(ema)
+    with self._cluster, tf.container(
+        self._container_id), contextlib.ExitStack() as stack:
+      if not py_utils.IsEagerMode():
+        stack.enter_context(self._graph.as_default())
+        stack.enter_context(tf.device(self._cluster.GetPlacer()))
+      with py_utils.VariableStore(), py_utils.VariableRenameScope(
+          self._variable_renaming_rules):
+        global_step = py_utils.GetOrCreateGlobalStepVar()
+        if issubclass(train_cfg.cls, base_model.MultiTaskModel):
+          if train_cfg.train.ema_decay > 0:
+            # Create a global ExponentialMovingAverage object and share it
+            # across all subtasks.
+            ema = tf.train.ExponentialMovingAverage(
+                decay=train_cfg.train.ema_decay, num_updates=global_step)
+            py_utils.SetExponentialMovingAverage(ema)
 
-          for program in self._programs:
-            program.BuildTpuSubgraph()
-            py_utils.ClearTpuSummaryTensors()
+        for program in self._programs:
+          program.BuildTpuSubgraph()
+          py_utils.ClearTpuSummaryTensors()
 
+      if not py_utils.IsEagerMode():
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
         self._initialize_global_vars = tf.global_variables_initializer()
 
-        for program in self._programs:
-          program.SetStatusMessageFn(self._SetStatusMessage)
+      for program in self._programs:
+        program.SetStatusMessageFn(self._SetStatusMessage)
+        if py_utils.IsEagerMode():
+          # TODO(laigd): support checkpointing.
+          pass
+        else:
           program.CreateCheckpointer(init_op=self._initialize_global_vars)
 
+      if py_utils.IsEagerMode():
+        # TODO(laigd): support checkpointing.
+        pass
+      else:
         self.save_only_checkpointer = checkpointer.Checkpointer(
             self._checkpoint_dir,
             model=None,
@@ -341,6 +363,8 @@ class ExecutorTpu(base_runner.BaseRunner):
       self._tpu_embedding = tpu_embedding_collection.tpu_embedding
 
   def _GetSession(self, **kwargs):
+    if py_utils.IsEagerMode():
+      raise ValueError('Eager mode does not support _GetSession.')
     return super()._GetSession(cluster_def=self._worker_cluster_def, **kwargs)
 
   def _MaybeConstructSharedModel(self, train_cfg):
@@ -362,12 +386,16 @@ class ExecutorTpu(base_runner.BaseRunner):
     if not train_cfg.share_model_object:
       return None
 
-    with self._graph.as_default(), tf.container(self._container_id):
-      with self._cluster, tf.device(self._cluster.GetPlacer()):
-        with py_utils.VariableRenameScope(self._variable_renaming_rules):
-          _ = py_utils.GetOrCreateGlobalStepVar()
-          shared_model = train_cfg.Instantiate()
-          shared_model.InstantiateVariables()
+    with self._cluster, tf.container(
+        self._container_id), contextlib.ExitStack() as stack:
+      if not py_utils.IsEagerMode():
+        stack.enter_context(self._graph.as_default())
+        stack.enter_context(tf.device(self._cluster.GetPlacer()))
+      with py_utils.VariableStore(), py_utils.VariableRenameScope(
+          self._variable_renaming_rules):
+        _ = py_utils.GetOrCreateGlobalStepVar()
+        shared_model = train_cfg.Instantiate()
+        shared_model.InstantiateVariables()
 
     return shared_model
 
@@ -376,16 +404,22 @@ class ExecutorTpu(base_runner.BaseRunner):
     self._RunLoop('executor_tpu', self._Loop)
 
   def _Loop(self):
-    with self._cluster, tf.container(self._container_id), self._GetSession(
-        disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
-    ) as sess:
-      config_proto = (
-          self._tpu_embedding.config_proto
-          if self._tpu_embedding is not None else None)
-      sess.reset(self._tf_master)
-      for worker in self._cluster.all_worker_names:
-        sess.run(
-            tf.tpu.initialize_system(embedding_config=config_proto, job=worker))
+    with self._cluster, tf.container(
+        self._container_id), contextlib.ExitStack() as stack:
+      if py_utils.IsEagerMode():
+        sess = None
+      else:
+        sess = self._GetSession(
+            disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor)
+        stack.enter_context(sess)
+        sess.reset(self._tf_master)
+        config_proto = (
+            self._tpu_embedding.config_proto
+            if self._tpu_embedding is not None else None)
+        for worker in self._cluster.all_worker_names:
+          sess.run(
+              tf.tpu.initialize_system(
+                  embedding_config=config_proto, job=worker))
 
       # Initialize the variables first, if needed.
       compile_fns = []
@@ -402,10 +436,11 @@ class ExecutorTpu(base_runner.BaseRunner):
       for future in futures:
         future.wait()
 
-      sess.run(self._initialize_tables)
-      sess.run(self._initialize_local_vars)
+      if not py_utils.IsEagerMode():
+        sess.run(self._initialize_tables)
+        sess.run(self._initialize_local_vars)
+        sess.run(self._load_ops)
 
-      sess.run(self._load_ops)
       program_schedule = None
       # Threadpool to run code in programs async with TF Sessions (on TPUs).
       # This unblocks TPU from waiting for CPU processing on "main" thread, and
@@ -414,31 +449,42 @@ class ExecutorTpu(base_runner.BaseRunner):
       start_time = time.time()
       while True:
         cycle_start_time = time.time()
-        global_step = sess.run(py_utils.GetGlobalStep())
+        if py_utils.IsEagerMode():
+          global_step = py_utils.GetGlobalStep().numpy()
+        else:
+          global_step = sess.run(py_utils.GetGlobalStep())
 
-        def RunSave(sess, global_step):
-          # Run TPU embedding retrieve ops.
-          # NOTE: this is expensive, so only run it when we're checkpointing.
-          tf.logging.info('Retrieve params.')
-          sess.run(self._retrieve_ops)
-          tf.logging.info('Retrieve params done.')
-          # Save program state first, so it's recoverable after we restore
-          # from checkpoint.
-          for program in self._programs:
-            program.SaveProgramState(sess, global_step)
-          # Save the checkpoints.
-          self.save_only_checkpointer.Save(sess, global_step)
+        async_checkpointing = False
+        if py_utils.IsEagerMode():
+          # TODO(laigd): save checkpoints.
+          pass
+        else:
 
-        if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave(
-            global_step):
+          def RunSave(sess, global_step):
+            # Run TPU embedding retrieve ops.
+            # NOTE: this is expensive, so only run it when we're checkpointing.
+            tf.logging.info('Retrieve params.')
+            sess.run(self._retrieve_ops)
+            tf.logging.info('Retrieve params done.')
+            # Save program state first, so it's recoverable after we restore
+            # from checkpoint.
+            for program in self._programs:
+              program.SaveProgramState(sess, global_step)
+            # Save the checkpoints.
+            self.save_only_checkpointer.Save(sess, global_step)
 
-          if self.save_only_checkpointer.async_checkpointing:
-            tf.logging.info('Save checkpoint asynchronously AT YOUR OWN RISK.')
-            threadpool = multiprocessing.dummy.Pool(1)
-            saver_future = threadpool.apply_async(
-                RunSave, args=(sess, global_step))
-          else:
-            RunSave(sess, global_step)
+          if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave(
+              global_step):
+
+            if self.save_only_checkpointer.async_checkpointing:
+              tf.logging.info(
+                  'Save checkpoint asynchronously AT YOUR OWN RISK.')
+              threadpool = multiprocessing.dummy.Pool(1)
+              saver_future = threadpool.apply_async(
+                  RunSave, args=(sess, global_step))
+              async_checkpointing = True
+            else:
+              RunSave(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
@@ -454,9 +500,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         done, train_time_in_secs, eval_time_in_secs = program_schedule.Run(
             sess, program_threadpool)
 
-        if (not self._ml_perf_log and
-            self.save_only_checkpointer.ShouldSave(global_step) and
-            self.save_only_checkpointer.async_checkpointing):
+        if async_checkpointing:
           saver_future.wait()
 
         executor_cycle_in_secs = time.time() - cycle_start_time
@@ -481,11 +525,18 @@ class ExecutorTpu(base_runner.BaseRunner):
           _ShutDown()
           return
 
-        global_step = sess.run(py_utils.GetGlobalStep())
+        if py_utils.IsEagerMode():
+          global_step = py_utils.GetGlobalStep().numpy()
+        else:
+          global_step = sess.run(py_utils.GetGlobalStep())
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
-          if not self._ml_perf_log:
-            RunSave(sess, global_step)
+          if py_utils.IsEagerMode():
+            # TODO(laigd): save checkpoints.
+            pass
+          else:
+            if not self._ml_perf_log:
+              RunSave(sess, global_step)
           tf.logging.info(
               'Program finished after %f seconds. Waiting for threads to end.',
               time.time() - start_time)

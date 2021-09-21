@@ -82,7 +82,10 @@ class BaseRunner:
 
     self._train_dir = os.path.join(self._logdir, 'train')
     tf.io.gfile.makedirs(self._train_dir)
-    self._graph = tf.Graph()
+    if py_utils.IsEagerMode():
+      self._graph = None
+    else:
+      self._graph = tf.Graph()
     self._summary_writer = None
     self._initialize_tables = None
     self._dequeue_thread_complete = False
@@ -94,13 +97,18 @@ class BaseRunner:
     if p.train.early_stop and p.train.early_stop.window:
       self._early_stop = p.train.early_stop.Instantiate()
       self._verbose_enqueue_logging = True
-      with self._graph.as_default():
+      with contextlib.ExitStack() as stack:
+        if not py_utils.IsEagerMode():
+          stack.enter_context(self._graph.as_default())
         self._early_stop.FProp(None)
 
     self._SetStatusMessage('Starting ...')
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._worker_cluster_def = self._cluster.worker_cluster_def
-    self._cluster.InitDevices(self._GetSession())
+    if py_utils.IsEagerMode():
+      self._cluster.InitDevicesEager()
+    else:
+      self._cluster.InitDevices(self._GetSession())
 
     # Merged TF scalar summaries for training related input data stats.
     self._merged_input_data_summary_op = None
@@ -134,10 +142,10 @@ class BaseRunner:
           os.path.join(self._logdir, jobname), metric_name, global_step,
           metric_value)
 
-  def _ShouldEarlyStop(self, sess):
+  def _ShouldEarlyStop(self, sess=None):
     return self._early_stop and self._early_stop.Stop(sess)
 
-  def _ShouldStop(self, sess, step=None, check_early_stop=True):
+  def _ShouldStop(self, sess=None, step=None, check_early_stop=True):
     """Check if the runner should stop.
 
     Args:
@@ -152,7 +160,10 @@ class BaseRunner:
       Whether runner should stop.
     """
     if step is None:
-      step = sess.run(py_utils.GetGlobalStep())
+      if py_utils.IsEagerMode():
+        step = py_utils.GetGlobalStep().numpy
+      else:
+        step = sess.run(py_utils.GetGlobalStep())
 
     if step >= self.params.train.max_steps:
       tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
@@ -188,7 +199,7 @@ class BaseRunner:
                   tag=filename, tensor=tf.make_tensor_proto([text]))
           ]))
 
-  def _WaitUntilInit(self, sess, start_up_delay_steps=None):
+  def _WaitUntilInit(self, sess=None, start_up_delay_steps=None):
     """Wait until the model is ready."""
     # Wait a fix amount of time at start.
     time.sleep(30)
@@ -196,7 +207,10 @@ class BaseRunner:
     @py_utils.Retry(retry_value=(tf.errors.FailedPreconditionError,))
     def RetryLoop():
       try:
-        global_step = sess.run(py_utils.GetGlobalStep())
+        if py_utils.IsEagerMode():
+          global_step = py_utils.GetGlobalStep().numpy
+        else:
+          global_step = sess.run(py_utils.GetGlobalStep())
       except tf.errors.FailedPreconditionError as e:
         tf.logging.info('%s: Probably the expected race on global_step: %s',
                         self._job_name, e)
@@ -216,7 +230,7 @@ class BaseRunner:
 
   @py_utils.Retry(
       initial_delay_sec=1, delay_growth_factor=1.5, max_delay_sec=300)
-  def _FindNewCheckpoint(self, sess, processed_ckpts):
+  def _FindNewCheckpoint(self, sess=None, processed_ckpts=None):
     """Returns the path to a new checkpoint, or raises RuntimeError."""
     if self._ShouldStop(sess, step=0):
       # Check for early stopping or trail early stopping.
@@ -360,6 +374,8 @@ class BaseRunner:
 
   def _LoopEnqueue(self, op, session_override=None):
     """Runs the enqueue op in a loop."""
+    if py_utils.IsEagerMode():
+      raise ValueError('_LoopEnqueue is not supported in eager mode.')
     p = self.params
     sess = session_override or self._GetSession()
 
@@ -368,7 +384,6 @@ class BaseRunner:
         sess.run(self._initialize_tables)
       for task in self._model.tasks:
         task.input.Initialize(sess)
-      gsteps = py_utils.GetGlobalStep()
       local_enqueue_steps = 0
 
       # Global enqueue steps measures how many global steps have data enqueued
@@ -384,7 +399,7 @@ class BaseRunner:
               'LoopEnqueue done since consuming thread is done.')
           return
 
-        global_step = sess.run(gsteps)
+        global_step = sess.run(py_utils.GetGlobalStep())
         if global_enqueue_steps is None:
           global_enqueue_steps = global_step
         if local_enqueue_steps % 1000 == 0 or self._verbose_enqueue_logging:
@@ -435,6 +450,8 @@ class BaseRunner:
           sess.run([op])
 
   def _GetSession(self, **kwargs):
+    if py_utils.IsEagerMode():
+      raise ValueError('_GetSession is not supported in eager mode.')
     graph = kwargs.pop('graph', self._graph)
     return tf.Session(
         self._tf_master, graph=graph, config=py_utils.SessionConfig(**kwargs))
@@ -469,13 +486,14 @@ class BaseRunner:
     self._tf2_summary_op = tf.compat.v1.summary.all_v2_summary_ops()
     self._tf2_summary_flush = self._tf2_summary_writer.flush()
 
-  def _InitializeTF2SummaryWriter(self, sess):
+  def _InitializeTF2SummaryWriter(self, sess=None):
     if FLAGS.disable_tf2_summary:
       return
-    sess.run(self._tf2_summary_writer.init())
+    if not py_utils.IsEagerMode():
+      sess.run(self._tf2_summary_writer.init())
 
   def _RunTF2SummaryOps(self, sess):
-    if FLAGS.disable_tf2_summary:
+    if FLAGS.disable_tf2_summary or py_utils.IsEagerMode():
       return
     sess.run(self._tf2_summary_op)
     sess.run(self._tf2_summary_flush)
@@ -542,7 +560,7 @@ class BaseRunner:
     """Exports metrics externally."""
     pass
 
-  def _TrainerFinished(self, sess):
+  def _TrainerFinished(self, sess=None):
     """Infer if training finished using the latest training checkpoint."""
     latest_ckpt_path = tf.train.latest_checkpoint(self._train_dir)
     if latest_ckpt_path is None:
@@ -573,7 +591,7 @@ class BaseRunner:
     with tf.io.gfile.GFile(processed_ckpts_path, 'w') as f:
       f.write('\n'.join(processed_ckpts) + '\n')
 
-  def _RunOnLatestCheckpoints(self, sess, runner_fn, runner_dir):
+  def _RunOnLatestCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
     """Executes 'runner_fn' on the latest checkpoints produced by the Trainer.
 
     Args:
@@ -611,7 +629,7 @@ class BaseRunner:
       if self._ShouldStop(sess):
         break
 
-  def _RunOnAllCheckpoints(self, sess, runner_fn, runner_dir):
+  def _RunOnAllCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
     """Executes 'runner_fn' on all checkpoints produced by the Trainer.
 
     Args:
