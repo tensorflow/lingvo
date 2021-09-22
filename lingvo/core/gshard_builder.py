@@ -19,7 +19,6 @@ from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import builder
 from lingvo.core import builder_layers
-from lingvo.core import entmax
 from lingvo.core import gshard_layers
 from lingvo.core import gshard_utils
 from lingvo.core import layers
@@ -1855,7 +1854,7 @@ class MoEBuilder(builder.Base):
   def _Override(self, name, key=None):
     return gshard_layers.OverrideLayer.Params().Set(name=name, key=key or name)
 
-  def _Softmax(self, dec_outs, tgt, w, vocab_dim):
+  def _Softmax(self, dec_outs, tgt, w, vocab_dim, label_smoothing=None):
     p = self.params
 
     def _MaybeSplit(x):
@@ -1863,7 +1862,8 @@ class MoEBuilder(builder.Base):
 
     dec_outs *= (p.model_dim**-0.5)
     logits = _MaybeSplit(tf.einsum('BLM,VM->BLV', _MaybeSplit(dec_outs), w))
-    label_smoothing = p.label_smoothing
+    if label_smoothing is None:
+      label_smoothing = p.label_smoothing
     off_value = label_smoothing / vocab_dim
     on_value = 1.0 - label_smoothing + off_value
     soft_targets = _MaybeSplit(
@@ -1880,13 +1880,15 @@ class MoEBuilder(builder.Base):
     return py_utils.NestedMap(
         per_example_loss=tf.reduce_sum(per_token_loss, 1) / loss_denom)
 
-  def SmoothedSoftmax(self, name, vocab_dim):
+  def SmoothedSoftmax(self, name, vocab_dim, label_smoothing=None):
     """Returns the Softmax layer with optional label smoothing."""
     return self._Graph(
         name, ['i'], ['o'], ('->w', self._EmbeddingWeight('w', vocab_dim)),
         ('i.dec_outs,i.tgt,w->o',
-         self._Fn('softmax',
-                  lambda x, t, w: self._Softmax(x, t, w, vocab_dim))))
+         self._Fn(
+             'softmax',
+             lambda x, t, w: self._Softmax(x, t, w, vocab_dim, label_smoothing))
+        ))
 
 
 class DenseBuilder(MoEBuilder):
@@ -3083,17 +3085,7 @@ class UniTransformer(base_model.BaseTask):
         ' parallel_ffn is true currently.')
     p.Define('conv_kernel_size', None,
              'Optional 1D depthwise convolutional kernel.')
-    p.Define(
-        'use_entmax', False, 'Flag to use the entmax for entropy and loss '
-        'calculation. The entmax is following this publication: '
-        'https://arxiv.org/pdf/2004.02644.pdf.')
-    p.Define('entmax_alpha', 1.5, 'Define the alpha value for the entmax '
-             'calculation.')
-    p.Define('entmax_n_iters', 50, 'Define the number of iterations for the '
-             'entmax.')
-    p.Define(
-        'entmax_ensure_sum_one', True, 'Define the if the summation of '
-        'the output probabilities should be 1.')
+
     p.Define(
         'use_per_layer_vars_for_recurrent', False,
         'Create per-layer variables for RecurrentDenseBuilderParallelDecode, '
@@ -3334,25 +3326,10 @@ class UniTransformer(base_model.BaseTask):
       logits, aux_loss = predictions
       soft_labels = self._ComputeSoftLabels(input_batch)
 
-      if p.use_entmax:
-        entropy = entmax.entmax_loss(
-            labels=tf.one_hot(input_batch.tgt.labels, vocab_size),
-            inputs=logits,
-            alpha=p.entmax_alpha,
-            n_iter=p.entmax_n_iters,
-            ensure_sum_one=p.entmax_ensure_sum_one)
-        loss = entmax.entmax_loss(
-            labels=soft_labels,
-            inputs=logits,
-            alpha=p.entmax_alpha,
-            n_iter=p.entmax_n_iters,
-            ensure_sum_one=p.entmax_ensure_sum_one)
-      else:
-        entropy = tf.nn.softmax_cross_entropy_with_logits(
-            labels=tf.one_hot(input_batch.tgt.labels, vocab_size),
-            logits=logits)
-        loss = tf.nn.softmax_cross_entropy_with_logits(
-            labels=soft_labels, logits=logits)
+      entropy = tf.nn.softmax_cross_entropy_with_logits(
+          labels=tf.one_hot(input_batch.tgt.labels, vocab_size), logits=logits)
+      loss = tf.nn.softmax_cross_entropy_with_logits(
+          labels=soft_labels, logits=logits)
 
       top1 = tf.math.argmax(
           logits, -1, output_type=input_batch.tgt.labels.dtype)
@@ -3361,8 +3338,6 @@ class UniTransformer(base_model.BaseTask):
 
       soft_labels_entropy = loss
 
-      # To make sure the entmax works as intended, the z_loss should be set
-      # to 0.
       if self.params.z_loss > 0.0:
         log_z = tf.math.reduce_logsumexp(logits, -1)
         z_loss_increment = self.params.z_loss * tf.math.square(log_z)
