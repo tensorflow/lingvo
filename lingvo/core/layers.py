@@ -1508,6 +1508,10 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     """Returns output dimension of the FeedForwardNet."""
     return self.params.hidden_layer_dims[-1]
 
+  @classmethod
+  def NumOutputNodes(cls, p):
+    return p.hidden_layer_dims[-1]
+
   def FPropAllLayers(self, theta, inputs, paddings=None):
     """FProp, returns all layers including the input and output layers."""
     p = self.params
