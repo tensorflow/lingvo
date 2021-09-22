@@ -2926,8 +2926,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, 0.126485,
-                                            self.evaluate(embs_sum))
+      test_utils.CompareToGoldenSingleFloat(self, 0.126485, self.evaluate(embs_sum))  # pylint: disable=line-too-long
 
   def testCheckedIds(self):
     with self.session(use_gpu=True):
@@ -2993,8 +2992,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, 1.886353,
-                                            self.evaluate(embs_sum))
+      test_utils.CompareToGoldenSingleFloat(self, 1.886353, self.evaluate(embs_sum))  # pylint: disable=line-too-long
 
 
 class EmbeddingLayerTest(test_utils.TestCase):
@@ -3016,8 +3014,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, 0.234941,
-                                            self.evaluate(embs_sum))
+      test_utils.CompareToGoldenSingleFloat(self, 0.234941, self.evaluate(embs_sum))  # pylint: disable=line-too-long
 
   def testCheckedIds(self):
     with self.session(use_gpu=True):
@@ -3085,8 +3082,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, 0.466322,
-                                            self.evaluate(embs_sum))
+      test_utils.CompareToGoldenSingleFloat(self, 0.466322, self.evaluate(embs_sum), atol=1e-5)  # pylint: disable=line-too-long
 
   def _testSimpleEmbeddingLayer(self,
                                 use_matmul,
@@ -4638,11 +4634,8 @@ class FeedForwardNetTest(test_utils.TestCase):
       out_abs = tf.reduce_sum(tf.abs(feedforward_net.FPropDefaultTheta(a)))
 
       self.evaluate(tf.global_variables_initializer())
-      # pyformat: disable
       test_utils.CompareToGoldenSingleFloat(self, 8.190775, self.evaluate(out), atol=1e-5)  # pylint: disable=line-too-long
-      # pyformat: enable
-      test_utils.CompareToGoldenSingleFloat(self, 36.773586,
-                                            self.evaluate(out_abs))
+      test_utils.CompareToGoldenSingleFloat(self, 36.773586, self.evaluate(out_abs))  # pylint: disable=line-too-long
 
   def testDropoutLayerTrain(self):
     with self.session(use_gpu=True):
@@ -6202,8 +6195,7 @@ class SingleShardSharedEmbeddingSoftmaxLayerTest(test_utils.TestCase):
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
       self.evaluate(tf.global_variables_initializer())
-      test_utils.CompareToGoldenSingleFloat(self, -0.031068,
-                                            self.evaluate(embs_sum))
+      test_utils.CompareToGoldenSingleFloat(self, -0.031068, self.evaluate(embs_sum))  # pylint: disable=line-too-long
 
 
 class StatisticalPoolingLayerTest(test_utils.TestCase):

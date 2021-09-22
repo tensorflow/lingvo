@@ -105,7 +105,7 @@ RUN python3 -m ipykernel.kernelspec
 # Ensure we install the correct version by uninstalling first.
 RUN python3 -m pip uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
 RUN python3 -m pip --no-cache-dir install tensorflow tensorflow-datasets \
-  tensorflow-hub tensorflow-text tensorflow-probability waymo-open-dataset-tf-2-5-0
+  tensorflow-hub tensorflow-text tensorflow-probability waymo-open-dataset-tf-2-6-0
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 

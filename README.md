@@ -37,17 +37,18 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
+0.10.0       | 075fd1d88fa6f92681f58a2383264337d0e737ee
 0.9.1        | c1124c5aa7af13d2dd2b6d43293c8ca6d022b008
 0.9.0        | f826e99803d1b51dccbbbed1ef857ba48a2bbefe
-0.8.2        | 93e123c6788e934e6b7b1fd85770371becf1e92e
-0.7.2        | b05642fe386ee79e0d88aa083565c9a93428519e
 
 <details><summary>
 <b>Older releases</b>
 </summary><p>
 
 PyPI Version | Commit
------------- | ------
+------------ | ----------------------------------------
+0.8.2        | 93e123c6788e934e6b7b1fd85770371becf1e92e
+0.7.2        | b05642fe386ee79e0d88aa083565c9a93428519e
 
 Details for older releases are unavailable.
 
@@ -59,6 +60,10 @@ Details for older releases are unavailable.
 guarantees regarding backwards compatibility.**
 
 #### HEAD
+
+Nothing here.
+
+#### 0.10.0
 
 *   **General**
     *   The theta_fn arg to CreateVariable() has been removed.
@@ -87,6 +92,10 @@ guarantees regarding backwards compatibility.**
     *   The fatal_errors argument to custom input ops now takes error message
         substrings rather than integer error codes.
 
+<details><summary>
+<b>Older releases</b>
+</summary><p>
+
 #### 0.8.2
 
 *   **General**
@@ -104,10 +113,6 @@ guarantees regarding backwards compatibility.**
         `__init__`. Refactor by moving the variable creation and access to
         `_CreateLayerVariables`. The variable scope is set automatically
         according to the layer name in `_CreateLayerVariables`.
-
-<details><summary>
-<b>Older releases</b>
-</summary><p>
 
 Details for older releases are unavailable.
 
@@ -142,7 +147,7 @@ for how to get started with the pip package.
 
 The prerequisites are:
 
-*   a TensorFlow 2.5 [installation](https://www.tensorflow.org/install/),
+*   a TensorFlow 2.6 [installation](https://www.tensorflow.org/install/),
 *   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 

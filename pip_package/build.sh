@@ -88,7 +88,7 @@ DST_DIR="/tmp/lingvo_pip_pkg_build"
 ./pip_package/build_pip_pkg.sh "$DST_DIR" ${PYTHON_VERSION}
 # Comment the following line if you run this outside of the container.
 if [[ "${PIP_MANYLINUX2010}" == "1" ]]; then
-  find "$DST_DIR" -name *.whl | xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2010_x86_64 -w "$DST_DIR"
+  find "$DST_DIR" -name "*cp${PYTHON_VERSION}${PYTHON_MINOR_VERSION}*.whl" | xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2010_x86_64 -w "$DST_DIR"
 fi
 
 rm .bazelrc
