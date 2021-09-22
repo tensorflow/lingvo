@@ -1147,7 +1147,10 @@
 <span class="sd">      layer params for TransformerDecoder SelfAttention.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+    <span class="p">]</span>
 
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
@@ -1336,7 +1339,10 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span>
 
-    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+    <span class="p">]</span>
 
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
@@ -1395,7 +1401,10 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span>
 
-    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+    <span class="p">]</span>
 
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
@@ -2279,7 +2288,10 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span> <span class="o">==</span> <span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relative_attention_type</span>
 
-    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+    <span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_Output</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">wo1</span><span class="p">,</span> <span class="n">wo2</span><span class="p">):</span>
       <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">h2</span><span class="p">)</span>
@@ -2977,7 +2989,10 @@
     <span class="k">def</span> <span class="nf">_ComputeBias</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">):</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecNotVisible</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1e+09</span><span class="p">)</span>
 
-    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">]</span>
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+    <span class="p">]</span>
 
     <span class="k">if</span> <span class="n">conv_kernel_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
