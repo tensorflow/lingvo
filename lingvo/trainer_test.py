@@ -186,26 +186,6 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
         self._HasLine(self._GetMatchedFileName(dev_files, 'score'), 'log_pplx'))
 
   @flagsaver.flagsaver
-  def testCheckpointState(self):
-    logdir = os.path.join(tf.test.get_temp_dir(),
-                          'checkpoint_state_test' + str(random.random()))
-    FLAGS.logdir = logdir
-    cfg = self._GetSimpleTestConfig()
-    runner_manager = trainer.RunnerManager(cfg.name)
-    runner_manager.StartRunners([
-        self._CreateController(cfg),
-        self._CreateTrainer(cfg),
-    ])
-    ckpt_state_1 = tf.train.get_checkpoint_state(os.path.join(logdir, 'train'))
-    runner_manager.StartRunners([
-        self._CreateController(cfg),
-        self._CreateTrainer(cfg),
-    ])
-    ckpt_state_2 = tf.train.get_checkpoint_state(os.path.join(logdir, 'train'))
-    for ckpt_path in ckpt_state_1.all_model_checkpoint_paths:
-      self.assertIn(ckpt_path, ckpt_state_2.all_model_checkpoint_paths)
-
-  @flagsaver.flagsaver
   def testDecoder(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'decoder_test' + str(random.random()))
