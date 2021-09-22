@@ -121,6 +121,32 @@ class Base(base_layer.BaseLayer):
     """
     return tf.no_op()
 
+  def _GetSelfVariablesDict(self):
+    """Returns a dict of variables from the model, excluding its children."""
+    res = {}
+    tf_optimizer = self._optimizer
+
+    # If the trainer has not run yet
+    if tf_optimizer is None:
+      return res
+
+    for var in tf_optimizer.variables():
+      res[var.name] = var
+
+    try:
+      # hyper params such as decay, beta_1, beta_2 in Adam optimizer.
+      # Not always applicable: V1 optimizers do not have them
+      hyper_params = getattr(tf_optimizer, '_hyper')
+      res.update({
+          var.name: var
+          for var in hyper_params.values()
+          if isinstance(var, tf.Variable)
+      })
+    except AttributeError:
+      pass
+
+    return res
+
 
 class CompositeOptimizer(Base):
   """Composite Optimizer.

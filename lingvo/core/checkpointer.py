@@ -276,6 +276,201 @@ class Checkpointer:
         sess.run(gstep.initializer)
 
 
+def _GetSaveableVariablesDict(model):
+  res = model.GetVariablesDict()
+  res['global_step:0'] = py_utils.GetGlobalStep()
+  return res
+
+
+def _GetEmaVariablesSorted(model):
+  """Returns a deterministic list of shadow variables from the EMA object.
+
+  This assumes that there is only one EMA object and the names of the variables
+  are distinct.
+
+  Args:
+      model: Model object.
+  """
+  if model.ema is None:
+    return []
+
+  # We cannot rely on existing methods e.g. `variables_for_ema` because it uses
+  # collections which is not usable in Eager mode.
+  model_variables = list(model.ema._averages.values())  # pylint: disable=protected-access
+  res = sorted(model_variables, key=lambda var: var.name)
+  return res
+
+
+class EagerCheckpointerV1(Checkpointer):
+  """Eager mode V1 checkpointer."""
+
+  def __init__(self,
+               train_dir,
+               model,
+               init_op=None,
+               train_params=None,
+               save_only=False):
+    super().__init__(train_dir, model, init_op, train_params, save_only)
+    # Distinct from EagerCheckpointerV2
+    self._train_dir = os.path.join(self._train_dir, 'ckpt_V1')
+    if not tf.io.gfile.exists(self._train_dir):
+      tf.io.gfile.makedirs(self._train_dir)
+
+    # Set to None; delay the initialization after the model ran at least once
+    self._saver = None
+    self._save_path = os.path.join(self._train_dir, 'ckpt')
+
+  def _GetSaver(self):
+    all_vars = _GetSaveableVariablesDict(self._model)
+    saver = tf.train.Saver(
+        var_list=all_vars,
+        max_to_keep=self._train_params.save_max_to_keep,
+        keep_checkpoint_every_n_hours=(
+            self._train_params.save_keep_checkpoint_every_n_hours))
+    return saver
+
+  def Restore(self, sess=None, force_reinitialize=None):
+    """`sess` and `force_reinitialize` are unused in Eager context."""
+    assert sess is None
+    return self._RestoreFromLatestCheckpoint(sess)
+
+  def RestoreGlobalStepIfNeeded(self, sess):
+    """`sess` is unused in Eager context."""
+    assert sess is None
+
+    gstep = py_utils.GetGlobalStep()
+    path = tf.train.latest_checkpoint(self._train_dir)
+    if path:
+      reader = tf.train.load_checkpoint(path)
+      value = reader.get_tensor('global_step')
+      gstep.assign(value)
+      tf.logging.info('Restoring global step: %s', value)
+    else:
+      tf.logging.info('Cannot find checkpoints, using existing global_step.')
+
+  def RestoreFromPath(self, sess, checkpoint_path):
+    """`sess` is unused in Eager context."""
+    assert sess is None
+
+    # Calling this before `Save` because the optimizer and EMA variables are not
+    # created until at least one training step in the Eager trainer.
+    if not self._saver:
+      self._saver = self._GetSaver()
+
+    assert not self._save_only
+    tf.logging.info('Load from checkpoint (V1) %s.', checkpoint_path)
+    self._saver.restore(sess=None, save_path=checkpoint_path)
+    tf.logging.info('Load checkpoint done.')
+
+  def Save(self, sess, gsteps):
+    """`sess` is unused in Eager context."""
+    assert sess is None
+
+    # Calling this before `Save` because the optimizer and EMA variables are not
+    # created until at least one training step in the Eager trainer.
+    if not self._saver:
+      self._saver = self._GetSaver()
+
+    tf.logging.info('Save checkpoint (V1)')
+    path = self._saver.save(
+        sess=None, save_path=self._save_path, global_step=gsteps)
+    tf.logging.info('Save checkpoint (V1) done: %s', path)
+    self._prev_ckpt_step = gsteps
+    self._UpdateNextSaveTime()
+
+
+class EagerCheckpointerV2(Checkpointer):
+  """Eager mode V2 checkpointer."""
+
+  def __init__(self,
+               train_dir,
+               model,
+               init_op=None,
+               train_params=None,
+               save_only=False):
+    super().__init__(train_dir, model, init_op, train_params, save_only)
+    # Distinct from EagerCheckpointerV1
+    self._train_dir = os.path.join(self._train_dir, 'ckpt_V2')
+    if not tf.io.gfile.exists(self._train_dir):
+      tf.io.gfile.makedirs(self._train_dir)
+
+    # Set to None; delay the initialization after the model ran at least once
+    self._saver = None
+    self._save_path = os.path.join(self._train_dir, 'ckpt')
+
+  def _GetSaver(self):
+    # The V2 checkpoint APIs already treat optimizers with special attention,
+    # by retrieving their slot optimizers. Hence here we only need to ues
+    # _GetEmaVariablesSorted() to get EMA variables.
+    # TODO(jonathanasdf): Instead of calling `_GetEmaVariablesSorted`, we could
+    # assign a property model._ema_vars somewhere so that the EMA variables are
+    # also tracked automatically in the model.
+    saver = tf.train.Checkpoint(
+        model=self._model, ema=_GetEmaVariablesSorted(self._model))
+    # Use the manager to support features e.g. max number of checkpoints
+    self._saver_mgr = tf.train.CheckpointManager(
+        saver,
+        directory=self._train_dir,
+        max_to_keep=self._train_params.save_max_to_keep,
+        keep_checkpoint_every_n_hours=(
+            self._train_params.save_keep_checkpoint_every_n_hours),
+        checkpoint_name='ckpt')
+    return saver
+
+  def Restore(self, sess=None, force_reinitialize=None):
+    """`sess` and `force_reinitialize` are unused in Eager context."""
+    assert sess is None
+    return self._RestoreFromLatestCheckpoint(sess)
+
+  def RestoreGlobalStepIfNeeded(self, sess):
+    """`sess` is unused in Eager context."""
+    assert sess is None
+
+    gstep = py_utils.GetGlobalStep()
+    path = tf.train.latest_checkpoint(self._train_dir)
+    if path:
+      reader = tf.train.load_checkpoint(path)
+      shapes = reader.get_variable_to_shape_map()
+      step_var_keys = [v for v in shapes if 'global_step' in v]
+      # Expecting only one variable with the name ‘global_step’
+      assert len(step_var_keys) == 1, len(step_var_keys)
+      value = reader.get_tensor(step_var_keys[0])
+      gstep.assign(value)
+      tf.logging.info('Restoring global step: %s', value)
+    else:
+      tf.logging.info('Cannot find checkpoints, using existing global_step.')
+
+  def RestoreFromPath(self, sess, checkpoint_path):
+    """`sess` is unused in Eager context."""
+    assert sess is None
+
+    # Calling this before `Save` because the optimizer and EMA variables are not
+    # created until at least one training step in the Eager trainer.
+    if not self._saver:
+      self._saver = self._GetSaver()
+
+    assert not self._save_only
+    tf.logging.info('Load from checkpoint (V2) %s.', checkpoint_path)
+    load_status = self._saver.restore(checkpoint_path)
+    tf.logging.info('Load checkpoint done.')
+    load_status.assert_existing_objects_matched()
+
+  def Save(self, sess, gsteps):
+    """`sess` is unused in Eager context."""
+    assert sess is None
+
+    # Calling this before `Save` because the optimizer and EMA variables are not
+    # created until at least one training step in the Eager trainer.
+    if not self._saver:
+      self._saver = self._GetSaver()
+
+    tf.logging.info('Save checkpoint (V2)')
+    path = self._saver_mgr.save(checkpoint_number=gsteps)
+    tf.logging.info('Save checkpoint (V2) done: %s', path)
+    self._prev_ckpt_step = gsteps
+    self._UpdateNextSaveTime()
+
+
 def GetSpecificCheckpoint(load_checkpoint_from):
   """Returns a specific checkpoint given `load_checkpoint_from`.
 

@@ -363,8 +363,8 @@ class BaseTask(base_layer.BaseLayer):
         seq_inp = issubclass(p.input.cls,
                              base_input_generator.BaseInputGeneratorFromFiles)
         if p.input.num_samples > 0:
-          if (p.eval.samples_per_summary == 0) or (p.input.num_samples <
-                                                   p.eval.samples_per_summary):
+          if (p.eval.samples_per_summary
+              == 0) or (p.input.num_samples < p.eval.samples_per_summary):
             p.eval.samples_per_summary = p.input.num_samples
             # If we know the dataset size and we want to evaluate the full
             # set, we need to coordinate the input generator to flush out
@@ -1131,6 +1131,18 @@ class BaseModel(base_layer.BaseLayer):
     """
     for task in self.tasks:
       task.Export(train_dir)
+
+  def _GetSelfVariablesDict(self):
+    """Returns a dict of variables from the model, excluding its children."""
+    res = super()._GetSelfVariablesDict()
+
+    if self.ema is not None:
+      # We cannot rely on existing methods e.g. `variables_for_ema` because it
+      # uses collections which is not usable in Eager mode.
+      for var in self.ema._averages.values():  # pylint: disable=protected-access
+        res[var.name] = var
+
+    return res
 
 
 class SingleTaskBase(BaseModel):

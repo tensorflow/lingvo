@@ -325,6 +325,27 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       to_params.params_init = from_params.params_init.Copy()
     return to_params
 
+  def GetVariablesDict(self, visited=None):
+    """Returns a dict of variables from the model and all its children."""
+    if visited is None:
+      visited = set()
+    elif id(self) in visited:
+      return {}
+    visited.add(id(self))
+
+    res = {}
+    for child in py_utils.Flatten(self.children):
+      res.update(child.GetVariablesDict(visited))
+    res.update(self._GetSelfVariablesDict())
+    return res
+
+  def _GetSelfVariablesDict(self):
+    """Returns a dict of variables from the model, excluding its children."""
+    res = {}
+    for var in self._private_vars.values():
+      res[var.name] = var
+    return res
+
   def __init__(self, params: BaseLayerParamsT) -> None:
     """Layer constructor.
 
