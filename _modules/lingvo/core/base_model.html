@@ -428,8 +428,8 @@
         <span class="n">seq_inp</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
                              <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&lt;</span>
-                                                   <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span>
+              <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
             <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
             <span class="c1"># If we know the dataset size and we want to evaluate the full</span>
             <span class="c1"># set, we need to coordinate the input generator to flush out</span>
@@ -1195,7 +1195,19 @@
 <span class="sd">        is also the same directory where checkpoints will be written.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
-      <span class="n">task</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">train_dir</span><span class="p">)</span></div></div>
+      <span class="n">task</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">train_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModel._GetSelfVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel._GetSelfVariablesDict">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSelfVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a dict of variables from the model, excluding its children.&quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_GetSelfVariablesDict</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># We cannot rely on existing methods e.g. `variables_for_ema` because it</span>
+      <span class="c1"># uses collections which is not usable in Eager mode.</span>
+      <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">_averages</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
+
+    <span class="k">return</span> <span class="n">res</span></div></div>
 
 
 <div class="viewcode-block" id="SingleTaskBase"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
