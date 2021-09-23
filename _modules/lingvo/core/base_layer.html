@@ -428,16 +428,6 @@
     <span class="c1"># initialize the base class.</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">tf_module_name</span><span class="p">)</span>
 
-    <span class="c1"># Note AutoTracking doesn&#39;t work properly due to its inability to walk</span>
-    <span class="c1"># through py_utils.NestedMap data structures which are used widely</span>
-    <span class="c1"># throughout the Lingvo codebase. Also there seems to be some performance</span>
-    <span class="c1"># hit in turning on auto-tracking in constructing graphs. For now, we</span>
-    <span class="c1"># disable auto-tracking.</span>
-    <span class="c1"># TODO(lingvo): Re-enable auto-tracking when fuller support is</span>
-    <span class="c1"># added for key data structures used in Lingvo, and performance issue is</span>
-    <span class="c1"># debugged more and understood better.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_setattr_tracking</span> <span class="o">=</span> <span class="kc">False</span>
-
     <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">_LAYER_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
