@@ -22,6 +22,7 @@ limitations under the License.
 
 #include "lingvo/core/ops/hyps.pb.h"
 #include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 
 namespace tensorflow {
@@ -43,8 +44,10 @@ struct Hyp {
   std::vector<int32> prev_labels;
 
   string DebugString() const {
-    return strings::StrCat(beam_id, " ", hyp_id, " ", word_id, " ", local_score,
-                           " ", global_score);
+    return strings::StrCat("beam_id=", beam_id, " hyp_id=", hyp_id,
+                           " word_id=", word_id, " local_score=", local_score,
+                           " global_score=", global_score,
+                           " prev_labels=", str_util::Join(prev_labels, ","));
   }
 };
 

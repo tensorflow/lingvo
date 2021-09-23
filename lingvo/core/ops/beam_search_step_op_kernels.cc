@@ -804,7 +804,7 @@ class BeamSearchStepOp : public OpKernel {
         int i = hyp_id * num_beams + beam_id;
         const Hyp& hyp = top_k_hyps[i];
         DCHECK_EQ(beam_id, hyp.beam_id);
-        VLOG(3) << "Hyp score=" << hyp.global_score
+        VLOG(3) << "Hyp =" << hyp.DebugString()
                 << " beam best=" << t_out_best_scores(beam_id)
                 << " beam size=" << beam_size_;
         if (hyp.global_score > t_out_best_scores(beam_id) - beam_size_) {

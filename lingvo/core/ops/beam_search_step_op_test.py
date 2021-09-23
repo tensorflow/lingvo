@@ -48,7 +48,10 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
                              local_eos_threshold=-100.0,
                              independence=True,
                              use_v2=True,
-                             atten_vecs_in_hypothesis_protos=True):
+                             atten_vecs_in_hypothesis_protos=True,
+                             merge_paths=False,
+                             is_last_chunk=None,
+                             valid_eos_max_logit_delta=0.1):
     eos_id = 2
     num_hyps_per_beam = hyp_size / num_beams
 
@@ -60,6 +63,10 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
     done_hyps = tf.constant('', shape=[seq_len, hyp_size], dtype=tf.string)
     best_scores += init_best_score
     beam_done = tf.zeros([num_beams], dtype=tf.bool)
+    if is_last_chunk is None:
+      is_last_chunk = (
+          tf.ones([seq_len, hyp_size], dtype=tf.bool)
+          if merge_paths else tf.zeros([seq_len, hyp_size], dtype=tf.bool))
 
     for i, prob in enumerate(probs):
       if use_v2:
@@ -74,15 +81,18 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
              prev_hyps,
              done_hyps,
              atten_probs,
-             beam_done, [],
+             beam_done,
+             is_last_chunk[i],
              i,
              eos_id=eos_id,
+             eoc_id=0 if merge_paths else -1,
              beam_size=beam_size,
              ensure_full_beam=ensure_full_beam,
              num_hyps_per_beam=num_hyps_per_beam,
-             valid_eos_max_logit_delta=0.1,
+             valid_eos_max_logit_delta=valid_eos_max_logit_delta,
              force_eos_in_last_step=force_eos_in_last_step,
              local_eos_threshold=local_eos_threshold,
+             merge_paths=merge_paths,
              beam_independence=independence,
              atten_vecs_in_hypothesis_protos=atten_vecs_in_hypothesis_protos)
       else:
@@ -828,6 +838,96 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
         local_eos_threshold=-1.0)
     beam_done = results[8]
     self.assertAllEqual([False, True], beam_done)
+
+  def test_merge_paths_terminate_with_eoc(self):
+    hyp_size = 2
+    num_beams = 1
+    seq_len = 2
+
+    probs = [
+        # [3], [1]
+        [[-10., -1., -10., 0.], [-10., -10., -10., -10.]],
+        # We find two termianted hyps here.
+        # [3, 0] is valid, so is [1, 0].
+        [[-0.3, -1.5, -10., -10.], [-0.5, -2., -10., -10.]],
+    ]
+
+    results = self._runBeamSearchOpHelper(
+        hyp_size,
+        num_beams,
+        seq_len,
+        _MIN_SCORE,
+        probs,
+        init_atten_probs=tf.zeros([hyp_size, 0]),
+        atten_probs=np.zeros([seq_len, hyp_size, 0]),
+        merge_paths=True,
+        valid_eos_max_logit_delta=5.0,
+        use_v2=True)
+    beam_done = results[-1]
+    # We are not done, because [3, 1] is still pretty good.
+    self.assertAllEqual([False], beam_done)
+    done_hyps = results[5]
+    hyp0 = hyps_pb2.Hypothesis()
+    hyp0.ParseFromString(done_hyps[1][0])
+    hyp1 = hyps_pb2.Hypothesis()
+    hyp1.ParseFromString(done_hyps[1][1])
+    self.assertAllEqual([3, 0], hyp0.ids)
+    self.assertAllClose([-0.15, -0.15], hyp0.scores)
+    self.assertAllEqual([1, 0], hyp1.ids)
+    self.assertAllClose([-0.75, -0.75], hyp1.scores)
+
+  def test_merge_paths_eoc_versus_eos(self):
+    hyp_size = 2
+    num_beams = 1
+    seq_len = 3
+
+    probs = [
+        # [3], [0]
+        [[-1., -10., -10., 0.], [-10., -10., -10., -10.]],
+        # [3, 3], [3, 0]
+        [[-0.6, -10, -10., -0.1], [-.5, -10, -10., -1.31]],
+        # score very low on id=1 or 3, so we are done after this.
+        # For hyp 0, EOC has higher score; for hyp 1, EOC has lower
+        # score.
+        [[-2.3, -10, -2.6, -9.7], [-2.4, -10, -2.1, -9.]],
+    ]
+    is_last_chunk = [
+        [False, False],
+        [False, False],
+        [True, True],
+    ]
+
+    results = self._runBeamSearchOpHelper(
+        hyp_size,
+        num_beams,
+        seq_len,
+        _MIN_SCORE,
+        probs,
+        init_atten_probs=tf.zeros([hyp_size, 0]),
+        atten_probs=np.zeros([seq_len, hyp_size, 0]),
+        is_last_chunk=is_last_chunk,
+        merge_paths=True,
+        valid_eos_max_logit_delta=5.0,
+        use_v2=True)
+    beam_done = results[-1]
+    # After 2 terminated beams are found, we are done.
+    self.assertAllEqual([True], beam_done)
+    done_hyps = results[5]
+    for step in range(seq_len - 1):
+      for i in range(2):
+        self.assertEmpty(done_hyps[step][i])
+    hyp0 = hyps_pb2.Hypothesis()
+    hyp0.ParseFromString(done_hyps[2][0])
+    hyp1 = hyps_pb2.Hypothesis()
+    hyp1.ParseFromString(done_hyps[2][1])
+    # Both EOC and EOS can theoretically terminate the hyp.
+    # Note that we take the one with lower score.
+    self.assertAllEqual([3, 3, 2], hyp0.ids)
+    # `scores` is the per step average of global score: -2.7 = 0 - 0.1 - 2.6
+    self.assertAllClose([-.9] * 3, hyp0.scores)
+    self.assertAllEqual([3, 0, 0], hyp1.ids)
+    # `scores` is the per step average of global score: -3 = 0 - 0.6 - 2.4
+    self.assertAllClose([-1.] * 3, hyp1.scores)
 
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):
     hyp1 = hyps_pb2.Hypothesis()
