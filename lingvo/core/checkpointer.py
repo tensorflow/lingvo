@@ -126,7 +126,7 @@ class Checkpointer:
   def async_checkpointing(self):
     return self._train_params.async_checkpointing
 
-  def RestoreFromPath(self, sess, checkpoint_path):
+  def RestoreFromPath(self, sess=None, checkpoint_path=None):
     """Load the checkpoint from specified path."""
     assert not self._save_only
     tf.logging.info('Load from checkpoint %s.', checkpoint_path)
@@ -151,7 +151,7 @@ class Checkpointer:
       # Use save_interval_seconds otherwise.
       return time.time() >= self._next_checkpoint_seconds
 
-  def MaybeSave(self, sess, gsteps):
+  def MaybeSave(self, sess=None, gsteps=None):
     """If it's time to save, save the checkpoint.
 
     Args:
@@ -165,7 +165,7 @@ class Checkpointer:
       return True
     return False
 
-  def Save(self, sess, gsteps):
+  def Save(self, sess=None, gsteps=None):
     """Save the checkpoint.
 
     Args:
@@ -182,7 +182,7 @@ class Checkpointer:
     now = time.time()
     self._next_checkpoint_seconds = now + self._save_interval_seconds
 
-  def _RestoreFromLatestCheckpoint(self, sess):
+  def _RestoreFromLatestCheckpoint(self, sess=None):
     assert not self._save_only
     path = tf.train.latest_checkpoint(self._train_dir)
     if path:
@@ -191,14 +191,14 @@ class Checkpointer:
       return path
     return None
 
-  def _GetUninitializedVarNames(self, sess):
+  def _GetUninitializedVarNames(self, sess=None):
     uninitialized_var_names = sorted(list(sess.run(self._uninitialized_vars)))
     # uninitialized_var_names is a list of strings without ":0" suffix.
     # tf.report_uninitialized_variables returns binary strings.
     assert all(isinstance(s, bytes) for s in uninitialized_var_names)
     return uninitialized_var_names
 
-  def Restore(self, sess, force_reinitialize=False):
+  def Restore(self, sess=None, force_reinitialize=False):
     """Restore from latest checkpoint if available, or initialize."""
     # Try and restore from the latest checkpoint.
     path = self._RestoreFromLatestCheckpoint(sess)
@@ -235,7 +235,7 @@ class Checkpointer:
       tf.logging.info('Restored vars using checkpoint rules.')
     return None
 
-  def RestoreIfNeeded(self, sess):
+  def RestoreIfNeeded(self, sess=None):
     """If vars are not initialized, restore from checkpoint."""
     assert not self._save_only
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
@@ -245,7 +245,7 @@ class Checkpointer:
 
     return self.Restore(sess)
 
-  def RestoreGlobalStepIfNeeded(self, sess):
+  def RestoreGlobalStepIfNeeded(self, sess=None):
     """If global step is not initialized, load it from the checkpoint.
 
     Args:
@@ -273,25 +273,6 @@ class Checkpointer:
 def _GetSaveableVariablesDict(model):
   res = model.GetVariablesDict()
   res['global_step:0'] = py_utils.GetGlobalStep()
-  return res
-
-
-def _GetEmaVariablesSorted(model):
-  """Returns a deterministic list of shadow variables from the EMA object.
-
-  This assumes that there is only one EMA object and the names of the variables
-  are distinct.
-
-  Args:
-      model: Model object.
-  """
-  if model.ema is None:
-    return []
-
-  # We cannot rely on existing methods e.g. `variables_for_ema` because it uses
-  # collections which is not usable in Eager mode.
-  model_variables = list(model.ema._averages.values())  # pylint: disable=protected-access
-  res = sorted(model_variables, key=lambda var: var.name)
   return res
 
 
@@ -328,7 +309,7 @@ class EagerCheckpointerV1(Checkpointer):
     assert sess is None
     return self._RestoreFromLatestCheckpoint(sess)
 
-  def RestoreGlobalStepIfNeeded(self, sess):
+  def RestoreGlobalStepIfNeeded(self, sess=None):
     """`sess` is unused in Eager context."""
     assert sess is None
 
@@ -342,7 +323,7 @@ class EagerCheckpointerV1(Checkpointer):
     else:
       tf.logging.info('Cannot find checkpoints, using existing global_step.')
 
-  def RestoreFromPath(self, sess, checkpoint_path):
+  def RestoreFromPath(self, sess=None, checkpoint_path=None):
     """`sess` is unused in Eager context."""
     assert sess is None
 
@@ -356,7 +337,7 @@ class EagerCheckpointerV1(Checkpointer):
     self._saver.restore(sess=None, save_path=checkpoint_path)
     tf.logging.info('Load checkpoint done.')
 
-  def Save(self, sess, gsteps):
+  def Save(self, sess=None, gsteps=None):
     """`sess` is unused in Eager context."""
     assert sess is None
 
@@ -399,8 +380,7 @@ class EagerCheckpointerV2(Checkpointer):
     # TODO(jonathanasdf): Instead of calling `_GetEmaVariablesSorted`, we could
     # assign a property model._ema_vars somewhere so that the EMA variables are
     # also tracked automatically in the model.
-    saver = tf.train.Checkpoint(
-        model=self._model, ema=_GetEmaVariablesSorted(self._model))
+    saver = tf.train.Checkpoint(self._model)
     # Use the manager to support features e.g. max number of checkpoints
     self._saver_mgr = tf.train.CheckpointManager(
         saver,
@@ -416,7 +396,7 @@ class EagerCheckpointerV2(Checkpointer):
     assert sess is None
     return self._RestoreFromLatestCheckpoint(sess)
 
-  def RestoreGlobalStepIfNeeded(self, sess):
+  def RestoreGlobalStepIfNeeded(self, sess=None):
     """`sess` is unused in Eager context."""
     assert sess is None
 
@@ -434,7 +414,7 @@ class EagerCheckpointerV2(Checkpointer):
     else:
       tf.logging.info('Cannot find checkpoints, using existing global_step.')
 
-  def RestoreFromPath(self, sess, checkpoint_path):
+  def RestoreFromPath(self, sess=None, checkpoint_path=None):
     """`sess` is unused in Eager context."""
     assert sess is None
 
@@ -449,7 +429,7 @@ class EagerCheckpointerV2(Checkpointer):
     tf.logging.info('Load checkpoint done.')
     load_status.assert_existing_objects_matched()
 
-  def Save(self, sess, gsteps):
+  def Save(self, sess=None, gsteps=None):
     """`sess` is unused in Eager context."""
     assert sess is None
 

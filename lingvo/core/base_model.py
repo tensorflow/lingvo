@@ -1063,6 +1063,7 @@ class BaseModel(base_layer.BaseLayer):
     else:
       assert not py_utils.ExponentialMovingAverage()
       self._ema = None
+    self._ema_variables_dict = {}
 
   @property
   def global_step(self):
@@ -1075,6 +1076,15 @@ class BaseModel(base_layer.BaseLayer):
   @property
   def variables_for_ema(self):
     return _VariablesForEMA(self.params, self.vars.Flatten())
+
+  def _MakeEMAVariablesDict(self):
+    if self.ema:
+      res = {}
+      # We cannot rely on existing methods e.g. `variables_for_ema` because it
+      # uses collections which is not usable in Eager mode.
+      for var in self.ema._averages.values():  # pylint: disable=protected-access
+        res[var.name] = var
+      self._ema_variables_dict = res
 
   def ConstructFPropBPropGraph(self):
     raise NotImplementedError('Abstract method')
@@ -1135,13 +1145,8 @@ class BaseModel(base_layer.BaseLayer):
   def _GetSelfVariablesDict(self):
     """Returns a dict of variables from the model, excluding its children."""
     res = super()._GetSelfVariablesDict()
-
-    if self.ema is not None:
-      # We cannot rely on existing methods e.g. `variables_for_ema` because it
-      # uses collections which is not usable in Eager mode.
-      for var in self.ema._averages.values():  # pylint: disable=protected-access
-        res[var.name] = var
-
+    if self.ema:
+      res.update(self._ema_variables_dict)
     return res
 
 
@@ -1166,6 +1171,8 @@ class SingleTaskBase(BaseModel):
     if self.ema:
       tf.logging.info('ApplyExponentialMovingAverage on %s', self._task)
       self._task.ApplyExponentialMovingAverage(self.ema)
+      self._MakeEMAVariablesDict()
+
     self._task.FPropDefaultTheta()
     self._task.BProp()
 
@@ -1389,6 +1396,8 @@ class MultiTaskModel(BaseModel):
           task.ApplyExponentialMovingAverage(self.ema)
         task.FPropDefaultTheta()
         task.BProp()
+    if self.ema:
+      self._MakeEMAVariablesDict()
 
   def ConstructFPropGraph(self):
     for task_name in self.task_names:

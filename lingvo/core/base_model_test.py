@@ -392,7 +392,7 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
     model.ConstructFPropBPropGraph()
-    self.assertEqual([
+    self.assertCountEqual([
         'global_step:0',
         'base_mdl/a/var:0',
         'base_mdl/b/var:0',
@@ -406,6 +406,18 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
         'base_mdl/y/gamma/var:0',
         'base_mdl/y/moving_mean/var:0',
         'base_mdl/y/moving_variance/var:0',
+        'base_mdl/a/var/ExponentialMovingAverage:0',
+        'base_mdl/b/var/ExponentialMovingAverage:0',
+        'base_mdl/x/beta/var/ExponentialMovingAverage:0',
+        'base_mdl/x/gamma/var/ExponentialMovingAverage:0',
+        'base_mdl/x/moving_mean/var/ExponentialMovingAverage:0',
+        'base_mdl/x/moving_variance/var/ExponentialMovingAverage:0',
+        'base_mdl/y/b/var/ExponentialMovingAverage:0',
+        'base_mdl/y/beta/var/ExponentialMovingAverage:0',
+        'base_mdl/y/gamma/var/ExponentialMovingAverage:0',
+        'base_mdl/y/moving_mean/var/ExponentialMovingAverage:0',
+        'base_mdl/y/moving_variance/var/ExponentialMovingAverage:0',
+        'base_mdl/y/w/var/ExponentialMovingAverage:0',
     ], [x.name for x in model.variables])
 
 
