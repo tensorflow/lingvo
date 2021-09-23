@@ -872,7 +872,12 @@
         <span class="c1"># concat partitioning is trivial on the pass-through dim.</span>
         <span class="n">theta_body</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_PassthroughVarSharding</span><span class="p">,</span> <span class="n">theta_body</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">theta_body</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span>
+
+      <span class="k">def</span> <span class="nf">_AnnotateTheta</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">copy_sharding</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+      <span class="n">theta_body</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">_AnnotateTheta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">,</span>
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
 
     <span class="n">needs_microbatching</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_microbatches</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
