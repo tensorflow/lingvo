@@ -354,3 +354,11 @@ py_library(
     srcs = ["trainer_utils.py"],
     deps = [":compat"],
 )
+
+py_library(
+    name = "pdb_wrapper",
+    srcs = ["pdb_wrapper.py"],
+    deps = [
+        # Implicit pdb dependency.
+    ],
+)
