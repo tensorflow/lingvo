@@ -217,9 +217,17 @@ class Learner(base_layer.BaseLayer):
     eval_metrics['learning_rate'] = (tf.convert_to_tensor(lr),
                                      tf.convert_to_tensor(1.))
 
+    if py_utils.IsEagerMode():
+      # Use a callback for learning_rate so we can keep just one instance of
+      # optimizer object in the whole trainer lifetime in Eager mode.
+      lr_or_callable = self.LearningRate
+    else:
+      lr_or_callable = lr
+
     var_update_op = tf.group(
         [tpu_emb_update_op,
-         self.optimizer.Apply(lr, var_grads)])
+         self.optimizer.Apply(lr_or_callable, var_grads)])
+
     return losses, var_update_op, eval_metrics
 
   def ComputeActivationGradients(self, activations, activations_grad, vmap):
@@ -490,6 +498,7 @@ class Learner(base_layer.BaseLayer):
   def _AddEvalMetric(self, key, value, weight):
     self._eval_metrics[key] = (value, weight)
 
+
 _LEGACY_LEARNER_PARAMS = [
     'bprop_variable_filter',
     'bprop_variable_exclusion',
@@ -525,8 +534,8 @@ def ExtractLearnerFromLegacyParams(tp, cls=Learner):
   lp.name = 'loss'
   for k, v in tp.IterParams():
     if k not in _LEGACY_LEARNER_PARAMS:
-      tf.logging.info(
-          'Ignoring legacy param %s=%s for optimization program', k, v)
+      tf.logging.info('Ignoring legacy param %s=%s for optimization program', k,
+                      v)
       continue
     setattr(lp, k, v)
     setattr(tp, k, None)

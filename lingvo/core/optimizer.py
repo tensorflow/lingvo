@@ -27,6 +27,13 @@ from lingvo.core import py_utils
 from lingvo.core import summary_utils
 
 
+def GetLrValue(lr_or_callable):
+  if callable(lr_or_callable):
+    return lr_or_callable()
+
+  return lr_or_callable
+
+
 class Base(base_layer.BaseLayer):
   """Base class for all optimizers."""
 
@@ -44,7 +51,6 @@ class Base(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
 
-    self._supports_eager = False
     # The cached optimizer.
     self._optimizer = None
 
@@ -72,25 +78,25 @@ class Base(base_layer.BaseLayer):
     """Applies the gradient to the variable.
 
     Args:
-      lr: A scalar. The base learning rate.
+      lr: A scalar or a callable that returns the learning rate.
       var_grad: A `.NestedMap` of (var, grad) pairs.
 
     Returns:
       The variable update op.
-    """
-    if py_utils.IsEagerMode() and not self._supports_eager:
-      raise ValueError(
-          f'{type(self)} does not support eager mode. '
-          'Please use a different optimizer or file a bug to add support.')
 
-    if self._optimizer is None:
+    Raises:
+      RuntimeError: When `lr` is not a callable in Eager mode.
+    """
+
+    if py_utils.IsEagerMode() and not callable(lr):
+      # Ensure that the learning rate is always updated in Eager mode.
+      raise RuntimeError('In Eager mode, `lr` must be a callable.')
+
+    # In Graph mode, always re-create the optimizer to remain consistent with
+    # the old logic for the Graph trainer.
+    # TODO(jiaweix): Recreating optimizers in Graph mode seems unnecessary.
+    if self._optimizer is None or not py_utils.IsEagerMode():
       self._optimizer = self.GetOptimizer(lr)
-    else:
-      if py_utils.IsEagerMode():
-        # TODO(jiaweix): we need a mechanism for V1 optimizers
-        self._optimizer.learning_rate = lr
-      else:
-        self._optimizer = self.GetOptimizer(lr)
 
     def _Apply():
       if self.params.use_bf16_gradients_ar:
@@ -110,7 +116,8 @@ class Base(base_layer.BaseLayer):
                            reuse=self.VarReuseForSlotVars())):
         var_update_op = _Apply()
     if self.params.add_summary_in_apply:
-      self.AddSummary(lr, self._optimizer, var_grad)
+      lr_value = GetLrValue(lr)
+      self.AddSummary(lr_value, self._optimizer, var_grad)
     return var_update_op
 
   def ApplyPostTrainingLoop(self):
@@ -279,10 +286,6 @@ class CompositeOptimizer(Base):
 class SGD(Base):
   """SGD."""
 
-  def __init__(self, params):
-    super().__init__(params)
-    self._supports_eager = True
-
   def GetOptimizer(self, lr):
     return tf.train.GradientDescentOptimizer(lr)
 
@@ -385,10 +388,6 @@ class Adam(Base):
 
   @classmethod
   def Params(cls):
-    if py_utils.IsEagerMode():
-      tf.logging.warning('Adam optimizer is not supported in eager mode. '
-                         'Automatically converting to AdamV2.')
-      return AdamV2.Params()
 
     p = super().Params()
     p.Define('beta1', 0.9, 'Beta1 for Adam.')
@@ -431,10 +430,6 @@ class AdamV2(Base):
     p.Define('epsilon', 1e-6, 'Epsilon for Adam.')
     p.name = 'Adam'
     return p
-
-  def __init__(self, params):
-    super().__init__(params)
-    self._supports_eager = True
 
   @classmethod
   def ParamsA(cls):
@@ -509,7 +504,8 @@ class Accumulator(Base):
             *[tf.assign(a, tf.zeros_like(a)) for _, a in var_grad.Flatten()])
 
     if self.params.add_summary_in_apply:
-      self.AddSummary(lr, self.GetOptimizer(lr), var_grad)
+      lr_value = GetLrValue(lr)
+      self.AddSummary(lr_value, self.GetOptimizer(lr), var_grad)
     return tf.cond(
         tf.equal(
             tf.math.floormod(py_utils.GetGlobalStep(), p.accum_steps),
@@ -602,7 +598,8 @@ class DistributedShampoo(Base):
         var_update_op = _Apply()
 
     if self.params.add_summary_in_apply:
-      self.AddSummary(lr, self._optimizer, var_grad)
+      lr_value = GetLrValue(lr)
+      self.AddSummary(lr_value, self._optimizer, var_grad)
     return var_update_op
 
   def ApplyPostTrainingLoop(self):
