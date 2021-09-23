@@ -1128,6 +1128,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ema_variables_dict</span> <span class="o">=</span> <span class="p">{}</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1140,6 +1141,15 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">variables_for_ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">_VariablesForEMA</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+
+<div class="viewcode-block" id="BaseModel._MakeEMAVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel._MakeEMAVariablesDict">[docs]</a>  <span class="k">def</span> <span class="nf">_MakeEMAVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="c1"># We cannot rely on existing methods e.g. `variables_for_ema` because it</span>
+      <span class="c1"># uses collections which is not usable in Eager mode.</span>
+      <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">_averages</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ema_variables_dict</span> <span class="o">=</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="BaseModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
@@ -1200,13 +1210,8 @@
 <div class="viewcode-block" id="BaseModel._GetSelfVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel._GetSelfVariablesDict">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSelfVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a dict of variables from the model, excluding its children.&quot;&quot;&quot;</span>
     <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_GetSelfVariablesDict</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="c1"># We cannot rely on existing methods e.g. `variables_for_ema` because it</span>
-      <span class="c1"># uses collections which is not usable in Eager mode.</span>
-      <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">_averages</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>  <span class="c1"># pylint: disable=protected-access</span>
-        <span class="n">res</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
-
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ema_variables_dict</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">res</span></div></div>
 
 
@@ -1231,6 +1236,8 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
 
@@ -1453,7 +1460,9 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
           <span class="n">task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
         <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
+        <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MultiTaskModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>

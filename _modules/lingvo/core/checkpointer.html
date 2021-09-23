@@ -191,7 +191,7 @@
   <span class="k">def</span> <span class="nf">async_checkpointing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">async_checkpointing</span>
 
-<div class="viewcode-block" id="Checkpointer.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Load the checkpoint from specified path.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
@@ -216,7 +216,7 @@
       <span class="c1"># Use save_interval_seconds otherwise.</span>
       <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span></div>
 
-<div class="viewcode-block" id="Checkpointer.MaybeSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.MaybeSave">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.MaybeSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.MaybeSave">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If it&#39;s time to save, save the checkpoint.</span>
 
 <span class="sd">    Args:</span>
@@ -230,7 +230,7 @@
       <span class="k">return</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="kc">False</span></div>
 
-<div class="viewcode-block" id="Checkpointer.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Save the checkpoint.</span>
 
 <span class="sd">    Args:</span>
@@ -247,7 +247,7 @@
     <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_seconds</span></div>
 
-<div class="viewcode-block" id="Checkpointer._RestoreFromLatestCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._RestoreFromLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer._RestoreFromLatestCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._RestoreFromLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
@@ -256,14 +256,14 @@
       <span class="k">return</span> <span class="n">path</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="Checkpointer._GetUninitializedVarNames"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._GetUninitializedVarNames">[docs]</a>  <span class="k">def</span> <span class="nf">_GetUninitializedVarNames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer._GetUninitializedVarNames"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._GetUninitializedVarNames">[docs]</a>  <span class="k">def</span> <span class="nf">_GetUninitializedVarNames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">)))</span>
     <span class="c1"># uninitialized_var_names is a list of strings without &quot;:0&quot; suffix.</span>
     <span class="c1"># tf.report_uninitialized_variables returns binary strings.</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">uninitialized_var_names</span></div>
 
-<div class="viewcode-block" id="Checkpointer.Restore"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.Restore"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Restore from latest checkpoint if available, or initialize.&quot;&quot;&quot;</span>
     <span class="c1"># Try and restore from the latest checkpoint.</span>
     <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
@@ -300,7 +300,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restored vars using checkpoint rules.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="Checkpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If vars are not initialized, restore from checkpoint.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetUninitializedVarNames</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
@@ -310,7 +310,7 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Checkpointer.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If global step is not initialized, load it from the checkpoint.</span>
 
 <span class="sd">    Args:</span>
@@ -338,25 +338,6 @@
 <div class="viewcode-block" id="_GetSaveableVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer._GetSaveableVariablesDict">[docs]</a><span class="k">def</span> <span class="nf">_GetSaveableVariablesDict</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
   <span class="n">res</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">GetVariablesDict</span><span class="p">()</span>
   <span class="n">res</span><span class="p">[</span><span class="s1">&#39;global_step:0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
-  <span class="k">return</span> <span class="n">res</span></div>
-
-
-<div class="viewcode-block" id="_GetEmaVariablesSorted"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer._GetEmaVariablesSorted">[docs]</a><span class="k">def</span> <span class="nf">_GetEmaVariablesSorted</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns a deterministic list of shadow variables from the EMA object.</span>
-
-<span class="sd">  This assumes that there is only one EMA object and the names of the variables</span>
-<span class="sd">  are distinct.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">      model: Model object.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">ema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">return</span> <span class="p">[]</span>
-
-  <span class="c1"># We cannot rely on existing methods e.g. `variables_for_ema` because it uses</span>
-  <span class="c1"># collections which is not usable in Eager mode.</span>
-  <span class="n">model_variables</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">_averages</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>  <span class="c1"># pylint: disable=protected-access</span>
-  <span class="n">res</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model_variables</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">var</span><span class="p">:</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">res</span></div>
 
 
@@ -393,7 +374,7 @@
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV1.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV1.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
@@ -407,7 +388,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cannot find checkpoints, using existing global_step.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV1.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV1.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
@@ -421,7 +402,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV1.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV1.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
@@ -464,8 +445,7 @@
     <span class="c1"># TODO(jonathanasdf): Instead of calling `_GetEmaVariablesSorted`, we could</span>
     <span class="c1"># assign a property model._ema_vars somewhere so that the EMA variables are</span>
     <span class="c1"># also tracked automatically in the model.</span>
-    <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Checkpoint</span><span class="p">(</span>
-        <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">ema</span><span class="o">=</span><span class="n">_GetEmaVariablesSorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">))</span>
+    <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
     <span class="c1"># Use the manager to support features e.g. max number of checkpoints</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver_mgr</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">CheckpointManager</span><span class="p">(</span>
         <span class="n">saver</span><span class="p">,</span>
@@ -481,7 +461,7 @@
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV2.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV2.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
@@ -499,7 +479,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cannot find checkpoints, using existing global_step.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV2.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV2.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
@@ -514,7 +494,7 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
     <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV2.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV2.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
