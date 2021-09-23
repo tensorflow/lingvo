@@ -363,16 +363,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # initialize the base class.
     super().__init__(tf_module_name)
 
-    # Note AutoTracking doesn't work properly due to its inability to walk
-    # through py_utils.NestedMap data structures which are used widely
-    # throughout the Lingvo codebase. Also there seems to be some performance
-    # hit in turning on auto-tracking in constructing graphs. For now, we
-    # disable auto-tracking.
-    # TODO(lingvo): Re-enable auto-tracking when fuller support is
-    # added for key data structures used in Lingvo, and performance issue is
-    # debugged more and understood better.
-    self._setattr_tracking = False
-
     self._parent = None
     for parent in reversed(_LAYER_STACK.stack):
       if parent is not self:
