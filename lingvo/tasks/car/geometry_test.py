@@ -397,6 +397,17 @@ class GeometryTest(test_utils.TestCase):
       self.assertAllEqual([num_points, num_bboxes], is_inside.shape)
       self.assertAllEqual(expected_is_inside, is_inside)
 
+    # Add a batch dimension to the data and see that it still works
+    # as expected.
+    batch_size = 3
+    points = tf.tile(points[tf.newaxis, ...], [batch_size, 1, 1])
+    bboxes = tf.tile(bboxes[tf.newaxis, ...], [batch_size, 1, 1])
+    with self.session():
+      is_inside = self.evaluate(geometry.IsWithinBBox3D(points, bboxes))
+      self.assertAllEqual([batch_size, num_points, num_bboxes], is_inside.shape)
+      for batch_idx in range(batch_size):
+        self.assertAllEqual(expected_is_inside, is_inside[batch_idx])
+
   def testIsWithinBBox(self):
     bbox = tf.constant([[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]],
                        dtype=tf.float32)

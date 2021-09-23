@@ -599,27 +599,31 @@ def IsWithinBBox3D(points_3d, bboxes_3d):
   """Checks if points are within a 3-d bbox.
 
   Args:
-    points_3d: [num_points, 3] float32 Tensor specifying points in 3-d space as
-      [x, y, z] coordinates.
-    bboxes_3d: [num_bboxes, 7] float32 Tensor specifying a 3-d bboxes specified
-      as [x, y, z, dx, dy, dz, phi] where x, y and z is the center of the box.
+    points_3d: [..., num_points, 3] float32 Tensor specifying points in 3-d
+      space as [x, y, z] coordinates.
+    bboxes_3d: [..., num_bboxes, 7] float32 Tensor specifying a 3-d bboxes
+      specified as [x, y, z, dx, dy, dz, phi] where x, y and z is the center of
+      the box.
 
   Returns:
-    boolean Tensor of shape [num_points, num_bboxes] indicating whether the
+    boolean Tensor of shape [..., num_points, num_bboxes] indicating whether the
     points belong within each box.
   """
-  points_3d = py_utils.HasRank(points_3d, 2)
-  points_3d = py_utils.HasShape(points_3d, [-1, 3])
-  num_points, _ = py_utils.GetShape(points_3d, 2)
+  # Check that points_3d and bboxes_3d have the same rank.
+  bboxes_rank = py_utils.GetRank(bboxes_3d)
+  points_3d = py_utils.HasRank(points_3d, bboxes_rank)
+  leading_shape = py_utils.GetShape(bboxes_3d)[:-2]
 
-  bboxes_3d = py_utils.HasRank(bboxes_3d, 2)
-  bboxes_3d = py_utils.HasShape(bboxes_3d, [-1, 7])
-  num_bboxes, _ = py_utils.GetShape(bboxes_3d, 2)
+  # Check that both points_3d and bboxes_3d have the same leading shape.
+  points_3d = py_utils.HasShape(points_3d, leading_shape + [-1, 3])
+  bboxes_3d = py_utils.HasShape(bboxes_3d, leading_shape + [-1, 7])
 
-  # Compute the 3-D corners of the bounding boxes.
-  bboxes_3d_b = tf.expand_dims(bboxes_3d, 0)
-  bbox_corners = BBoxCorners(bboxes_3d_b)
-  bbox_corners = py_utils.HasShape(bbox_corners, [1, -1, 8, 3])
+  num_points = py_utils.GetShape(points_3d)[-2]
+  num_bboxes = py_utils.GetShape(bboxes_3d)[-2]
+
+  bbox_corners = BBoxCorners(bboxes_3d)
+  bbox_corners = py_utils.HasShape(bbox_corners,
+                                   leading_shape + [num_bboxes, 8, 3])
   # First four points are the top of the bounding box.
   # Counter-clockwise arrangement of points specifying 2-d Euclidean box.
   #   (x0, y1) <--- (x1, y1)
@@ -627,12 +631,13 @@ def IsWithinBBox3D(points_3d, bboxes_3d):
   #                    |
   #                    |
   #   (x0, y0) ---> (x1, y0)
-  bboxes_2d_corners = bbox_corners[0, :, 0:4, 0:2]
-  bboxes_2d_corners = py_utils.HasShape(bboxes_2d_corners, [-1, 4, 2])
+  bboxes_2d_corners = bbox_corners[..., 0:4, 0:2]
   # Determine if points lie within 2-D (x, y) plane for all bounding boxes.
-  points_2d = points_3d[:, :2]
+  points_2d = points_3d[..., :2]
   is_inside_2d = IsWithinBBox(points_2d, bboxes_2d_corners)
-  is_inside_2d = py_utils.HasShape(is_inside_2d, [num_points, num_bboxes])
+
+  is_inside_2d = py_utils.HasShape(is_inside_2d,
+                                   leading_shape + [num_points, num_bboxes])
 
   # Determine if points lie with the z-dimension for all bounding boxes.
   [_, _, z, _, _, dz, _] = tf.split(bboxes_3d, 7, axis=-1)
@@ -642,13 +647,14 @@ def IsWithinBBox3D(points_3d, bboxes_3d):
     right = center + width / 2.0
     return left, right
 
-  z0, z1 = _ComputeLimits(z, dz)
-  z_points = tf.expand_dims(points_3d[:, 2], -1)
+  z0, z1 = _ComputeLimits(z[..., 0], dz[..., 0])
+  z_points = points_3d[..., 2:]
 
   is_inside_z = tf.math.logical_and(
-      tf.less_equal(z_points, z1[tf.newaxis, :, 0]),
-      tf.greater_equal(z_points, z0[tf.newaxis, :, 0]))
-  is_inside_z = py_utils.HasShape(is_inside_z, [num_points, num_bboxes])
+      tf.less_equal(z_points, z1[..., tf.newaxis, :]),
+      tf.greater_equal(z_points, z0[..., tf.newaxis, :]))
+  is_inside_z = py_utils.HasShape(is_inside_z,
+                                  leading_shape + [num_points, num_bboxes])
 
   return tf.math.logical_and(is_inside_z, is_inside_2d)
 
