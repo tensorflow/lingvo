@@ -807,7 +807,12 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         # concat partitioning is trivial on the pass-through dim.
         theta_body = tf.nest.map_structure(_PassthroughVarSharding, theta_body)
     else:
-      theta_body = theta.body
+
+      def _AnnotateTheta(x, var):
+        return xla_sharding.copy_sharding(var, x, use_sharding_op=True)
+
+      theta_body = tf.nest.map_structure(_AnnotateTheta, theta.body,
+                                         self.vars.body)
 
     needs_microbatching = False
     if p.num_microbatches is None:
