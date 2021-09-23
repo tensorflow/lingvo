@@ -282,9 +282,17 @@
     <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">lr</span><span class="p">),</span>
                                      <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="mf">1.</span><span class="p">))</span>
 
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="c1"># Use a callback for learning_rate so we can keep just one instance of</span>
+      <span class="c1"># optimizer object in the whole trainer lifetime in Eager mode.</span>
+      <span class="n">lr_or_callable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">lr_or_callable</span> <span class="o">=</span> <span class="n">lr</span>
+
     <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
         <span class="p">[</span><span class="n">tpu_emb_update_op</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)])</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr_or_callable</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)])</span>
+
     <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">eval_metrics</span></div>
 
 <div class="viewcode-block" id="Learner.ComputeActivationGradients"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.ComputeActivationGradients">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeActivationGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activations</span><span class="p">,</span> <span class="n">activations_grad</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
@@ -555,6 +563,7 @@
 <div class="viewcode-block" id="Learner._AddEvalMetric"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._AddEvalMetric">[docs]</a>  <span class="k">def</span> <span class="nf">_AddEvalMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span></div></div>
 
+
 <span class="n">_LEGACY_LEARNER_PARAMS</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s1">&#39;bprop_variable_filter&#39;</span><span class="p">,</span>
     <span class="s1">&#39;bprop_variable_exclusion&#39;</span><span class="p">,</span>
@@ -590,8 +599,8 @@
   <span class="n">lp</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;loss&#39;</span>
   <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tp</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
     <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LEGACY_LEARNER_PARAMS</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-          <span class="s1">&#39;Ignoring legacy param </span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1"> for optimization program&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Ignoring legacy param </span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1"> for optimization program&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span>
+                      <span class="n">v</span><span class="p">)</span>
       <span class="k">continue</span>
     <span class="nb">setattr</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
     <span class="nb">setattr</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>

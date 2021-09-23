@@ -83,6 +83,11 @@
   <section id="module-lingvo.core.optimizer">
 <span id="lingvo-core-optimizer-module"></span><h1>lingvo.core.optimizer module<a class="headerlink" href="#module-lingvo.core.optimizer" title="Permalink to this headline"></a></h1>
 <p>Optimizers.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.GetLrValue">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.optimizer.</span></span><span class="sig-name descname"><span class="pre">GetLrValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr_or_callable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#GetLrValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.GetLrValue" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.optimizer.Base">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.optimizer.</span></span><span class="sig-name descname"><span class="pre">Base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.Base" title="Permalink to this definition"></a></dt>
@@ -124,12 +129,15 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lr</strong> – A scalar. The base learning rate.</p></li>
+<li><p><strong>lr</strong> – A scalar or a callable that returns the learning rate.</p></li>
 <li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The variable update op.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – When <code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code> is not a callable in Eager mode.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -418,12 +426,15 @@ variables with both ‘a’ and ‘b’ in their name – an exception is thrown
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lr</strong> – A scalar. The base learning rate.</p></li>
+<li><p><strong>lr</strong> – A scalar or a callable that returns the learning rate.</p></li>
 <li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The variable update op.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – When <code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code> is not a callable in Eager mode.</p>
 </dd>
 </dl>
 </dd></dl>

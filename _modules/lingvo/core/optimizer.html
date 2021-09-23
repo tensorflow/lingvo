@@ -92,6 +92,13 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 
 
+<div class="viewcode-block" id="GetLrValue"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GetLrValue">[docs]</a><span class="k">def</span> <span class="nf">GetLrValue</span><span class="p">(</span><span class="n">lr_or_callable</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">lr_or_callable</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">lr_or_callable</span><span class="p">()</span>
+
+  <span class="k">return</span> <span class="n">lr_or_callable</span></div>
+
+
 <div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all optimizers.&quot;&quot;&quot;</span>
 
@@ -109,7 +116,6 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_supports_eager</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="c1"># The cached optimizer.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -137,25 +143,25 @@
     <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      lr: A scalar. The base learning rate.</span>
+<span class="sd">      lr: A scalar or a callable that returns the learning rate.</span>
 <span class="sd">      var_grad: A `.NestedMap` of (var, grad) pairs.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The variable update op.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_supports_eager</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s1"> does not support eager mode. &#39;</span>
-          <span class="s1">&#39;Please use a different optimizer or file a bug to add support.&#39;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="sd">    Raises:</span>
+<span class="sd">      RuntimeError: When `lr` is not a callable in Eager mode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">lr</span><span class="p">):</span>
+      <span class="c1"># Ensure that the learning rate is always updated in Eager mode.</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;In Eager mode, `lr` must be a callable.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># In Graph mode, always re-create the optimizer to remain consistent with</span>
+    <span class="c1"># the old logic for the Graph trainer.</span>
+    <span class="c1"># TODO(jiaweix): Recreating optimizers in Graph mode seems unnecessary.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="c1"># TODO(jiaweix): we need a mechanism for V1 optimizers</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="n">lr</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_Apply</span><span class="p">():</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_bf16_gradients_ar</span><span class="p">:</span>
@@ -175,7 +181,8 @@
                            <span class="n">reuse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VarReuseForSlotVars</span><span class="p">())):</span>
         <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_summary_in_apply</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
+      <span class="n">lr_value</span> <span class="o">=</span> <span class="n">GetLrValue</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
 
 <div class="viewcode-block" id="Base.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -344,10 +351,6 @@
 <div class="viewcode-block" id="SGD"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.SGD">[docs]</a><span class="k">class</span> <span class="nc">SGD</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;SGD.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_supports_eager</span> <span class="o">=</span> <span class="kc">True</span>
-
 <div class="viewcode-block" id="SGD.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.SGD.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">GradientDescentOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span></div>
 
@@ -450,10 +453,6 @@
 
 <div class="viewcode-block" id="Adam.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Adam.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Adam optimizer is not supported in eager mode. &#39;</span>
-                         <span class="s1">&#39;Automatically converting to AdamV2.&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">AdamV2</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;beta1&#39;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;Beta1 for Adam.&#39;</span><span class="p">)</span>
@@ -496,10 +495,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Epsilon for Adam.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Adam&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_supports_eager</span> <span class="o">=</span> <span class="kc">True</span>
 
 <div class="viewcode-block" id="AdamV2.ParamsA"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdamV2.ParamsA">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">ParamsA</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -574,7 +569,8 @@
             <span class="o">*</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_summary_in_apply</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">),</span> <span class="n">var_grad</span><span class="p">)</span>
+      <span class="n">lr_value</span> <span class="o">=</span> <span class="n">GetLrValue</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">),</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">),</span>
@@ -667,7 +663,8 @@
         <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_summary_in_apply</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
+      <span class="n">lr_value</span> <span class="o">=</span> <span class="n">GetLrValue</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
 
 <div class="viewcode-block" id="DistributedShampoo.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
