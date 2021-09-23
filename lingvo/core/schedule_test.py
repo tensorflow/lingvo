@@ -164,6 +164,44 @@ class LearningRateScheduleTest(test_utils.TestCase):
           c = lrs.Value().eval()
         self.assertAllClose(b * 2., a + c)
 
+  def testTransformerSchedule_CustomDecayFactor(self):
+    p = schedule.TransformerSchedule.Params()
+    p.warmup_steps = 4000
+    p.model_dim = 512
+    p.decay_factor = -0.8
+    lrs = p.Instantiate()
+    with self.session():
+      expected = [
+          1.450966e-08, 1.452417e-05, 2.903383e-05, 4.354349e-05, 5.802700e-05,
+          5.281020e-05, 4.854221e-05
+      ]
+      values = []
+      for step in (0, 1000, 2000, 3000, 4000, 4500, 5000):
+        with py_utils.GlobalStepContext(step):
+          values.append(lrs.Value().eval())
+      tf.logging.info('%r' % expected)
+      self.assertAllClose(expected, values)
+
+      # Tests that the schedule peaks at 4000 steps.
+      with py_utils.GlobalStepContext(3990):
+        a = lrs.Value().eval()
+      with py_utils.GlobalStepContext(4000):
+        b = lrs.Value().eval()
+      with py_utils.GlobalStepContext(4010):
+        c = lrs.Value().eval()
+      self.assertGreater(b, a)
+      self.assertGreater(b, c)
+
+      # Tests that the schedule increases linearly before 4000 steps.
+      for step in range(300, 4000, 200):
+        with py_utils.GlobalStepContext(step - 10):
+          a = lrs.Value().eval()
+        with py_utils.GlobalStepContext(step):
+          b = lrs.Value().eval()
+        with py_utils.GlobalStepContext(step + 10):
+          c = lrs.Value().eval()
+        self.assertAllClose(b * 2., a + c)
+
   def testTransformerScheduleWithDecayEnd(self):
     p = schedule.TransformerSchedule.Params()
     p.warmup_steps = 4000

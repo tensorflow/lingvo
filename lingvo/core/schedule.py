@@ -280,6 +280,8 @@ class TransformerSchedule(BaseSchedule):
     p.Define('worker_replicas', 1, 'Number of worker replicas.')
     p.Define('decay_end', None, 'Ends the learning rate decay at '
              'decay_end-th step.')
+    p.Define('decay_factor', -0.5, 'Decay factor after warmup.')
+
     return p
 
   def Value(self):
@@ -291,7 +293,8 @@ class TransformerSchedule(BaseSchedule):
       current_step = tf.where(current_step < p.decay_end, current_step,
                               tf.cast(p.decay_end, tf.float32))
     return p.model_dim**-0.5 * tf.minimum(
-        (current_step + 1) * warmup_steps**-1.5, (current_step + 1)**-0.5)
+        (current_step + 1) * warmup_steps**(p.decay_factor - 1.0),
+        (current_step + 1)**tf.cast(p.decay_factor, tf.float32))
 
 
 class TransformerMLPerfSchedule(BaseSchedule):
