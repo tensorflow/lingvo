@@ -5994,8 +5994,12 @@ def ComputationShape(split_size, topology=None):
       computation_shape = [2, 2, 1, cores_per_chip]
     elif split_chips == 8:
       computation_shape = [4, 2, 1, cores_per_chip]
+    elif split_chips == 12:
+      computation_shape = [1, 1, 12, cores_per_chip]
     elif split_chips == 16:
       computation_shape = [4, 4, 1, cores_per_chip]
+    elif split_chips == 24:
+      computation_shape = [1, 2, 12, cores_per_chip]
     elif split_chips == 32:
       if topology and topology_info.mesh_shape[1] == 32:
         # Fwd within-replica all-reduces is performed along column;

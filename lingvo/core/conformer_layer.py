@@ -903,6 +903,11 @@ class ConformerLayer(base_layer.BaseLayer):
       inputs = in_nmap.features
       if 'aux_loss' in in_nmap:
         out_nmap.aux_loss = in_nmap.aux_loss
+      # Set language vector so recurrent.py won't complain when using
+      # pipelined models.
+      # TODO(ngyuzh,yuanzx): fix pipelined layer so don't need pass it manually.
+      if 'language_vector' in in_nmap:
+        out_nmap.language_vector = in_nmap.language_vector
       inputs = self.final_ln.FProp(theta.final_ln, inputs)
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap.features = inputs
