@@ -16,6 +16,10 @@
 
 import contextlib
 import pdb
+from absl import flags
+
+flags.DEFINE_bool('pdb_on_exception', False,
+                  'If True, enter pdb trace on fatal exceptions.')
 
 set_trace = pdb.set_trace
 post_mortem = pdb.post_mortem

@@ -21,6 +21,7 @@ import time
 import traceback
 
 from lingvo import base_trial
+from lingvo import pdb_wrapper
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
@@ -311,6 +312,10 @@ class BaseRunner:
         retry = True
       else:
         retry = False
+
+      if FLAGS.pdb_on_exception and not retry:
+        pdb_wrapper.post_mortem()
+        retry = True
 
       if retry:
         # Retry indefinitely (error should be transient).

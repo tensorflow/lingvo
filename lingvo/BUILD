@@ -23,6 +23,7 @@ py_library(
     deps = [
         ":base_trial",
         ":compat",
+        ":pdb_wrapper",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:early_stop",
         "//lingvo/core:py_utils",
@@ -201,6 +202,7 @@ py_library(
         ":executor_lib",
         ":model_imports_no_params",
         ":model_registry",
+        ":pdb_wrapper",
         ":trainer_impl",
         ":trainer_utils",
         # Implicit network file system dependency.
@@ -335,6 +337,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":compat",
+        ":pdb_wrapper",
         # Implicit network file system dependency.
         "//lingvo:base_runner",
         "//lingvo/core:base_model",
@@ -345,6 +348,7 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:task_scheduler",
         "//lingvo/core:tpu_embedding_layers",
+        # Implicit numpy dependency.
         # Implicit tensorflow grpc dependency.
     ],
 )
@@ -360,5 +364,6 @@ py_library(
     srcs = ["pdb_wrapper.py"],
     deps = [
         # Implicit pdb dependency.
+        # Implicit absl.flags dependency.
     ],
 )

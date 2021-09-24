@@ -26,6 +26,7 @@ To run locally:
 
 To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.
 """
+import contextlib
 import os
 import re
 import sys
@@ -37,6 +38,7 @@ from lingvo import datasets
 from lingvo import executor
 from lingvo import model_imports
 from lingvo import model_registry
+from lingvo import pdb_wrapper
 from lingvo import trainer_impl
 from lingvo import trainer_utils  # pylint: disable=unused-import
 import lingvo.compat as tf
@@ -424,7 +426,10 @@ class TrainerTpu(base_runner.BaseRunner):
 
     _WaitUntilInitTpu()
 
-    with self._graph.as_default(), tf.container(self._container_id):
+    with self._graph.as_default(), tf.container(
+        self._container_id), contextlib.ExitStack() as stack:
+      if FLAGS.pdb_on_exception:
+        stack.enter_context(pdb_wrapper.catch_post_mortem())
       self._summary_writer = self._CreateSummaryWriter(self._train_dir)
       self._CreateTF2SummaryWriter(self._train_dir)
       with self._cluster, tf.device(

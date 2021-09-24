@@ -21,6 +21,7 @@ import os
 import time
 
 from lingvo import compat as tf
+from lingvo import pdb_wrapper
 from lingvo.core import base_model
 from lingvo.core import checkpointer
 from lingvo.core import cluster_factory
@@ -317,6 +318,8 @@ class ExecutorTpu(base_runner.BaseRunner):
       if not py_utils.IsEagerMode():
         stack.enter_context(self._graph.as_default())
         stack.enter_context(tf.device(self._cluster.GetPlacer()))
+      if FLAGS.pdb_on_exception:
+        stack.enter_context(pdb_wrapper.catch_post_mortem())
       with py_utils.VariableStore(), py_utils.VariableRenameScope(
           self._variable_renaming_rules):
         global_step = py_utils.GetOrCreateGlobalStepVar()
