@@ -396,7 +396,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._var_symbolic_shape_map = {}
 
     self._is_variable_free = False
-    self._variables_to_create = {}
+    self._variables_to_create = py_utils.NestedMap()
     self._create_variables_status = _CreateLayerVariablesStatus.NOT_CALLED
     # Keep track of the tf.variable_scope(p.name) this layer creates so we can
     # reenter it without creating a new one.
