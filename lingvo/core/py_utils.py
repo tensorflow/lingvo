@@ -2512,9 +2512,9 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
       tf.logging.info(
           'Not loading model variable %s from %s as it does not match any rules'
           ' or matches ignored', model_var.name, ckpt_path)
-    for regexp, name_format in unused_rules.items():
-      tf.logging.warning(f'User provided rule matched no variables: ({regexp}, '
-                         f'{name_format})')
+  for regexp, name_format in unused_rules.items():
+    tf.logging.warning(f'User provided rule matched no variables: ({regexp}, '
+                       f'{name_format})')
   return vars_to_load
 
 
