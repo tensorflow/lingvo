@@ -665,6 +665,7 @@ def SetEagerMode(eager_mode=True):
   _IS_EAGER_MODE = eager_mode
   if eager_mode:
     tf.enable_eager_execution()
+    tf.config.set_soft_device_placement(True)
   else:
     tf.disable_eager_execution()
 
