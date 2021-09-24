@@ -81,6 +81,10 @@
 
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">pdb</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">flags</span>
+
+<span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;pdb_on_exception&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                  <span class="s1">&#39;If True, enter pdb trace on fatal exceptions.&#39;</span><span class="p">)</span>
 
 <span class="n">set_trace</span> <span class="o">=</span> <span class="n">pdb</span><span class="o">.</span><span class="n">set_trace</span>
 <span class="n">post_mortem</span> <span class="o">=</span> <span class="n">pdb</span><span class="o">.</span><span class="n">post_mortem</span>

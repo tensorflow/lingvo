@@ -86,6 +86,7 @@
 <span class="kn">import</span> <span class="nn">traceback</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_trial</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">pdb_wrapper</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">early_stop</span>
@@ -376,6 +377,10 @@
         <span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
+
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">pdb_on_exception</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">retry</span><span class="p">:</span>
+        <span class="n">pdb_wrapper</span><span class="o">.</span><span class="n">post_mortem</span><span class="p">()</span>
+        <span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
 
       <span class="k">if</span> <span class="n">retry</span><span class="p">:</span>
         <span class="c1"># Retry indefinitely (error should be transient).</span>
