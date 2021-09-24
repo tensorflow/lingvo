@@ -400,6 +400,30 @@ py_test(
 )
 
 py_library(
+    name = "flat_beam_search_helper",
+    srcs = ["flat_beam_search_helper.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":tpu_summary",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "flat_beam_search_helper_test",
+    srcs = ["flat_beam_search_helper_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":flat_beam_search_helper",
+        ":test_utils",
+        ":tpu_summary",
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit numpy dependency.
+    ],
+)
+
+py_library(
     name = "reversible_layers",
     srcs = ["reversible_layers.py"],
     srcs_version = "PY3",
