@@ -34,7 +34,7 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
   DATATRAIN = 'tmp-*'
   DATADEV = 'tmp-000-010'
   DATATEST = 'tmp-000-010'
-  VOCAB = '/tmp/wmt14ende/wordpiece-mixed.vocab'
+  VOCAB = 'wordpiece-mixed.vocab'
   PACKED_INPUT = True
   vocab_size = 32000
 

@@ -1119,16 +1119,6 @@ class NmtDoubleInput(NmtInput):
     p.Define('vocab_file', None, 'Vocabulary file path')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
-    self.vocab = []
-    p = self.params
-    if p.vocab_file:
-      with tf.io.gfile.GFile(p.vocab_file, 'r') as fr:
-        for line in fr:
-          ws = line.strip().split('\t')
-          self.vocab.append(ws[0].strip())
-
   def _DataSourceFromFilePattern(self, file_pattern):
 
     def Proc(record):
@@ -1281,11 +1271,20 @@ class NmtDoubleInput(NmtInput):
 
   def _ShuffleWords(self, seq, paddings, permutation_distance):
     """Locally shuffle words with permutation_distance."""
+    p = self.params
+    if not p.vocab_file:
+      raise ValueError(
+          'p.vocab_file must be set if adding word shuffling noise.')
+    vocab = []
+    with tf.io.gfile.GFile(p.vocab_file, 'r') as fr:
+      for line in fr:
+        ws = line.strip().split('\t')
+        vocab.append(ws[0].strip())
     sep_token = b'\xe2\x96\x81'
     seq_length = tf.reduce_sum(1.0 - paddings, 1)
     seq_shape = tf.shape(seq)
     bpe_end = []
-    for word in self.vocab:
+    for word in vocab:
       if word.encode('utf-8').startswith(sep_token):
         bpe_end.append(True)
       else:
