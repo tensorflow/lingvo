@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lingvo.core.flat_beam_search_helper &mdash; Lingvo  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>lingvo.core.flat_beam_search_helper</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for lingvo.core.flat_beam_search_helper</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Flat beam search helper for transformer decoder.</span>
+
+<span class="sd">In flat beam search, all tokens in all hyps are packed into a single buffer of</span>
+<span class="sd">size (beam_size * max_steps), and individual hyps are represented as 0/1 masks.</span>
+
+<span class="sd">Decoder state (previously computed keys/values in decoder self-attention layers)</span>
+<span class="sd">also has length (beam_size * max_steps).</span>
+
+<span class="sd">Decoder is called for beam_size tokens at a time, thus decoder self-attention</span>
+<span class="sd">is computed with query_size=beam_size and key_size=buf_size.</span>
+
+<span class="sd">Decoder callback has signature:</span>
+<span class="sd">  dec_callback(tgt_id, tgt_segment_id, tgt_pos, tgt_mask, dec_state, t)</span>
+<span class="sd">      -&gt; (logits, dec_state)</span>
+<span class="sd">where</span>
+<span class="sd">  tgt_id: int32 tensor of shape [batch_size, beam_size]</span>
+<span class="sd">  tgt_semgent_id: int32 tensor of shape [batch_size, beam_size]</span>
+<span class="sd">  tgt_pos: int32 tensor of shape [batch_size, beam_size]</span>
+<span class="sd">  tgt_mask: float32 tensor of shape [batch_size, beam_size, beam_size*max_len]</span>
+<span class="sd">  dec_state: decoder state</span>
+<span class="sd">  t: t current step, int32 scalar</span>
+
+<span class="sd">  logits: tensor of shape [batch_size, beam_size, vocab_size]</span>
+<span class="sd">  dec_state: updated decoder state</span>
+
+<span class="sd">The callback should update dec_state in range [t*beam_size:(t+1)*beam_size].</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
+
+
+<div class="viewcode-block" id="einsum_i32"><a class="viewcode-back" href="../../../lingvo.core.flat_beam_search_helper.html#lingvo.core.flat_beam_search_helper.einsum_i32">[docs]</a><span class="k">def</span> <span class="nf">einsum_i32</span><span class="p">(</span><span class="n">eq</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+  <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">eq</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">args</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="update_nbest"><a class="viewcode-back" href="../../../lingvo.core.flat_beam_search_helper.html#lingvo.core.flat_beam_search_helper.update_nbest">[docs]</a><span class="k">def</span> <span class="nf">update_nbest</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">cur_hyps</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Updates nbest hyps from cur_hyps. Returns new values for nbest_hyps.&quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;update_nbest&#39;</span><span class="p">):</span>
+    <span class="p">(</span><span class="n">nbest_mask</span><span class="p">,</span> <span class="n">nbest_score</span><span class="p">,</span> <span class="n">nbest_score_norm</span><span class="p">)</span> <span class="o">=</span> <span class="n">nbest_hyps</span>
+    <span class="p">(</span><span class="n">cur_mask</span><span class="p">,</span> <span class="n">cur_score</span><span class="p">,</span> <span class="n">cur_score_norm</span><span class="p">)</span> <span class="o">=</span> <span class="n">cur_hyps</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nbest_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cur_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">nbest_mask</span><span class="p">,</span> <span class="n">cur_mask</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">nbest_score</span><span class="p">,</span> <span class="n">cur_score</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">score_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">nbest_score_norm</span><span class="p">,</span> <span class="n">cur_score_norm</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">nbest_score_norm</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">score_norm</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+    <span class="n">i_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="n">m</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">nbest_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bkt,bjk-&gt;bjt&#39;</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">i_one_hot</span><span class="p">)</span>
+    <span class="n">nbest_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bk,bjk-&gt;bj&#39;</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">i_one_hot</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">nbest_mask</span><span class="p">,</span> <span class="n">nbest_score</span><span class="p">,</span> <span class="n">nbest_score_norm</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="flat_beam_search"><a class="viewcode-back" href="../../../lingvo.core.flat_beam_search_helper.html#lingvo.core.flat_beam_search_helper.flat_beam_search">[docs]</a><span class="k">def</span> <span class="nf">flat_beam_search</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span>
+                     <span class="n">beam_size</span><span class="p">,</span>
+                     <span class="n">max_steps</span><span class="p">,</span>
+                     <span class="n">dec_callback</span><span class="p">,</span>
+                     <span class="n">dec_state</span><span class="p">,</span>
+                     <span class="n">bos_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">eos_id</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                     <span class="n">length_norm_alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+                     <span class="n">beam_gap</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+                     <span class="n">top_k_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">,</span>
+                     <span class="n">prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">prefix_len</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                     <span class="n">ext_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                     <span class="n">nbest_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Flat beam search.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    batch_size: batch size</span>
+<span class="sd">    beam_size: beam size limit in number of hyps</span>
+<span class="sd">    max_steps: max steps</span>
+<span class="sd">    dec_callback: decoder callback (see above)</span>
+<span class="sd">    dec_state: decoder state</span>
+<span class="sd">    bos_id: &lt;s&gt; token id</span>
+<span class="sd">    eos_id: &lt;/s&gt; token id</span>
+<span class="sd">    length_norm_alpha: length normalization parameter</span>
+<span class="sd">    beam_gap: early stopping threshold; None to disable</span>
+<span class="sd">    top_k_fn: top_k function to call</span>
+<span class="sd">    prefix: (optional) int32 tensor [batch_size, prefix_max]</span>
+<span class="sd">    prefix_len: (optional) int32 tensor [batch_size]</span>
+<span class="sd">    fprop_dtype: fprop dtype</span>
+<span class="sd">    ext_size: int &gt;= beam_size, extension buffer size</span>
+<span class="sd">    nbest_size: number of returned hyps, default is beam_size</span>
+<span class="sd">    debug: log intermediate vlaues with tpu_summary.tensor()</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    (loop_vars, dec_state, nbest) where</span>
+<span class="sd">    nbest = (topk_ids, topk_len, topk_score)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">beam_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+  <span class="k">assert</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+  <span class="k">assert</span> <span class="n">max_steps</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+  <span class="n">buf_size</span> <span class="o">=</span> <span class="n">beam_size</span> <span class="o">*</span> <span class="n">max_steps</span>
+  <span class="n">output_len</span> <span class="o">=</span> <span class="n">max_steps</span>
+
+  <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">prefix_len</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">bos_id</span>
+    <span class="n">prefix_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">prefix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="n">batch_size</span><span class="p">,</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">prefix</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">prefix_len</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="n">batch_size</span><span class="p">,</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span>
+                                                    <span class="n">prefix_len</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">output_len</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">prefix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+    <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+    <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;prefix_len&#39;</span><span class="p">,</span> <span class="n">prefix_len</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init_state&#39;</span><span class="p">):</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">tgt_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">tgt_id</span> <span class="o">+=</span> <span class="n">bos_id</span>
+    <span class="n">tgt_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">tgt_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">,</span> <span class="n">buf_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">tgt_mask</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">beam_size</span><span class="p">),</span> <span class="n">buf_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">hyp_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="c1"># penalize all hyps except the first</span>
+    <span class="n">hyp_score</span> <span class="o">-=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e5</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">nbest_size</span> <span class="o">=</span> <span class="n">nbest_size</span> <span class="ow">or</span> <span class="n">beam_size</span>
+    <span class="n">nbest_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">nbest_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">nbest_score</span> <span class="o">-=</span> <span class="mf">1e9</span>
+    <span class="n">nbest_score_norm</span> <span class="o">=</span> <span class="n">nbest_score</span>
+    <span class="n">nbest_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">nbest_size</span><span class="p">,</span> <span class="n">buf_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init_ext&#39;</span><span class="p">):</span>
+    <span class="c1"># Initialize the extension buffer.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Extension buffer stores a (potentially large) set of &#39;extensions&#39;,</span>
+    <span class="c1"># which consist of a hypothesis (represented by ext_mask) and next token</span>
+    <span class="c1"># (represented by ext_id). At each decoder iteration, top_k extensions</span>
+    <span class="c1"># from each hypothesis are added to the buffer and sorted by score.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Then top beam_size extensions are removed from the buffer and used</span>
+    <span class="c1"># in the next decoder iteration. And top &#39;ext_size&#39; remaining extensions</span>
+    <span class="c1"># are carried over to be possibly evaluated at a later step.</span>
+    <span class="c1">#</span>
+    <span class="c1"># As a result of this manipulation, the decoder is no longer restricted</span>
+    <span class="c1"># to always compare hyps of the same token length at each iteration.</span>
+    <span class="c1"># In particular, for a fixed length N it can generate more than beam_size</span>
+    <span class="c1"># terminated hyps.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Setting ext_size = 0 disables this feautre.</span>
+    <span class="k">if</span> <span class="n">ext_size</span><span class="p">:</span>
+      <span class="n">ext_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">ext_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">ext_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">ext_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="n">ext_score</span> <span class="o">-=</span> <span class="mf">1e9</span>
+      <span class="n">ext_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">ext_size</span><span class="p">,</span> <span class="n">buf_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">ext_size</span> <span class="o">=</span> <span class="n">ext_id</span> <span class="o">=</span> <span class="n">ext_score</span> <span class="o">=</span> <span class="n">ext_mask</span> <span class="o">=</span> <span class="mi">0</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init_prefix&#39;</span><span class="p">):</span>
+    <span class="c1"># rename prefix-&gt;pfx for shorter variables</span>
+    <span class="n">pfx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">pfx_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">prefix_len</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">prefix_len</span>
+    <span class="c1"># Before the first call to dec_callback() the prefix shall be packed into</span>
+    <span class="c1"># the tgt_id buffer as follows:</span>
+    <span class="c1">#</span>
+    <span class="c1"># [ P P P P P P - - - - - - P* - - - ]   ^</span>
+    <span class="c1"># [ P P P P P P P P P P - - P* - - - ]   | batch</span>
+    <span class="c1"># [ P - - - - - - - - - - - P* - - - ]   V</span>
+    <span class="c1"># |&lt;---- prefix len ----&gt;  |&lt;-- beam --&gt;</span>
+    <span class="c1">#</span>
+    <span class="c1"># The last meaningful token in the prefix (P*)</span>
+    <span class="c1"># must be located at the same position in all batch rows.</span>
+    <span class="c1">#</span>
+    <span class="c1"># We then make one dec_callback() with full prefix (minus P*)</span>
+    <span class="c1"># which will populate the initial dec_state</span>
+    <span class="c1"># (for transformer -- self-attention key/value cache)</span>
+    <span class="c1">#</span>
+    <span class="c1"># The last block [batch, beam] then becomes the first tgt_id for the loop.</span>
+    <span class="n">pfx_max</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">pfx_mul</span> <span class="o">=</span> <span class="n">pfx_max</span> <span class="o">//</span> <span class="n">beam_size</span>
+    <span class="k">assert</span> <span class="n">pfx_max</span> <span class="o">==</span> <span class="n">pfx_mul</span> <span class="o">*</span> <span class="n">beam_size</span><span class="p">,</span> <span class="p">(</span><span class="n">pfx_max</span><span class="p">,</span> <span class="n">pfx_mul</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">)</span>
+    <span class="n">pfx_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">pfx_max</span><span class="p">)</span>
+    <span class="n">pfx_pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">pfx_time</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">pfx_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">pfx_id</span> <span class="o">=</span> <span class="n">pfx</span> <span class="o">*</span> <span class="n">pfx_pad</span>
+    <span class="n">pfx_last</span> <span class="o">=</span> <span class="n">einsum_i32</span><span class="p">(</span><span class="s1">&#39;BT,BT-&gt;B&#39;</span><span class="p">,</span> <span class="n">pfx</span><span class="p">,</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">pfx_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfx_max</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">))</span>
+
+    <span class="n">buf_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">buf_size</span><span class="p">)</span>
+    <span class="n">pfx_time_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">buf_time</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">pfx_time</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+        <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">pfx_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BQ,QK-&gt;BQK&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pfx_pad</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">),</span>
+                         <span class="n">pfx_time_mask</span><span class="p">)</span>
+    <span class="n">pfx_segment_id</span> <span class="o">=</span> <span class="n">pfx_pad</span>
+    <span class="n">pfx_pos</span> <span class="o">=</span> <span class="n">pfx_time</span> <span class="o">*</span> <span class="n">pfx_pad</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;pfx_id&#39;</span><span class="p">,</span> <span class="n">pfx_id</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;pfx_len&#39;</span><span class="p">,</span> <span class="n">pfx_len</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;pfx_pos&#39;</span><span class="p">,</span> <span class="n">pfx_pos</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;pfx_last&#39;</span><span class="p">,</span> <span class="n">pfx_last</span><span class="p">)</span>
+
+    <span class="c1"># Now call decoder with prefix minus P*:</span>
+    <span class="c1"># &#39;dec_state&#39; now shall contain the key/value cache for prefix tokens</span>
+    <span class="c1"># (for transformer models), and &#39;logits&#39; we can either discard or</span>
+    <span class="c1"># roll into the initial hyp_score. Discard is simpler.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;prefix_fprop&#39;</span><span class="p">):</span>
+      <span class="c1"># TODO(krikun): remove extra type checks</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="n">pfx_id</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="p">(</span><span class="n">pfx_id</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="n">pfx_segment_id</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="p">(</span><span class="n">pfx_segment_id</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="n">pfx_pos</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="p">(</span><span class="n">pfx_pos</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="n">pfx_mask</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">fprop_dtype</span><span class="p">),</span> <span class="p">(</span><span class="n">pfx_mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">logits</span><span class="p">,</span> <span class="n">dec_state</span> <span class="o">=</span> <span class="n">dec_callback</span><span class="p">(</span><span class="n">pfx_id</span><span class="p">,</span> <span class="n">pfx_segment_id</span><span class="p">,</span> <span class="n">pfx_pos</span><span class="p">,</span>
+                                       <span class="n">pfx_mask</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+      <span class="k">del</span> <span class="n">logits</span>
+
+    <span class="c1"># Now construct the initial state for the rest of the beam search loop.</span>
+    <span class="c1"># &#39;tgt_id&#39; is simply &#39;pfx_last&#39; padded to [batch, beam] shape</span>
+    <span class="c1"># &#39;tgt_pos&#39; is different for each batch row and is equal to prefix_len</span>
+    <span class="c1"># &#39;tgt_segment_id&#39; always 1 (no packing)</span>
+    <span class="c1"># &#39;hyp_score&#39; is 0 for beam=0 and negative for beam&gt;=1</span>
+    <span class="n">tgt_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="n">pfx_last</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">tgt_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">pfx_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">hyp_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">beam_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e5</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="c1"># TODO(krikun) Here we make initial &#39;t&#39; constant and determined by the</span>
+    <span class="c1"># shape of the prefix tensor &#39;pfx_max&#39;. It is possible to make it dynamic</span>
+    <span class="c1"># as t ~  max(pfx_len) / beam_size and this will more steps for beam search</span>
+    <span class="c1"># however &#39;max&#39; results in a very slow all-to-all for &#39;max&#39; on 16x16</span>
+    <span class="c1"># and variable number of decoder steps may result in bad latency.</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">pfx_max</span> <span class="o">/</span> <span class="n">beam_size</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># Initial tgt_mask is such that each token P* has attention on itself</span>
+    <span class="c1"># (as usual) and on all prefix tokens before it, which are not padding.</span>
+    <span class="n">tgt_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">,</span> <span class="n">buf_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">tgt_mask</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">pfx_pad</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="n">buf_size</span> <span class="o">-</span> <span class="n">pfx_max</span><span class="p">)]]),</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">tgt_mask</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">beam_size</span><span class="p">)</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">beam_size</span><span class="p">,</span> <span class="n">buf_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;tgt_id&#39;</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;tgt_pos&#39;</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;tgt_mask&#39;</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init_hist&#39;</span><span class="p">):</span>
+    <span class="c1"># h_tgt_id is used to recover topk_ids from nbest_mask</span>
+    <span class="n">h_tgt_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">max_steps</span><span class="p">)</span>
+    <span class="n">h_tgt_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">max_steps</span><span class="p">)</span>
+
+    <span class="c1"># When non-trivial prefix is present we also write prefix ids to</span>
+    <span class="c1"># h_tgt_id so that the full sequence including prefix can be recovered</span>
+    <span class="c1"># by unmask() below.  When prefix is empty, pfx_id shape is [batch, 0]</span>
+    <span class="c1"># and the loop below becomes a no-op.</span>
+    <span class="c1"># TODO(krikun): maybe a tf.while_loop is more appropriate here.</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">pfx_id</span><span class="p">,</span> <span class="n">pfx_mul</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+      <span class="n">h_tgt_id</span> <span class="o">=</span> <span class="n">h_tgt_id</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">x_i</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">pfx_pos</span><span class="p">,</span> <span class="n">pfx_mul</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+      <span class="n">h_tgt_pos</span> <span class="o">=</span> <span class="n">h_tgt_pos</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">x_i</span><span class="p">)</span>
+
+    <span class="n">hist</span> <span class="o">=</span> <span class="p">(</span><span class="n">h_tgt_id</span><span class="p">,</span> <span class="n">h_tgt_pos</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;hist=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">hist</span><span class="p">)</span>
+
+  <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="p">(</span><span class="n">nbest_mask</span><span class="p">,</span> <span class="n">nbest_score</span><span class="p">,</span> <span class="n">nbest_score_norm</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;nbest_hyps=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">)</span>
+
+  <span class="n">ext</span> <span class="o">=</span> <span class="p">(</span><span class="n">ext_id</span><span class="p">,</span> <span class="n">ext_score</span><span class="p">,</span> <span class="n">ext_mask</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ext=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
+
+  <span class="n">loop_vars</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">hyp_score</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">hist</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;loop_vars=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">loop_vars</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">loop_step</span><span class="p">(</span><span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;loop_vars=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">loop_vars</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;dec_state=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">hyp_score</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">hist</span><span class="p">)</span> <span class="o">=</span> <span class="n">loop_vars</span>
+    <span class="p">(</span><span class="n">ext_id</span><span class="p">,</span> <span class="n">ext_score</span><span class="p">,</span> <span class="n">ext_mask</span><span class="p">)</span> <span class="o">=</span> <span class="n">ext</span>
+    <span class="p">(</span><span class="n">h_tgt_id</span><span class="p">,</span> <span class="n">h_tgt_pos</span><span class="p">)</span> <span class="o">=</span> <span class="n">hist</span>
+    <span class="n">h_tgt_id</span> <span class="o">=</span> <span class="n">h_tgt_id</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;h_tgt_id&#39;</span><span class="p">)</span>
+    <span class="n">h_tgt_pos</span> <span class="o">=</span> <span class="n">h_tgt_pos</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;h_tgt_pos&#39;</span><span class="p">)</span>
+    <span class="c1"># not using tf.ones() here because of XLA compilation error</span>
+    <span class="n">tgt_segment_id</span> <span class="o">=</span> <span class="n">tgt_id</span> <span class="o">*</span> <span class="mi">0</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">logits</span><span class="p">,</span> <span class="n">dec_state</span> <span class="o">=</span> <span class="n">dec_callback</span><span class="p">(</span><span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span>
+                                     <span class="n">dec_state</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="c1"># take predicted EOS score for each hyp and compute normalized score</span>
+    <span class="n">eos_score</span> <span class="o">=</span> <span class="n">hyp_score</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">logits</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">eos_id</span><span class="p">],</span> <span class="n">hyp_score</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">length_norm</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+      <span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="n">alpha</span> <span class="o">=</span> <span class="n">length_norm_alpha</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;length_norm.alpha=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">((</span><span class="n">t</span> <span class="o">+</span> <span class="mf">5.</span><span class="p">)</span> <span class="o">/</span> <span class="mf">5.</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+
+    <span class="n">hyp_len</span> <span class="o">=</span> <span class="n">tgt_pos</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">((</span><span class="n">pfx_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">eos_score_norm</span> <span class="o">=</span> <span class="n">eos_score</span> <span class="o">/</span> <span class="n">length_norm</span><span class="p">(</span><span class="n">hyp_len</span><span class="p">)</span>
+    <span class="c1"># update the n-best list</span>
+    <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">update_nbest</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">,</span> <span class="p">(</span><span class="n">tgt_mask</span><span class="p">,</span> <span class="n">hyp_score</span><span class="p">,</span> <span class="n">eos_score_norm</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;eos_score&#39;</span><span class="p">,</span> <span class="n">eos_score</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;hyp_len&#39;</span><span class="p">,</span> <span class="n">hyp_len</span><span class="p">)</span>
+
+    <span class="c1"># take top k tokens for each hyp</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">beam_size</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;topk1&#39;</span><span class="p">):</span>
+      <span class="n">top_score</span><span class="p">,</span> <span class="n">top_id</span> <span class="o">=</span> <span class="n">top_k_fn</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+      <span class="n">top_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">top_score</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="n">top_score</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">hyp_score</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">top_score</span> <span class="o">-=</span> <span class="mf">1e9</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">top_id</span><span class="p">,</span> <span class="n">eos_id</span><span class="p">),</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="n">top_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">top_score</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span> <span class="o">*</span> <span class="n">k</span><span class="p">])</span>
+    <span class="n">top_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">top_id</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span> <span class="o">*</span> <span class="n">k</span><span class="p">])</span>
+    <span class="n">top_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">tgt_mask</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;top_id&#39;</span><span class="p">,</span> <span class="n">top_id</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;top_score&#39;</span><span class="p">,</span> <span class="n">top_score</span><span class="p">)</span>
+      <span class="c1"># tpu_summary.tensor(&#39;top_mask&#39;, top_mask)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;update_ext&#39;</span><span class="p">):</span>
+      <span class="c1"># combine top k tokens with extension buffer (if any)</span>
+      <span class="k">if</span> <span class="n">ext_size</span><span class="p">:</span>
+        <span class="n">ext_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ext_id</span><span class="p">,</span> <span class="n">top_id</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">ext_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ext_score</span><span class="p">,</span> <span class="n">top_score</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">ext_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ext_mask</span><span class="p">,</span> <span class="n">top_mask</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">ext_id</span><span class="p">,</span> <span class="n">ext_score</span><span class="p">,</span> <span class="n">ext_mask</span> <span class="o">=</span> <span class="n">top_id</span><span class="p">,</span> <span class="n">top_score</span><span class="p">,</span> <span class="n">top_mask</span>
+
+      <span class="c1"># sort by score</span>
+      <span class="n">ext_score</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">ext_score</span><span class="p">,</span> <span class="n">ext_size</span> <span class="o">+</span> <span class="n">beam_size</span><span class="p">)</span>
+      <span class="n">i1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ext_size</span> <span class="o">+</span> <span class="n">beam_size</span> <span class="o">*</span> <span class="n">k</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="n">ext_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bkt,bjk-&gt;bjt&#39;</span><span class="p">,</span> <span class="n">ext_mask</span><span class="p">,</span> <span class="n">i1</span><span class="p">)</span>
+      <span class="n">ext_id</span> <span class="o">=</span> <span class="n">einsum_i32</span><span class="p">(</span><span class="s1">&#39;bk,bjk-&gt;bj&#39;</span><span class="p">,</span> <span class="n">ext_id</span><span class="p">,</span> <span class="n">i1</span><span class="p">)</span>
+
+      <span class="c1"># pick top beam_size extensions to evaluate at next iteration</span>
+      <span class="k">if</span> <span class="n">ext_size</span><span class="p">:</span>
+        <span class="n">hyp_score</span> <span class="o">=</span> <span class="n">ext_score</span><span class="p">[:,</span> <span class="p">:</span><span class="n">beam_size</span><span class="p">]</span>
+        <span class="n">ext_score</span> <span class="o">=</span> <span class="n">ext_score</span><span class="p">[:,</span> <span class="n">beam_size</span><span class="p">:]</span>
+        <span class="n">tgt_id</span> <span class="o">=</span> <span class="n">ext_id</span><span class="p">[:,</span> <span class="p">:</span><span class="n">beam_size</span><span class="p">]</span>
+        <span class="n">ext_id</span> <span class="o">=</span> <span class="n">ext_id</span><span class="p">[:,</span> <span class="n">beam_size</span><span class="p">:]</span>
+        <span class="n">tgt_mask</span> <span class="o">=</span> <span class="n">ext_mask</span><span class="p">[:,</span> <span class="p">:</span><span class="n">beam_size</span><span class="p">]</span>
+        <span class="n">ext_mask</span> <span class="o">=</span> <span class="n">ext_mask</span><span class="p">[:,</span> <span class="n">beam_size</span><span class="p">:]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">hyp_score</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_mask</span> <span class="o">=</span> <span class="n">ext_score</span><span class="p">,</span> <span class="n">ext_id</span><span class="p">,</span> <span class="n">ext_mask</span>
+        <span class="n">ext_score</span> <span class="o">=</span> <span class="n">ext_id</span> <span class="o">=</span> <span class="n">ext_mask</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">tgt_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tgt_mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">tgt_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">t</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tgt_mask_extend&#39;</span><span class="p">):</span>
+      <span class="n">tgt_mask</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">beam_size</span><span class="p">)</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">beam_size</span><span class="p">,</span> <span class="n">buf_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="n">ext</span> <span class="o">=</span> <span class="p">(</span><span class="n">ext_id</span><span class="p">,</span> <span class="n">ext_score</span><span class="p">,</span> <span class="n">ext_mask</span><span class="p">)</span>
+    <span class="n">hist</span> <span class="o">=</span> <span class="p">(</span><span class="n">h_tgt_id</span><span class="p">,</span> <span class="n">h_tgt_pos</span><span class="p">)</span>
+    <span class="n">loop_vars</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">hyp_score</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">hist</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;loop_vars=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">loop_vars</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;dec_state=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span>
+
+  <span class="k">def</span> <span class="nf">loop_cond</span><span class="p">(</span><span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;loop_vars=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">loop_vars</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;dec_state=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">beam_gap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">loop_vars</span>
+      <span class="k">return</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">max_steps</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">loop_vars</span>
+      <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">nbest_score</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">nbest_hyps</span>
+      <span class="c1"># stop early if all current hyps are significantly worse than nbest</span>
+      <span class="n">diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">nbest_score</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">hyp_score</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">max_steps</span><span class="p">,</span> <span class="n">diff</span> <span class="o">&lt;</span> <span class="n">beam_gap</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;flat_beam_search_loop&#39;</span><span class="p">):</span>
+    <span class="p">(</span><span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="n">loop_cond</span><span class="p">,</span>
+        <span class="n">loop_step</span><span class="p">,</span>
+        <span class="n">loop_vars</span><span class="o">=</span><span class="p">(</span><span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">),</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">swap_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">maximum_iterations</span><span class="o">=</span><span class="n">max_steps</span><span class="p">)</span>
+
+  <span class="c1"># flatten all tensorarrays into tensors</span>
+  <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">hyp_score</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">hist</span><span class="p">)</span> <span class="o">=</span> <span class="n">loop_vars</span>
+  <span class="p">(</span><span class="n">nbest_mask</span><span class="p">,</span> <span class="n">nbest_score</span><span class="p">,</span> <span class="n">nbest_score_norm</span><span class="p">)</span> <span class="o">=</span> <span class="n">nbest_hyps</span>
+  <span class="p">(</span><span class="n">h_tgt_id</span><span class="p">,</span> <span class="n">h_tgt_pos</span><span class="p">)</span> <span class="o">=</span> <span class="n">hist</span>
+  <span class="n">h_tgt_id</span> <span class="o">=</span> <span class="n">h_tgt_id</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
+  <span class="n">h_tgt_pos</span> <span class="o">=</span> <span class="n">h_tgt_pos</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
+  <span class="n">hist</span> <span class="o">=</span> <span class="p">(</span><span class="n">h_tgt_id</span><span class="p">,</span> <span class="n">h_tgt_pos</span><span class="p">)</span>
+  <span class="n">loop_vars</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">hyp_score</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">ext</span><span class="p">,</span> <span class="n">hist</span><span class="p">)</span>
+
+  <span class="c1"># recover topk_ids from nbest_mask and tgt_id history</span>
+  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">h_tgt_id</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">buf_size</span><span class="p">])</span>
+
+  <span class="k">def</span> <span class="nf">unmask</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;unmask&#39;</span><span class="p">):</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;unmask_h&#39;</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;unmask_m&#39;</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+      <span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="n">mh</span> <span class="o">=</span> <span class="n">einsum_i32</span><span class="p">(</span><span class="s1">&#39;bkt,bt-&gt;bkt&#39;</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="n">t2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">output_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">einsum_i32</span><span class="p">(</span><span class="s1">&#39;bkt,bktT-&gt;bkT&#39;</span><span class="p">,</span> <span class="n">mh</span><span class="p">,</span> <span class="n">t2</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">h</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">unmask</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">nbest_mask</span><span class="p">)</span>
+  <span class="n">topk_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">nbest_mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">topk_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">topk_len</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="c1"># add eos, because nbest_mask does not encode eos</span>
+  <span class="n">topk_ids</span> <span class="o">+=</span> <span class="n">eos_id</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">topk_len</span><span class="p">,</span> <span class="n">output_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="n">topk_len</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="n">topk_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">topk_len</span><span class="p">,</span> <span class="n">output_len</span><span class="p">)</span>
+  <span class="n">topk_score</span> <span class="o">=</span> <span class="n">nbest_score_norm</span>
+
+  <span class="n">nbest</span> <span class="o">=</span> <span class="p">(</span><span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_len</span><span class="p">,</span> <span class="n">topk_score</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">,</span> <span class="n">nbest</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
