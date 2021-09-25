@@ -46,7 +46,7 @@ bool IsDuplicateHyp(const Hyp& cur_hyp, const Hyp& other_hyp,
   const std::vector<int>& cur_hyp_ids = cur_hyp.prev_labels;
   const std::vector<int>& other_hyp_ids = other_hyp.prev_labels;
   // Note word_id refers to id of current label, which could be grapheme,
-  // phoneneme, wordpiece, ectc.
+  // phoneneme, wordpiece, etc.
   if (cur_hyp.word_id == other_hyp.word_id) {
     // If the cur step is the same (epsilon or otherwise), just need to compare
     // prev ids which already has epsilons stripped.
@@ -375,7 +375,7 @@ class BeamSearchStepOp : public OpKernel {
       // may represent many possible paths that have been merged.  The
       // recorded per-step scores only are valid for one of these paths, so
       // they are not meaningful for the merged path.  For the merged path
-      // we simpy take an average per-step score.
+      // we simply take an average per-step score.
       const float score_this_step =
           (merge_paths_ ? average_step_score : t_out_scores(i, hyp_id));
       hypothesis.add_scores(score_this_step);
@@ -1127,7 +1127,7 @@ class HypsFromBeamSearchOuts : public OpKernel {
     OP_REQUIRES(
         ctx, atten_probs.dims() == 3,
         errors::InvalidArgument(
-            "Failed tensor shape sanity check. atten_probs.dims() == 2. Got ",
+            "Failed tensor shape sanity check. atten_probs.dims() == 3. Got ",
             atten_probs.dims()));
 
     OP_REQUIRES(ctx, atten_probs.dim_size(1) == scores.dim_size(1),
@@ -1156,13 +1156,6 @@ class HypsFromBeamSearchOuts : public OpKernel {
             "Failed tensor shape sanity check. "
             "hyps and scores should have the same shape. Got ",
             hyps.shape().DebugString(), " and ", scores.shape().DebugString()));
-
-    OP_REQUIRES(ctx, hyps.IsSameSize(done_hyps),
-                errors::InvalidArgument(
-                    "Failed tensor shape sanity check. "
-                    "hyps and done_hyps should have the same shape. Got ",
-                    hyps.shape().DebugString(), " and ",
-                    done_hyps.shape().DebugString()));
 
     OP_REQUIRES(ctx, hyps.IsSameSize(eos_scores),
                 errors::InvalidArgument(
