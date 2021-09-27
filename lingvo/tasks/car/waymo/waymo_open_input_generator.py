@@ -263,6 +263,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
     for camera_name in p.camera_names:
       image_shape = tf.reshape(
           _Dense(features['image_%s_shape' % camera_name]), [-1])
+      image_shape = tf.cast(image_shape, tf.int32)
 
       if p.decode_image:
         image = tf.io.decode_png(
@@ -282,6 +283,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
       outputs[camera_name] = py_utils.NestedMap()
       if p.decode_image:
         outputs[camera_name]['image'] = tf.cast(image, p.image_output_dtype)
+      outputs[camera_name]['image_shape'] = image_shape
       outputs[camera_name]['intrinsics'] = intrinsics
       outputs[camera_name]['extrinsics'] = extrinsics
       outputs[camera_name]['pose'] = pose
@@ -313,6 +315,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
       # Radial distortion coefficients: k1, k2, k3.
       # Tangential distortion coefficients: p1, p2.
       # k_{1, 2, 3}, p_{1, 2} follows the same definition as OpenCV.
+      shapes[camera_name]['image_shape'] = tf.TensorShape([3])
       shapes[camera_name]['intrinsics'] = tf.TensorShape([9])
       shapes[camera_name]['extrinsics'] = tf.TensorShape([4, 4])
       shapes[camera_name]['pose'] = tf.TensorShape([4, 4])
@@ -334,6 +337,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
       dtypes[camera_name] = py_utils.NestedMap()
       if p.decode_image:
         dtypes[camera_name]['image'] = p.image_output_dtype
+      dtypes[camera_name]['image_shape'] = tf.int32
       dtypes[camera_name]['intrinsics'] = tf.float32
       dtypes[camera_name]['extrinsics'] = tf.float32
       dtypes[camera_name]['pose'] = tf.float32
