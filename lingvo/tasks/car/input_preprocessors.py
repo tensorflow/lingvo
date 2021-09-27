@@ -1787,6 +1787,9 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
         'It can be helpful to disable this when using the preprocessor in a '
         'way that expects the structure of the features to be the same '
         '(e.g., as a branch in tf.cond).')
+    p.Define(
+        'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
+        'the transformation to.')
     return p
 
   def __init__(self, params):
@@ -1808,6 +1811,8 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
     # Rotate points.
     features.lasers.points_xyz = geometry.CoordinateTransform(
         features.lasers.points_xyz, pose)
+    for key in p.extra_points_keys:
+      features.Set(key, geometry.CoordinateTransform(features.Get(key), pose))
 
     # Rotate bboxes, note that heading has a special case.
     bboxes_xyz = features.labels.bboxes_3d[..., :3]
@@ -2082,6 +2087,9 @@ class WorldScaling(Preprocessor):
   def Params(cls):
     p = super().Params()
     p.Define('scaling', None, 'The scaling range.')
+    p.Define(
+        'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
+        'the transformation to.')
     return p
 
   def __init__(self, params):
@@ -2102,6 +2110,8 @@ class WorldScaling(Preprocessor):
 
     # Scale points [num_points, 3].
     features.lasers.points_xyz *= scaling
+    for key in p.extra_points_keys:
+      features.Set(key, features.Get(key) * scaling)
 
     # Scaling bboxes (location and dimensions).
     bboxes_xyz = features.labels.bboxes_3d[..., :3] * scaling
@@ -2186,7 +2196,15 @@ class RandomFlipY(Preprocessor):
   def Params(cls):
     p = super().Params()
     p.Define('flip_probability', 0.5, 'Probability of flipping.')
+    p.Define(
+        'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
+        'the transformation to.')
     return p
+
+  def _FlipY(self, points_xyz, choice):
+    points_y = tf.where(choice, -points_xyz[..., 1:2], points_xyz[..., 1:2])
+    return tf.concat([points_xyz[..., 0:1], points_y, points_xyz[..., 2:3]],
+                     axis=-1)
 
   def TransformFeatures(self, features):
     p = self.params
@@ -2195,10 +2213,9 @@ class RandomFlipY(Preprocessor):
         (), minval=0.0, maxval=1.0, seed=p.random_seed) >= threshold
 
     # Flip points
-    points_xyz = features.lasers.points_xyz
-    points_y = tf.where(choice, -points_xyz[..., 1:2], points_xyz[..., 1:2])
-    features.lasers.points_xyz = tf.concat(
-        [points_xyz[..., 0:1], points_y, points_xyz[..., 2:3]], axis=-1)
+    features.lasers.points_xyz = self._FlipY(features.lasers.points_xyz, choice)
+    for key in p.extra_points_keys:
+      features.Set(key, self._FlipY(features.Get(key), choice))
 
     # Flip boxes
     bboxes_xyz = features.labels.bboxes_3d[..., :3]
@@ -2238,6 +2255,9 @@ class GlobalTranslateNoise(Preprocessor):
     p = super().Params()
     p.Define('noise_std', [0.2, 0.2, 0.2],
              'Standard deviation of translation noise per axis.')
+    p.Define(
+        'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
+        'the transformation to.')
     return p
 
   def TransformFeatures(self, features):
@@ -2270,6 +2290,8 @@ class GlobalTranslateNoise(Preprocessor):
     # Translate points.
     points_xyz = features.lasers.points_xyz
     features.lasers.points_xyz = geometry.CoordinateTransform(points_xyz, pose)
+    for key in p.extra_points_keys:
+      features.Set(key, geometry.CoordinateTransform(features.Get(key), pose))
 
     # Translate boxes
     bboxes_xyz = features.labels.bboxes_3d[..., :3]
