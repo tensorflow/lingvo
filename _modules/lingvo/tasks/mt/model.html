@@ -274,6 +274,21 @@
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
+<div class="viewcode-block" id="HybridModel"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.HybridModel">[docs]</a><span class="k">class</span> <span class="nc">HybridModel</span><span class="p">(</span><span class="n">MTBaseModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Hybrid NMT Model (Transformer encoder with RNMT+ decoder).</span>
+
+<span class="sd">  Inspired by hybrid model in The Best of Both Worlds paper:</span>
+<span class="sd">  https://aclweb.org/anthology/P18-1008</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="HybridModel.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.HybridModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">MTDecoderV1</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
 <div class="viewcode-block" id="InsertionModel"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.InsertionModel">[docs]</a><span class="k">class</span> <span class="nc">InsertionModel</span><span class="p">(</span><span class="n">MTBaseModel</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Insertion-based model.</span>
 
