@@ -526,16 +526,6 @@
           <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">summed_metrics</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="TrainProgram.TpuTrainLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.TpuTrainLoop">[docs]</a>  <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
-  <span class="k">def</span> <span class="nf">TpuTrainLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">TpuTrainStep</span><span class="p">,</span>
-        <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
-    <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="TrainProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TrainProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -551,6 +541,16 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
+
+    <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
+    <span class="k">def</span> <span class="nf">TpuTrainLoop</span><span class="p">():</span>
+      <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">TpuTrainStep</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
+      <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">TrainFunc</span><span class="p">():</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
@@ -569,7 +569,7 @@
       <span class="c1"># TODO(laigd): investigate how to run compilation only to catch errors</span>
       <span class="c1"># earlier.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
-          <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">TpuTrainLoop</span><span class="p">(),</span>  <span class="c1"># pylint:disable=unnecessary-lambda</span>
+          <span class="n">TpuTrainLoop</span><span class="p">,</span>
           <span class="n">num_shards</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span><span class="p">,</span>
           <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
       <span class="n">outfeed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedDequeueLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span>
@@ -704,16 +704,6 @@
         <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">summed_metrics</span></div>
 
-<div class="viewcode-block" id="EvalProgram.TpuEvalLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.TpuEvalLoop">[docs]</a>  <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
-  <span class="k">def</span> <span class="nf">TpuEvalLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">TpuEvalStep</span><span class="p">,</span>
-        <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;eval_loop&#39;</span><span class="p">)</span>
-    <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="EvalProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;EvalProgram </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1"> BuildTpuSubGraph&#39;</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -725,6 +715,16 @@
       <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
+
+      <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
+      <span class="k">def</span> <span class="nf">TpuEvalLoop</span><span class="p">():</span>
+        <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">TpuEvalStep</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;eval_loop&#39;</span><span class="p">)</span>
+        <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">EvalFunc</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
@@ -743,7 +743,7 @@
         <span class="c1"># TODO(laigd): investigate how to run compilation only to catch errors</span>
         <span class="c1"># earlier.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
-            <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">TpuEvalLoop</span><span class="p">(),</span>  <span class="c1"># pylint:disable=unnecessary-lambda</span>
+            <span class="n">TpuEvalLoop</span><span class="p">,</span>
             <span class="n">num_shards</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span><span class="p">,</span>
             <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
 
