@@ -165,16 +165,17 @@ class Utils3D:
     stack_coordinates = []
 
     for r_start, r_stop, r_steps in ranges:
+      r_start = tf.cast(r_start, tf.float32)
+      r_stop = tf.cast(r_stop, tf.float32)
+      r_steps = tf.cast(r_steps, tf.int32)
       if center_in_cell:
         # Compute the size of each grid cell, and then start from the first cell
         # but in the center location.
-        cell_size = float(r_stop - r_start) / r_steps
+        cell_size = (r_stop - r_start) / tf.cast(r_steps, tf.float32)
         half_size = cell_size / 2.
         r_start += half_size
         r_stop -= half_size
-      values = tf.linspace(
-          tf.cast(r_start, tf.float32), tf.cast(r_stop, tf.float32),
-          tf.cast(r_steps, tf.int32))
+      values = tf.linspace(r_start, r_stop, r_steps)
       cycle_steps //= r_steps
       gather_idx = (tf.range(total_points) // cycle_steps) % r_steps
       stack_coordinates.append(tf.gather(values, gather_idx))
