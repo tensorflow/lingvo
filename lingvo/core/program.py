@@ -461,16 +461,6 @@ class TrainProgram(BaseProgram):
           summed_metrics.append(x + y)
       return summed_metrics + [self._task.train_op]
 
-  @tpu_function.on_device_training_loop
-  def TpuTrainLoop(self):
-    loop_result = tpu_training_loop.repeat(
-        self._steps_per_loop,
-        self.TpuTrainStep,
-        inputs=self._eval_metrics.initial_values,
-        name='train_loop')
-    # Final metrics are the avg across self._steps_per_loop steps.
-    return self._eval_metrics.FinalizeMetrics(loop_result)
-
   def BuildTpuSubgraph(self):
     tf.logging.info('TrainProgram BuildTpuSubGraph')
     p = self.params
@@ -486,6 +476,16 @@ class TrainProgram(BaseProgram):
     if not py_utils.IsEagerMode():
       self._task.input.CreateTpuEnqueueOps()
       self._task.input.CreateTpuEmbeddingEnqueueOps()
+
+    @tpu_function.on_device_training_loop
+    def TpuTrainLoop():
+      loop_result = tpu_training_loop.repeat(
+          self._steps_per_loop,
+          self.TpuTrainStep,
+          inputs=self._eval_metrics.initial_values,
+          name='train_loop')
+      # Final metrics are the avg across self._steps_per_loop steps.
+      return self._eval_metrics.FinalizeMetrics(loop_result)
 
     def TrainFunc():
       if py_utils.IsEagerMode():
@@ -504,7 +504,7 @@ class TrainProgram(BaseProgram):
       # TODO(laigd): investigate how to run compilation only to catch errors
       # earlier.
       self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
-          lambda: self.TpuTrainLoop(),  # pylint:disable=unnecessary-lambda
+          TpuTrainLoop,
           num_shards=self.data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
       outfeed = self._OutfeedDequeueLoop(self._task.per_example_tensors,
@@ -639,16 +639,6 @@ class EvalProgram(BaseProgram):
         summed_metrics.append(x + y)
       return summed_metrics
 
-  @tpu_function.on_device_training_loop
-  def TpuEvalLoop(self):
-    loop_result = tpu_training_loop.repeat(
-        self._steps_per_loop,
-        self.TpuEvalStep,
-        inputs=self._eval_metrics.initial_values,
-        name='eval_loop')
-    # Final metrics are the avg across self._steps_per_loop steps.
-    return self._eval_metrics.FinalizeMetrics(loop_result)
-
   def BuildTpuSubgraph(self):
     tf.logging.info(f'EvalProgram {self.params.dataset_name} BuildTpuSubGraph')
     p = self.params
@@ -660,6 +650,16 @@ class EvalProgram(BaseProgram):
       if not py_utils.IsEagerMode():
         self._task.input.CreateTpuEnqueueOps()
         self._task.input.CreateTpuEmbeddingEnqueueOps()
+
+      @tpu_function.on_device_training_loop
+      def TpuEvalLoop():
+        loop_result = tpu_training_loop.repeat(
+            self._steps_per_loop,
+            self.TpuEvalStep,
+            inputs=self._eval_metrics.initial_values,
+            name='eval_loop')
+        # Final metrics are the avg across self._steps_per_loop steps.
+        return self._eval_metrics.FinalizeMetrics(loop_result)
 
       def EvalFunc():
         if py_utils.IsEagerMode():
@@ -678,7 +678,7 @@ class EvalProgram(BaseProgram):
         # TODO(laigd): investigate how to run compilation only to catch errors
         # earlier.
         self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
-            lambda: self.TpuEvalLoop(),  # pylint:disable=unnecessary-lambda
+            TpuEvalLoop,
             num_shards=self.data_parallelism,
             device_assignment=py_utils.GetTpuDeviceAssignment())
 
