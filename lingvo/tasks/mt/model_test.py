@@ -539,6 +539,193 @@ class RNMTModelTest(test_utils.TestCase):
         self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
 
 
+class HybridModelTest(test_utils.TestCase):
+
+  def _InputParams(self):
+    p = input_generator.NmtInput.Params()
+    input_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_test.tfrecord')
+    vocab_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/wmt14_ende_wpm_32k_test.vocab')
+    p.file_pattern = 'tfrecord:' + input_file
+    p.file_random_seed = 31415
+    p.file_parallelism = 1
+    p.bucket_upper_bound = [40]
+    p.bucket_batch_limit = [8]
+    p.source_max_length = 200
+    p.target_max_length = 200
+
+    p.tokenizer.token_vocab_filepath = vocab_file
+    p.tokenizer.vocab_size = 32000
+    return p
+
+  def _EncoderParams(self):
+    p = encoder.TransformerEncoder.Params()
+    p.name = 'encoder'
+    p.random_seed = 1234
+    p.model_dim = 4
+    p.token_emb.embedding_dim = 4
+    p.token_emb.max_num_shards = 1
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim(
+        seed=p.random_seed)
+    p.position_emb.embedding_dim = 4
+    p.transformer_stack.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+    p.transformer_stack.transformer_tpl.tr_fflayer_tpl.hidden_dim = 5
+    return p
+
+  def _DecoderParams(self):
+    p = decoder.MTDecoderV1.Params()
+    p.name = 'decoder'
+    p.source_dim = 4
+    p.emb.vocab_size = 32000
+    p.emb.embedding_dim = 4
+    p.emb.max_num_shards = 1
+    p.rnn_cell_dim = 4
+    p.rnn_layers = 3
+    p.attention.hidden_dim = 2
+    p.softmax.num_classes = 32000
+    p.softmax.num_shards = 1
+    return p
+
+  def _testParams(self):
+    p = model.HybridModel.Params()
+    p.name = 'test_mdl'
+    p.input = self._InputParams()
+    p.encoder = self._EncoderParams()
+    p.decoder = self._DecoderParams()
+    p.train.learning_rate = 1.0
+    return p
+
+  def testConstruction(self):
+    with self.session():
+      p = self._testParams()
+      mdl = p.Instantiate()
+      flatten_vars = mdl.vars.Flatten()
+      print('vars flattened = ', flatten_vars)
+      # encoder: 91 (1 + 36 + 54)
+      # encoder/embedding: 1
+      # encoder/ff_layer: 6 * 6
+      # encoder/attention: 9 * 6
+      # decoder: 12 (1 + 3 + 6 + 2)
+      # decoder/embedding: 1
+      # decoder/atten: 3
+      # decoder/lstms: 2 * 3
+      # decoder/softmax: 2
+      self.assertEqual(len(flatten_vars), 91 + 12)
+
+      # Should match tf.trainable_variables().
+      self.assertEqual(len(tf.trainable_variables()), len(flatten_vars))
+
+  def testFProp(self):
+    with self.session():
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._testParams()
+      mdl = p.Instantiate()
+      mdl.FPropDefaultTheta()
+      loss = mdl.loss
+      logp = mdl.eval_metrics['log_pplx'][0]
+      self.evaluate(tf.global_variables_initializer())
+      vals = []
+      for _ in range(5):
+        vals += [self.evaluate((loss, logp))]
+      print('actual vals = %s' % np.array_repr(np.array(vals)))
+      self.assertAllClose(vals, [[226.91527, 10.373269], [243.76906, 10.373152],
+                                 [260.62787, 10.373248], [200.98814, 10.373582],
+                                 [272.297, 10.373219]])
+
+  def testFPropEvalMode(self):
+    with self.session(), self.SetEval(True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._testParams()
+      mdl = p.Instantiate()
+      mdl.FPropDefaultTheta()
+      loss = mdl.loss
+      logp = mdl.eval_metrics['log_pplx'][0]
+      self.evaluate(tf.global_variables_initializer())
+      vals = []
+      for _ in range(5):
+        vals += [self.evaluate((loss, logp))]
+      print('actual vals = %s' % np.array_repr(np.array(vals)))
+      self.assertAllClose(vals, [[226.91527, 10.373269], [243.76906, 10.373152],
+                                 [260.62787, 10.373248], [200.98814, 10.373582],
+                                 [272.297, 10.373219]])
+
+  def testBProp(self):
+    with self.session():
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._testParams()
+      mdl = p.Instantiate()
+      mdl.FPropDefaultTheta()
+      mdl.BProp()
+      loss = mdl.loss
+      logp = mdl.eval_metrics['log_pplx'][0]
+
+      self.evaluate(tf.global_variables_initializer())
+      vals = []
+      for _ in range(5):
+        vals += [self.evaluate((loss, logp, mdl.train_op))[:2]]
+      print('bprop actual vals = %s' % np.array_repr(np.array(vals)))
+      expected_vals = [[226.91527, 10.373269], [222.4018, 9.463906],
+                       [248.72293, 9.89942], [181.65323, 9.37565],
+                       [312.97754, 11.922954]]
+      self.assertAllClose(vals, expected_vals, atol=1e-3)
+
+  def testDecode(self):
+    with self.session(use_gpu=False), self.SetEval(True):
+      tf.random.set_seed(93820985)
+      p = self._testParams()
+      mdl = p.Instantiate()
+      input_batch = mdl.input_generator.GetPreprocessedInputBatch()
+      dec_out_dict = mdl.Decode(input_batch)
+      self.evaluate(tf.global_variables_initializer())
+      dec_out = self.evaluate(dec_out_dict)
+      metrics_dict = mdl.CreateDecoderMetrics()
+      key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
+      self.assertNear(0.0, metrics_dict['corpus_bleu'].value, 1.0e-5)
+      self.assertLen(key_value_pairs, 8)
+      for k, v in key_value_pairs:
+        self.assertIn(k, v)
+
+  def testBatchSplit(self):
+
+    def Run(num_splits):
+      with self.session(use_gpu=False, graph=tf.Graph()):
+        tf.random.set_seed(93820981)
+        p = self._testParams()
+        p.input.bucket_batch_limit = [
+            b * 2 / num_splits for b in p.input.bucket_batch_limit
+        ]
+        with cluster_factory.ForTestingWorker(gpus=num_splits):
+          mdl = p.Instantiate()
+          metrics = mdl.FPropDefaultTheta()[0]
+        self.evaluate(tf.global_variables_initializer())
+        return self.evaluate(metrics['loss'])
+
+    res1, res2 = Run(1), Run(2)
+    self.assertAllClose(res1[0], res2[0])
+    self.assertAllEqual(res1[1], res2[1])
+
+  def testBatchSizeInInputGenerator(self):
+    with self.session():
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._testParams()
+      cluster_params = cluster_factory.Cluster.Params()
+      cluster_params.mode = 'sync'
+      cluster_params.job = 'trainer_client'
+      cluster_params.worker.name = '/job:localhost'
+      cluster_params.worker.gpus_per_replica = 5
+      cluster_params.input.name = '/job:localhost'
+      cluster_params.input.replicas = 1
+      cluster_params.input.gpus_per_replica = 0
+      with cluster_params.Instantiate():
+        mdl = p.Instantiate()
+        mdl.FPropDefaultTheta()
+        loss = mdl.loss
+        self.evaluate(tf.global_variables_initializer())
+        _ = self.evaluate(loss)
+        self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
+
+
 class InsertionModelTest(test_utils.TestCase):
 
   def _InputParams(self):

@@ -209,6 +209,21 @@ class RNMTModel(MTBaseModel):
     return p
 
 
+class HybridModel(MTBaseModel):
+  """Hybrid NMT Model (Transformer encoder with RNMT+ decoder).
+
+  Inspired by hybrid model in The Best of Both Worlds paper:
+  https://aclweb.org/anthology/P18-1008
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.encoder = encoder.TransformerEncoder.Params()
+    p.decoder = decoder.MTDecoderV1.Params()
+    return p
+
+
 class InsertionModel(MTBaseModel):
   """Insertion-based model.
 
