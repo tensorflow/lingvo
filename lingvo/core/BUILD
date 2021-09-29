@@ -2155,7 +2155,7 @@ py_library(
     deps = [
         ":base_model",
         ":builder",
-        ":entmax",
+        ":flat_beam_search_helper",
         ":gshard_layers",
         ":layers",
         ":py_utils",

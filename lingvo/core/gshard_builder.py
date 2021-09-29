@@ -14,11 +14,13 @@
 # limitations under the License.
 # ==============================================================================
 """GShard Builder. To be used with xla_sharding + SPMD."""
+import functools
 
 from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import builder
 from lingvo.core import builder_layers
+from lingvo.core import flat_beam_search_helper
 from lingvo.core import gshard_layers
 from lingvo.core import gshard_utils
 from lingvo.core import layers
@@ -3111,6 +3113,16 @@ class UniTransformer(base_model.BaseTask):
     p.Define('multi_dconv_head_att', False,
              "Whether or not to use Primer's Mutli-Dconv-Head attention.")
     # END GOOGLE-INTERNAL
+    # TODO(krikun): add a separate params class for decoder options
+    p.Define('decoder_max_steps', 64, 'Max decoder iterations for inference.')
+    p.Define('decoder_beam_size', 4, 'Beam size for beam search decoding.')
+    # In common vocab:
+    # 0 => <pad>
+    # 1 => </s>
+    # 2 => <unk>
+    p.Define('decoder_eos_id', 1, '</s> is in model SPM')
+    # bos_id is not used in prefix decoding
+    p.Define('decoder_bos_id', 0, '<s> is in model SPM')
     return p
 
   def __init__(self, params):
@@ -3421,6 +3433,15 @@ class UniTransformer(base_model.BaseTask):
   def FilterPerExampleTensors(self, per_step):
     return per_step if self.params.debug else {}
 
+  def _BPropGenTrainOps(self, vmap):
+    """Constructs the backward graph."""
+    train_ops = super()._BPropGenTrainOps(vmap)
+    for key, (value, weight) in six.iteritems(py_utils.GetTpuSummaryTensors()):
+      tf.logging.info('TpuSummaryTensor=>EvalMetric %r %r', key,
+                      (value, weight))
+      self.AddEvalMetric(key, value, weight)
+    return train_ops
+
   def ProcessFPropResults(self, sess, global_step, metrics, per_step):
     del sess, metrics
     if not per_step:
@@ -3436,3 +3457,117 @@ class UniTransformer(base_model.BaseTask):
         # iterations_per_loop steps.
         tf.logging.info('Step = {}, {} = {}'.format(
             global_step + t - iterations_per_loop, key, per_step_values[t]))
+
+  def _top_k_fn(self):
+    return tf.math.top_k
+
+  def DecodeIds(self, theta, input_batch):
+    # beam search
+    p = self.params
+    tf.logging.info('DecodeIds theta=%r', theta)
+    tf.logging.info('DecodeIds input_batch=%r', input_batch)
+
+    with tf.name_scope('decode_ids'):
+      batch_size = int(input_batch.tgt.ids.shape[0])
+      # Use full tgt.ids as prefix
+      prefix = input_batch.tgt.ids
+      prefix_len = tf.reduce_max(input_batch.tgt.segment_pos, -1) + 1
+      prefix_max = int(input_batch.tgt.ids.shape[1])
+
+      beam_size = p.decoder_beam_size
+      assert prefix_max % beam_size == 0, (prefix_max, beam_size)
+      max_steps = (prefix_max // beam_size) + (p.decoder_max_steps)
+
+      dec_state = gshard_layers.StateLayer.InitState(
+          self.dec, shape=[batch_size, beam_size, max_steps])
+
+      flat_bs = flat_beam_search_helper.flat_beam_search(
+          batch_size,
+          beam_size,
+          max_steps,
+          dec_callback=functools.partial(self._FlatBeamSearchCallback, theta,
+                                         input_batch),
+          dec_state=dec_state,
+          eos_id=p.decoder_eos_id,
+          bos_id=p.decoder_bos_id,
+          length_norm_alpha=0.8,
+          beam_gap=None,
+          top_k_fn=self._top_k_fn(),
+          prefix=prefix,
+          prefix_len=prefix_len)
+      tf.logging.info('flat_bs: %r', flat_bs)
+
+      loop_vars, dec_state, nbest = flat_bs
+      (topk_ids, topk_lens, topk_scores) = nbest
+      del loop_vars, dec_state
+
+      bs = py_utils.NestedMap()
+      bs.topk_ids = tf.reshape(topk_ids, [batch_size * beam_size, -1])
+      bs.topk_lens = tf.reshape(topk_lens, [-1])
+      bs.topk_scores = tf.reshape(topk_scores, [-1])
+      bs.topk_hyps_shape = tf.shape(topk_scores)
+      return bs
+
+  def _FlatBeamSearchCallback(self, theta, input_batch, tgt_id, tgt_segment_id,
+                              tgt_pos, tgt_mask, dec_state, t):
+    p = self.params
+    fprop_dtype = py_utils.FPropDtype(self.params)
+
+    tgt_id = tf.cast(tgt_id, tf.int32)
+    tgt_segment_id = tf.cast(tgt_segment_id, fprop_dtype)
+    tgt_pos = tf.cast(tgt_pos, tf.int32)
+
+    y = self.dec_emb.FProp(theta.dec_emb, tgt_id)
+    if p.positional_embedding:
+      y += self.dec_pos_emb.FProp(theta.dec_pos_emb, tgt_pos)
+
+    theta_with_state = gshard_layers.StateLayer.UpdateTheta(
+        self.dec, theta.dec, dec_state, t)
+    gshard_layers.OverrideLayer.Set(
+        'dec_self_attention_bias', tf.cast((tgt_mask - 1.0) * 1e9, fprop_dtype))
+
+    # These 3 args are required by the API but not used in any way.
+    enc_output = tf.zeros_like(y)
+    src_segment_ids = tf.zeros_like(input_batch.tgt.segment_ids)
+    src_segment_pos = tf.zeros_like(input_batch.tgt.segment_pos)
+    aux_loss = tf.convert_to_tensor(0.0, py_utils.FPropDtype(p))
+    dec_inputs = py_utils.NestedMap(
+        vec=y,
+        segment_id=tgt_segment_id,
+        segment_pos=tgt_pos,
+        encoder_output=enc_output,
+        encoder_segment_id=src_segment_ids,
+        encoder_segment_pos=src_segment_pos,
+        aux_loss=aux_loss)
+    all_outputs = self.dec.FProp(theta_with_state, dec_inputs)
+    del enc_output, src_segment_ids, src_segment_pos, aux_loss
+    dec_outputs = all_outputs.vec
+    dec_outputs *= (p.builder.model_dim**-0.5)
+    dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
+    if ('model_dim_reshape_segments' in p.builder and
+        p.builder.model_dim_reshape_segments is not None):
+      dec_outputs = tf.reshape(dec_outputs,
+                               [dec_outputs.shape[0], dec_outputs.shape[1], -1])
+    # TODO(lepikhin): we only support
+    # shared_embedding_and_softmax_weights=True at the moment.
+    softmax_weights = self.vars.dec_emb.w.embedding.read_value()
+    softmax_weights = self.emb_w_split.FProp(theta.emb_w_split, softmax_weights)
+    if dec_outputs.dtype != softmax_weights.dtype:
+      # to enable fprop_dtype = tf.bfloat16
+      softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
+    logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
+    logits = self.logits_split.FProp(theta.logits_split, logits)
+
+    # TODO(krikun): make sure this is not needed for beam search
+    # if p.logits_abs_max is not None:
+    #   logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
+    #                                   p.logits_abs_max)
+
+    logits = tf.nn.log_softmax(logits)
+    logits = self.logits_split.FProp(theta.logits_split, logits)
+
+    dec_state = gshard_layers.StateLayer.UpdateState(self.dec, theta.dec,
+                                                     dec_state)
+    gshard_layers.OverrideLayer.Clear()
+
+    return logits, dec_state
