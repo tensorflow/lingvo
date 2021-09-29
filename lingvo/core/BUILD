@@ -2219,6 +2219,19 @@ pytype_library(
         ":thread_local_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
+        # Implicit sentencepiece dependency.
+    ],
+)
+
+py_library(
+    name = "gshard_decode",
+    srcs = ["gshard_decode.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":cluster_factory",
+        ":gshard_utils",
+        ":tpu_summary",
+        "//lingvo:compat",
     ],
 )
 

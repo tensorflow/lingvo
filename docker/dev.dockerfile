@@ -92,6 +92,7 @@ ARG pip_dependencies=' \
       recommonmark \
       scikit-learn \
       scipy \
+      sentencepiece \
       sphinx \
       sphinx_rtd_theme \
       sympy'

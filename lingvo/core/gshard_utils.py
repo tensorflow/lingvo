@@ -23,6 +23,7 @@ from lingvo.core import py_utils_flags
 from lingvo.core import thread_local_utils
 import numpy as np
 
+import sentencepiece as sentencepiece_processor
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.xla import xla_data_pb2
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
@@ -422,3 +423,18 @@ def GetVarSharding(var: tf.Variable) -> TensorShardingSpec:
   return TensorShardingSpec.FromFullShape(
       [int(d) for d in var.shape], spec_without_padding.split_dims_mapping,
       spec_without_padding.device_mesh)
+
+
+_spm_cache = {}
+
+
+def LoadSpm(model_file):
+  """Loads SPM from model_file. Returns SentencePieceProcessor."""
+  global _spm_cache
+  if model_file in _spm_cache:
+    return _spm_cache[model_file]
+  else:
+    spm = sentencepiece_processor.SentencePieceProcessor()
+    spm.Load(model_file)
+    _spm_cache[model_file] = spm
+    return spm
