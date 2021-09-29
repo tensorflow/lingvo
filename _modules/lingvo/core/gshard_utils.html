@@ -88,6 +88,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">thread_local_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
+<span class="kn">import</span> <span class="nn">sentencepiece</span> <span class="k">as</span> <span class="nn">sentencepiece_processor</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.xla</span> <span class="kn">import</span> <span class="n">xla_data_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
@@ -487,6 +488,21 @@
   <span class="k">return</span> <span class="n">TensorShardingSpec</span><span class="o">.</span><span class="n">FromFullShape</span><span class="p">(</span>
       <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">],</span> <span class="n">spec_without_padding</span><span class="o">.</span><span class="n">split_dims_mapping</span><span class="p">,</span>
       <span class="n">spec_without_padding</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">)</span></div>
+
+
+<span class="n">_spm_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="LoadSpm"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.LoadSpm">[docs]</a><span class="k">def</span> <span class="nf">LoadSpm</span><span class="p">(</span><span class="n">model_file</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Loads SPM from model_file. Returns SentencePieceProcessor.&quot;&quot;&quot;</span>
+  <span class="k">global</span> <span class="n">_spm_cache</span>
+  <span class="k">if</span> <span class="n">model_file</span> <span class="ow">in</span> <span class="n">_spm_cache</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">_spm_cache</span><span class="p">[</span><span class="n">model_file</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">spm</span> <span class="o">=</span> <span class="n">sentencepiece_processor</span><span class="o">.</span><span class="n">SentencePieceProcessor</span><span class="p">()</span>
+    <span class="n">spm</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+    <span class="n">_spm_cache</span><span class="p">[</span><span class="n">model_file</span><span class="p">]</span> <span class="o">=</span> <span class="n">spm</span>
+    <span class="k">return</span> <span class="n">spm</span></div>
 </pre></div>
 
            </div>

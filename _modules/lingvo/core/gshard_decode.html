@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lingvo.core.gshard_decode &mdash; Lingvo  documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>lingvo.core.gshard_decode</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for lingvo.core.gshard_decode</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;GShard decoder class.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster</span> <span class="k">as</span> <span class="n">lingvo_cluster</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf.tpu</span> <span class="kn">import</span> <span class="n">topology_pb2</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">tpu_device_assignment</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu</span> <span class="k">as</span> <span class="n">tpu_lib</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_feed</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">training_loop</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu.ops</span> <span class="kn">import</span> <span class="n">tpu_ops</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+
+
+<div class="viewcode-block" id="preload_zero"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.preload_zero">[docs]</a><span class="k">def</span> <span class="nf">preload_zero</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key_size</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the same structure as preload_unpacked but with zeros.&quot;&quot;&quot;</span>
+  <span class="n">batch</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="c1"># key: (fileno + lineno) in batch mode</span>
+      <span class="c1">#      (rpc id + timestamp) in rpc mode</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">key_size</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+      <span class="c1"># tgt_id</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+      <span class="c1"># tgt_segment_id</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+      <span class="c1"># tgt_segment_pos</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+      <span class="c1"># tgt_labels</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+      <span class="c1"># tgt_sample_temperature</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+  <span class="p">)</span>
+  <span class="k">return</span> <span class="n">batch</span></div>
+
+
+<div class="viewcode-block" id="get_zero_batch"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.get_zero_batch">[docs]</a><span class="k">def</span> <span class="nf">get_zero_batch</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">max_len</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">key_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                   <span class="n">return_tgt_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns zero batch.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    batch_size: batch size.</span>
+<span class="sd">    max_len: max length.</span>
+<span class="sd">    key_size: key size.</span>
+<span class="sd">    return_tgt_mask: if to return tgt_mask.</span>
+<span class="sd">  Returns: a tuple of tensors</span>
+<span class="sd">    key: int32 tensor [batch_size, key_size]</span>
+<span class="sd">    tgt_id: int32 tensor [batch_size, max_len]</span>
+<span class="sd">    tgt_segment_id: float32 tensor [batch_size, max_len]</span>
+<span class="sd">    tgt_segment_pos: int32 tensor [batch_size, max_len]</span>
+<span class="sd">    tgt_labels: int32 tensor [batch_size, max_len]</span>
+<span class="sd">    tgt_sample_temperature: float32 tensor [batch_size]</span>
+<span class="sd">    tgt_mask: optional float32 tensor [batch_size, max_len, max_len]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">batch</span> <span class="o">=</span> <span class="n">preload_zero</span><span class="p">(</span>
+      <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="n">max_len</span><span class="p">,</span> <span class="n">key_size</span><span class="o">=</span><span class="n">key_size</span><span class="p">)</span>
+  <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">batch</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">return_tgt_mask</span><span class="p">:</span>
+    <span class="n">tgt_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">batch</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">batch</span></div>
+
+
+<span class="c1"># mimic training_loop.repeat(), but make it repeat forever.</span>
+<div class="viewcode-block" id="infinite_repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.infinite_repeat">[docs]</a><span class="k">def</span> <span class="nf">infinite_repeat</span><span class="p">(</span><span class="n">body_fn</span><span class="p">,</span> <span class="n">infeed_queue</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builds infinite loop.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    body_fn: a Python function that builds the loop body.</span>
+<span class="sd">    infeed_queue: if not None, the infeed queue from which to append a tuple of</span>
+<span class="sd">      arguments as inputs to condition.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The final values of the loop-carried tensors.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">to_list</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span>
+
+  <span class="k">def</span> <span class="nf">body_fn_wrapper</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">to_list</span><span class="p">(</span><span class="n">body_fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">))</span>
+
+  <span class="n">outputs</span> <span class="o">=</span> <span class="n">training_loop</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+      <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># infinite loop</span>
+      <span class="n">body_fn_wrapper</span><span class="p">,</span>
+      <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+      <span class="n">infeed_queue</span><span class="o">=</span><span class="n">infeed_queue</span><span class="p">)</span>
+  <span class="n">outputs</span> <span class="o">=</span> <span class="n">to_list</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="c1"># Returns the Op rather than an empty list.</span>
+    <span class="k">return</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">op</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span></div>
+
+
+<div class="viewcode-block" id="daemon"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.daemon">[docs]</a><span class="k">def</span> <span class="nf">daemon</span><span class="p">(</span><span class="n">closure</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Runs the closure in a background thread.&quot;&quot;&quot;</span>
+  <span class="n">thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">closure</span><span class="p">)</span>
+  <span class="n">thread</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">thread</span></div>
+
+
+<div class="viewcode-block" id="GShardDecode"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode">[docs]</a><span class="k">class</span> <span class="nc">GShardDecode</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Base decoder class.</span>
+
+<span class="sd">  Implements the main computation loop.</span>
+
+<span class="sd">  Attrs:</span>
+<span class="sd">    tpu: name or addresss of the tpu node.</span>
+<span class="sd">    worker_job_name: job name of tpu.</span>
+<span class="sd">    prefix_max_len: Length of prefix.</span>
+<span class="sd">    cluster_params: cluster params.</span>
+<span class="sd">    cluster: cluster object.</span>
+<span class="sd">    graph: a tf.Graph() in which ops are build.</span>
+<span class="sd">    task: the task object.</span>
+<span class="sd">    compile_op: tpu program compile op.</span>
+<span class="sd">    init_vars_op: op to init vars randomly.</span>
+<span class="sd">    infeed_op: the tf op to infeed data.</span>
+<span class="sd">    infeed_args: a list of placeholder nodes.</span>
+<span class="sd">    outfeed_op: the tf op to poll outfeed.</span>
+<span class="sd">    outfeed: a list of outfeed tensors. used as structure reference.</span>
+<span class="sd">    decode_loop: the op to start decode loop.</span>
+<span class="sd">    saver: tf.train.Saver object.</span>
+<span class="sd">    num_batches: num of decode steps to run. If None, run infinitely.</span>
+<span class="sd">    spm: SentencePieceModel object</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">worker_job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefix_max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span> <span class="o">=</span> <span class="n">tpu</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_worker_job</span> <span class="o">=</span> <span class="n">worker_job_name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_prefix_max_len</span> <span class="o">=</span> <span class="n">prefix_max_len</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_c</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Condition</span><span class="p">()</span>  <span class="c1"># lock</span>
+    <span class="c1"># set in reset_session</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># set in configure_cluster_params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cluster_params</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># set in init_graph</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">compile_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">init_vars_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">infeed_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">infeed_args</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">outfeed_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">decode_loop</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">saver</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_saver_reshape</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="c1"># set in load_spm</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">spm</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="GShardDecode.load_spm"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.load_spm">[docs]</a>  <span class="k">def</span> <span class="nf">load_spm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spm</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">spm</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">LoadSpm</span><span class="p">(</span><span class="n">spm</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GShardDecode.reset_tpu_cluster"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.reset_tpu_cluster">[docs]</a>  <span class="k">def</span> <span class="nf">reset_tpu_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Connecting to tpu </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">container</span><span class="p">:</span>
+      <span class="c1"># Kills all sessions on this cluster.</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span>
+          <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">,</span>
+          <span class="n">containers</span><span class="o">=</span><span class="p">[</span><span class="n">container</span><span class="p">],</span>
+          <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_no_opt_sess_cfg</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="GShardDecode.get_session"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.get_session">[docs]</a>  <span class="k">def</span> <span class="nf">get_session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_c</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for session to be setup ...&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_c</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+    <span class="n">sess</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_c</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">sess</span></div>
+
+<div class="viewcode-block" id="GShardDecode._no_opt_sess_cfg"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode._no_opt_sess_cfg">[docs]</a>  <span class="k">def</span> <span class="nf">_no_opt_sess_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Disable constant folding for convenience.</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">config_pb2</span><span class="o">.</span><span class="n">ConfigProto</span><span class="p">(</span>
+        <span class="n">graph_options</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphOptions</span><span class="p">(</span>
+            <span class="n">optimizer_options</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">OptimizerOptions</span><span class="p">(</span>
+                <span class="n">opt_level</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">OptimizerOptions</span><span class="o">.</span><span class="n">L0</span><span class="p">,</span>
+                <span class="n">do_common_subexpression_elimination</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">do_function_inlining</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">do_constant_folding</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="GShardDecode.reset_session"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.reset_session">[docs]</a>  <span class="k">def</span> <span class="nf">reset_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Resets session on target worker with current graph.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_c</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+      <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># It&#39;s ok if the session is already aborted.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Exception </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">pass</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating new session ...&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_no_opt_sess_cfg</span><span class="p">())</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done creating new session.&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_c</span><span class="o">.</span><span class="n">notify</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_c</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span></div>
+
+<div class="viewcode-block" id="GShardDecode.run_init_sequence"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.run_init_sequence">[docs]</a>  <span class="k">def</span> <span class="nf">run_init_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs init sequences before decoding.&quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_vars_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">compile_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="n">sess</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset_session</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_start_heartbeat</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">run_restore</span><span class="p">():</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restoring vars from ckpt: start&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;Restoring vars exception: </span><span class="si">%r</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+          <span class="k">raise</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restoring vars from ckpt: done&#39;</span><span class="p">)</span>
+
+      <span class="n">init_thread</span> <span class="o">=</span> <span class="n">daemon</span><span class="p">(</span><span class="n">run_restore</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">run_init</span><span class="p">():</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Init vars randomly: start&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_vars_op</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;Init vars exception: </span><span class="si">%r</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+          <span class="k">raise</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Init vars randomly: done&#39;</span><span class="p">)</span>
+
+      <span class="n">init_thread</span> <span class="o">=</span> <span class="n">daemon</span><span class="p">(</span><span class="n">run_init</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Init data&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Init data done&#39;</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Compile: start&#39;</span><span class="p">)</span>
+    <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">timeout_in_ms</span><span class="o">=</span><span class="mi">86400</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compile_op</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Compile: done&#39;</span><span class="p">)</span>
+
+    <span class="n">init_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GShardDecode._configure_cluster_params"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode._configure_cluster_params">[docs]</a>  <span class="k">def</span> <span class="nf">_configure_cluster_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpu_cores</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cpu_hosts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize cluster params.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">cpu_hosts</span><span class="p">)</span>
+    <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetCluster</span><span class="p">(</span><span class="n">lingvo_cluster</span><span class="o">.</span><span class="n">_Cluster</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="n">cluster_params</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">do_eval</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># turn off dropout</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_job</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="n">tpu_cores</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="n">tpu_cores</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cpu_hosts</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_job</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">cpu_hosts</span>
+    <span class="k">return</span> <span class="n">cluster_params</span></div>
+
+<div class="viewcode-block" id="GShardDecode._start_heartbeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode._start_heartbeat">[docs]</a>  <span class="k">def</span> <span class="nf">_start_heartbeat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Start the heartbeat.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">run_heartbeat_loop</span><span class="p">():</span>
+      <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c1"># Set a timeout of 30 seconds for each heartbeat.</span>
+      <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">timeout_in_ms</span><span class="o">=</span><span class="mi">30</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
+      <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">count</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;heartbeat: request_</span><span class="si">%d</span><span class="s1"> ...&#39;</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span>
+          <span class="n">t_begin</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+          <span class="n">sess</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_session</span><span class="p">()</span>
+          <span class="n">ret</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">heartbeat</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">streamz_heartbeat_latency</span><span class="o">.</span><span class="n">Record</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_begin</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e3</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">count</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;heartbeat: done request_</span><span class="si">%d</span><span class="s1"> ... </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;Exception in heartbeat loop thread: </span><span class="si">%r</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+          <span class="k">raise</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># Once every 10 seconds.</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="n">daemon</span><span class="p">(</span><span class="n">run_heartbeat_loop</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GShardDecode._config_infeed"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode._config_infeed">[docs]</a>  <span class="k">def</span> <span class="nf">_config_infeed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">num_partitions</span><span class="p">,</span>
+                     <span class="n">device_assignment</span><span class="p">,</span>
+                     <span class="n">batch_size</span><span class="p">,</span>
+                     <span class="n">key_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                     <span class="n">return_tgt_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">use_partitioned_infeed_queue</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Config the infeed ops and args.&quot;&quot;&quot;</span>
+    <span class="n">zero_batch</span> <span class="o">=</span> <span class="n">get_zero_batch</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">max_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix_max_len</span><span class="p">,</span>
+        <span class="n">key_size</span><span class="o">=</span><span class="n">key_size</span><span class="p">,</span>
+        <span class="n">return_tgt_mask</span><span class="o">=</span><span class="n">return_tgt_mask</span><span class="p">)</span>
+
+    <span class="n">host_device</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">host_device</span><span class="p">(</span><span class="n">replica</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">)</span>
+    <span class="n">host_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">host_device</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/task:&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/device:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">input_partition_dims</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">num_partitions</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">zero_batch</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">use_partitioned_infeed_queue</span><span class="p">:</span>
+      <span class="n">infeed</span> <span class="o">=</span> <span class="n">tpu_feed</span><span class="o">.</span><span class="n">_PartitionedInfeedQueue</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+          <span class="n">number_of_tuple_elements</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">zero_batch</span><span class="p">),</span>
+          <span class="n">host_id</span><span class="o">=</span><span class="n">host_id</span><span class="p">,</span>
+          <span class="n">input_partition_dims</span><span class="o">=</span><span class="n">input_partition_dims</span><span class="p">,</span>
+          <span class="n">device_assignment</span><span class="o">=</span><span class="n">device_assignment</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">infeed</span> <span class="o">=</span> <span class="n">tpu_feed</span><span class="o">.</span><span class="n">InfeedQueue</span><span class="p">(</span><span class="n">number_of_tuple_elements</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">zero_batch</span><span class="p">))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">infeed_args</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">zero_batch</span><span class="p">:</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">as_dtype</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">infeed_args</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">use_partitioned_infeed_queue</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">infeed_op</span> <span class="o">=</span> <span class="n">infeed</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">infeed_args</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">infeed_op</span> <span class="o">=</span> <span class="n">infeed</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_args</span><span class="p">,</span> <span class="n">device_assignment</span><span class="o">=</span><span class="n">device_assignment</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">infeed</span></div>
+
+<div class="viewcode-block" id="GShardDecode._init_tpu"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode._init_tpu">[docs]</a>  <span class="k">def</span> <span class="nf">_init_tpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">,</span> <span class="n">device_order_mode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize tpu device assignment.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initializing TPU to get device assignment: start&#39;</span><span class="p">)</span>
+
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">init_tpu_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">)</span>
+      <span class="n">topology</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">init_tpu_op</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;TPU initialization failed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+      <span class="k">raise</span>
+
+    <span class="n">topology_proto</span> <span class="o">=</span> <span class="n">topology_pb2</span><span class="o">.</span><span class="n">TopologyProto</span><span class="p">()</span>
+    <span class="n">topology_proto</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">topology</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;topology.num_tasks: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">topology_proto</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;topology.num_tpu_devices_per_task: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="n">topology_proto</span><span class="o">.</span><span class="n">num_tpu_devices_per_task</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;topology.mesh_shape: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">topology_proto</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cluster_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configure_cluster_params</span><span class="p">(</span>
+        <span class="n">tpu_cores</span><span class="o">=</span><span class="p">(</span><span class="n">topology_proto</span><span class="o">.</span><span class="n">num_tpu_devices_per_task</span> <span class="o">*</span>
+                   <span class="n">topology_proto</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">),</span>
+        <span class="n">cpu_hosts</span><span class="o">=</span><span class="n">topology_proto</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">)</span>
+
+    <span class="c1"># We assume the topology and device assignment does not change</span>
+    <span class="c1"># for a single address space.</span>
+    <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">tpu_device_assignment</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
+        <span class="n">topology</span><span class="p">,</span>
+        <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span><span class="n">num_partitions</span><span class="p">,</span> <span class="n">topology</span><span class="p">),</span>
+        <span class="n">num_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">device_order_mode</span><span class="o">=</span><span class="n">device_order_mode</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initializing TPU to get device assignment: done&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GShardDecode.init_graph"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.init_graph">[docs]</a>  <span class="k">def</span> <span class="nf">init_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Builds moe decode graph.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      model_params: the hyperparams of the specified model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">batch_size</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">builder</span><span class="p">,</span> <span class="s1">&#39;device_mesh_shape&#39;</span><span class="p">)</span> <span class="ow">and</span>
+        <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">):</span>
+      <span class="n">num_partitions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">device_mesh_shape</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">num_partitions</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">num_devices</span>
+
+    <span class="n">device_order_mode</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span> <span class="ow">or</span>
+        <span class="n">tpu_device_assignment</span><span class="o">.</span><span class="n">DeviceOrderMode</span><span class="o">.</span><span class="n">AUTO</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_init_tpu</span><span class="p">(</span><span class="n">num_partitions</span><span class="p">,</span> <span class="n">device_order_mode</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_params</span>  <span class="c1"># configured by init_tpu</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+      <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">heartbeat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+      <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Instantiating model&#39;</span><span class="p">)</span>
+      <span class="n">model</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="n">xformer</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">xformer</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">init_vars_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">sharded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reshape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_saver_reshape</span><span class="p">)</span>
+
+      <span class="n">infeed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config_infeed</span><span class="p">(</span>
+          <span class="n">num_partitions</span><span class="o">=</span><span class="n">num_partitions</span><span class="p">,</span>
+          <span class="n">device_assignment</span><span class="o">=</span><span class="n">device_assignment</span><span class="p">,</span>
+          <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span> <span class="o">=</span> <span class="p">[]</span>
+
+      <span class="k">def</span> <span class="nf">decode_fn</span><span class="p">(</span><span class="o">*</span><span class="n">infeed_batch</span><span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+        <span class="c1"># Length 6 is passed when there is no tgt_mask (e.g. decoding) and</span>
+        <span class="c1"># length 7 is passed when there is a tgt_mask (e.g. fprop).</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config_outfeed</span><span class="p">(</span><span class="n">xformer</span><span class="p">,</span> <span class="n">infeed_batch</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+          <span class="n">outfeed_op</span> <span class="o">=</span> <span class="n">tpu_ops</span><span class="o">.</span><span class="n">outfeed_enqueue_tuple</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">outfeed_op</span><span class="p">]</span>
+
+      <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
+      <span class="k">def</span> <span class="nf">decode_loop_fn</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span><span class="p">:</span>
+          <span class="n">infinite_repeat</span><span class="p">(</span><span class="n">decode_fn</span><span class="p">,</span> <span class="n">infeed</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span><span class="p">,</span> <span class="n">decode_fn</span><span class="p">,</span> <span class="n">infeed_queue</span><span class="o">=</span><span class="n">infeed</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">compile_op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_loop</span> <span class="o">=</span> <span class="n">tpu_lib</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
+          <span class="n">decode_loop_fn</span><span class="p">,</span> <span class="n">num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">device_assignment</span><span class="o">=</span><span class="n">device_assignment</span><span class="p">)</span>
+
+      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">tpu_device</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outfeed_op</span> <span class="o">=</span> <span class="n">tpu_ops</span><span class="o">.</span><span class="n">outfeed_dequeue_tuple</span><span class="p">(</span>
+            <span class="n">dtypes</span><span class="o">=</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span><span class="p">)],</span>
+            <span class="n">shapes</span><span class="o">=</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span><span class="p">)])</span></div>
+
+<div class="viewcode-block" id="GShardDecode._config_outfeed"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode._config_outfeed">[docs]</a>  <span class="k">def</span> <span class="nf">_config_outfeed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xformer</span><span class="p">,</span> <span class="n">infeed_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Setup the outfeed ops.&quot;&quot;&quot;</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">infeed_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">infeed_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">7</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">infeed_batch</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">infeed_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">7</span><span class="p">:</span>
+      <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">tgt_segment_pos</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span>
+       <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">infeed_batch</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">infeed_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+      <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">tgt_segment_pos</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span>
+       <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">infeed_batch</span>
+    <span class="n">tgt_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="n">input_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span> <span class="o">*</span> <span class="n">tgt_ids</span><span class="p">)</span>  <span class="c1"># unused</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span> <span class="o">*</span> <span class="n">tgt_segment_id</span><span class="p">)</span>  <span class="c1"># unused</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span> <span class="o">*</span> <span class="n">tgt_segment_pos</span><span class="p">)</span>  <span class="c1"># unused</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tgt_ids</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tgt_segment_id</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tgt_segment_pos</span>
+    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tgt_labels</span>  <span class="c1"># only used when --fprop=true</span>
+
+    <span class="k">with</span> <span class="n">tpu_summary</span><span class="o">.</span><span class="n">context</span><span class="p">(</span><span class="n">rewrite_while_loop</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+      <span class="n">dec_ret</span> <span class="o">=</span> <span class="n">xformer</span><span class="o">.</span><span class="n">DecodeIds</span><span class="p">(</span><span class="n">xformer</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+      <span class="n">dec_metrics</span> <span class="o">=</span> <span class="n">tpu_summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
+      <span class="n">key</span> <span class="o">=</span> <span class="n">infeed_batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">return</span> <span class="p">[</span>
+          <span class="n">key</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">dec_ret</span><span class="o">.</span><span class="n">topk_ids</span><span class="p">,</span> <span class="n">dec_ret</span><span class="o">.</span><span class="n">topk_lens</span><span class="p">,</span>
+          <span class="n">dec_ret</span><span class="o">.</span><span class="n">topk_scores</span><span class="p">,</span> <span class="n">dec_metrics</span>
+      <span class="p">]</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
