@@ -948,7 +948,8 @@
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot parse p.file_pattern into a datasource.&#39;</span><span class="p">)</span>
 
   <span class="n">cluster_cur</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
-  <span class="k">if</span> <span class="n">cluster_cur</span><span class="o">.</span><span class="n">tf_data_service_address</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cluster_cur</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">cluster_cur</span><span class="o">.</span><span class="n">tf_data_service_address</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cluster_cur</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">use_tf_data_service</span><span class="p">):</span>
     <span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="s1">&#39;bucket_upper_bound&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
       <span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span>
@@ -1025,6 +1026,11 @@
         <span class="s1">&#39;undesired behavior, but enables backwards compatibility with previous &#39;</span>
         <span class="s1">&#39;work. Only classes that have _DataSourceFromFilePattern take a &#39;</span>
         <span class="s1">&#39;input_source_id_offset argument can handle this flag being False.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_tf_data_service&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Whether TF Data Service is used when it is available. This has to be &#39;</span>
+        <span class="s1">&#39;True to use TF Data Service even if tf_data_service_replicas is set. &#39;</span>
+        <span class="s1">&#39;This allows disabling TF Data Service for a specific dataset.&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
