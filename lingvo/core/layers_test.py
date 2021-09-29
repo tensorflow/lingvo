@@ -6229,28 +6229,5 @@ class StatisticalPoolingLayerTest(test_utils.TestCase):
       self.assertEqual(results2.shape, (features.shape[0], features.shape[2]))
 
 
-class MaskedLmDataAugmenterTest(test_utils.TestCase):
-
-  def testFProp(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      np.random.seed(12345)
-      tf.random.set_seed(12345)
-      aug_p = layers.MaskedLmDataAugmenter.Params()
-      aug_p.vocab_size = 128
-      aug_p.mask_token_id = 0
-      aug_p.name = 'lm_aug'
-      aug_layer = aug_p.Instantiate()
-
-      input_ids = tf.random.uniform([2, 100], 0, 128, tf.int32)
-      paddings = tf.zeros([2, 100])
-
-      auged_ids, mask_pos = aug_layer.FPropDefaultTheta(input_ids, paddings)
-      v0, v1, v2 = sess.run([input_ids, auged_ids, mask_pos])
-      self.assertAllEqual(v0 * (1.0 - v2), v1 * (1.0 - v2))
-      tf.logging.info('orig_ids: %s', np.array_repr(v0))
-      tf.logging.info('auged_ids: %s', np.array_repr(v1))
-      tf.logging.info('masked_pos: %s', np.array_repr(v2))
-
-
 if __name__ == '__main__':
   test_utils.main()
