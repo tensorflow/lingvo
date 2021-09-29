@@ -79,11 +79,13 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;GShard Builder. To be used with xla_sharding + SPMD.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">flat_beam_search_helper</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
@@ -3176,6 +3178,16 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s2">&quot;Whether or not to use Primer&#39;s Mutli-Dconv-Head attention.&quot;</span><span class="p">)</span>
     <span class="c1"># END GOOGLE-INTERNAL</span>
+    <span class="c1"># TODO(krikun): add a separate params class for decoder options</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_max_steps&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="s1">&#39;Max decoder iterations for inference.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_beam_size&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;Beam size for beam search decoding.&#39;</span><span class="p">)</span>
+    <span class="c1"># In common vocab:</span>
+    <span class="c1"># 0 =&gt; &lt;pad&gt;</span>
+    <span class="c1"># 1 =&gt; &lt;/s&gt;</span>
+    <span class="c1"># 2 =&gt; &lt;unk&gt;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_eos_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&lt;/s&gt; is in model SPM&#39;</span><span class="p">)</span>
+    <span class="c1"># bos_id is not used in prefix decoding</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_bos_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&lt;s&gt; is in model SPM&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3486,6 +3498,15 @@
 <div class="viewcode-block" id="UniTransformer.FilterPerExampleTensors"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer.FilterPerExampleTensors">[docs]</a>  <span class="k">def</span> <span class="nf">FilterPerExampleTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">per_step</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">debug</span> <span class="k">else</span> <span class="p">{}</span></div>
 
+<div class="viewcode-block" id="UniTransformer._BPropGenTrainOps"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._BPropGenTrainOps">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropGenTrainOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the backward graph.&quot;&quot;&quot;</span>
+    <span class="n">train_ops</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_BPropGenTrainOps</span><span class="p">(</span><span class="n">vmap</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuSummaryTensors</span><span class="p">()):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TpuSummaryTensor=&gt;EvalMetric </span><span class="si">%r</span><span class="s1"> </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
+                      <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">train_ops</span></div>
+
 <div class="viewcode-block" id="UniTransformer.ProcessFPropResults"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer.ProcessFPropResults">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFPropResults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_step</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">sess</span><span class="p">,</span> <span class="n">metrics</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">per_step</span><span class="p">:</span>
@@ -3500,7 +3521,121 @@
         <span class="c1"># Each per_step_values is an aggregation of outfeed tensor over</span>
         <span class="c1"># iterations_per_loop steps.</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Step = </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1"> = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">global_step</span> <span class="o">+</span> <span class="n">t</span> <span class="o">-</span> <span class="n">iterations_per_loop</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">per_step_values</span><span class="p">[</span><span class="n">t</span><span class="p">]))</span></div></div>
+            <span class="n">global_step</span> <span class="o">+</span> <span class="n">t</span> <span class="o">-</span> <span class="n">iterations_per_loop</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">per_step_values</span><span class="p">[</span><span class="n">t</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="UniTransformer._top_k_fn"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._top_k_fn">[docs]</a>  <span class="k">def</span> <span class="nf">_top_k_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span></div>
+
+<div class="viewcode-block" id="UniTransformer.DecodeIds"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer.DecodeIds">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="c1"># beam search</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeIds theta=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeIds input_batch=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;decode_ids&#39;</span><span class="p">):</span>
+      <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="c1"># Use full tgt.ids as prefix</span>
+      <span class="n">prefix</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span>
+      <span class="n">prefix_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">prefix_max</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+      <span class="n">beam_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder_beam_size</span>
+      <span class="k">assert</span> <span class="n">prefix_max</span> <span class="o">%</span> <span class="n">beam_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="n">prefix_max</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">)</span>
+      <span class="n">max_steps</span> <span class="o">=</span> <span class="p">(</span><span class="n">prefix_max</span> <span class="o">//</span> <span class="n">beam_size</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">decoder_max_steps</span><span class="p">)</span>
+
+      <span class="n">dec_state</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">StateLayer</span><span class="o">.</span><span class="n">InitState</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">beam_size</span><span class="p">,</span> <span class="n">max_steps</span><span class="p">])</span>
+
+      <span class="n">flat_bs</span> <span class="o">=</span> <span class="n">flat_beam_search_helper</span><span class="o">.</span><span class="n">flat_beam_search</span><span class="p">(</span>
+          <span class="n">batch_size</span><span class="p">,</span>
+          <span class="n">beam_size</span><span class="p">,</span>
+          <span class="n">max_steps</span><span class="p">,</span>
+          <span class="n">dec_callback</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_FlatBeamSearchCallback</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span>
+                                         <span class="n">input_batch</span><span class="p">),</span>
+          <span class="n">dec_state</span><span class="o">=</span><span class="n">dec_state</span><span class="p">,</span>
+          <span class="n">eos_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">decoder_eos_id</span><span class="p">,</span>
+          <span class="n">bos_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">decoder_bos_id</span><span class="p">,</span>
+          <span class="n">length_norm_alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+          <span class="n">beam_gap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">top_k_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_top_k_fn</span><span class="p">(),</span>
+          <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+          <span class="n">prefix_len</span><span class="o">=</span><span class="n">prefix_len</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;flat_bs: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_bs</span><span class="p">)</span>
+
+      <span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">=</span> <span class="n">flat_bs</span>
+      <span class="p">(</span><span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">,</span> <span class="n">topk_scores</span><span class="p">)</span> <span class="o">=</span> <span class="n">nbest</span>
+      <span class="k">del</span> <span class="n">loop_vars</span><span class="p">,</span> <span class="n">dec_state</span>
+
+      <span class="n">bs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">bs</span><span class="o">.</span><span class="n">topk_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">beam_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">bs</span><span class="o">.</span><span class="n">topk_lens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_lens</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">bs</span><span class="o">.</span><span class="n">topk_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">bs</span><span class="o">.</span><span class="n">topk_hyps_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">bs</span></div>
+
+<div class="viewcode-block" id="UniTransformer._FlatBeamSearchCallback"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._FlatBeamSearchCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_FlatBeamSearchCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span>
+                              <span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">tgt_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_id</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">tgt_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">tgt_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_pos</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_emb</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
+      <span class="n">y</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_pos_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_pos_emb</span><span class="p">,</span> <span class="n">tgt_pos</span><span class="p">)</span>
+
+    <span class="n">theta_with_state</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">StateLayer</span><span class="o">.</span><span class="n">UpdateTheta</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="n">gshard_layers</span><span class="o">.</span><span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">((</span><span class="n">tgt_mask</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e9</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">))</span>
+
+    <span class="c1"># These 3 args are required by the API but not used in any way.</span>
+    <span class="n">enc_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">src_segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">)</span>
+    <span class="n">src_segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span><span class="p">)</span>
+    <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">dec_inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">vec</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+        <span class="n">segment_id</span><span class="o">=</span><span class="n">tgt_segment_id</span><span class="p">,</span>
+        <span class="n">segment_pos</span><span class="o">=</span><span class="n">tgt_pos</span><span class="p">,</span>
+        <span class="n">encoder_output</span><span class="o">=</span><span class="n">enc_output</span><span class="p">,</span>
+        <span class="n">encoder_segment_id</span><span class="o">=</span><span class="n">src_segment_ids</span><span class="p">,</span>
+        <span class="n">encoder_segment_pos</span><span class="o">=</span><span class="n">src_segment_pos</span><span class="p">,</span>
+        <span class="n">aux_loss</span><span class="o">=</span><span class="n">aux_loss</span><span class="p">)</span>
+    <span class="n">all_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta_with_state</span><span class="p">,</span> <span class="n">dec_inputs</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">enc_output</span><span class="p">,</span> <span class="n">src_segment_ids</span><span class="p">,</span> <span class="n">src_segment_pos</span><span class="p">,</span> <span class="n">aux_loss</span>
+    <span class="n">dec_outputs</span> <span class="o">=</span> <span class="n">all_outputs</span><span class="o">.</span><span class="n">vec</span>
+    <span class="n">dec_outputs</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">dec_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_out_split</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_out_split</span><span class="p">,</span> <span class="n">dec_outputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;model_dim_reshape_segments&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">builder</span> <span class="ow">and</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+      <span class="n">dec_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dec_outputs</span><span class="p">,</span>
+                               <span class="p">[</span><span class="n">dec_outputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dec_outputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="c1"># TODO(lepikhin): we only support</span>
+    <span class="c1"># shared_embedding_and_softmax_weights=True at the moment.</span>
+    <span class="n">softmax_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">dec_emb</span><span class="o">.</span><span class="n">w</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
+    <span class="n">softmax_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb_w_split</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">,</span> <span class="n">softmax_weights</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dec_outputs</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">softmax_weights</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+      <span class="c1"># to enable fprop_dtype = tf.bfloat16</span>
+      <span class="n">softmax_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">softmax_weights</span><span class="p">,</span> <span class="n">dec_outputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLM,VM-&gt;BLV&#39;</span><span class="p">,</span> <span class="n">dec_outputs</span><span class="p">,</span> <span class="n">softmax_weights</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logits_split</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">logits_split</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
+
+    <span class="c1"># TODO(krikun): make sure this is not needed for beam search</span>
+    <span class="c1"># if p.logits_abs_max is not None:</span>
+    <span class="c1">#   logits = py_utils.clip_by_value(logits, -p.logits_abs_max,</span>
+    <span class="c1">#                                   p.logits_abs_max)</span>
+
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logits_split</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">logits_split</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
+
+    <span class="n">dec_state</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">StateLayer</span><span class="o">.</span><span class="n">UpdateState</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span>
+                                                     <span class="n">dec_state</span><span class="p">)</span>
+    <span class="n">gshard_layers</span><span class="o">.</span><span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Clear</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">logits</span><span class="p">,</span> <span class="n">dec_state</span></div></div>
 </pre></div>
 
            </div>
