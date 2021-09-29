@@ -15,11 +15,14 @@ py_library(
     srcs = ["input_generator.py"],
     srcs_version = "PY3",
     deps = [
+        ":tokenizer",
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
+        "//lingvo/core:summary_utils",
         "//lingvo/core:tokenizers",
+        "//lingvo/core/ops",
     ],
 )
 
@@ -100,5 +103,17 @@ py_test(
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         "//lingvo/core:tokenizers",
+    ],
+)
+
+py_library(
+    name = "tokenizer",
+    srcs = ["tokenizer.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:tokenizers",
+        # Implicit tensorflow_text dependency.
     ],
 )

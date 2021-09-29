@@ -5921,3 +5921,136 @@ class StatisticalPoolingLayer(base_layer.BaseLayer):
       return tf.concat([mean, stddev], axis=1)
     else:
       return mean
+
+
+class MaskedLmDataAugmenter(base_layer.BaseLayer):
+  """Performs data augmentation as according to the BERT paper.
+
+  https://arxiv.org/pdf/1810.04805.pdf
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('vocab_size', 0, 'The total vocabulary size')
+    p.Define(
+        'mask_prob', 0.12,
+        'Probability at which a token is replaced by the special '
+        ' <MASK> token.')
+    p.Define('random_prob', 0.015,
+             'Probability at which a token is replaced by a random token.')
+    p.Define('same_prob', 0.015,
+             'Probability at which a token is replaced by itself.')
+    p.Define('mask_token_id', -1, 'Id of the special <MASK> token.')
+    p.Define('random_avoid_ids', [],
+             'Ids to avoid when replacing with random token.')
+    p.Define(
+        'mlm_duration', 0, 'Duration for MLM task. mlm_task_weight '
+        'decreased linearly to 0 at step mlm_duration. No decay when 0.')
+    p.Define(
+        'min_replace_prob_ratio', 0, 'The total_replacement_prob '
+        'will decrease to total_replacement_prob * min_replace_prob_ratio '
+        'at step mlm_duration.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.SetVariableFree()
+
+  def FProp(self, theta, inputs, paddings=None):
+    """Applies data augmentation by randomly mask/replace tokens in inputs.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      inputs: An int32 tensor of shape [batch, length].
+      paddings: A 0/1 tensor of shape [batch, length].
+
+    Returns:
+      A pair <new_inputs, mask>:
+      new_inputs: An int32 tensor of shape [batch, length]. The new token ids
+        after data augmentation.
+      mask: A 0/1 tensor. A "1" indicates the corresponding token at that
+        position had undergone the data augmentation process.
+    """
+    p = self.params
+    assert p.vocab_size > 0
+    assert p.mask_token_id >= 0
+    assert p.mask_prob + p.random_prob + p.same_prob < 1.0
+    if p.mask_prob + p.random_prob == 0:
+      assert p.same_prob > 0
+
+    def _UniformSample(sample_p):
+      return tf.cast(
+          tf.less(
+              tf.random.uniform(tf.shape(inputs), 0, 1.0, seed=p.random_seed),
+              sample_p), py_utils.FPropDtype(p))
+
+    if p.mlm_duration > 0:
+      global_step = tf.minimum(
+          tf.cast(py_utils.GetGlobalStep(), tf.float32), p.mlm_duration)
+      replace_prob_ratio = 1.0 - 1.0 * global_step / p.mlm_duration
+      replace_prob_ratio = tf.maximum(replace_prob_ratio,
+                                      p.min_replace_prob_ratio)
+    else:
+      replace_prob_ratio = 1.0
+    total_replacement_prob = p.mask_prob + p.random_prob + p.same_prob
+    # valid_tokens == 1.0 if the corresponding position is a valid token.
+    valid_tokens = tf.cast(1.0 - paddings, py_utils.FPropDtype(p))
+    # replacement == 1.0 if the corresponding token is to be replaced by
+    # something else (mask, random, self).
+    replacement_pos = valid_tokens * _UniformSample(
+        total_replacement_prob * replace_prob_ratio)
+
+    # First sample the token positions to be masked out.
+    remaining_prob = total_replacement_prob
+    remaining_pos = replacement_pos
+    mask_prob = p.mask_prob / remaining_prob
+    # mask_pos == 1.0 if the corresponding token should be masked.
+    mask_pos = remaining_pos * _UniformSample(mask_prob)
+
+    # Next sample the token positions to be replaced by random tokens.
+    remaining_prob -= p.mask_prob
+    remaining_pos -= mask_pos
+    random_prob = p.random_prob / remaining_prob
+    random_pos = remaining_pos * _UniformSample(random_prob)
+
+    # Lastly, token positions to be replaced by self.
+    self_pos = remaining_pos - random_pos
+
+    if p.random_avoid_ids:
+      categorical_probs = (
+          tf.ones([1, p.vocab_size]) / (p.vocab_size - len(p.random_avoid_ids)))
+      for x in p.random_avoid_ids:
+        # Set categorical_probs[0, x] = 0.
+        categorical_probs = tf.minimum(
+            categorical_probs,
+            tf.one_hot([x], p.vocab_size, on_value=1e-24, off_value=1.0))
+      random_tokens = tf.reshape(
+          tf.random.categorical(
+              tf.math.log(categorical_probs),
+              tf.size(inputs),
+              seed=p.random_seed,
+              dtype=inputs.dtype), tf.shape(inputs))
+    else:
+      random_tokens = tf.random.uniform(
+          tf.shape(inputs),
+          0,
+          p.vocab_size,
+          seed=p.random_seed,
+          dtype=inputs.dtype)
+    mask_tokens = tf.fill(tf.shape(inputs), p.mask_token_id)
+
+    no_replacement = tf.cast(1.0 - replacement_pos, dtype=inputs.dtype)
+    replace_with_mask = tf.cast(mask_pos, dtype=inputs.dtype)
+    replace_with_random = tf.cast(random_pos, dtype=inputs.dtype)
+    replace_with_self = tf.cast(self_pos, dtype=inputs.dtype)
+    sum_all = (
+        no_replacement + replace_with_mask + replace_with_random +
+        replace_with_self)
+    augmented = py_utils.with_dependencies(
+        [py_utils.assert_equal(sum_all, tf.fill(tf.shape(inputs), 1))],
+        inputs * no_replacement + mask_tokens * replace_with_mask +
+        random_tokens * replace_with_random + inputs * replace_with_self)
+
+    return augmented, replacement_pos
