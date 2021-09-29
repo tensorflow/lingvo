@@ -723,6 +723,63 @@ class TFDatasetMixer(TFDatasetSource):
                                                      p.random_seed or None)
 
 
+def GetTFDataServiceDataSet(job_name,
+                            tf_data_service_address,
+                            bucket_upper_bound,
+                            num_hosts,
+                            host_id,
+                            tfds_processing_mode='parallel_epochs',
+                            dataset=None,
+                            dataset_id=None,
+                            element_spec=None):
+  """Register and get a dataset from TF Data Service.
+
+  Must provide an already registered dataset_id, or a dataset to be registered.
+
+  Args:
+    job_name: name of the TF data service job (uuid str).
+    tf_data_service_address: tf_data_service_address (str).
+    bucket_upper_bound: The bucket upper bounds of datasource. (tensor/array)
+    num_hosts: Number of hosts (e.g. depends on use_per_host_infeed). (int)
+    host_id: The datasource's host_id. (int)
+    tfds_processing_mode: mode for TF data service. Optional.
+    dataset: a TF data Dataset to be registered. Optional.
+    dataset_id: the ID of an already registered TF data Dataset. Optional.
+    element_spec: the element_spec of the TF data Dataset. Optional.
+
+  Returns:
+    A TF data Dataset registered with the TF Data Service, its dataset_id, and
+    element_spec.
+
+  Raises:
+    ValueError if both dataet and dataset_id are not set.
+  """
+  if dataset_id is None:
+    if dataset is None:
+      raise ValueError('Either a dataset or dataset_id must be provided.')
+    tf.logging.info('Dataset debug before register_dataset: %r',
+                    dataset.__debug_string__())
+    dataset_id = tf.data.experimental.service.register_dataset(
+        service=tf_data_service_address, dataset=dataset)
+    element_spec = dataset.element_spec
+  if bucket_upper_bound and num_hosts > 1:
+    # Batch is bucketed by sequence length. Use round-robin order.
+    consumer_index = host_id
+    num_consumers = num_hosts
+  else:
+    consumer_index = None
+    num_consumers = None
+  dataset = tf.data.experimental.service.from_dataset_id(
+      processing_mode=tfds_processing_mode,
+      service=tf_data_service_address,
+      dataset_id=dataset_id,
+      element_spec=element_spec,
+      job_name=job_name,
+      consumer_index=consumer_index,
+      num_consumers=num_consumers)
+  return dataset, dataset_id, element_spec
+
+
 class TFDataServiceSource(TFDatasetTransform):
   """Obtains input using remote tf.data service, potentially in batches."""
 
@@ -731,6 +788,9 @@ class TFDataServiceSource(TFDatasetTransform):
     p = super().Params()
     p.Define('bucket_upper_bound', [], 'Bucketing scheme. Required to be'
              'a sorted list of integers.')
+    p.Define(
+        'processing_mode', 'parallel_epochs', 'Processing mode for TF data'
+        ' service, can be parallel_epochs or distributed_epoch.')
     return p
 
   def __init__(self, params):
@@ -770,27 +830,21 @@ class TFDataServiceSource(TFDatasetTransform):
                 window_size=self.num_hosts))
         dataset = dataset.flat_map(lambda x: x)
 
+      tf.logging.info('Dataset debug before register_dataset: %r',
+                      dataset.__debug_string__())
       self._dataset_id = tf.data.experimental.service.register_dataset(
           service=self.cluster.tf_data_service_address, dataset=dataset)
       self._element_spec = dataset.element_spec
 
-    if p.bucket_upper_bound and self.num_hosts > 1:
-      # Batch is bucketed by sequence length. Use round-robin order.
-      consumer_index = self.host_id
-      num_consumers = self.num_hosts
-    else:
-      consumer_index = None
-      num_consumers = None
-
-    dataset = tf.data.experimental.service.from_dataset_id(
-        processing_mode='parallel_epochs',
-        service=self.cluster.tf_data_service_address,
+    dataset, _, _ = GetTFDataServiceDataSet(
+        self._job_name,
+        self.cluster.tf_data_service_address,
+        p.bucket_upper_bound,
+        self.num_hosts,
+        self.host_id,
+        tfds_processing_mode=p.processing_mode,
         dataset_id=self._dataset_id,
-        element_spec=self._element_spec,
-        job_name=self._job_name,
-        consumer_index=consumer_index,
-        num_consumers=num_consumers)
-
+        element_spec=self._element_spec)
     return dataset
 
   def Reset(self, sess=None):
