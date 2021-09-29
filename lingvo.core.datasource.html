@@ -454,6 +454,35 @@ on the datasource this may be a single tensor or a batch of tensors.</p>
 
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.datasource.GetTFDataServiceDataSet">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">GetTFDataServiceDataSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf_data_service_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bucket_upper_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hosts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tfds_processing_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parallel_epochs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_spec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#GetTFDataServiceDataSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.GetTFDataServiceDataSet" title="Permalink to this definition"></a></dt>
+<dd><p>Register and get a dataset from TF Data Service.</p>
+<p>Must provide an already registered dataset_id, or a dataset to be registered.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_name</strong> – name of the TF data service job (uuid str).</p></li>
+<li><p><strong>tf_data_service_address</strong> – tf_data_service_address (str).</p></li>
+<li><p><strong>bucket_upper_bound</strong> – The bucket upper bounds of datasource. (tensor/array)</p></li>
+<li><p><strong>num_hosts</strong> – Number of hosts (e.g. depends on use_per_host_infeed). (int)</p></li>
+<li><p><strong>host_id</strong> – The datasource’s host_id. (int)</p></li>
+<li><p><strong>tfds_processing_mode</strong> – mode for TF data service. Optional.</p></li>
+<li><p><strong>dataset</strong> – a TF data Dataset to be registered. Optional.</p></li>
+<li><p><strong>dataset_id</strong> – the ID of an already registered TF data Dataset. Optional.</p></li>
+<li><p><strong>element_spec</strong> – the element_spec of the TF data Dataset. Optional.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A TF data Dataset registered with the TF Data Service, its dataset_id, and
+element_spec.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError if both dataet and dataset_id are not set.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.datasource.TFDataServiceSource">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDataServiceSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDataServiceSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDataServiceSource" title="Permalink to this definition"></a></dt>

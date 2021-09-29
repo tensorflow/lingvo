@@ -788,6 +788,63 @@
                                                      <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="GetTFDataServiceDataSet"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.GetTFDataServiceDataSet">[docs]</a><span class="k">def</span> <span class="nf">GetTFDataServiceDataSet</span><span class="p">(</span><span class="n">job_name</span><span class="p">,</span>
+                            <span class="n">tf_data_service_address</span><span class="p">,</span>
+                            <span class="n">bucket_upper_bound</span><span class="p">,</span>
+                            <span class="n">num_hosts</span><span class="p">,</span>
+                            <span class="n">host_id</span><span class="p">,</span>
+                            <span class="n">tfds_processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
+                            <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">element_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Register and get a dataset from TF Data Service.</span>
+
+<span class="sd">  Must provide an already registered dataset_id, or a dataset to be registered.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    job_name: name of the TF data service job (uuid str).</span>
+<span class="sd">    tf_data_service_address: tf_data_service_address (str).</span>
+<span class="sd">    bucket_upper_bound: The bucket upper bounds of datasource. (tensor/array)</span>
+<span class="sd">    num_hosts: Number of hosts (e.g. depends on use_per_host_infeed). (int)</span>
+<span class="sd">    host_id: The datasource&#39;s host_id. (int)</span>
+<span class="sd">    tfds_processing_mode: mode for TF data service. Optional.</span>
+<span class="sd">    dataset: a TF data Dataset to be registered. Optional.</span>
+<span class="sd">    dataset_id: the ID of an already registered TF data Dataset. Optional.</span>
+<span class="sd">    element_spec: the element_spec of the TF data Dataset. Optional.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A TF data Dataset registered with the TF Data Service, its dataset_id, and</span>
+<span class="sd">    element_spec.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError if both dataet and dataset_id are not set.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">dataset_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Either a dataset or dataset_id must be provided.&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Dataset debug before register_dataset: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="n">dataset</span><span class="o">.</span><span class="n">__debug_string__</span><span class="p">())</span>
+    <span class="n">dataset_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">register_dataset</span><span class="p">(</span>
+        <span class="n">service</span><span class="o">=</span><span class="n">tf_data_service_address</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">element_spec</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">element_spec</span>
+  <span class="k">if</span> <span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="c1"># Batch is bucketed by sequence length. Use round-robin order.</span>
+    <span class="n">consumer_index</span> <span class="o">=</span> <span class="n">host_id</span>
+    <span class="n">num_consumers</span> <span class="o">=</span> <span class="n">num_hosts</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">consumer_index</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">num_consumers</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">from_dataset_id</span><span class="p">(</span>
+      <span class="n">processing_mode</span><span class="o">=</span><span class="n">tfds_processing_mode</span><span class="p">,</span>
+      <span class="n">service</span><span class="o">=</span><span class="n">tf_data_service_address</span><span class="p">,</span>
+      <span class="n">dataset_id</span><span class="o">=</span><span class="n">dataset_id</span><span class="p">,</span>
+      <span class="n">element_spec</span><span class="o">=</span><span class="n">element_spec</span><span class="p">,</span>
+      <span class="n">job_name</span><span class="o">=</span><span class="n">job_name</span><span class="p">,</span>
+      <span class="n">consumer_index</span><span class="o">=</span><span class="n">consumer_index</span><span class="p">,</span>
+      <span class="n">num_consumers</span><span class="o">=</span><span class="n">num_consumers</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">dataset_id</span><span class="p">,</span> <span class="n">element_spec</span></div>
+
+
 <div class="viewcode-block" id="TFDataServiceSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource">[docs]</a><span class="k">class</span> <span class="nc">TFDataServiceSource</span><span class="p">(</span><span class="n">TFDatasetTransform</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Obtains input using remote tf.data service, potentially in batches.&quot;&quot;&quot;</span>
 
@@ -796,6 +853,9 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Bucketing scheme. Required to be&#39;</span>
              <span class="s1">&#39;a sorted list of integers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;processing_mode&#39;</span><span class="p">,</span> <span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span> <span class="s1">&#39;Processing mode for TF data&#39;</span>
+        <span class="s1">&#39; service, can be parallel_epochs or distributed_epoch.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -835,27 +895,21 @@
                 <span class="n">window_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">))</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span>
 
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Dataset debug before register_dataset: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">dataset</span><span class="o">.</span><span class="n">__debug_string__</span><span class="p">())</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">register_dataset</span><span class="p">(</span>
           <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_element_spec</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">element_spec</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="c1"># Batch is bucketed by sequence length. Use round-robin order.</span>
-      <span class="n">consumer_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_id</span>
-      <span class="n">num_consumers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">consumer_index</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="n">num_consumers</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">from_dataset_id</span><span class="p">(</span>
-        <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
-        <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span>
+    <span class="n">dataset</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">GetTFDataServiceDataSet</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">,</span>
+        <span class="n">tfds_processing_mode</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">processing_mode</span><span class="p">,</span>
         <span class="n">dataset_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dataset_id</span><span class="p">,</span>
-        <span class="n">element_spec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_element_spec</span><span class="p">,</span>
-        <span class="n">job_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span>
-        <span class="n">consumer_index</span><span class="o">=</span><span class="n">consumer_index</span><span class="p">,</span>
-        <span class="n">num_consumers</span><span class="o">=</span><span class="n">num_consumers</span><span class="p">)</span>
-
+        <span class="n">element_spec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_element_spec</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">dataset</span></div>
 
 <div class="viewcode-block" id="TFDataServiceSource.Reset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
