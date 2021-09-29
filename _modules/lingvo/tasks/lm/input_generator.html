@@ -83,8 +83,11 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">generic_input</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tokenizers</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.lm</span> <span class="kn">import</span> <span class="n">tokenizer</span> <span class="k">as</span> <span class="n">lm_tokenizer</span>
 
 
 <div class="viewcode-block" id="LmInput"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput">[docs]</a><span class="k">class</span> <span class="nc">LmInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
@@ -161,6 +164,267 @@
       <span class="n">SetShape</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
       <span class="n">ret</span><span class="o">.</span><span class="n">word_count</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">bs</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
+<div class="viewcode-block" id="PackedTextInputGenerator"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">PackedTextInputGenerator</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Input generator reading tf.Examples of texts with packing.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PackedTextInputGenerator.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enable_packing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to pack multiple documents on the same row.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shuffle&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to randomly shuffle.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;prepacking_batch_size&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">14</span><span class="p">,</span>
+        <span class="s1">&#39;Only used when p.enable_packing is set. The batch size before we pack. &#39;</span>
+        <span class="s1">&#39;Note that this does not affect post-packing batch size but may &#39;</span>
+        <span class="s1">&#39;have a minor effect on how tight the packed output is.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;dataset_type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A dataset class constructor such as tf.data.TFRecordDataset. &#39;</span>
+        <span class="s1">&#39;The class constructor must take a list of filenames and produce an &#39;</span>
+        <span class="s1">&#39;object that extends tf.data.Dataset.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">lm_tokenizer</span><span class="o">.</span><span class="n">BertTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="mi">512</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">shuffle</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PackedTextInputGenerator._ProcessSingleExample"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._ProcessSingleExample">[docs]</a>  <span class="k">def</span> <span class="nf">_ProcessSingleExample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parses a serialized tf.Example record.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">del</span> <span class="n">key</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span>
+        <span class="n">serialized</span><span class="o">=</span><span class="n">record</span><span class="p">,</span>
+        <span class="n">features</span><span class="o">=</span><span class="p">{</span>
+            <span class="s1">&#39;text&#39;</span><span class="p">:</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">default_value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">),</span>
+        <span class="p">})</span>
+    <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]],</span> <span class="n">external_max_length</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">ret</span><span class="o">.</span><span class="n">paddings</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="PackedTextInputGenerator._DatasetOfExamples"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._DatasetOfExamples">[docs]</a>  <span class="k">def</span> <span class="nf">_DatasetOfExamples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns tf.data.Dataset of tf.Examples from p.file_pattern.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">]):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Sampling with weights not support for eval data.&#39;</span><span class="p">)</span>
+      <span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+
+    <span class="n">file_patterns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ShardedFilePatternToGlob</span><span class="p">,</span> <span class="n">file_patterns</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Mixing files </span><span class="si">{</span><span class="n">file_patterns</span><span class="si">}</span><span class="s1"> with weights </span><span class="si">{</span><span class="n">weights</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Load</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">):</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span>
+          <span class="n">file_pattern</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">shuffle</span><span class="p">)</span><span class="o">.</span><span class="n">interleave</span><span class="p">(</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span>
+              <span class="n">cycle_length</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AUTOTUNE</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shuffle</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+              <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shuffle</span><span class="p">:</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">)</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">dataset</span>
+
+    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">_Load</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">sample_from_datasets</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">_Load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">],</span> <span class="n">weights</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PackedTextInputGenerator._GetPaddingValues"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._GetPaddingValues">[docs]</a>  <span class="k">def</span> <span class="nf">_GetPaddingValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">add_segment_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">add_segment_fields</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="mf">0.0</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="PackedTextInputGenerator._InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns tf.data.Dataset of unbatched NestedMap.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetOfExamples</span><span class="p">()</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessSingleExample</span><span class="p">,</span>
+        <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span><span class="o">.</span><span class="n">unbatch</span><span class="p">()</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_packing</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">prepacking_batch_size</span><span class="p">,</span>
+          <span class="n">drop_remainder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AUTOTUNE</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shuffle</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_Pack</span><span class="p">,</span> <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span><span class="o">.</span><span class="n">unbatch</span><span class="p">()</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">(),</span>
+        <span class="n">drop_remainder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AUTOTUNE</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shuffle</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">prefetch</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_initializer</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">initializer</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="s1">&#39;segment_ids&#39;</span><span class="p">):</span>
+      <span class="c1"># Supply segment_ids and segment_pos with no packing.</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span>
+      <span class="n">segpos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">*</span> <span class="n">segpos</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">ShapeAndCast</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">(),</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ShapeAndCast</span><span class="p">)</span>
+
+    <span class="n">num_samples</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;examples/num_packed_samples&#39;</span><span class="p">,</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">num_samples</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">batch</span></div>
+
+<div class="viewcode-block" id="PackedTextInputGenerator._Pack"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._Pack">[docs]</a>  <span class="k">def</span> <span class="nf">_Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_in</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Packs a given batch, which changes the batch size.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">batch_in</span><span class="p">,</span> <span class="s1">&#39;segment_ids&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">batch_in</span><span class="p">,</span> <span class="s1">&#39;segment_pos&#39;</span><span class="p">)</span>
+
+    <span class="n">actual_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">batch_in</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">,</span> <span class="n">indices_in_input</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">pack_sequences</span><span class="p">(</span>
+        <span class="n">actual_seq_len</span><span class="p">,</span>
+        <span class="n">actual_seq_len</span><span class="p">,</span>
+        <span class="n">packed_batch_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">packed_src_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">,</span>
+        <span class="n">packed_tgt_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">ApplyPacking</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">segment_ids</span><span class="p">,</span> <span class="n">indices_in_input</span><span class="p">)</span>
+
+    <span class="n">batch_out</span> <span class="o">=</span> <span class="n">batch_in</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="n">batch_out</span> <span class="o">=</span> <span class="n">batch_out</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ApplyPacking</span><span class="p">)</span>
+    <span class="n">batch_out</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">batch_in</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">segment_ids</span><span class="p">,</span>
+                                           <span class="n">indices_in_input</span><span class="p">)</span>
+    <span class="n">batch_out</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">segment_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">batch_out</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">segment_pos</span>
+
+    <span class="k">return</span> <span class="n">batch_out</span></div>
+
+<div class="viewcode-block" id="PackedTextInputGenerator.Reset"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tf_session</span><span class="p">):</span>
+    <span class="n">tf_session</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initializer</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PackedTextInputGenerator.Initialize"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initializer</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TFRecordBertInput"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput">[docs]</a><span class="k">class</span> <span class="nc">TFRecordBertInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Input generator reading TFRecords of ids for MLPerf eval.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TFRecordBertInput.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="c1"># https://github.com/mlcommons/training/tree/master/language_model/tensorflow/bert#tfrecord-features</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_file&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;String, path of an input file.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_sequence_length&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span>
+             <span class="s1">&#39;Maximum number of tokens to be present in a single example.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_predictions_per_seq&#39;</span><span class="p">,</span> <span class="mi">76</span><span class="p">,</span>
+             <span class="s1">&#39;Maximum number of tokens that can be masked per example.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">resettable</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="TFRecordBertInput._ParseRecord"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput._ParseRecord">[docs]</a>  <span class="k">def</span> <span class="nf">_ParseRecord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reads and parses a single record.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">name_to_features</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;input_ids&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s1">&#39;input_mask&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s1">&#39;masked_lm_positions&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_predictions_per_seq</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s1">&#39;masked_lm_ids&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_predictions_per_seq</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s1">&#39;masked_lm_weights&#39;</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">max_predictions_per_seq</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">name_to_features</span><span class="p">)</span>
+    <span class="n">mask_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">example</span><span class="p">[</span><span class="s1">&#39;masked_lm_weights&#39;</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">masked_lm_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">example</span><span class="p">[</span><span class="s1">&#39;masked_lm_positions&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="p">[</span><span class="n">mask_length</span><span class="p">])</span>
+    <span class="n">masked_lm_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">example</span><span class="p">[</span><span class="s1">&#39;masked_lm_ids&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">mask_length</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">masked_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">example</span><span class="p">[</span><span class="s1">&#39;input_ids&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># Get back non-masked, original ids.</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span>
+        <span class="n">tensor</span><span class="o">=</span><span class="n">ret</span><span class="o">.</span><span class="n">masked_ids</span><span class="p">,</span>
+        <span class="n">indices</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">masked_lm_positions</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+        <span class="n">updates</span><span class="o">=</span><span class="n">masked_lm_ids</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">masked_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span>
+        <span class="n">tensor</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">masked_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+        <span class="n">indices</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">masked_lm_positions</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+        <span class="n">updates</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">masked_lm_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">example</span><span class="p">[</span><span class="s1">&#39;input_mask&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">example</span><span class="p">[</span><span class="s1">&#39;input_mask&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">*</span> <span class="n">pos</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="TFRecordBertInput._PadToBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput._PadToBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">_PadToBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">Pad</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+      <span class="n">constant_v</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span> <span class="ow">and</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.paddings&#39;</span><span class="p">):</span>
+        <span class="n">constant_v</span> <span class="o">=</span> <span class="mf">1.0</span>
+      <span class="n">need</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">-</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">need</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="s1">&#39;CONSTANT&#39;</span><span class="p">,</span> <span class="n">constant_v</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">padded</span>
+
+    <span class="k">return</span> <span class="n">batch</span><span class="o">.</span><span class="n">TransformWithKey</span><span class="p">(</span><span class="n">Pad</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TFRecordBertInput._InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a batch with .ids, .masked_ids, and .masked_pos.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">input_file</span><span class="p">])</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ParseRecord</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">drop_remainder</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_PadToBatchSize</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">prefetch</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
+
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_initializer</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">initializer</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">Cast</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ensure_shape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">return</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Cast</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TFRecordBertInput.Reset"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tf_session</span><span class="p">):</span>
+    <span class="n">tf_session</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initializer</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TFRecordBertInput.Initialize"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput.Initialize">[docs]</a>  <span class="k">def</span> <span class="nf">Initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initializer</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

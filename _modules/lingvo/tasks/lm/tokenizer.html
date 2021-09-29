@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lingvo.tasks.lm.tokenizer &mdash; Lingvo  documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>lingvo.tasks.lm.tokenizer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for lingvo.tasks.lm.tokenizer</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tokenizers.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tokenizers</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow_text</span> <span class="k">as</span> <span class="nn">tf_text</span>
+
+
+<div class="viewcode-block" id="BertTokenizer"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.tokenizer.html#lingvo.tasks.lm.tokenizer.BertTokenizer">[docs]</a><span class="k">class</span> <span class="nc">BertTokenizer</span><span class="p">(</span><span class="n">tokenizers</span><span class="o">.</span><span class="n">BaseTokenizer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A WordPiece tokenizer used by BERT.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BertTokenizer.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.tokenizer.html#lingvo.tasks.lm.tokenizer.BertTokenizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_path&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Path to the vocab file.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;prepend_sos&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to always prepend SOS token. This makes ids and target &#39;</span>
+        <span class="s1">&#39;returned identical and effective length longer by 1.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_unk_id</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span> <span class="o">=</span> <span class="mi">101</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="mi">102</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tf_text</span><span class="o">.</span><span class="n">BertTokenizer</span><span class="p">(</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">vocab_path</span><span class="p">,</span>
+        <span class="n">lower_case</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">max_bytes_per_word</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+        <span class="n">token_out_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="BertTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.tokenizer.html#lingvo.tasks.lm.tokenizer.BertTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">languages</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">append_eos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">append_eos</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">append_eos</span>
+
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">strs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">token_ids_ta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">target_ids_ta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">paddings_ta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_TokenizeOneSentence</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">token_ids_ta</span><span class="p">,</span> <span class="n">target_ids_ta</span><span class="p">,</span> <span class="n">paddings_ta</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Tokenizes a single sentence.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+        <span class="n">text_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">text_i</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize</span><span class="p">(</span><span class="n">text_i</span><span class="p">)</span><span class="o">.</span><span class="n">merge_dims</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">ids</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="kc">None</span><span class="p">])</span>
+
+      <span class="k">if</span> <span class="n">append_eos</span><span class="p">:</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">sos_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="bp">self</span><span class="o">.</span><span class="n">sos_id</span><span class="p">],</span> <span class="n">ids</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">prepend_sos</span><span class="p">:</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">sos_ids</span>
+
+      <span class="c1"># This truncates after the EOS is added, so some sentences might</span>
+      <span class="c1"># not have EOS at the end.</span>
+      <span class="n">token_ids_ta</span> <span class="o">=</span> <span class="n">token_ids_ta</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+          <span class="n">i</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">sos_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">max_length</span><span class="p">],</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="n">target_ids_ta</span> <span class="o">=</span> <span class="n">target_ids_ta</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+          <span class="n">i</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="n">max_length</span><span class="p">],</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="n">paddings_ta</span> <span class="o">=</span> <span class="n">paddings_ta</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+          <span class="n">i</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="p">[</span><span class="n">max_length</span><span class="p">],</span> <span class="mf">1.</span><span class="p">))</span>
+
+      <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">token_ids_ta</span><span class="p">,</span> <span class="n">target_ids_ta</span><span class="p">,</span> <span class="n">paddings_ta</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">token_ids_ta</span><span class="p">,</span> <span class="n">target_ids_ta</span><span class="p">,</span> <span class="n">paddings_ta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">_TokenizeOneSentence</span><span class="p">,</span>
+        <span class="n">loop_vars</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">strs</span><span class="p">,</span> <span class="n">token_ids_ta</span><span class="p">,</span> <span class="n">target_ids_ta</span><span class="p">,</span>
+                   <span class="n">paddings_ta</span><span class="p">),</span>
+        <span class="n">parallel_iterations</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids_ta</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
+    <span class="n">target_ids</span> <span class="o">=</span> <span class="n">target_ids_ta</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings_ta</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_length</span><span class="p">:</span>
+      <span class="n">maxlen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[:,</span> <span class="p">:</span><span class="n">maxlen</span><span class="p">]</span>
+      <span class="n">target_ids</span> <span class="o">=</span> <span class="n">target_ids</span><span class="p">[:,</span> <span class="p">:</span><span class="n">maxlen</span><span class="p">]</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings</span><span class="p">[:,</span> <span class="p">:</span><span class="n">maxlen</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">token_ids</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span> <span class="n">paddings</span></div>
+
+<div class="viewcode-block" id="BertTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.tokenizer.html#lingvo.tasks.lm.tokenizer.BertTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Takes int32 token ids and returns approximate detokenized strings.&quot;&quot;&quot;</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_same_dim0</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">])],</span>
+                                     <span class="n">ids</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ProcessRow</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+      <span class="n">length</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="n">length</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">detokenize</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">reduce_join</span><span class="p">(</span><span class="n">tokens</span><span class="o">.</span><span class="n">flat_values</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+        <span class="n">_ProcessRow</span><span class="p">,</span> <span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span>
+        <span class="n">parallel_iterations</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
