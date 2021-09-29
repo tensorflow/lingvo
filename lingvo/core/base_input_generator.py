@@ -883,7 +883,8 @@ def FilePatternToDataSource(p):
     raise ValueError('Cannot parse p.file_pattern into a datasource.')
 
   cluster_cur = cluster_factory.Current()
-  if cluster_cur.tf_data_service_address and not cluster_cur.do_eval:
+  if (cluster_cur.tf_data_service_address and not cluster_cur.do_eval and
+      p.use_tf_data_service):
     bucket_upper_bound = None
     if 'bucket_upper_bound' in p:
       bucket_upper_bound = p.bucket_upper_bound
@@ -960,6 +961,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'undesired behavior, but enables backwards compatibility with previous '
         'work. Only classes that have _DataSourceFromFilePattern take a '
         'input_source_id_offset argument can handle this flag being False.')
+    p.Define(
+        'use_tf_data_service', True,
+        'Whether TF Data Service is used when it is available. This has to be '
+        'True to use TF Data Service even if tf_data_service_replicas is set. '
+        'This allows disabling TF Data Service for a specific dataset.')
 
     return p
 
