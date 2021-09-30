@@ -249,9 +249,15 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('clip_weight_min', None,
-             'The minimum value to clip by; None means -infinity.')
+             'The minimum value to clip the weight by; None means -infinity.')
     p.Define('clip_weight_max', None,
-             'The maximum value to clip by; None means +infinity.')
+             'The maximum value to clip the weight by; None means +infinity.')
+    p.Define(
+        'clip_gradient_min', None,
+        'The minimum value to clip the gradient by; None means -infinity.')
+    p.Define(
+        'clip_gradient_max', None,
+        'The maximum value to clip the gradient by; None means +infinity.')
     p.Define(
         'weight_decay_factor', None,
         'Amount of weight decay to apply; None means that the weights are not '
@@ -296,7 +302,9 @@ class TPUEmbeddingSGDOptimizer(_TPUEmbeddingOptimizer):
         clip_weight_max=p.clip_weight_max,
         weight_decay_factor=p.weight_decay_factor,
         multiply_weight_decay_factor_by_learning_rate=p
-        .multiply_weight_decay_factor_by_learning_rate)
+        .multiply_weight_decay_factor_by_learning_rate,
+        clip_gradient_min=p.clip_gradient_min,
+        clip_gradient_max=p.clip_gradient_max)
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
     load_op_list = []
@@ -359,7 +367,9 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
         clip_weight_max=p.clip_weight_max,
         weight_decay_factor=p.weight_decay_factor,
         multiply_weight_decay_factor_by_learning_rate=p
-        .multiply_weight_decay_factor_by_learning_rate)
+        .multiply_weight_decay_factor_by_learning_rate,
+        clip_gradient_min=p.clip_gradient_min,
+        clip_gradient_max=p.clip_gradient_max)
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
     p = self.params
@@ -422,10 +432,6 @@ class TPUEmbeddingAdamOptimizer(_TPUEmbeddingOptimizer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define(
-        'clip_gradient_min', None,
-        'Controls clipping of the gradient. The minimum value to clip by.')
-    p.Define('clip_gradient_max', None, 'The max value to clip by.')
     p.Define(
         'sum_inside_sqrt', True, 'When this is true, the Adam update'
         'formula is changed from m / (sqrt(v) + epsilon) to m / '
@@ -555,8 +561,6 @@ class TPUEmbeddingFTRLOptimizer(_TPUEmbeddingOptimizer):
         'FTLR paper. Defaults to 0.0.')
     p.Define('allow_zero_accumulator', False, 'Whether allowing zero'
              'accumulator.')
-    p.Define('clip_gradient_min', None, 'Clip gradient min value.')
-    p.Define('clip_gradient_max', None, 'Clip gradient max value.')
     p.Define('use_gradient_accumulation', True, 'Use gradient accumulation.')
     p.Define('initial_linear_value', 0.0, 'Initial linear value.')
 
