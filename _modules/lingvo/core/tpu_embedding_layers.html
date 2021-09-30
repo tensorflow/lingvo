@@ -314,9 +314,15 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_weight_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;The minimum value to clip by; None means -infinity.&#39;</span><span class="p">)</span>
+             <span class="s1">&#39;The minimum value to clip the weight by; None means -infinity.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_weight_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;The maximum value to clip by; None means +infinity.&#39;</span><span class="p">)</span>
+             <span class="s1">&#39;The maximum value to clip the weight by; None means +infinity.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;clip_gradient_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The minimum value to clip the gradient by; None means -infinity.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;clip_gradient_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The maximum value to clip the gradient by; None means +infinity.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_decay_factor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Amount of weight decay to apply; None means that the weights are not &#39;</span>
@@ -361,7 +367,9 @@
         <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
         <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
         <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
-        <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">)</span></div>
+        <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">,</span>
+        <span class="n">clip_gradient_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_min</span><span class="p">,</span>
+        <span class="n">clip_gradient_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_max</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer.CreateSlotVariablesAndOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_vars</span><span class="p">,</span> <span class="n">tpu_embedding_table</span><span class="p">):</span>
     <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -424,7 +432,9 @@
         <span class="n">clip_weight_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_weight_max</span><span class="p">,</span>
         <span class="n">weight_decay_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_decay_factor</span><span class="p">,</span>
         <span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="o">=</span><span class="n">p</span>
-        <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">)</span></div>
+        <span class="o">.</span><span class="n">multiply_weight_decay_factor_by_learning_rate</span><span class="p">,</span>
+        <span class="n">clip_gradient_min</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_min</span><span class="p">,</span>
+        <span class="n">clip_gradient_max</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">clip_gradient_max</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdagradOptimizer.CreateSlotVariablesAndOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateSlotVariablesAndOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_vars</span><span class="p">,</span> <span class="n">tpu_embedding_table</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -487,10 +497,6 @@
 <div class="viewcode-block" id="TPUEmbeddingAdamOptimizer.Params"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingAdamOptimizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;clip_gradient_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Controls clipping of the gradient. The minimum value to clip by.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_gradient_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The max value to clip by.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;sum_inside_sqrt&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;When this is true, the Adam update&#39;</span>
         <span class="s1">&#39;formula is changed from m / (sqrt(v) + epsilon) to m / &#39;</span>
@@ -620,8 +626,6 @@
         <span class="s1">&#39;FTLR paper. Defaults to 0.0.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;allow_zero_accumulator&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether allowing zero&#39;</span>
              <span class="s1">&#39;accumulator.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_gradient_min&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Clip gradient min value.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_gradient_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Clip gradient max value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_gradient_accumulation&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Use gradient accumulation.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_linear_value&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Initial linear value.&#39;</span><span class="p">)</span>
 
