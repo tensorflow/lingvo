@@ -219,6 +219,22 @@
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTokenizer.IdsToTokens"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer.IdsToTokens">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToTokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Converts ids back to tokens (as separate strings).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      ids: A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample&#39;s</span>
+<span class="sd">        ids.</span>
+<span class="sd">      languages: A vector of strings of shape [batch].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      tokens - A matrix of shape [batch, seqlen] of bytes.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div></div>
 
 
@@ -528,7 +544,10 @@
     <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span></div>
 
 <div class="viewcode-block" id="SentencePieceTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SentencePieceTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">detokenize</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">))</span></div></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">detokenize</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="o">.</span><span class="n">from_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="SentencePieceTokenizer.IdsToTokens"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SentencePieceTokenizer.IdsToTokens">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToTokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">id_to_string</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

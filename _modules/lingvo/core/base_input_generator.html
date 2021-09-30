@@ -1409,6 +1409,21 @@
     <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="n">DEFAULT_TOKENIZER_KEY</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseSequenceInputGenerator.IdsToTokens"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.IdsToTokens">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToTokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Converts ids to lists of (string) tokens.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      ids: A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample&#39;s</span>
+<span class="sd">        ids.</span>
+<span class="sd">      key: A string key in case the model has multiple tokenizers.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      tokens - A matrix of shape [batch, seqlen], with the string</span>
+<span class="sd">        representation of each token.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="n">DEFAULT_TOKENIZER_KEY</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">IdsToTokens</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseSequenceInputGenerator.Cast"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.Cast">[docs]</a>  <span class="k">def</span> <span class="nf">Cast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Cast tensor dtype to fprop_dtype.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
