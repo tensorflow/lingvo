@@ -10,6 +10,7 @@ py_library(
         "one_billion_wds.py",
         "params.py",
         "synthetic_packed_input.py",
+        "wiki_bert.py",
     ],
     srcs_version = "PY3",
     deps = [

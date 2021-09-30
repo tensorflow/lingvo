@@ -19,4 +19,5 @@
 # pylint: disable=unused-import
 import lingvo.tasks.lm.params.one_billion_wds
 import lingvo.tasks.lm.params.synthetic_packed_input
+import lingvo.tasks.lm.params.wiki_bert
 # pylint: enable=unused-import
