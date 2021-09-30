@@ -133,6 +133,8 @@
 <div class="viewcode-block" id="Saver"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver">[docs]</a><span class="k">class</span> <span class="nc">Saver</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Simpler version of tf.train.Saver with extra sanity checks.&quot;&quot;&quot;</span>
 
+  <span class="n">RE_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^.*/ckpt-(\d+).*$&quot;</span><span class="p">)</span>
+
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">logdir</span><span class="p">,</span>
                <span class="n">variables</span><span class="p">,</span>
@@ -145,9 +147,12 @@
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">sanity_checks</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">(</span>
         <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">SanityCheck</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sanity_checks</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sanity_checks</span> <span class="o">=</span> <span class="n">sanity_checks</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">=</span> <span class="n">keep_latest_n</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">keep_latest_n</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">=</span> <span class="n">keep_latest_n</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span> <span class="o">=</span> <span class="n">keep_every_n_hours</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^.*/ckpt-(\d+).*$&quot;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_BuildSave</span><span class="p">()</span>
@@ -192,10 +197,11 @@
     <span class="n">file_io</span><span class="o">.</span><span class="n">atomic_write_string_to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_file</span><span class="p">,</span>
                                         <span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">state</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Saver._GetCheckpointId"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GetCheckpointId">[docs]</a>  <span class="k">def</span> <span class="nf">_GetCheckpointId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename_prefix</span><span class="p">):</span>
-    <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filename_prefix</span><span class="p">)</span>
+<div class="viewcode-block" id="Saver.GetCheckpointId"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.GetCheckpointId">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">GetCheckpointId</span><span class="p">(</span><span class="n">filename_prefix</span><span class="p">):</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">Saver</span><span class="o">.</span><span class="n">RE_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filename_prefix</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">match</span><span class="p">,</span> <span class="s2">&quot;Unexpected </span><span class="si">{}</span><span class="s2"> does not match re(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-        <span class="n">filename_prefix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span>
+        <span class="n">filename_prefix</span><span class="p">,</span> <span class="n">Saver</span><span class="o">.</span><span class="n">RE_PATTERN</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Saver._GarbageCollect"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GarbageCollect">[docs]</a>  <span class="k">def</span> <span class="nf">_GarbageCollect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -204,15 +210,15 @@
 
     <span class="n">valid_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">:</span>
-      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">))</span>
+      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">))</span>
     <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">:</span>
-      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
 
     <span class="n">existing_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/ckpt-*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">))</span>
     <span class="c1"># Filter to make sure we catch only the ckpt files.</span>
-    <span class="n">existing_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">existing_files</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+    <span class="n">existing_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">existing_files</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">RE_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
     <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">existing_files</span><span class="p">:</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ids</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ids</span><span class="p">:</span>
         <span class="c1"># TODO(zhifengc): May need to find a bulk delete method.</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Garbage collecting </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
@@ -280,35 +286,64 @@
     <span class="c1"># The checkpoint looks OK. Commit it to the state.</span>
     <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetState</span><span class="p">()</span>
 
-    <span class="c1"># If a previous checkpoint exists and it was generated long</span>
-    <span class="c1"># after the checkpoint before it, we preserve it in</span>
-    <span class="c1"># all_model_checkpoint_{paths,timestamps}.</span>
-    <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span> <span class="ow">and</span> <span class="p">(</span>
-        <span class="ow">not</span> <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span> <span class="ow">or</span>
-        <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span> <span class="ow">or</span>
-        <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">last_preserved_timestamp</span> <span class="o">-</span>
-         <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span>
-         <span class="mf">3600.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span><span class="p">)):</span>
-      <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">)</span>
-      <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-          <span class="n">state</span><span class="o">.</span><span class="n">last_preserved_timestamp</span><span class="p">)</span>
-
-    <span class="c1"># Record the checkpoint we just generated.</span>
+    <span class="c1"># Latest checkpoint.</span>
     <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span> <span class="o">=</span> <span class="n">prefix</span>
     <span class="n">state</span><span class="o">.</span><span class="n">last_preserved_timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
-    <span class="c1"># Applies the count-based GC policy.</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span><span class="p">:</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="c1"># Use [:] to prevent &quot;Assignment not allowed to repeated field&quot; error.</span>
-        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:])</span>
-        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:])</span>
+    <span class="c1"># Checkpoints are kept based on two independent policies</span>
+    <span class="c1"># 1) keep_latest_n: The most recent n are kept.</span>
+    <span class="c1"># 2) keep_every_n_hours: These checkpoints are kept</span>
+    <span class="c1"># indefinitely, in addition to those in 1).</span>
+    <span class="c1"># If more policies are added, a more generic interface is probably</span>
+    <span class="c1"># warranted.</span>
+
+    <span class="n">indefinite_retention</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">recent_retention</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># For more convenient list slicing.</span>
+    <span class="n">all_model_checkpoint_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">,</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">))</span>
+
+    <span class="c1"># Add current checkpoint.</span>
+    <span class="n">all_model_checkpoint_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">last_preserved_timestamp</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">))</span>
+
+    <span class="c1"># Explicitly sort by timestamp ascending just to be safe.</span>
+    <span class="c1"># sort() will sort ascending by first element in the tuple.</span>
+    <span class="n">all_model_checkpoint_pairs</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="c1"># Select checkpoints for indefinite retention</span>
+    <span class="n">latest_indefinite_ts</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span><span class="p">:</span>
+      <span class="n">keep_every_n_secs</span> <span class="o">=</span> <span class="mf">3600.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span>
+      <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">all_model_checkpoint_pairs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ts</span> <span class="o">-</span> <span class="n">latest_indefinite_ts</span> <span class="o">&gt;</span> <span class="n">keep_every_n_secs</span><span class="p">:</span>
+          <span class="n">latest_indefinite_ts</span> <span class="o">=</span> <span class="n">ts</span>
+          <span class="n">indefinite_retention</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ts</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span>
+
+    <span class="c1"># pylint: disable=invalid-unary-operand-type</span>
+    <span class="c1"># Apply recent retention policy.</span>
+    <span class="n">recent_retention</span> <span class="o">=</span> <span class="n">all_model_checkpoint_pairs</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span><span class="p">:]</span>
+    <span class="c1"># pylint: enable=invalid-unary-operand-type</span>
+
+    <span class="n">retained_pairs</span> <span class="o">=</span> <span class="n">indefinite_retention</span> <span class="o">+</span> <span class="n">recent_retention</span>
+    <span class="c1"># sort() will sort ascending by first element in the tuple.</span>
+    <span class="n">retained_pairs</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="n">unique_paths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">unique_ts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">path_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">retained_pairs</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path_set</span><span class="p">:</span>
+        <span class="n">unique_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">unique_ts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">path_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># Serialize to state.</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unique_paths</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unique_ts</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_SetState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Saver.Restore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -335,7 +370,7 @@
 
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
         <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_op</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span><span class="p">:</span> <span class="n">prefix</span><span class="p">})</span>
-    <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Restored </span><span class="si">%d</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div></div>
 
