@@ -187,6 +187,15 @@ class PackedTextInputGenerator(base_input_generator.BaseSequenceInputGenerator):
       ret.segment_pos = 0
     return ret
 
+  def _NotTruncated(self, nm):
+    """Returns True if and only if the given NestedMap is not truncated."""
+    # If the last element is not padding, and the id is not EOS, the
+    # input text has been truncated.
+    truncated = tf.math.logical_and(
+        tf.math.equal(nm.weights[-1], 1.0),
+        tf.math.not_equal(nm.ids[-1], self.params.tokenizer.target_eos_id))
+    return tf.math.logical_not(truncated)
+
   def _InputBatch(self):
     """Returns tf.data.Dataset of unbatched NestedMap."""
     p = self.params
@@ -194,6 +203,7 @@ class PackedTextInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     dataset = dataset.map(
         self._ProcessSingleExample,
         num_parallel_calls=tf.data.AUTOTUNE).unbatch()
+    dataset = dataset.filter(self._NotTruncated)
     dataset = dataset.take(p.num_samples if p.num_samples > 0 else -1)
 
     if p.enable_packing:
@@ -277,12 +287,28 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
              'Maximum number of tokens to be present in a single example.')
     p.Define('max_predictions_per_seq', 76,
              'Maximum number of tokens that can be masked per example.')
+    p.Define('eos_token_id', 102, 'id for EOS token.')
+    p.Define('shuffle', False, 'Whether to randomly shuffle.')
+    p.Define('file_buffer_size', 1000000,
+             'How many records are buffered for random shuffling.')
+    p.Define('enable_packing', False,
+             'Whether to pack multiple documents on the same row.')
+    p.Define(
+        'prepacking_batch_size', 1 << 14,
+        'Only used when p.enable_packing is set. Batch size before packing. '
+        'Note that this does not affect post-packing batch size but may '
+        'have a minor effect on how tight the packed output is.')
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
     p.resettable = True
+    if self.do_eval:
+      p.shuffle = False
+      p.enable_packing = False
+    if isinstance(p.input_file, str):
+      p.input_file = [p.input_file]
 
   def _ParseRecord(self, record):
     """Reads and parses a single record."""
@@ -318,7 +344,17 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
         indices=tf.reshape(masked_lm_positions, [-1, 1]),
         updates=tf.ones_like(masked_lm_ids, dtype=tf.float32))
     ret.segment_ids = tf.cast(example['input_mask'], dtype=tf.float32)
-    ret.paddings = tf.cast(1 - example['input_mask'], dtype=tf.float32)
+
+    first_eos_idx = tf.where(tf.math.equal(ret.ids, p.eos_token_id))[0][0]
+
+    def _RemoveFirstEos(x):
+      # We remove the element at position `first_eos_idx`, and pad with 0
+      # to keep length unchanged.
+      zero = tf.constant(0, shape=(1,), dtype=x.dtype)
+      return tf.concat([x[:first_eos_idx], x[first_eos_idx + 1:], zero], axis=0)
+
+    ret = ret.Transform(_RemoveFirstEos)
+    ret.paddings = 1.0 - ret.segment_ids
     pos = tf.cast(tf.range(p.max_sequence_length), dtype=tf.float32)
     ret.segment_pos = tf.cast(ret.segment_ids * pos, dtype=tf.int32)
     return ret
@@ -338,8 +374,25 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
   def _InputBatch(self):
     """Returns a batch with .ids, .masked_ids, and .masked_pos."""
     p = self.params
-    dataset = tf.data.TFRecordDataset([p.input_file]).map(self._ParseRecord)
-    dataset = dataset.batch(batch_size=p.batch_size, drop_remainder=False)
+    file_patterns = list(map(py_utils.ShardedFilePatternToGlob, p.input_file))
+    dataset = tf.data.Dataset.list_files(
+        file_patterns, shuffle=p.shuffle).interleave(
+            tf.data.TFRecordDataset,
+            cycle_length=tf.data.AUTOTUNE if p.shuffle else 1,
+            num_parallel_calls=tf.data.AUTOTUNE if p.shuffle else 1)
+    if p.shuffle:
+      dataset = dataset.shuffle(p.file_buffer_size)
+    dataset = dataset.repeat(1 if self.do_eval else -1)
+    dataset = dataset.map(self._ParseRecord)
+
+    if p.enable_packing:
+      dataset = dataset.batch(
+          p.prepacking_batch_size,
+          drop_remainder=True,
+          num_parallel_calls=tf.data.AUTOTUNE).map(
+              self._Pack, num_parallel_calls=tf.data.AUTOTUNE).unbatch()
+
+    dataset = dataset.batch(batch_size=p.batch_size, drop_remainder=p.shuffle)
     dataset = dataset.map(self._PadToBatchSize)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
@@ -354,6 +407,30 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
       return x
 
     return batch.Transform(Cast)
+
+  def _Pack(self, batch_in):
+    """Packs a given batch, which changes the batch size."""
+
+    actual_seq_len = tf.math.reduce_sum(
+        tf.cast(batch_in.segment_ids, tf.int32), axis=1)
+    (segment_ids, segment_pos, indices_in_input, _, _, _) = ops.pack_sequences(
+        actual_seq_len,
+        actual_seq_len,
+        packed_batch_size=0,
+        packed_src_seq_len=self.params.max_sequence_length,
+        packed_tgt_seq_len=self.params.max_sequence_length)
+
+    def ApplyPacking(x):
+      return ops.apply_packing(x, 0, segment_ids, indices_in_input)
+
+    batch_out = batch_in.DeepCopy()
+    batch_out = batch_out.Transform(ApplyPacking)
+    batch_out.paddings = ops.apply_packing(batch_in.paddings, 1, segment_ids,
+                                           indices_in_input)
+    batch_out.segment_ids = tf.cast(segment_ids, tf.float32)
+    batch_out.segment_pos = segment_pos
+
+    return batch_out
 
   def Reset(self, tf_session):
     tf_session.run(self._initializer)
