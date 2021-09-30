@@ -187,6 +187,17 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_status_msg_fn</span> <span class="o">=</span> <span class="kc">None</span>
 
+    <span class="c1"># Set input repeat_steps to steps_per_loop, if repeat_steps was undefined</span>
+    <span class="c1"># but available, and also &#39;resettable&#39; is False.</span>
+    <span class="c1"># This allows a repeating input TF Dataset (without reset) to take, for each</span>
+    <span class="c1"># repeat/loop, exactly steps_per_loop batches of data.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">)</span> <span class="ow">and</span>
+        <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s1">&#39;resettable&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span> <span class="ow">and</span>
+        <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s1">&#39;repeat_steps&#39;</span><span class="p">)</span> <span class="ow">and</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">repeat_steps</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Setting input repeat_steps to </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">repeat_steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_InitializeVizier</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BaseProgram._InitializeVizier"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InitializeVizier">[docs]</a>  <span class="k">def</span> <span class="nf">_InitializeVizier</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -860,6 +871,12 @@
     <span class="sd">&quot;&quot;&quot;Infeed loop that stops when it runs out of data (OutOfRange error).&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_InfeedLoop start </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="si">}</span><span class="s1"> &#39;</span>
                     <span class="sa">f</span><span class="s1">&#39;on dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_HandleEndOfData</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;End of dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+      <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># -1 signals reaching end of dataset.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="n">loop_index</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -868,10 +885,15 @@
         <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">loop_index</span><span class="p">)</span>
         <span class="n">loop_index</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;End of dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-      <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># -1 signals reaching end of dataset.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
+      <span class="n">_HandleEndOfData</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s1">&#39;REPEAT_SENTINEL_&#39;</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="p">:</span>
+        <span class="c1"># Sentinel in repeating dataset signaling end of one epoch.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Detected end-of-data sentinel.&#39;</span><span class="p">)</span>
+        <span class="n">_HandleEndOfData</span><span class="p">()</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop InvalidArgumentError </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">raise</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop exception </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
       <span class="k">raise</span></div>

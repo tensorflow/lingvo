@@ -535,6 +535,86 @@
     <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="RepeatableCustomTFDatasetTransform"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.RepeatableCustomTFDatasetTransform">[docs]</a><span class="k">class</span> <span class="nc">RepeatableCustomTFDatasetTransform</span><span class="p">(</span><span class="n">CustomTFDatasetTransform</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A custom transform w/ repeatable dataset.</span>
+
+<span class="sd">  The repeat options for the dataset are configured by the Generic input</span>
+<span class="sd">  generator (could be TF data based) that creates/owns this datasource.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RepeatableCustomTFDatasetTransform.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.RepeatableCustomTFDatasetTransform.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;sentinel_key&#39;</span><span class="p">,</span> <span class="s1">&#39;bucket_keys&#39;</span><span class="p">,</span> <span class="s1">&#39;The key in a dataset batch whose &#39;</span>
+        <span class="s1">&#39;values are overwritten in the dummy sentinel batch. The key must &#39;</span>
+        <span class="s1">&#39;already exist in each batch (NestedMap) of the dataset.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;sentinel_value&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The value to overwrite for each element in &#39;</span>
+        <span class="s1">&#39;the sentinel_key field in the sentinel dummy batch. This value &#39;</span>
+        <span class="s1">&#39;should be impossible for the sentinel_key in real data.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="RepeatableCustomTFDatasetTransform._InitIterator"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.RepeatableCustomTFDatasetTransform._InitIterator">[docs]</a>  <span class="k">def</span> <span class="nf">_InitIterator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override of the root&#39;s _InitIterator to support dataset repeat.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_repeat_steps</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;repeat_steps&#39;</span><span class="p">,</span>
+                                 <span class="kc">None</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_repeat_with_sentinel</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
+                                         <span class="s1">&#39;repeat_with_sentinel&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+      <span class="c1"># Hide global_step tensor from being captured by dataset function.</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDataset</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repeat_steps</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Repeating dataset every </span><span class="si">%d</span><span class="s1"> steps.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repeat_steps</span><span class="p">)</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_repeat_steps</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repeat_with_sentinel</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Attaching sentinel to end of dataset and repeat.&#39;</span><span class="p">)</span>
+      <span class="c1"># Dataset should contain batches of type NestedMap.</span>
+      <span class="n">sentinel_batch</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">element_spec</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+          <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="c1"># Fill the dummy sentinel batch&#39;s sentinel_key tensor with sentinel_value.</span>
+      <span class="n">sentinel_batch</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">sentinel_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span>
+          <span class="n">sentinel_batch</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">sentinel_key</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sentinel_value</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;attaching sentinel </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sentinel_batch</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">sentinel_key</span><span class="p">])</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;sentinel type </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sentinel_batch</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">sentinel_key</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensors</span><span class="p">(</span><span class="n">sentinel_batch</span><span class="p">))</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Options</span><span class="p">()</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">experimental_deterministic</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">in_unit_test</span><span class="p">)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">with_options</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">it</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">it</span></div>
+
+<div class="viewcode-block" id="RepeatableCustomTFDatasetTransform.GetNext"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.RepeatableCustomTFDatasetTransform.GetNext">[docs]</a>  <span class="k">def</span> <span class="nf">GetNext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override of the root&#39;s GetNext to support checking repeat sentinel.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_InitIterator</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">())</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+    <span class="c1"># Sentinel check.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repeat_with_sentinel</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_repeat_steps</span><span class="p">:</span>
+      <span class="n">assert_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_none_equal</span><span class="p">(</span>
+          <span class="n">batch</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sentinel_key</span><span class="p">],</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sentinel_value</span><span class="p">),</span>
+          <span class="n">summarize</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+          <span class="n">message</span><span class="o">=</span><span class="s1">&#39;REPEAT_SENTINEL_&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;sentinel constant dtype </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sentinel_value</span><span class="p">))</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">assert_op</span><span class="p">]):</span>
+        <span class="c1"># This identity transform will throw tf.errors.InvalidArgumentError</span>
+        <span class="c1"># if assert_op fails (sentinel_key takes on sentinel_value).</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">batch</span></div></div>
+
+
 <div class="viewcode-block" id="TFDatasetFnInput"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDatasetFnInput">[docs]</a><span class="k">class</span> <span class="nc">TFDatasetFnInput</span><span class="p">(</span><span class="n">TFDatasetSource</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Loads a TFDataset using a function.&quot;&quot;&quot;</span>
 

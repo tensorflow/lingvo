@@ -366,6 +366,32 @@ on the datasource this may be a single tensor or a batch of tensors.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">RepeatableCustomTFDatasetTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.CustomTFDatasetTransform" title="lingvo.core.datasource.CustomTFDatasetTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.CustomTFDatasetTransform</span></code></a></p>
+<p>A custom transform w/ repeatable dataset.</p>
+<p>The repeat options for the dataset are configured by the Generic input
+generator (could be TF data based) that creates/owns this datasource.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform._InitIterator">
+<span class="sig-name descname"><span class="pre">_InitIterator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform._InitIterator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform._InitIterator" title="Permalink to this definition"></a></dt>
+<dd><p>Override of the root’s _InitIterator to support dataset repeat.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform.GetNext">
+<span class="sig-name descname"><span class="pre">GetNext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform.GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform.GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Override of the root’s GetNext to support checking repeat sentinel.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetFnInput">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetFnInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetFnInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetFnInput" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetSource" title="lingvo.core.datasource.TFDatasetSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetSource</span></code></a></p>
