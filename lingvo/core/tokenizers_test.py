@@ -97,6 +97,23 @@ class SentencePieceTokenizerTest(test_utils.TestCase):
 
     self.assertAllEqual(['Hello world!', 'why', ''], strs.astype(str))
 
+  def testIdsToTokens(self):
+    p = self._Params()
+    tokenizer = p.Instantiate()
+
+    ids = [[136, 263, 36, 779, 185, 2], [109, 534, 2, 0, 0, 0],
+           [2, 0, 0, 0, 0, 0]]
+
+    tokens = tokenizer.IdsToTokens(ids)
+    with self.session() as sess:
+      tokens = sess.run(tokens)
+
+    ref_tokens = [[
+        b'\xe2\x96\x81H', b'ell', b'o', b'\xe2\x96\x81world', b'!', b'</s>'
+    ], [b'\xe2\x96\x81w', b'hy', b'</s>', b'<unk>', b'<unk>', b'<unk>'],
+                  [b'</s>', b'<unk>', b'<unk>', b'<unk>', b'<unk>', b'<unk>']]
+    self.assertAllEqual(ref_tokens, tokens)
+
 
 if __name__ == '__main__':
   tf.test.main()

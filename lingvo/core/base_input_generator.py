@@ -1344,6 +1344,21 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     key = key or DEFAULT_TOKENIZER_KEY
     return self.tokenizer_dict[key].IdsToStrings(ids, lens)
 
+  def IdsToTokens(self, ids, key=None):
+    """Converts ids to lists of (string) tokens.
+
+    Args:
+      ids: A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample's
+        ids.
+      key: A string key in case the model has multiple tokenizers.
+
+    Returns:
+      tokens - A matrix of shape [batch, seqlen], with the string
+        representation of each token.
+    """
+    key = key or DEFAULT_TOKENIZER_KEY
+    return self.tokenizer_dict[key].IdsToTokens(ids)
+
   def Cast(self, v):
     """Cast tensor dtype to fprop_dtype."""
     if not v.dtype.is_floating:

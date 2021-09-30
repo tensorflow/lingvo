@@ -156,6 +156,22 @@ class BaseTokenizer(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method.')
 
+  def IdsToTokens(self, ids, languages=None):
+    """Converts ids back to tokens (as separate strings).
+
+    Args:
+      ids: A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample's
+        ids.
+      languages: A vector of strings of shape [batch].
+
+    Returns:
+      tokens - A matrix of shape [batch, seqlen] of bytes.
+
+    Raises:
+      ValueError: If unknown token type.
+    """
+    raise NotImplementedError('Abstract method.')
+
 
 class AsciiTokenizer(BaseTokenizer):
   """A simple grapheme tokenizer.
@@ -464,3 +480,6 @@ class SentencePieceTokenizer(BaseTokenizer):
 
   def IdsToStrings(self, ids, lens, languages=None):
     return self._tokenizer.detokenize(tf.RaggedTensor.from_tensor(ids, lens))
+
+  def IdsToTokens(self, ids, languages=None):
+    return self._tokenizer.id_to_string(ids)
