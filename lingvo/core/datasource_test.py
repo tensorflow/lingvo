@@ -27,6 +27,7 @@ from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
+import mock
 import tensorflow_datasets as tfds
 
 
@@ -530,6 +531,53 @@ class TFDatasetSourceTest(test_utils.TestCase):
         file, length = self.evaluate([batch.data, batch.len])
         self.assertEqual(expected_file, file)
         self.assertEqual(len(expected_file), length)
+
+  def testRepeatableCustomTFDatasetTransform(self):
+    ds_params = datasource.RepeatableCustomTFDatasetTransform.Params().Set(
+        sub=datasource.TFDatasetSource.Params())
+    ds = ds_params.Instantiate()
+    ds._input_generator = mock.Mock()
+    # Test repeat_steps (3). Note that this ignores repeat_with_sentinel.
+    ds._input_generator.params = py_utils.NestedMap({
+        'use_per_host_infeed': False,
+        'repeat_steps': 3,
+        'repeat_with_sentinel': True
+    })
+    dataset = tf.data.Dataset.range(5)
+    with self.session(), mock.patch.object(
+        ds, 'GetDataset', return_value=dataset, autospec=True):
+      elem = ds.GetNext()
+      for idx in range(6):
+        value = self.evaluate(elem)
+        self.assertEqual(value, idx % 3)
+
+    # Test repeat_with_sentinel using sentinel_key and sentinel_value.
+    ds_params = datasource.RepeatableCustomTFDatasetTransform.Params().Set(
+        sub=datasource.TFDatasetSource.Params(),
+        sentinel_key='positive_key',
+        sentinel_value=-1)
+    ds = ds_params.Instantiate()
+    ds._input_generator = mock.Mock()
+    ds._input_generator.params = py_utils.NestedMap({
+        'use_per_host_infeed': False,
+        'repeat_steps': None,  # default.
+        'repeat_with_sentinel': True
+    })
+    dataset = tf.data.Dataset.range(3)
+
+    def _ConvertToNestedMap(x):
+      return py_utils.NestedMap({'data': x, 'positive_key': 1})
+
+    dataset = dataset.map(_ConvertToNestedMap)
+    with self.session(), mock.patch.object(
+        ds, 'GetDataset', return_value=dataset, autospec=True):
+      batch = ds.GetNext()
+      for idx in range(3):
+        nested_map = self.evaluate(batch)
+        self.assertEqual(nested_map.data, idx)
+        self.assertEqual(nested_map.positive_key, 1)
+      with self.assertRaises(tf.errors.InvalidArgumentError):
+        self.evaluate(batch)
 
   def testTFDatasetAdaptor(self):
     ds_params = datasource.SimpleDataSource.Params().Set(

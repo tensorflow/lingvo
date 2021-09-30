@@ -383,7 +383,12 @@ class BaseTask(base_layer.BaseLayer):
         if p.input.num_samples == 0 and not p.input.resettable:
           # Dataset size is unknown. Computes eval summary based on num_samples.
           # We require static dataset size for non-resettable inputs.
-          assert p.eval.samples_per_summary > 0
+          # Ignore if the dataset is repeated.
+          repeated = (
+              getattr(p.input, 'repeat_steps', None) or
+              getattr(p.input, 'repeat_with_sentinel', False))
+          if not repeated:
+            assert p.eval.samples_per_summary > 0
         if seq_inp and p.input.num_batcher_threads > 1:
           tf.logging.warning('input.num_batcher_threads > 1 inside eval mode.  '
                              'The input generator may not iterate over exactly '

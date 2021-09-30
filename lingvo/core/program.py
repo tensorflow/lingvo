@@ -122,6 +122,17 @@ class BaseProgram:
     self._compile_op = None
     self._status_msg_fn = None
 
+    # Set input repeat_steps to steps_per_loop, if repeat_steps was undefined
+    # but available, and also 'resettable' is False.
+    # This allows a repeating input TF Dataset (without reset) to take, for each
+    # repeat/loop, exactly steps_per_loop batches of data.
+    if (hasattr(self._task_params, 'input') and
+        not getattr(self._task_params.input, 'resettable', True) and
+        hasattr(self._task_params.input, 'repeat_steps') and
+        self._task_params.input.repeat_steps is None and self._steps_per_loop):
+      tf.logging.info('Setting input repeat_steps to %d', self._steps_per_loop)
+      self._task_params.input.repeat_steps = self._steps_per_loop
+
     self._InitializeVizier()
 
   def _InitializeVizier(self):
@@ -795,6 +806,12 @@ class DecodeProgram(BaseProgram):
     """Infeed loop that stops when it runs out of data (OutOfRange error)."""
     tf.logging.info(f'_InfeedLoop start {self._program_name} '
                     f'on dataset {self.params.dataset_name}')
+
+    def _HandleEndOfData():
+      tf.logging.info(f'End of dataset {self.params.dataset_name}.')
+      infeed_step_queue.put(-1)  # -1 signals reaching end of dataset.
+      self._WriteInputDataStats(sess)
+      tf.logging.info('_InfeedLoop done')
     try:
       loop_index = 0
       while True:
@@ -803,10 +820,15 @@ class DecodeProgram(BaseProgram):
         infeed_step_queue.put(loop_index)
         loop_index += 1
     except tf.errors.OutOfRangeError:
-      tf.logging.info(f'End of dataset {self.params.dataset_name}.')
-      infeed_step_queue.put(-1)  # -1 signals reaching end of dataset.
-      self._WriteInputDataStats(sess)
-      tf.logging.info('_InfeedLoop done')
+      _HandleEndOfData()
+    except tf.errors.InvalidArgumentError as e:
+      if 'REPEAT_SENTINEL_' in e.message:
+        # Sentinel in repeating dataset signaling end of one epoch.
+        tf.logging.info('Detected end-of-data sentinel.')
+        _HandleEndOfData()
+      else:
+        tf.logging.info('_InfeedLoop InvalidArgumentError %r', e)
+        raise
     except Exception as e:
       tf.logging.info('_InfeedLoop exception %r', e)
       raise

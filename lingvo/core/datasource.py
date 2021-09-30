@@ -470,6 +470,86 @@ class CustomTFDatasetTransform(TFDatasetTransform):
     return fn(dataset, **kwargs)
 
 
+class RepeatableCustomTFDatasetTransform(CustomTFDatasetTransform):
+  """A custom transform w/ repeatable dataset.
+
+  The repeat options for the dataset are configured by the Generic input
+  generator (could be TF data based) that creates/owns this datasource.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'sentinel_key', 'bucket_keys', 'The key in a dataset batch whose '
+        'values are overwritten in the dummy sentinel batch. The key must '
+        'already exist in each batch (NestedMap) of the dataset.')
+    p.Define(
+        'sentinel_value', -1, 'The value to overwrite for each element in '
+        'the sentinel_key field in the sentinel dummy batch. This value '
+        'should be impossible for the sentinel_key in real data.')
+    return p
+
+  def _InitIterator(self):
+    """Override of the root's _InitIterator to support dataset repeat."""
+    if self.host_id in self._dataset:
+      return
+
+    p = self.params
+    self._repeat_steps = getattr(self._input_generator.params, 'repeat_steps',
+                                 None)
+    self._repeat_with_sentinel = getattr(self._input_generator.params,
+                                         'repeat_with_sentinel', None)
+
+    with py_utils.GlobalStepContext(None):
+      # Hide global_step tensor from being captured by dataset function.
+      ds = self.GetDataset()
+    if self._repeat_steps:
+      tf.logging.info('Repeating dataset every %d steps.', self._repeat_steps)
+      ds = ds.take(self._repeat_steps).repeat()
+    elif self._repeat_with_sentinel:
+      tf.logging.info('Attaching sentinel to end of dataset and repeat.')
+      # Dataset should contain batches of type NestedMap.
+      sentinel_batch = ds.element_spec.Transform(
+          lambda x: tf.zeros(x.shape, dtype=x.dtype))
+      # Fill the dummy sentinel batch's sentinel_key tensor with sentinel_value.
+      sentinel_batch[p.sentinel_key] = tf.fill(
+          sentinel_batch[p.sentinel_key].shape, p.sentinel_value)
+      tf.logging.info('attaching sentinel %r', sentinel_batch[p.sentinel_key])
+      tf.logging.info('sentinel type %r', sentinel_batch[p.sentinel_key].dtype)
+      ds = ds.concatenate(tf.data.Dataset.from_tensors(sentinel_batch)).repeat()
+    options = tf.data.Options()
+    options.experimental_deterministic = bool(self.cluster.in_unit_test)
+    ds = ds.with_options(options)
+    self._dataset[self.host_id] = ds
+    if tf.executing_eagerly():
+      it = iter(ds)
+    else:
+      it = tf.data.make_initializable_iterator(ds)
+    self._iterator[self.host_id] = it
+
+  def GetNext(self):
+    """Override of the root's GetNext to support checking repeat sentinel."""
+    self._InitIterator()
+    if py_utils.GetUnitTestSession():
+      self.Initialize(py_utils.GetUnitTestSession())
+    batch = self._iterator[self.host_id].get_next()
+    # Sentinel check.
+    if self._repeat_with_sentinel and not self._repeat_steps:
+      assert_op = tf.debugging.assert_none_equal(
+          batch[self.params.sentinel_key],
+          tf.constant(self.params.sentinel_value),
+          summarize=1,
+          message='REPEAT_SENTINEL_')
+      tf.logging.info('sentinel constant dtype %r',
+                      tf.constant(self.params.sentinel_value))
+      with tf.control_dependencies([assert_op]):
+        # This identity transform will throw tf.errors.InvalidArgumentError
+        # if assert_op fails (sentinel_key takes on sentinel_value).
+        batch = batch.Transform(tf.identity)
+    return batch
+
+
 class TFDatasetFnInput(TFDatasetSource):
   """Loads a TFDataset using a function."""
 
