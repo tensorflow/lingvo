@@ -68,6 +68,8 @@ def _VarKey(var):
 class Saver:
   """Simpler version of tf.train.Saver with extra sanity checks."""
 
+  RE_PATTERN = re.compile(r"^.*/ckpt-(\d+).*$")
+
   def __init__(self,
                logdir,
                variables,
@@ -80,9 +82,12 @@ class Saver:
     assert not sanity_checks or all(
         isinstance(x[1], SanityCheck) for x in sanity_checks)
     self._sanity_checks = sanity_checks
-    self._keep_latest_n = keep_latest_n
+
+    if not keep_latest_n:
+      self._keep_latest_n = 0
+    else:
+      self._keep_latest_n = keep_latest_n
     self._keep_every_n_hours = keep_every_n_hours
-    self._re_pattern = re.compile(r"^.*/ckpt-(\d+).*$")
     self._logdir_ph = tf.placeholder(tf.string, shape=[])
     self._restore_prefix_ph = tf.placeholder(tf.string, shape=[])
     self._BuildSave()
@@ -127,10 +132,11 @@ class Saver:
     file_io.atomic_write_string_to_file(self._state_file,
                                         text_format.MessageToString(state))
 
-  def _GetCheckpointId(self, filename_prefix):
-    match = self._re_pattern.match(filename_prefix)
+  @staticmethod
+  def GetCheckpointId(filename_prefix):
+    match = Saver.RE_PATTERN.match(filename_prefix)
     assert match, "Unexpected {} does not match re({})".format(
-        filename_prefix, self._re_pattern.pattern)
+        filename_prefix, Saver.RE_PATTERN)
     return int(match.group(1))
 
   def _GarbageCollect(self):
@@ -139,15 +145,15 @@ class Saver:
 
     valid_ids = set()
     if state.model_checkpoint_path:
-      valid_ids.add(self._GetCheckpointId(state.model_checkpoint_path))
+      valid_ids.add(self.GetCheckpointId(state.model_checkpoint_path))
     for path in state.all_model_checkpoint_paths:
-      valid_ids.add(self._GetCheckpointId(path))
+      valid_ids.add(self.GetCheckpointId(path))
 
     existing_files = tf.io.gfile.glob(r"{}/ckpt-*".format(self._logdir))
     # Filter to make sure we catch only the ckpt files.
-    existing_files = [f for f in existing_files if self._re_pattern.match(f)]
+    existing_files = [f for f in existing_files if self.RE_PATTERN.match(f)]
     for filename in existing_files:
-      if self._GetCheckpointId(filename) not in valid_ids:
+      if self.GetCheckpointId(filename) not in valid_ids:
         # TODO(zhifengc): May need to find a bulk delete method.
         tf.logging.info("Garbage collecting %s", filename)
         tf.io.gfile.remove(filename)
@@ -215,35 +221,64 @@ class Saver:
     # The checkpoint looks OK. Commit it to the state.
     state = self._GetState()
 
-    # If a previous checkpoint exists and it was generated long
-    # after the checkpoint before it, we preserve it in
-    # all_model_checkpoint_{paths,timestamps}.
-    if state.model_checkpoint_path and (
-        not state.all_model_checkpoint_timestamps or
-        not self._keep_every_n_hours or
-        (state.last_preserved_timestamp -
-         state.all_model_checkpoint_timestamps[-1] >
-         3600. * self._keep_every_n_hours)):
-      state.all_model_checkpoint_paths.append(state.model_checkpoint_path)
-      state.all_model_checkpoint_timestamps.append(
-          state.last_preserved_timestamp)
-
-    # Record the checkpoint we just generated.
+    # Latest checkpoint.
     state.model_checkpoint_path = prefix
     state.last_preserved_timestamp = time.time()
 
-    # Applies the count-based GC policy.
-    if self._keep_latest_n:
-      if self._keep_latest_n == 1:
-        # Use [:] to prevent "Assignment not allowed to repeated field" error.
-        state.all_model_checkpoint_paths[:] = []
-        state.all_model_checkpoint_timestamps[:] = []
-      else:
-        n = self._keep_latest_n - 1
-        state.all_model_checkpoint_paths[:] = (
-            state.all_model_checkpoint_paths[-n:])
-        state.all_model_checkpoint_timestamps[:] = (
-            state.all_model_checkpoint_timestamps[-n:])
+    # Checkpoints are kept based on two independent policies
+    # 1) keep_latest_n: The most recent n are kept.
+    # 2) keep_every_n_hours: These checkpoints are kept
+    # indefinitely, in addition to those in 1).
+    # If more policies are added, a more generic interface is probably
+    # warranted.
+
+    indefinite_retention = []
+    recent_retention = []
+
+    # For more convenient list slicing.
+    all_model_checkpoint_pairs = list(
+        zip(state.all_model_checkpoint_timestamps,
+            state.all_model_checkpoint_paths))
+
+    # Add current checkpoint.
+    all_model_checkpoint_pairs.append(
+        (state.last_preserved_timestamp, state.model_checkpoint_path))
+
+    # Explicitly sort by timestamp ascending just to be safe.
+    # sort() will sort ascending by first element in the tuple.
+    all_model_checkpoint_pairs.sort()
+
+    # Select checkpoints for indefinite retention
+    latest_indefinite_ts = 0
+    if self._keep_every_n_hours:
+      keep_every_n_secs = 3600.0 * self._keep_every_n_hours
+      for ts, path in all_model_checkpoint_pairs:
+        if ts - latest_indefinite_ts > keep_every_n_secs:
+          latest_indefinite_ts = ts
+          indefinite_retention.append((ts, path))
+
+    # pylint: disable=invalid-unary-operand-type
+    # Apply recent retention policy.
+    recent_retention = all_model_checkpoint_pairs[-self._keep_latest_n:]
+    # pylint: enable=invalid-unary-operand-type
+
+    retained_pairs = indefinite_retention + recent_retention
+    # sort() will sort ascending by first element in the tuple.
+    retained_pairs.sort()
+
+    unique_paths = []
+    unique_ts = []
+    path_set = set()
+    for ts, path in retained_pairs:
+      if path not in path_set:
+        unique_paths.append(path)
+        unique_ts.append(ts)
+        path_set.add(path)
+
+    # Serialize to state.
+    state.all_model_checkpoint_paths[:] = unique_paths
+    state.all_model_checkpoint_timestamps[:] = unique_ts
+
     self._SetState(state)
 
   def Restore(self, sess, checkpoint_id=None):
@@ -270,7 +305,7 @@ class Saver:
 
     sess.run(
         fetches=[self._restore_op], feed_dict={self._restore_prefix_ph: prefix})
-    global_step = self._GetCheckpointId(prefix)
+    global_step = self.GetCheckpointId(prefix)
     tf.logging.info("Restored %d %s", global_step, prefix)
     return global_step, prefix
 
