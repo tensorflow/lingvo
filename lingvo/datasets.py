@@ -15,7 +15,10 @@
 # ==============================================================================
 """Utilities for dataset information."""
 
+import ast
 import inspect
+import os
+from typing import Any, List
 from absl import logging
 
 # List of member functions that are not dataset functions.
@@ -33,7 +36,7 @@ class GetAllDatasetParamsNotImplementedError(NotImplementedError):
   pass
 
 
-def GetDatasets(cls, warn_on_error=True):
+def GetDatasets(cls: Any, warn_on_error: bool = True) -> List[str]:
   """Returns the list of dataset functions (e.g., Train, Dev, ...).
 
   All public functions apart from `NON_DATASET_MEMBERS` are treated as datasets.
@@ -97,3 +100,87 @@ def GetDatasets(cls, warn_on_error=True):
       else:
         datasets += [name]
   return datasets
+
+
+def GetDatasetsAst(base_dir: str, model: str) -> List[str]:
+  """Gets datasets but without importing any code by using ast.
+
+  Useful when running from python interpreter without bazel build.
+
+  Args:
+    base_dir: Base directory to search in.
+    model: The model string.
+
+  Returns:
+    A list of strings containing names of valid dataset functions for cls.
+    May not be accurate.
+
+  Raises:
+    Exception: if anything goes wrong.
+  """
+  parts = model.split('.')
+  model_name = parts[-1]
+  parts = parts[:-1]
+  module = os.path.join(base_dir, '/'.join(parts)) + '.py'
+  for i in range(1, len(parts)):
+    # Insert params somewhere in the middle of parts.
+    test = os.path.join(base_dir, '/'.join(parts[:i]), 'params', '/'.join(
+        parts[i:])) + '.py'
+    if os.path.exists(test):
+      module = test
+      break
+
+  with open(os.path.join(module), 'r') as f:
+    tree = ast.parse(f.read())
+
+  class DatasetsVisitor(ast.NodeVisitor):
+    """NodeVisitor for collecting datasets for a model."""
+
+    def __init__(self):
+      self.datasets = set()
+      self._imports = {}
+
+    def visit_Import(self, node):  # pylint: disable=invalid-name
+      """Visit a 'import symbol [as alias]' definition."""
+      for alias in node.names:
+        self._imports[alias.asname or alias.name] = alias.name
+
+    def visit_ImportFrom(self, node):  # pylint: disable=invalid-name
+      """Visit a 'from module import symbol [as alias]' definition."""
+      for alias in node.names:
+        self._imports[alias.asname or alias.name] = (
+            node.module + '.' + alias.name)
+
+    def visit_ClassDef(self, node):  # pylint: disable=invalid-name
+      """Visit a class definition."""
+      if node.name == model_name:
+        for base in node.bases:
+          if isinstance(base, ast.Name):
+            # A superclass in the same file.
+            self.datasets |= set(
+                GetDatasetsAst(base_dir, '.'.join(parts + [base.id])))
+          elif isinstance(base, ast.Attribute):
+            # A superclass in a different file.
+            if base.value.id == 'base_model_params':
+              continue
+            self.datasets |= set(
+                GetDatasetsAst(
+                    base_dir,
+                    '.'.join([self._imports[base.value.id], base.attr])))
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node):  # pylint: disable=invalid-name
+      """Visit a function definition."""
+      if node.name == 'GetAllDatasetParams':
+        # It may be possible to parse the ast for GetAllDatasetParams to find
+        # the dictionary keys, but this gets significantly harder when super()
+        # calls need to be taken into consideration.
+        raise NotImplementedError(
+            'GetDatasetsAst does not support models using GetAllDatasetParams.')
+      elif (node.name not in NON_DATASET_MEMBERS and
+            not node.name.startswith('_')):
+        self.datasets.add(node.name)
+
+  visitor = DatasetsVisitor()
+  visitor.visit(tree)
+  return list(visitor.datasets)

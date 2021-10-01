@@ -2,6 +2,7 @@ load(
     "//lingvo:lingvo.bzl",
     "lingvo_py_binary",
 )
+load("//lingvo:lingvo.bzl", "pytype_strict_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -155,7 +156,7 @@ py_library(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "datasets_lib",
     srcs = ["datasets.py"],
     srcs_version = "PY3",
