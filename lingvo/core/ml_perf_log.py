@@ -53,9 +53,10 @@ def get_caller(stack_index=2, root_dir=None):
   return (filename, caller.lineno)
 
 
-# :::MLL 1556733699.71 run_start: {"value": null,
+# :::MLLOG {"time_ms": 1556733699.71, "key": "run_start", "value": null,
 # "metadata": {"lineno": 77, "file": main.py}}
-LOG_TEMPLATE = ':::MLL {:.3f} {}: {{"value": {}, "metadata": {}}}'
+LOG_TEMPLATE = (':::MLLOG {{"time_ms": {:.3f}, "key": {}, "value": {}, '
+                '"metadata": {}}}')
 
 
 def mlperf_format(key, value, now, stack_offset=0, metadata=None):
@@ -68,7 +69,12 @@ def mlperf_format(key, value, now, stack_offset=0, metadata=None):
     metadata['lineno'] = lineno
     metadata['file'] = filename
 
-  msg = LOG_TEMPLATE.format(now, key, json.dumps(value), json.dumps(metadata))
+  # Avoid JSON serialization errors for NumPy types:
+  if type(value).__module__ == 'numpy':
+    value = value.item()
+
+  msg = LOG_TEMPLATE.format(now * 1000, json.dumps(key), json.dumps(value),
+                            json.dumps(metadata))
   return msg
 
 

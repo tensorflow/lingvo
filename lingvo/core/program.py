@@ -77,6 +77,7 @@ class BaseProgram:
     p.Define('write_train_input_stats', False,
              'Whether to write input data stats during training.')
     p.Define('max_metrics', 256, 'Overrides TpuEvalMetrics.max_metrics')
+    p.Define('ml_perf', None, 'MLPerf config')
     return p
 
   def __init__(self,
@@ -631,6 +632,12 @@ class EvalProgram(BaseProgram):
   def __init__(self, params, shared_model=None, **kwargs):
     super().__init__(params, shared_model=shared_model, **kwargs)
     self._program_name = 'EvalProgram'
+    p = self.params
+    if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
+        p.ml_perf.steps_per_epoch is not None):
+      self._ml_perf = p.ml_perf
+    else:
+      self._ml_perf = None
 
   def TpuEvalStep(self, *args):
     """Eval a shard of a batch on a single TPU core.
@@ -736,6 +743,17 @@ class EvalProgram(BaseProgram):
       self._SummarizeValue(global_step, key, val)
       tf.logging.info((global_step, key, val))
       status_strs.append('%s=%s' % (key, val))
+
+    if self._ml_perf:
+      mlperf_metric = self._ml_perf.decoder_metric_name
+      if mlperf_metric in eval_metrics:
+        mlperf_metric_value = eval_metrics[mlperf_metric][0]
+        mlperf_epoch_num = int(global_step / self._ml_perf.steps_per_epoch)
+        mlp_log.mlperf_print(
+            'eval_accuracy',
+            mlperf_metric_value,
+            metadata={'epoch_num': mlperf_epoch_num})
+
     self.SetStatusMessage(
         f'Executing eval program on dataset {self.params.dataset_name} '
         f"at step {global_step}\n{','.join(status_strs)}")
@@ -1127,7 +1145,6 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     p.Define('decode_dataset_name', None, '')
     p.Define('train_steps_per_loop', 0, '')
     p.Define('decode_steps_per_loop', 0, '')
-    p.Define('ml_perf', None, 'MLPerf config')
     return p
 
   def __init__(self, params, shared_model=None, **kwargs):
@@ -1349,6 +1366,9 @@ class SimpleProgramSchedule:
     p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
     mlp = p.ml_perf
     mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
+    mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
+    mlp.Define('decoder_metric_name', None,
+               'Name of the decoder metric to report for compliance log.')
     return p
 
   def __init__(self,
@@ -1380,6 +1400,7 @@ class SimpleProgramSchedule:
       eval_program_params.task = p.task_dict[eval_program_params.dataset_name]
       eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
+      eval_program_params.ml_perf = p.ml_perf.Copy()
 
     self.eval_programs = []
     for eval_program in p.eval_programs:

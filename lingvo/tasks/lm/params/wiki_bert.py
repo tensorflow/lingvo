@@ -168,6 +168,20 @@ class MLPerfTrainTemplate(BertTemplate):
     )
     p.train_program.spmd = True
     p.train_executions_per_eval = self.TRAIN_EXES_PER_EVAL
+
+    # For compliance logging.
+    p.ml_perf.benchmark_name = 'bert'
+
+    # For BERT, we log the number of examples as the epoch.
+    # epoch_num = global_step / steps_per_epoch
+    # epoch_num = num_examples_trained = global_step * examples_per_step
+    # steps_per_epoch = global_step / (global_step * examples_per_step)
+    # steps_per_epoch = 1 / examples_per_step
+    examples_per_step = self.BATCH_SIZE
+    p.ml_perf.steps_per_epoch = 1 / examples_per_step
+
+    p.ml_perf.decoder_metric_name = 'acc1'
+
     return p
 
 
