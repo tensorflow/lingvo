@@ -79,9 +79,18 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Utilities for dataset information.&quot;&quot;&quot;</span>
-<span class="kn">import</span> <span class="nn">inspect</span>
 
-<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
+
+<span class="c1"># List of member functions that are not dataset functions.</span>
+<span class="n">NON_DATASET_MEMBERS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;GetAllDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;GetDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Task&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ProgramSchedule&#39;</span><span class="p">,</span> <span class="s1">&#39;UpdateParamsFromSpec&#39;</span><span class="p">,</span> <span class="s1">&#39;CreateDynamicDatasetMethods&#39;</span>
+<span class="p">]</span>
 
 
 <div class="viewcode-block" id="DatasetFunctionError"><a class="viewcode-back" href="../../lingvo.datasets.html#lingvo.datasets.DatasetFunctionError">[docs]</a><span class="k">class</span> <span class="nc">DatasetFunctionError</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">):</span>
@@ -92,12 +101,11 @@
   <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="GetDatasets"><a class="viewcode-back" href="../../lingvo.datasets.html#lingvo.datasets.GetDatasets">[docs]</a><span class="k">def</span> <span class="nf">GetDatasets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">warn_on_error</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="GetDatasets"><a class="viewcode-back" href="../../lingvo.datasets.html#lingvo.datasets.GetDatasets">[docs]</a><span class="k">def</span> <span class="nf">GetDatasets</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">warn_on_error</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
   <span class="sd">&quot;&quot;&quot;Returns the list of dataset functions (e.g., Train, Dev, ...).</span>
 
-<span class="sd">  All public functions apart from &#39;GetDatasetParams&#39;, &#39;Model&#39;, &#39;Task&#39;,</span>
-<span class="sd">  &#39;ProgramSchedule&#39; are treated as datasets.  Dataset functions should not</span>
-<span class="sd">  have any required positional arguments.</span>
+<span class="sd">  All public functions apart from `NON_DATASET_MEMBERS` are treated as datasets.</span>
+<span class="sd">  Dataset functions should not have any required positional arguments.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    cls: A class variable or instance variable.  This function expects to be</span>
@@ -132,10 +140,7 @@
 
   <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isroutine</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
-        <span class="s1">&#39;GetAllDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;GetDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Task&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;ProgramSchedule&#39;</span>
-    <span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NON_DATASET_MEMBERS</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
       <span class="c1"># Datasets are assumed to have no required positional arguments.</span>
       <span class="n">fn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
       <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
@@ -154,12 +159,96 @@
         <span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Found a public function </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> in </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s1"> with &#39;</span>
                    <span class="sa">f</span><span class="s1">&#39;required positional arguments: </span><span class="si">{</span><span class="n">positional_arguments</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">warn_on_error</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+          <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="k">raise</span> <span class="n">DatasetFunctionError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">datasets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
   <span class="k">return</span> <span class="n">datasets</span></div>
+
+
+<div class="viewcode-block" id="GetDatasetsAst"><a class="viewcode-back" href="../../lingvo.datasets.html#lingvo.datasets.GetDatasetsAst">[docs]</a><span class="k">def</span> <span class="nf">GetDatasetsAst</span><span class="p">(</span><span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+  <span class="sd">&quot;&quot;&quot;Gets datasets but without importing any code by using ast.</span>
+
+<span class="sd">  Useful when running from python interpreter without bazel build.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    base_dir: Base directory to search in.</span>
+<span class="sd">    model: The model string.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of strings containing names of valid dataset functions for cls.</span>
+<span class="sd">    May not be accurate.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    Exception: if anything goes wrong.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">parts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+  <span class="n">model_name</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">parts</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">module</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_dir</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;.py&#39;</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)):</span>
+    <span class="c1"># Insert params somewhere in the middle of parts.</span>
+    <span class="n">test</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_dir</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span><span class="p">]),</span> <span class="s1">&#39;params&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">parts</span><span class="p">[</span><span class="n">i</span><span class="p">:]))</span> <span class="o">+</span> <span class="s1">&#39;.py&#39;</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">test</span><span class="p">):</span>
+      <span class="n">module</span> <span class="o">=</span> <span class="n">test</span>
+      <span class="k">break</span>
+
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+  <span class="k">class</span> <span class="nc">DatasetsVisitor</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">NodeVisitor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;NodeVisitor for collecting datasets for a model.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">datasets</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_imports</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">visit_Import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+      <span class="sd">&quot;&quot;&quot;Visit a &#39;import symbol [as alias]&#39; definition.&quot;&quot;&quot;</span>
+      <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_imports</span><span class="p">[</span><span class="n">alias</span><span class="o">.</span><span class="n">asname</span> <span class="ow">or</span> <span class="n">alias</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">alias</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">visit_ImportFrom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+      <span class="sd">&quot;&quot;&quot;Visit a &#39;from module import symbol [as alias]&#39; definition.&quot;&quot;&quot;</span>
+      <span class="k">for</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_imports</span><span class="p">[</span><span class="n">alias</span><span class="o">.</span><span class="n">asname</span> <span class="ow">or</span> <span class="n">alias</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">module</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">alias</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">visit_ClassDef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+      <span class="sd">&quot;&quot;&quot;Visit a class definition.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">model_name</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">bases</span><span class="p">:</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Name</span><span class="p">):</span>
+            <span class="c1"># A superclass in the same file.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datasets</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">GetDatasetsAst</span><span class="p">(</span><span class="n">base_dir</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span> <span class="o">+</span> <span class="p">[</span><span class="n">base</span><span class="o">.</span><span class="n">id</span><span class="p">])))</span>
+          <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">Attribute</span><span class="p">):</span>
+            <span class="c1"># A superclass in a different file.</span>
+            <span class="k">if</span> <span class="n">base</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="s1">&#39;base_model_params&#39;</span><span class="p">:</span>
+              <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datasets</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">GetDatasetsAst</span><span class="p">(</span>
+                    <span class="n">base_dir</span><span class="p">,</span>
+                    <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_imports</span><span class="p">[</span><span class="n">base</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">id</span><span class="p">],</span> <span class="n">base</span><span class="o">.</span><span class="n">attr</span><span class="p">])))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generic_visit</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">visit_FunctionDef</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+      <span class="sd">&quot;&quot;&quot;Visit a function definition.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;GetAllDatasetParams&#39;</span><span class="p">:</span>
+        <span class="c1"># It may be possible to parse the ast for GetAllDatasetParams to find</span>
+        <span class="c1"># the dictionary keys, but this gets significantly harder when super()</span>
+        <span class="c1"># calls need to be taken into consideration.</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s1">&#39;GetDatasetsAst does not support models using GetAllDatasetParams.&#39;</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NON_DATASET_MEMBERS</span> <span class="ow">and</span>
+            <span class="ow">not</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+  <span class="n">visitor</span> <span class="o">=</span> <span class="n">DatasetsVisitor</span><span class="p">()</span>
+  <span class="n">visitor</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+  <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">visitor</span><span class="o">.</span><span class="n">datasets</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
