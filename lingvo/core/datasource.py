@@ -808,7 +808,7 @@ def GetTFDataServiceDataSet(job_name,
                             bucket_upper_bound,
                             num_hosts,
                             host_id,
-                            tfds_processing_mode='parallel_epochs',
+                            processing_mode='parallel_epochs',
                             dataset=None,
                             dataset_id=None,
                             element_spec=None):
@@ -822,7 +822,7 @@ def GetTFDataServiceDataSet(job_name,
     bucket_upper_bound: The bucket upper bounds of datasource. (tensor/array)
     num_hosts: Number of hosts (e.g. depends on use_per_host_infeed). (int)
     host_id: The datasource's host_id. (int)
-    tfds_processing_mode: mode for TF data service. Optional.
+    processing_mode: mode for TF data service. Optional.
     dataset: a TF data Dataset to be registered. Optional.
     dataset_id: the ID of an already registered TF data Dataset. Optional.
     element_spec: the element_spec of the TF data Dataset. Optional.
@@ -850,7 +850,7 @@ def GetTFDataServiceDataSet(job_name,
     consumer_index = None
     num_consumers = None
   dataset = tf.data.experimental.service.from_dataset_id(
-      processing_mode=tfds_processing_mode,
+      processing_mode=processing_mode,
       service=tf_data_service_address,
       dataset_id=dataset_id,
       element_spec=element_spec,
@@ -922,7 +922,7 @@ class TFDataServiceSource(TFDatasetTransform):
         p.bucket_upper_bound,
         self.num_hosts,
         self.host_id,
-        tfds_processing_mode=p.processing_mode,
+        processing_mode=p.processing_mode,
         dataset_id=self._dataset_id,
         element_spec=self._element_spec)
     return dataset
