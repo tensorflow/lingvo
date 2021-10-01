@@ -160,7 +160,9 @@ pytype_strict_library(
     name = "datasets_lib",
     srcs = ["datasets.py"],
     srcs_version = "PY3",
-    deps = ["//third_party/py/absl/logging"],
+    deps = [
+        # Implicit absl.logging dependency.
+    ],
 )
 
 py_test(
