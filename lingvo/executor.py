@@ -167,6 +167,15 @@ class ExecutorTpu(base_runner.BaseRunner):
       *args: List args to pass through to BaseRunner.
       **kwargs: keyword args to pass through to BaseRunner.
     """
+    if py_utils.IsEagerMode():
+      assert tf.executing_eagerly()
+      tf.logging.info(f'FLAGS.tf_worker_address: {FLAGS.tf_worker_address}')
+
+      # Connect to the TPU runtime.
+      resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+          FLAGS.tf_worker_address, job_name=FLAGS.worker_job[len('/job:'):])
+      tf.config.experimental_connect_to_cluster(resolver)
+
     super().__init__(train_cfg, *args, **kwargs)
 
     data_parallelism = self._cluster.num_splits_per_client
@@ -227,13 +236,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       """Wait until the model is ready."""
       try:
         if py_utils.IsEagerMode():
-          assert tf.executing_eagerly()
-          tf.logging.info(f'FLAGS.tf_worker_address: {FLAGS.tf_worker_address}')
-
-          # Connect to the TPU runtime.
-          resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-              FLAGS.tf_worker_address, job_name=FLAGS.worker_job[len('/job:'):])
-          tf.config.experimental_connect_to_cluster(resolver)
           topology = tf.tpu.experimental.initialize_tpu_system(resolver)
         else:
           # tpu.initialize_system() is called with None as embedding_config, as
