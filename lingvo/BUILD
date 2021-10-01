@@ -159,7 +159,7 @@ py_library(
     name = "datasets_lib",
     srcs = ["datasets.py"],
     srcs_version = "PY3",
-    deps = [":compat"],
+    deps = ["//third_party/py/absl/logging"],
 )
 
 py_test(

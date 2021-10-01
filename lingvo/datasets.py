@@ -14,9 +14,15 @@
 # limitations under the License.
 # ==============================================================================
 """Utilities for dataset information."""
-import inspect
 
-import lingvo.compat as tf
+import inspect
+from absl import logging
+
+# List of member functions that are not dataset functions.
+NON_DATASET_MEMBERS = [
+    'GetAllDatasetParams', 'GetDatasetParams', 'Model', 'Task',
+    'ProgramSchedule', 'UpdateParamsFromSpec', 'CreateDynamicDatasetMethods'
+]
 
 
 class DatasetFunctionError(TypeError):
@@ -30,9 +36,8 @@ class GetAllDatasetParamsNotImplementedError(NotImplementedError):
 def GetDatasets(cls, warn_on_error=True):
   """Returns the list of dataset functions (e.g., Train, Dev, ...).
 
-  All public functions apart from 'GetDatasetParams', 'Model', 'Task',
-  'ProgramSchedule' are treated as datasets.  Dataset functions should not
-  have any required positional arguments.
+  All public functions apart from `NON_DATASET_MEMBERS` are treated as datasets.
+  Dataset functions should not have any required positional arguments.
 
   Args:
     cls: A class variable or instance variable.  This function expects to be
@@ -67,10 +72,7 @@ def GetDatasets(cls, warn_on_error=True):
 
   datasets = []
   for name, _ in inspect.getmembers(cls, inspect.isroutine):
-    if name not in [
-        'GetAllDatasetParams', 'GetDatasetParams', 'Model', 'Task',
-        'ProgramSchedule'
-    ] and not name.startswith('_'):
+    if name not in NON_DATASET_MEMBERS and not name.startswith('_'):
       # Datasets are assumed to have no required positional arguments.
       fn = getattr(cls, name)
       args = list(inspect.signature(fn).parameters.values())
@@ -89,7 +91,7 @@ def GetDatasets(cls, warn_on_error=True):
         message = (f'Found a public function {name} in {class_name} with '
                    f'required positional arguments: {positional_arguments}.')
         if warn_on_error:
-          tf.logging.warning(message)
+          logging.warning(message)
         else:
           raise DatasetFunctionError(message)
       else:
