@@ -118,9 +118,10 @@
   <span class="k">return</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">caller</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span></div>
 
 
-<span class="c1"># :::MLL 1556733699.71 run_start: {&quot;value&quot;: null,</span>
+<span class="c1"># :::MLLOG {&quot;time_ms&quot;: 1556733699.71, &quot;key&quot;: &quot;run_start&quot;, &quot;value&quot;: null,</span>
 <span class="c1"># &quot;metadata&quot;: {&quot;lineno&quot;: 77, &quot;file&quot;: main.py}}</span>
-<span class="n">LOG_TEMPLATE</span> <span class="o">=</span> <span class="s1">&#39;:::MLL </span><span class="si">{:.3f}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">: {{&quot;value&quot;: </span><span class="si">{}</span><span class="s1">, &quot;metadata&quot;: </span><span class="si">{}</span><span class="s1">}}&#39;</span>
+<span class="n">LOG_TEMPLATE</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;:::MLLOG {{&quot;time_ms&quot;: </span><span class="si">{:.3f}</span><span class="s1">, &quot;key&quot;: </span><span class="si">{}</span><span class="s1">, &quot;value&quot;: </span><span class="si">{}</span><span class="s1">, &#39;</span>
+                <span class="s1">&#39;&quot;metadata&quot;: </span><span class="si">{}</span><span class="s1">}}&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="mlperf_format"><a class="viewcode-back" href="../../../lingvo.core.ml_perf_log.html#lingvo.core.ml_perf_log.mlperf_format">[docs]</a><span class="k">def</span> <span class="nf">mlperf_format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">now</span><span class="p">,</span> <span class="n">stack_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -133,7 +134,12 @@
     <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;lineno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lineno</span>
     <span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">filename</span>
 
-  <span class="n">msg</span> <span class="o">=</span> <span class="n">LOG_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">now</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">metadata</span><span class="p">))</span>
+  <span class="c1"># Avoid JSON serialization errors for NumPy types:</span>
+  <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">==</span> <span class="s1">&#39;numpy&#39;</span><span class="p">:</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+  <span class="n">msg</span> <span class="o">=</span> <span class="n">LOG_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">now</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+                            <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">metadata</span><span class="p">))</span>
   <span class="k">return</span> <span class="n">msg</span></div>
 
 

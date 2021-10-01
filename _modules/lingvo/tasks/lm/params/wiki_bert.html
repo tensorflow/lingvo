@@ -233,6 +233,20 @@
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">spmd</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TRAIN_EXES_PER_EVAL</span>
+
+    <span class="c1"># For compliance logging.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="o">=</span> <span class="s1">&#39;bert&#39;</span>
+
+    <span class="c1"># For BERT, we log the number of examples as the epoch.</span>
+    <span class="c1"># epoch_num = global_step / steps_per_epoch</span>
+    <span class="c1"># epoch_num = num_examples_trained = global_step * examples_per_step</span>
+    <span class="c1"># steps_per_epoch = global_step / (global_step * examples_per_step)</span>
+    <span class="c1"># steps_per_epoch = 1 / examples_per_step</span>
+    <span class="n">examples_per_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">BATCH_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">steps_per_epoch</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">examples_per_step</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">decoder_metric_name</span> <span class="o">=</span> <span class="s1">&#39;acc1&#39;</span>
+
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
