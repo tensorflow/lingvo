@@ -539,6 +539,9 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         'single_column_input=True, apply MASS to all tasks, otherwise '
         'only apply to the specified tasks.')
     p.Define('enable_mass_for_eval', False, 'Enables masking during eval.')
+    # TODO(b/201766229): Re-enable ID histograms when root problem is resolved.
+    p.Define('suppress_id_histograms', True,
+             'Suppresses histograms for source and target ids.')
     # Back translation
     p.Define('bt_task_ids', [], 'List of task ids for back-translation.')
     # Denoising (https://arxiv.org/pdf/1711.00043)
@@ -857,8 +860,9 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         tf.cast(batch.src.ids_indicator, tf.int32), axis=1)
     tgt_actual_seq_len = tf.math.reduce_sum(
         tf.cast(batch.tgt.ids_indicator, tf.int32), axis=1)
-    summary_utils.histogram('source_seq_lengths', src_actual_seq_len)
-    summary_utils.histogram('target_seq_lengths', tgt_actual_seq_len)
+    if not self.params.suppress_id_histograms:
+      summary_utils.histogram('source_seq_lengths', src_actual_seq_len)
+      summary_utils.histogram('target_seq_lengths', tgt_actual_seq_len)
 
     if not self.params.packing_factor:
       # Supply segment_ids and segment_pos with no packing.
@@ -1071,8 +1075,9 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
       ret.src = ret.src.Transform(_EnsureSrcShape)
       ret.tgt = ret.tgt.Transform(_EnsureTgtShape)
 
-    summary_utils.histogram('source_token_ids', ret.src.ids)
-    summary_utils.histogram('target_token_ids', ret.tgt.ids)
+    if not self.params.suppress_id_histograms:
+      summary_utils.histogram('source_token_ids', ret.src.ids)
+      summary_utils.histogram('target_token_ids', ret.tgt.ids)
 
     # Casts floating point tensors to fprop_dtype before returning.
     return ret.Transform(self.Cast)
