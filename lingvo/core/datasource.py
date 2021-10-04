@@ -381,19 +381,19 @@ class TFDatasetSource(DataSource):
     options.experimental_deterministic = bool(self.cluster.in_unit_test)
     ds = ds.with_options(options)
     self._dataset[self.host_id] = ds
-    if tf.executing_eagerly():
+    if tf.executing_eagerly_outside_functions():
       it = iter(ds)
     else:
       it = tf.data.make_initializable_iterator(ds)
     self._iterator[self.host_id] = it
 
   def Initialize(self, sess=None):
-    if not tf.executing_eagerly():
+    if not tf.executing_eagerly_outside_functions():
       sess.run([it.initializer for it in self._iterator.values()])
     super().Initialize(sess)
 
   def Reset(self, sess=None):
-    if tf.executing_eagerly():
+    if tf.executing_eagerly_outside_functions():
       self._iterator = {key: iter(ds) for key, ds in self._dataset.items()}
     else:
       sess.run([it.initializer for it in self._iterator.values()])
@@ -522,7 +522,7 @@ class RepeatableCustomTFDatasetTransform(CustomTFDatasetTransform):
     options.experimental_deterministic = bool(self.cluster.in_unit_test)
     ds = ds.with_options(options)
     self._dataset[self.host_id] = ds
-    if tf.executing_eagerly():
+    if tf.executing_eagerly_outside_functions():
       it = iter(ds)
     else:
       it = tf.data.make_initializable_iterator(ds)
