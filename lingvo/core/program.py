@@ -485,8 +485,14 @@ class TrainProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
+
+    # In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.
+    # In eager mode, we run it once at the start to initialize
+    # the datasets and iterators before `tf.function` because
+    # `tf.function` does not trace python side effects.
+    # https://www.tensorflow.org/guide/function#executing_python_side_effects
+    self._task.input.CreateTpuEnqueueOps()
     if not py_utils.IsEagerMode():
-      self._task.input.CreateTpuEnqueueOps()
       self._task.input.CreateTpuEmbeddingEnqueueOps()
 
     @tpu_function.on_device_training_loop
