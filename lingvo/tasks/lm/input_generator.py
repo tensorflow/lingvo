@@ -289,7 +289,7 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
              'Maximum number of tokens that can be masked per example.')
     p.Define('eos_token_id', 102, 'id for EOS token.')
     p.Define('shuffle', False, 'Whether to randomly shuffle.')
-    p.Define('file_buffer_size', 1000000,
+    p.Define('file_buffer_size', 10000000,
              'How many records are buffered for random shuffling.')
     p.Define('enable_packing', False,
              'Whether to pack multiple documents on the same row.')
