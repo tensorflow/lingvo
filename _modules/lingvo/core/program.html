@@ -550,8 +550,14 @@
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+
+    <span class="c1"># In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.</span>
+    <span class="c1"># In eager mode, we run it once at the start to initialize</span>
+    <span class="c1"># the datasets and iterators before `tf.function` because</span>
+    <span class="c1"># `tf.function` does not trace python side effects.</span>
+    <span class="c1"># https://www.tensorflow.org/guide/function#executing_python_side_effects</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
 
     <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
