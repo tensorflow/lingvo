@@ -245,3 +245,18 @@ class MLPerfBertDense1TWider(MLPerfBertDense1T):
   NUM_TRANSFORMER_LAYERS = 32
   HIDDEN_DIM = 131072 * 2
   MODEL_DIM = 16384 * 2
+
+
+@model_registry.RegisterSingleTaskModel
+class MLPerfBertDense175B(MLPerfBertDense1T):
+  """Large Bert model with 175B parameters on 1024 chips."""
+  BATCH_SIZE = 1024
+  HIDDEN_DIM = 12288 * 4
+  ATTENTION_KEY_VALUE_DIM = 128
+  MODEL_DIM = 12288
+  NUM_HEADS = 96
+  NUM_TRANSFORMER_LAYERS = 96
+
+  GATED_GELU = False
+  POSITIONAL_EMBEDDING = True
+  TRAIN_STEPS_PER_LOOP = 20
