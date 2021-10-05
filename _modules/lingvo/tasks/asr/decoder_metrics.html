@@ -274,10 +274,18 @@
       <span class="n">base_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
           <span class="c1"># TODO(xingwu): fully replace &#39;wer&#39; with &#39;error_rates/wer&#39;.</span>
           <span class="s1">&#39;wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Word error rate.</span>
-          <span class="s1">&#39;error_rates/ins&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Insert error rate</span>
-          <span class="s1">&#39;error_rates/sub&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Substitute error rate</span>
-          <span class="s1">&#39;error_rates/del&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Deletion error rate</span>
+          <span class="s1">&#39;error_rates/ins&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Insert error rate.</span>
+          <span class="s1">&#39;error_rates/sub&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Substitute error rate.</span>
+          <span class="s1">&#39;error_rates/del&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Deletion error rate.</span>
           <span class="s1">&#39;error_rates/wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Word error rate.</span>
+          <span class="s1">&#39;case_insensitive_error_rates/ins&#39;</span><span class="p">:</span>
+              <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Insert case-insensitive error rate.</span>
+          <span class="s1">&#39;case_insensitive_error_rates/sub&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(</span>
+          <span class="p">),</span>  <span class="c1"># Substitute case-insensitive error rate.</span>
+          <span class="s1">&#39;case_insensitive_error_rates/del&#39;</span><span class="p">:</span>
+              <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Deletion case-insensitive error rate.</span>
+          <span class="s1">&#39;case_insensitive_error_rates/wer&#39;</span><span class="p">:</span>
+              <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Case-insensitive Word error rate.</span>
           <span class="s1">&#39;sacc&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Sentence accuracy.</span>
           <span class="s1">&#39;ter&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Token error rate.</span>
           <span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>

@@ -147,7 +147,10 @@
    <span class="n">topk_scores</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">target_labels</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
    <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">)</span> <span class="o">=</span> <span class="n">postprocess_inputs</span>
 
+  <span class="c1"># Case sensitive WERs.</span>
   <span class="n">total_ins</span><span class="p">,</span> <span class="n">total_subs</span><span class="p">,</span> <span class="n">total_dels</span><span class="p">,</span> <span class="n">total_errs</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+  <span class="c1"># Case insensitive WERs.</span>
+  <span class="n">ci_total_ins</span><span class="p">,</span> <span class="n">ci_total_subs</span><span class="p">,</span> <span class="n">ci_total_dels</span><span class="p">,</span> <span class="n">ci_total_errs</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
   <span class="n">total_oracle_errs</span> <span class="o">=</span> <span class="mi">0</span>
   <span class="n">total_ref_words</span> <span class="o">=</span> <span class="mi">0</span>
   <span class="n">total_token_errs</span> <span class="o">=</span> <span class="mi">0</span>
@@ -186,10 +189,21 @@
       <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">filtered_top_hyps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
       <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
           <span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+
       <span class="n">total_ins</span> <span class="o">+=</span> <span class="n">ins</span>
       <span class="n">total_subs</span> <span class="o">+=</span> <span class="n">subs</span>
       <span class="n">total_dels</span> <span class="o">+=</span> <span class="n">dels</span>
       <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
+
+      <span class="c1"># Calculating case_insensitive WERs</span>
+      <span class="n">ci_ins</span><span class="p">,</span> <span class="n">ci_subs</span><span class="p">,</span> <span class="n">ci_dels</span><span class="p">,</span> <span class="n">ci_errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
+          <span class="n">filtered_ref</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">filtered_hyp</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+
+      <span class="n">ci_total_ins</span> <span class="o">+=</span> <span class="n">ci_ins</span>
+      <span class="n">ci_total_subs</span> <span class="o">+=</span> <span class="n">ci_subs</span>
+      <span class="n">ci_total_dels</span> <span class="o">+=</span> <span class="n">ci_dels</span>
+      <span class="n">ci_total_errs</span> <span class="o">+=</span> <span class="n">ci_errs</span>
+
       <span class="n">ref_words</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
       <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="n">ref_words</span>
       <span class="k">if</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -197,6 +211,11 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
           <span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">, ref_words: </span><span class="si">%d</span><span class="s1">, wer: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span>
           <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">,</span> <span class="n">errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">))</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;  ci_ins: </span><span class="si">%d</span><span class="s1">, ci_subs: </span><span class="si">%d</span><span class="s1">, ci_del: </span><span class="si">%d</span><span class="s1">, ci_total: </span><span class="si">%d</span><span class="s1">, &#39;</span>
+          <span class="s1">&#39;ref_words: </span><span class="si">%d</span><span class="s1">, ci_wer: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ci_ins</span><span class="p">,</span> <span class="n">ci_subs</span><span class="p">,</span> <span class="n">ci_dels</span><span class="p">,</span> <span class="n">ci_errs</span><span class="p">,</span>
+          <span class="n">ref_words</span><span class="p">,</span> <span class="n">ci_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">))</span>
 
     <span class="n">total_oracle_errs</span> <span class="o">+=</span> <span class="n">oracle_errs</span>
 
@@ -211,6 +230,16 @@
       <span class="n">total_dels</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
   <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;error_rates/wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
       <span class="n">total_errs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;case_insensitive_error_rates/ins&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">ci_total_ins</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;case_insensitive_error_rates/sub&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">ci_total_subs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;case_insensitive_error_rates/del&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">ci_total_dels</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+  <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;case_insensitive_error_rates/wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+      <span class="n">ci_total_errs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+
   <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
       <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="n">non_zero_total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
   <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;sacc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_accurate_sentences</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">),</span>
