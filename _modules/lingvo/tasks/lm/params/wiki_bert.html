@@ -310,6 +310,21 @@
   <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">32</span>
   <span class="n">HIDDEN_DIM</span> <span class="o">=</span> <span class="mi">131072</span> <span class="o">*</span> <span class="mi">2</span>
   <span class="n">MODEL_DIM</span> <span class="o">=</span> <span class="mi">16384</span> <span class="o">*</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="MLPerfBertDense175B"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.wiki_bert.html#lingvo.tasks.lm.params.wiki_bert.MLPerfBertDense175B">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">MLPerfBertDense175B</span><span class="p">(</span><span class="n">MLPerfBertDense1T</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Large Bert model with 175B parameters on 1024 chips.&quot;&quot;&quot;</span>
+  <span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="mi">1024</span>
+  <span class="n">HIDDEN_DIM</span> <span class="o">=</span> <span class="mi">12288</span> <span class="o">*</span> <span class="mi">4</span>
+  <span class="n">ATTENTION_KEY_VALUE_DIM</span> <span class="o">=</span> <span class="mi">128</span>
+  <span class="n">MODEL_DIM</span> <span class="o">=</span> <span class="mi">12288</span>
+  <span class="n">NUM_HEADS</span> <span class="o">=</span> <span class="mi">96</span>
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">96</span>
+
+  <span class="n">GATED_GELU</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">POSITIONAL_EMBEDDING</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">TRAIN_STEPS_PER_LOOP</span> <span class="o">=</span> <span class="mi">20</span></div>
 </pre></div>
 
            </div>
