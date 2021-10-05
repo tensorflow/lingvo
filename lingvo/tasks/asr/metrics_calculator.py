@@ -82,7 +82,10 @@ def CalculateMetrics(
    topk_scores, utt_id, norm_wer_errors, target_labels, target_paddings,
    topk_ids, topk_lens) = postprocess_inputs
 
+  # Case sensitive WERs.
   total_ins, total_subs, total_dels, total_errs = 0, 0, 0, 0
+  # Case insensitive WERs.
+  ci_total_ins, ci_total_subs, ci_total_dels, ci_total_errs = 0, 0, 0, 0
   total_oracle_errs = 0
   total_ref_words = 0
   total_token_errs = 0
@@ -121,10 +124,21 @@ def CalculateMetrics(
       filtered_hyp = filtered_top_hyps[i]
       ins, subs, dels, errs = decoder_utils.EditDistance(
           filtered_ref, filtered_hyp)
+
       total_ins += ins
       total_subs += subs
       total_dels += dels
       total_errs += errs
+
+      # Calculating case_insensitive WERs
+      ci_ins, ci_subs, ci_dels, ci_errs = decoder_utils.EditDistance(
+          filtered_ref.lower(), filtered_hyp.lower())
+
+      ci_total_ins += ci_ins
+      ci_total_subs += ci_subs
+      ci_total_dels += ci_dels
+      ci_total_errs += ci_errs
+
       ref_words = len(decoder_utils.Tokenize(filtered_ref))
       total_ref_words += ref_words
       if norm_wer_errors[i, n] == 0:
@@ -132,6 +146,11 @@ def CalculateMetrics(
       tf.logging.info(
           '  ins: %d, subs: %d, del: %d, total: %d, ref_words: %d, wer: %f',
           ins, subs, dels, errs, ref_words, errs / max(1, ref_words))
+
+      tf.logging.info(
+          '  ci_ins: %d, ci_subs: %d, ci_del: %d, ci_total: %d, '
+          'ref_words: %d, ci_wer: %f', ci_ins, ci_subs, ci_dels, ci_errs,
+          ref_words, ci_errs / max(1, ref_words))
 
     total_oracle_errs += oracle_errs
 
@@ -146,6 +165,16 @@ def CalculateMetrics(
       total_dels / non_zero_total_ref_words, total_ref_words)
   dec_metrics_dict['error_rates/wer'].Update(
       total_errs / non_zero_total_ref_words, total_ref_words)
+
+  dec_metrics_dict['case_insensitive_error_rates/ins'].Update(
+      ci_total_ins / non_zero_total_ref_words, total_ref_words)
+  dec_metrics_dict['case_insensitive_error_rates/sub'].Update(
+      ci_total_subs / non_zero_total_ref_words, total_ref_words)
+  dec_metrics_dict['case_insensitive_error_rates/del'].Update(
+      ci_total_dels / non_zero_total_ref_words, total_ref_words)
+  dec_metrics_dict['case_insensitive_error_rates/wer'].Update(
+      ci_total_errs / non_zero_total_ref_words, total_ref_words)
+
   dec_metrics_dict['oracle_norm_wer'].Update(
       total_oracle_errs / non_zero_total_ref_words, total_ref_words)
   dec_metrics_dict['sacc'].Update(total_accurate_sentences / len(transcripts),

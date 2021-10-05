@@ -209,10 +209,18 @@ class DecoderMetrics(base_layer.BaseLayer):
       base_metrics.update({
           # TODO(xingwu): fully replace 'wer' with 'error_rates/wer'.
           'wer': metrics.AverageMetric(),  # Word error rate.
-          'error_rates/ins': metrics.AverageMetric(),  # Insert error rate
-          'error_rates/sub': metrics.AverageMetric(),  # Substitute error rate
-          'error_rates/del': metrics.AverageMetric(),  # Deletion error rate
+          'error_rates/ins': metrics.AverageMetric(),  # Insert error rate.
+          'error_rates/sub': metrics.AverageMetric(),  # Substitute error rate.
+          'error_rates/del': metrics.AverageMetric(),  # Deletion error rate.
           'error_rates/wer': metrics.AverageMetric(),  # Word error rate.
+          'case_insensitive_error_rates/ins':
+              metrics.AverageMetric(),  # Insert case-insensitive error rate.
+          'case_insensitive_error_rates/sub': metrics.AverageMetric(
+          ),  # Substitute case-insensitive error rate.
+          'case_insensitive_error_rates/del':
+              metrics.AverageMetric(),  # Deletion case-insensitive error rate.
+          'case_insensitive_error_rates/wer':
+              metrics.AverageMetric(),  # Case-insensitive Word error rate.
           'sacc': metrics.AverageMetric(),  # Sentence accuracy.
           'ter': metrics.AverageMetric(),  # Token error rate.
           'oracle_norm_wer': metrics.AverageMetric(),

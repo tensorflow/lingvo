@@ -246,6 +246,9 @@ class AsrModelTest(test_utils.TestCase):
             mock.call(
                 '  ins: %d, subs: %d, del: %d, '
                 'total: %d, ref_words: %d, wer: %f', 0, 0, 0, 0, 1, 0.0),
+            mock.call(
+                '  ci_ins: %d, ci_subs: %d, ci_del: %d, '
+                'ci_total: %d, ref_words: %d, ci_wer: %f', 0, 0, 0, 0, 1, 0.0),
             mock.call('  %f: %s', 0.9, 'あいう'),
             mock.call('utt_id: %s', 'utt2'),
             mock.call('  ref_str: %s', 'あ'),
@@ -258,6 +261,9 @@ class AsrModelTest(test_utils.TestCase):
             mock.call(
                 '  ins: %d, subs: %d, del: %d, '
                 'total: %d, ref_words: %d, wer: %f', 0, 1, 0, 1, 1, 1.0),
+            mock.call(
+                '  ci_ins: %d, ci_subs: %d, ci_del: %d, '
+                'ci_total: %d, ref_words: %d, ci_wer: %f', 0, 1, 0, 1, 1, 1.0),
             mock.call('  %f: %s', 0.9, ''),
         ])
 
