@@ -904,12 +904,14 @@ class GroupNormLayer(base_layer.BaseLayer):
       mean: [B, T, 1, N, 1] or [B, T, N, 1]
       variance: same shape as mean.
       new_cached_sum: same shape as cached_sum.
-      new_cached_count: same shape as cached_count.
+      new_cached_count: same shape as cached_sum.
+      new_cached_var: same shape as cached_sum.
     """
     tf.logging.vlog(1, 'inputs: %r', inputs)
     tf.logging.vlog(1, 'paddings: %r', paddings)
     tf.logging.vlog(1, 'cached_sum: %r', cached_sum)
     tf.logging.vlog(1, 'cached_count: %r', cached_count)
+    tf.logging.vlog(1, 'cached_var: %r', cached_var)
 
     inputs = py_utils.ApplyPadding(paddings, inputs, use_select=False)
 
@@ -940,9 +942,6 @@ class GroupNormLayer(base_layer.BaseLayer):
     count_v *= multiplier
     count_v += cached_count
 
-    tf.logging.vlog(1, 'sum_v: %r', sum_v)
-    tf.logging.vlog(1, 'count_v: %r', count_v)
-
     mean = sum_v / tf.maximum(count_v, 1.0)
 
     sum_vv = tf.reduce_sum(
@@ -962,6 +961,11 @@ class GroupNormLayer(base_layer.BaseLayer):
     variance = py_utils.with_dependencies([
         py_utils.assert_greater_equal(sum_vv, tf.cast(0, sum_vv.dtype)),
     ], sum_vv / tf.maximum(count_v, 1.0))
+
+    tf.logging.vlog(1, 'sum_v: %r', sum_v)
+    tf.logging.vlog(1, 'count_v: %r', count_v)
+    tf.logging.vlog(1, 'sum_vv: %r', sum_vv)
+
     return mean, variance, cached_sum, cached_count, cached_var
 
   def StreamStep(self, theta, inputs, paddings, state0):
