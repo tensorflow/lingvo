@@ -969,12 +969,14 @@
 <span class="sd">      mean: [B, T, 1, N, 1] or [B, T, N, 1]</span>
 <span class="sd">      variance: same shape as mean.</span>
 <span class="sd">      new_cached_sum: same shape as cached_sum.</span>
-<span class="sd">      new_cached_count: same shape as cached_count.</span>
+<span class="sd">      new_cached_count: same shape as cached_sum.</span>
+<span class="sd">      new_cached_var: same shape as cached_sum.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;inputs: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;paddings: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;cached_sum: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cached_sum</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;cached_count: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cached_count</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;cached_var: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cached_var</span><span class="p">)</span>
 
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">use_select</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
@@ -1005,9 +1007,6 @@
     <span class="n">count_v</span> <span class="o">*=</span> <span class="n">multiplier</span>
     <span class="n">count_v</span> <span class="o">+=</span> <span class="n">cached_count</span>
 
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;sum_v: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sum_v</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;count_v: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">count_v</span><span class="p">)</span>
-
     <span class="n">mean</span> <span class="o">=</span> <span class="n">sum_v</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 
     <span class="n">sum_vv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
@@ -1027,6 +1026,11 @@
     <span class="n">variance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">sum_vv</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sum_vv</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
     <span class="p">],</span> <span class="n">sum_vv</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;sum_v: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sum_v</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;count_v: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">count_v</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;sum_vv: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sum_vv</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">cached_sum</span><span class="p">,</span> <span class="n">cached_count</span><span class="p">,</span> <span class="n">cached_var</span></div>
 
 <div class="viewcode-block" id="GroupNormLayer.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
