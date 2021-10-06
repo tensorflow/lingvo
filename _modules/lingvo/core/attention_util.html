@@ -577,6 +577,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;apply_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to apply LayerNorm() on the &#39;</span>
         <span class="s1">&#39;inputs first. If unset, caller must normalize first.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bfloat16&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to explicitly use bfloat16 for &#39;</span>
+             <span class="s1">&#39;computation.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;trainable&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to allow centroids to be trainable.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -589,13 +592,14 @@
 <div class="viewcode-block" id="KMeansClusteringForAtten._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bfloat16</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
     <span class="c1"># The per-head centroids. Shape [N, K, H].</span>
     <span class="n">means</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;means&#39;</span><span class="p">,</span> <span class="n">means</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;means&#39;</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">trainable</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="KMeansClusteringForAtten.LayerNorm"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">LayerNorm</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
@@ -615,6 +619,8 @@
         <span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">normalize_moments</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span>
                                              <span class="kc">None</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;k_means/ln/mean&#39;</span><span class="p">,</span> <span class="n">mean</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;k_means/ln/variance&#39;</span><span class="p">,</span> <span class="n">variance</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="KMeansClusteringForAtten.FProp"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -636,6 +642,7 @@
 <span class="sd">                    centroid, a scalar.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
     <span class="c1"># Shape [B, L, 1, 1]</span>
@@ -656,9 +663,7 @@
 
     <span class="c1"># Shape [B, L, N, K], the same as &#39;dists&#39; above.</span>
     <span class="n">nearest_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="c1"># Same shape as the input &#39;x&#39;.</span>
     <span class="n">nearest_centroid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLNK, NKH -&gt; BLNH&#39;</span><span class="p">,</span> <span class="n">nearest_one_hot</span><span class="p">,</span>
                                  <span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="p">)</span>
@@ -668,6 +673,8 @@
 
     <span class="c1"># The commitment loss which when back proped against encourages the &#39;x&#39;</span>
     <span class="c1"># values to commit to their chosen centroids.</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">k_means_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">)</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;k_means/squared_distance_loss&#39;</span><span class="p">,</span> <span class="n">k_means_loss</span><span class="p">)</span>
 
