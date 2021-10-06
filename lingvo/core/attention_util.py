@@ -512,6 +512,9 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     p.Define(
         'apply_layer_norm', True, 'Whether to apply LayerNorm() on the '
         'inputs first. If unset, caller must normalize first.')
+    p.Define('use_bfloat16', False, 'Whether to explicitly use bfloat16 for '
+             'computation.')
+    p.Define('trainable', True, 'Whether to allow centroids to be trainable.')
     return p
 
   def __init__(self, params):
@@ -524,13 +527,14 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    self._dtype = tf.bfloat16 if p.use_bfloat16 else tf.float32
     # The per-head centroids. Shape [N, K, H].
     means = py_utils.WeightParams(
         shape=[p.num_heads, p.num_clusters, p.dim_per_head],
         init=py_utils.WeightInit.Gaussian(),
-        dtype=p.dtype,
+        dtype=self._dtype,
         collections=[self.__class__.__name__ + '_vars'])
-    self.CreateVariable('means', means)
+    self.CreateVariable('means', means, trainable=p.trainable)
 
   @classmethod
   def LayerNorm(cls, x, epsilon=1e-6):
@@ -550,6 +554,8 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
         x, axes=[-1], keepdims=True)
     mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
                                              None)
+    summary_utils.histogram('k_means/ln/mean', mean)
+    summary_utils.histogram('k_means/ln/variance', variance)
     return (x - mean) * tf.math.rsqrt(variance + epsilon)
 
   def FProp(self, theta, x, paddings=None, update=False):
@@ -571,6 +577,7 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
                     centroid, a scalar.
     """
     p = self.params
+    x = tf.cast(x, theta.means.dtype)
     if paddings is None:
       paddings = tf.zeros_like(x[:, :, 0, 0])
     # Shape [B, L, 1, 1]
@@ -591,9 +598,7 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
 
     # Shape [B, L, N, K], the same as 'dists' above.
     nearest_one_hot = tf.one_hot(
-        tf.math.argmin(dists, axis=-1),
-        p.num_clusters,
-        dtype=py_utils.FPropDtype(p))
+        tf.math.argmin(dists, axis=-1), p.num_clusters, dtype=theta.means.dtype)
     # Same shape as the input 'x'.
     nearest_centroid = tf.einsum('BLNK, NKH -> BLNH', nearest_one_hot,
                                  theta.means)
@@ -603,6 +608,8 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
 
     # The commitment loss which when back proped against encourages the 'x'
     # values to commit to their chosen centroids.
+    diff = tf.cast(diff, tf.float32)
+    paddings = tf.cast(paddings, tf.float32)
     k_means_loss = tf.math.reduce_sum(diff) / tf.math.reduce_sum(1.0 - paddings)
     summary_utils.scalar('k_means/squared_distance_loss', k_means_loss)
 

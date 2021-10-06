@@ -250,6 +250,28 @@ class KMeansClusteringForAttenTest(test_utils.TestCase):
                        (batch_size, seq_length, p.num_heads, p.num_clusters))
       self.assertEqual(loss.shape, ())
 
+  def testFPropWithBfloat16AndNonTrainable(self):
+    p = attention_util.KMeansClusteringForAtten.Params()
+    p.name = 'k_means'
+    p.num_clusters = 2
+    p.dim_per_head = 4
+    p.num_heads = 3
+    p.trainable = False
+    p.use_bfloat16 = True
+    batch_size = 5
+    seq_length = 6
+    x = np.random.rand(batch_size, seq_length, p.num_heads,
+                       p.dim_per_head).astype(np.float32)
+    k_means = p.Instantiate()
+
+    with self.session():
+      dists, loss = k_means.FProp(k_means.theta, x, update=True)
+      self.evaluate(tf.global_variables_initializer())
+      dists, loss = self.evaluate([dists, loss])
+      self.assertEqual(dists.shape,
+                       (batch_size, seq_length, p.num_heads, p.num_clusters))
+      self.assertEqual(loss.shape, ())
+
   def testFPropFixedInput(self):
     p = attention_util.KMeansClusteringForAtten.Params()
     p.name = 'k_means'
