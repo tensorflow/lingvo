@@ -643,11 +643,14 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
     channel = kwargs['input_dim']
     channel_multiplier = kwargs['channel_multiplier']
     kernel = kwargs['kernel']
+    bias = kwargs['bias']
     p = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
         name='conv',
         filter_stride=[1, 1],
         filter_shape=[kernel, 1, channel, channel_multiplier],
-        params_init=py_utils.WeightInit.Gaussian(0.1))
+        params_init=py_utils.WeightInit.Gaussian(0.1),
+        bias=bias,
+        bias_init=py_utils.WeightInit.Gaussian(0.1))
     return p
 
   def _FProp(self, layer, inputs, paddings):
@@ -659,11 +662,13 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
   @parameterized.named_parameters(
       ('Basic',),
       ('BasicS2', False, 2),
+      ('BasicBias', False, 1, True),
       ('SkipNorm', True),
       ('SkipNormS4', True, 4),
   )
-  def testCommon(self, testonly_skip_norm_layers=False, stride=1):
-    kwargs = dict(input_dim=3, kernel=5, stride=stride, channel_multiplier=1)
+  def testCommon(self, testonly_skip_norm_layers=False, stride=1, bias=False):
+    kwargs = dict(
+        input_dim=3, kernel=5, stride=stride, channel_multiplier=1, bias=bias)
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
       self._TestStreamStepHelper(**kwargs)
@@ -753,11 +758,14 @@ class CausalConv2DLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
   def _GetParams(self, **kwargs):
     channel = kwargs['input_dim']
     kernel = kwargs['kernel']
+    bias = kwargs['bias']
     p = conv_layers.CausalConv2DLayerWithPadding.Params().Set(
         name='conv',
         filter_stride=[1, 1],
         filter_shape=[kernel, 1, channel, channel],
-        params_init=py_utils.WeightInit.Gaussian(0.1))
+        params_init=py_utils.WeightInit.Gaussian(0.1),
+        bias=bias,
+        bias_init=py_utils.WeightInit.Gaussian(0.1))
     return p
 
   def _FProp(self, layer, inputs, paddings):
@@ -769,11 +777,12 @@ class CausalConv2DLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
   @parameterized.named_parameters(
       ('Basic',),
       ('BasicS2', False, 2),
+      ('BasicBias', False, 1, True),
       ('SkipNorm', True),
       ('SkipNormS4', True, 4),
   )
-  def testCommon(self, testonly_skip_norm_layers=False, stride=1):
-    kwargs = dict(input_dim=3, kernel=5, stride=stride)
+  def testCommon(self, testonly_skip_norm_layers=False, stride=1, bias=False):
+    kwargs = dict(input_dim=3, kernel=5, stride=stride, bias=bias)
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
       self._TestStreamStepHelper(**kwargs)

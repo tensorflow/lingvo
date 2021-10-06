@@ -421,6 +421,8 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
   def Params(cls):
     p = super().Params()
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
+    p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
+             'Bias initializer to use if bias is to be applied.')
     return p
 
   def _CreateLayerVariables(self):
@@ -446,7 +448,7 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
           'b',
           py_utils.WeightParams(
               shape=[self.output_channels],
-              init=py_utils.WeightInit.Constant(0.0),
+              init=p.bias_init,
               dtype=p.dtype,
               collections=[self.__class__.__name__ + '_vars']))
 
@@ -519,7 +521,7 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
     return py_utils.NestedMap(context=context)
 
   def StreamStep(self, theta, inputs, paddings, state0):
-    """Apply a singele step of convolution to input_tensor.
+    """Apply a single step of convolution to input_tensor.
 
     Only supports 1d causal convolution. Doesn't support dilation.
 
@@ -557,6 +559,8 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
           dilations=p.dilation_rate,
           data_format='NHWC',
           padding='VALID')
+      if p.bias:
+        outputs = tf.nn.bias_add(outputs, theta.b)
       new_context = concat_inputs[:, q:]
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
@@ -580,6 +584,8 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
         ' the order of height (time), width (frequency), in_channel,'
         ' channel_multipliers. ')
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
+    p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
+             'Bias initializer to use if bias is to be applied.')
     return p
 
   def __init__(self, params):
@@ -610,7 +616,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
           'b',
           py_utils.WeightParams(
               shape=[self.output_channels],
-              init=py_utils.WeightInit.Constant(0.0),
+              init=p.bias_init,
               dtype=p.dtype,
               collections=[self.__class__.__name__ + '_vars']))
 
@@ -692,7 +698,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     return py_utils.NestedMap(context=context)
 
   def StreamStep(self, theta, inputs, paddings, state0):
-    """Apply a singele step of convolution to input_tensor.
+    """Apply a single step of convolution to input_tensor.
 
     Only supports 1d causal convolution. Doesn't support dilation.
 
@@ -730,6 +736,8 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
           dilations=(1, 1),
           data_format='NHWC',
           padding='VALID')
+      if p.bias:
+        outputs = tf.nn.bias_add(outputs, theta.b)
       new_context = concat_inputs[:, q:]
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
