@@ -663,6 +663,43 @@ class EvalProgram(BaseProgram):
         summed_metrics.append(x + y)
       return summed_metrics
 
+  def EvalFunc(self):
+    """Eval function."""
+
+    @tpu_function.on_device_training_loop
+    def TpuEvalLoop():
+      loop_result = tpu_training_loop.repeat(
+          self._steps_per_loop,
+          self.TpuEvalStep,
+          inputs=self._eval_metrics.initial_values,
+          name='eval_loop')
+      # Final metrics are the avg across self._steps_per_loop steps.
+      return self._eval_metrics.FinalizeMetrics(loop_result)
+
+    if py_utils.IsEagerMode():
+      # Run the infeed loop in the same function that runs the training loop
+      # so that infeed enqueue/dequeue ops are created by the same
+      # InfeedQueue.
+      def InfeedBody(i):
+        self._task.input.CreateTpuEnqueueOps()
+        return i + 1
+
+      tf.while_loop(
+          cond=lambda i: i < self._steps_per_loop,
+          body=InfeedBody,
+          loop_vars=[tf.constant(0)])
+
+    # TODO(laigd): investigate how to run compilation only to catch errors
+    # earlier.
+    self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
+        TpuEvalLoop,
+        num_shards=self.data_parallelism,
+        device_assignment=py_utils.GetTpuDeviceAssignment())
+
+    # Get metric result from a single replica; they are all same here
+    # because TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
+    return [t[0] for t in batch_parallel_res]
+
   def BuildTpuSubgraph(self):
     tf.logging.info(f'EvalProgram {self.params.dataset_name} BuildTpuSubGraph')
     p = self.params
@@ -671,50 +708,20 @@ class EvalProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
+      # In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.
+      # In eager mode, we run it once at the start to initialize
+      # the datasets and iterators before `tf.function` because
+      # `tf.function` does not trace python side effects.
+      # https://www.tensorflow.org/guide/function#executing_python_side_effects
+      self._task.input.CreateTpuEnqueueOps()
       if not py_utils.IsEagerMode():
-        self._task.input.CreateTpuEnqueueOps()
         self._task.input.CreateTpuEmbeddingEnqueueOps()
-
-      @tpu_function.on_device_training_loop
-      def TpuEvalLoop():
-        loop_result = tpu_training_loop.repeat(
-            self._steps_per_loop,
-            self.TpuEvalStep,
-            inputs=self._eval_metrics.initial_values,
-            name='eval_loop')
-        # Final metrics are the avg across self._steps_per_loop steps.
-        return self._eval_metrics.FinalizeMetrics(loop_result)
-
-      def EvalFunc():
-        if py_utils.IsEagerMode():
-          # Run the infeed loop in the same function that runs the training loop
-          # so that infeed enqueue/dequeue ops are created by the same
-          # InfeedQueue.
-          def InfeedBody(i):
-            self._task.input.CreateTpuEnqueueOps()
-            return i + 1
-
-          tf.while_loop(
-              cond=lambda i: i < self._steps_per_loop,
-              body=InfeedBody,
-              loop_vars=[tf.constant(0)])
-
-        # TODO(laigd): investigate how to run compilation only to catch errors
-        # earlier.
-        self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
-            TpuEvalLoop,
-            num_shards=self.data_parallelism,
-            device_assignment=py_utils.GetTpuDeviceAssignment())
-
-        # Get metric result from a single replica; they are all same here
-        # because TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
-        return [t[0] for t in batch_parallel_res]
 
       if py_utils.IsEagerMode():
         self.tpu_ops = (
-            tf.function(autograph=False)(EvalFunc).get_concrete_function())
+            tf.function(autograph=False)(self.EvalFunc).get_concrete_function())
       else:
-        self.tpu_ops = EvalFunc()
+        self.tpu_ops = self.EvalFunc()
 
   def Run(self, sess=None):
     if py_utils.IsEagerMode():
@@ -723,12 +730,17 @@ class EvalProgram(BaseProgram):
       global_step = sess.run(self._model.global_step)
 
     if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
       if py_utils.IsEagerMode():
-        # TODO(laigd): reset input generator.
-        raise ValueError('Input_generator resetting is not yet supported.')
-      else:
-        tf.logging.info('Resetting input_generator.')
-        self._task.input.Reset(sess)
+        # In eager mode, after resetting the input generator, we need to
+        # re-trace the tf.function to ensure it uses the new iterator.
+        # See TFDatasetSource::Reset().
+        # TODO(b/202289733): How to reset the iterator in-place to avoid needing
+        # to re-trace tf.function which can be expensive (results in a TPU
+        # recompile each time)?
+        self.tpu_ops = (
+            tf.function(autograph=False)(self.EvalFunc).get_concrete_function())
 
     if py_utils.IsEagerMode():
       values = self.tpu_ops()
