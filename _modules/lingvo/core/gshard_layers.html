@@ -426,12 +426,15 @@
         <span class="s1">&#39;repeats for each stage.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unroll&#39;</span><span class="p">,</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">,</span>
              <span class="s1">&#39;Unroll the layers: never, eval_only, always.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;aux_loss_microbatch_accumulation&#39;</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Aux loss accumulation across microbatches: mean, sum&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">unroll</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;never&#39;</span><span class="p">,</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">,</span> <span class="s1">&#39;always&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">aux_loss_microbatch_accumulation</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;sum&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">circular_repeat</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="c1"># Circular pipeline only supported for single_stage_body without per-stage</span>
       <span class="c1"># vars, and with stage sharding.</span>
@@ -1183,6 +1186,8 @@
 
       <span class="n">aux_loss_context</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AuxLossContext</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">aux_loss_context</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">aux_loss_microbatch_accumulation</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+          <span class="n">outputs</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">aux_loss</span><span class="p">,</span> <span class="n">num_microbatches</span><span class="p">)</span>
         <span class="n">aux_loss_context</span><span class="o">.</span><span class="n">AddLoss</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">aux_loss</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_summary_structure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
