@@ -361,12 +361,15 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         'repeats for each stage.')
     p.Define('unroll', 'eval_only',
              'Unroll the layers: never, eval_only, always.')
+    p.Define('aux_loss_microbatch_accumulation', 'mean',
+             'Aux loss accumulation across microbatches: mean, sum')
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
     assert p.unroll in ('never', 'eval_only', 'always')
+    assert p.aux_loss_microbatch_accumulation in ('mean', 'sum')
     if p.circular_repeat > 1:
       # Circular pipeline only supported for single_stage_body without per-stage
       # vars, and with stage sharding.
@@ -1118,6 +1121,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
       aux_loss_context = py_utils.AuxLossContext.Current()
       if aux_loss_context:
+        if p.aux_loss_microbatch_accumulation == 'mean':
+          outputs.aux_loss = tf.div(outputs.aux_loss, num_microbatches)
         aux_loss_context.AddLoss(outputs.aux_loss)
 
       if self._tpu_summary_structure is not None:
