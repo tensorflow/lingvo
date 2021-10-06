@@ -743,6 +743,7 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
         left_context=3,
         right_context=right_context,
         ffn_dim=4,
+        stride=stride,
         norm_type=norm_type,
         has_lconv=has_lconv,
         has_fflayer_start=has_fflayer_start,
