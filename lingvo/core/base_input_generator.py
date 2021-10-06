@@ -423,7 +423,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
           batch = new_batch
 
         self._batch_nm_types = batch[0]
-        tf.logging.info('host_device: %s, batch: %r', host_device, batch)
+        tf.logging.info('host_device: %s, batch: %r', host_device,
+                        py_utils.Transform(lambda x: x.shape, batch))
         self._per_host_batches.append(batch)
 
         for b in batch:
