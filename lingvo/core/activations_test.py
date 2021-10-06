@@ -16,6 +16,7 @@
 """Tests for layers."""
 
 import lingvo.compat as tf
+from lingvo.core import activations
 from lingvo.core import test_utils
 import numpy as np
 
@@ -53,6 +54,20 @@ class ActivationsTest(test_utils.TestCase):
       # pyformat: enable
       # pylint: enable=bad-whitespace
       self.assertAllClose(expected_grads_gelu, actual_grads_gelu)
+
+  def testSquaredReluActivation(self):
+    with self.session(use_gpu=True):
+      inputs = tf.constant(
+          np.linspace(-5.0, 5.0, num=11, dtype='float32'), dtype=tf.float32)
+      act_fn = activations.GetFn('SQUARED_RELU')
+
+      for inp, out in [(-10.0, 0.0), (0.0, 0.0), (2.0, 4.0)]:
+        self.assertEqual(out, act_fn(tf.constant(inp, dtype='float32')).eval())
+      grads_squared_relu = tf.gradients(act_fn(inputs), inputs)
+      grads_squared_relu = grads_squared_relu[0].eval()
+
+      self.assertAllClose([0., 0., 0., 0., 0., 0., 2., 4., 6., 8., 10.],
+                          grads_squared_relu)
 
 
 if __name__ == '__main__':

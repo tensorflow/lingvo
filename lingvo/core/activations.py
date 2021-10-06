@@ -30,6 +30,8 @@ _ACTIVATIONS = {
     'GELU_APPROXIMATE': lambda x: tf.nn.gelu(x, approximate=True),
     'SWISH': tf.nn.swish,
     'SOFTPLUS': tf.nn.softplus,
+    # Squared ReLU from the Primer paper: https://arxiv.org/abs/2109.08668
+    'SQUARED_RELU': lambda x: tf.math.square(tf.nn.relu(x)),
     'NONE': tf.identity,
 }
 
@@ -50,6 +52,7 @@ _ACTIVATIONS_FLOPS = {
     'SWISH': 5,  # sigmoid, mul
     # ln(1+exp(x))
     'SOFTPLUS': 3,  # exp, add, ln
+    'SQUARED_RELU': 2,  # relu, mul
 }
 
 

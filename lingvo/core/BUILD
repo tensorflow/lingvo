@@ -31,6 +31,7 @@ lingvo_cuda_py_test(
     python_version = "PY3",
     shard_count = 5,
     deps = [
+        ":activations",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
