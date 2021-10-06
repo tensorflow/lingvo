@@ -66,7 +66,29 @@ def _VarKey(var):
 
 
 class Saver:
-  """Simpler version of tf.train.Saver with extra sanity checks."""
+  """Simpler version of tf.train.Saver with extra sanity checks.
+
+  This version of the Saver has support for sanity checking variable
+  values before saving a checkpoint.  Additionally, it has more defined
+  behavior with respect to pre-emptions. The tf.train.Saver by default
+  creates a new checkpoint state file each run, which breaks the `keep_latest_n`
+  functionality.  However, if the checkpoint state file is reloaded each run,
+  it breaks the `keep_every_n_hours` functionality as old checkpoints
+  that were meant to be persisted indefinitely will be deleted.
+
+
+  The garbage collection policy only impacts checkpoints that
+  are tracked in the checkpoint state file.
+
+  This has the following potential issues:
+  1) The checkpoint save might happen without the state getting updated
+  (pre-emption in between), which means that this checkpoint will never
+  be GCed since it never makes it to the state file.
+
+  2) It's also possible that a pre-emption occurs after saving the
+  checkpoint state file but before checkpointing, so checkpoints
+  that would have otherwise been deleted will live forever.
+  """
 
   RE_PATTERN = re.compile(r"^.*/ckpt-(\d+).*$")
 
@@ -139,21 +161,18 @@ class Saver:
         filename_prefix, Saver.RE_PATTERN)
     return int(match.group(1))
 
-  def _GarbageCollect(self):
-    """Garbage collect obsolete checkpoint files."""
-    state = self._GetState()
+  def _GarbageCollect(self, ids_to_garbage_collect):
+    """Garbage collect obsolete checkpoint files.
 
-    valid_ids = set()
-    if state.model_checkpoint_path:
-      valid_ids.add(self.GetCheckpointId(state.model_checkpoint_path))
-    for path in state.all_model_checkpoint_paths:
-      valid_ids.add(self.GetCheckpointId(path))
+    Args:
+      ids_to_garbage_collect: A set of int ids to delete.
+    """
 
     existing_files = tf.io.gfile.glob(r"{}/ckpt-*".format(self._logdir))
     # Filter to make sure we catch only the ckpt files.
     existing_files = [f for f in existing_files if self.RE_PATTERN.match(f)]
     for filename in existing_files:
-      if self.GetCheckpointId(filename) not in valid_ids:
+      if self.GetCheckpointId(filename) in ids_to_garbage_collect:
         # TODO(zhifengc): May need to find a bulk delete method.
         tf.logging.info("Garbage collecting %s", filename)
         tf.io.gfile.remove(filename)
@@ -194,10 +213,6 @@ class Saver:
       If the checkpoint is successfully generated, returns its global step
       and file prefix. Otherwise, raises an Aborted error.
     """
-    # Garbage collect. Do so before generates the checkpoint
-    # in case we repeatedly fails the sanity checks.
-    self._GarbageCollect()
-
     _, global_step, prefix = sess.run(
         fetches=[self._save_op, self._save_global_step, self._save_prefix],
         feed_dict={self._logdir_ph: self._logdir})
@@ -275,11 +290,19 @@ class Saver:
         unique_ts.append(ts)
         path_set.add(path)
 
+    # Identify all checkpoints that were in the state file before
+    # but will be garbage collected due to the policy.
+    ids_to_garbage_collect = set()
+    for ts, path in all_model_checkpoint_pairs:
+      if path not in path_set:
+        ids_to_garbage_collect.add(self.GetCheckpointId(path))
+
     # Serialize to state.
     state.all_model_checkpoint_paths[:] = unique_paths
     state.all_model_checkpoint_timestamps[:] = unique_ts
 
     self._SetState(state)
+    self._GarbageCollect(ids_to_garbage_collect)
 
   def Restore(self, sess, checkpoint_id=None):
     """Restore variables from a checkpoint.

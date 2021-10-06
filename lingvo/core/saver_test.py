@@ -128,8 +128,6 @@ class SaverTest(test_utils.TestCase):
         # Advance mock time one-ish hour.
         fake_time += 3601.0
         mock_time.time.return_value = fake_time
-      # Save to force a GC.
-      _ = sav.Save(sess)
 
     ckpt_ids = self._checkpointIds(logdir)
 
@@ -163,8 +161,6 @@ class SaverTest(test_utils.TestCase):
       for _ in range(4):
         sess.run(inc)
         _ = sav.Save(sess)
-      # Force a GC.
-      _ = sav.Save(sess)
 
     ckpt_ids = self._checkpointIds(logdir)
     # Expect only the most recent 5.
@@ -197,8 +193,6 @@ class SaverTest(test_utils.TestCase):
       for _ in range(4):
         sess.run(inc)
         _ = sav.Save(sess)
-      # Force a GC.
-      _ = sav.Save(sess)
 
     ckpt_ids = self._checkpointIds(logdir)
 
@@ -239,8 +233,6 @@ class SaverTest(test_utils.TestCase):
         _ = sav.Save(sess)
         fake_time += 3601.0
         mock_time.time.return_value = fake_time
-      # Force a GC.
-      _ = sav.Save(sess)
 
     ckpt_ids = self._checkpointIds(logdir)
 
