@@ -132,6 +132,22 @@ to carry out extra sanity checks on the checkpoint.</p>
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.saver.</span></span><span class="sig-name descname"><span class="pre">Saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sanity_checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_latest_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_every_n_hours</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Simpler version of tf.train.Saver with extra sanity checks.</p>
+<p>This version of the Saver has support for sanity checking variable
+values before saving a checkpoint.  Additionally, it has more defined
+behavior with respect to pre-emptions. The tf.train.Saver by default
+creates a new checkpoint state file each run, which breaks the <code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_latest_n</span></code>
+functionality.  However, if the checkpoint state file is reloaded each run,
+it breaks the <code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_every_n_hours</span></code> functionality as old checkpoints
+that were meant to be persisted indefinitely will be deleted.</p>
+<p>The garbage collection policy only impacts checkpoints that
+are tracked in the checkpoint state file.</p>
+<p>This has the following potential issues:
+1) The checkpoint save might happen without the state getting updated
+(pre-emption in between), which means that this checkpoint will never
+be GCed since it never makes it to the state file.</p>
+<p>2) It’s also possible that a pre-emption occurs after saving the
+checkpoint state file but before checkpointing, so checkpoints
+that would have otherwise been deleted will live forever.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.saver.Saver.RE_PATTERN">
 <span class="sig-name descname"><span class="pre">RE_PATTERN</span></span><em class="property"> <span class="pre">=</span> <span class="pre">re.compile('^.*/ckpt-(\\d+).*$')</span></em><a class="headerlink" href="#lingvo.core.saver.Saver.RE_PATTERN" title="Permalink to this definition"></a></dt>
@@ -167,8 +183,13 @@ to carry out extra sanity checks on the checkpoint.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.saver.Saver._GarbageCollect">
-<span class="sig-name descname"><span class="pre">_GarbageCollect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._GarbageCollect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver._GarbageCollect" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_GarbageCollect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids_to_garbage_collect</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._GarbageCollect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver._GarbageCollect" title="Permalink to this definition"></a></dt>
 <dd><p>Garbage collect obsolete checkpoint files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ids_to_garbage_collect</strong> – A set of int ids to delete.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

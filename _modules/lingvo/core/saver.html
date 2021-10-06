@@ -131,7 +131,29 @@
 
 
 <div class="viewcode-block" id="Saver"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver">[docs]</a><span class="k">class</span> <span class="nc">Saver</span><span class="p">:</span>
-  <span class="sd">&quot;&quot;&quot;Simpler version of tf.train.Saver with extra sanity checks.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Simpler version of tf.train.Saver with extra sanity checks.</span>
+
+<span class="sd">  This version of the Saver has support for sanity checking variable</span>
+<span class="sd">  values before saving a checkpoint.  Additionally, it has more defined</span>
+<span class="sd">  behavior with respect to pre-emptions. The tf.train.Saver by default</span>
+<span class="sd">  creates a new checkpoint state file each run, which breaks the `keep_latest_n`</span>
+<span class="sd">  functionality.  However, if the checkpoint state file is reloaded each run,</span>
+<span class="sd">  it breaks the `keep_every_n_hours` functionality as old checkpoints</span>
+<span class="sd">  that were meant to be persisted indefinitely will be deleted.</span>
+
+
+<span class="sd">  The garbage collection policy only impacts checkpoints that</span>
+<span class="sd">  are tracked in the checkpoint state file.</span>
+
+<span class="sd">  This has the following potential issues:</span>
+<span class="sd">  1) The checkpoint save might happen without the state getting updated</span>
+<span class="sd">  (pre-emption in between), which means that this checkpoint will never</span>
+<span class="sd">  be GCed since it never makes it to the state file.</span>
+
+<span class="sd">  2) It&#39;s also possible that a pre-emption occurs after saving the</span>
+<span class="sd">  checkpoint state file but before checkpointing, so checkpoints</span>
+<span class="sd">  that would have otherwise been deleted will live forever.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">RE_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^.*/ckpt-(\d+).*$&quot;</span><span class="p">)</span>
 
@@ -204,21 +226,18 @@
         <span class="n">filename_prefix</span><span class="p">,</span> <span class="n">Saver</span><span class="o">.</span><span class="n">RE_PATTERN</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Saver._GarbageCollect"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GarbageCollect">[docs]</a>  <span class="k">def</span> <span class="nf">_GarbageCollect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Garbage collect obsolete checkpoint files.&quot;&quot;&quot;</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetState</span><span class="p">()</span>
+<div class="viewcode-block" id="Saver._GarbageCollect"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GarbageCollect">[docs]</a>  <span class="k">def</span> <span class="nf">_GarbageCollect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_to_garbage_collect</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Garbage collect obsolete checkpoint files.</span>
 
-    <span class="n">valid_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">:</span>
-      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">))</span>
-    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">:</span>
-      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+<span class="sd">    Args:</span>
+<span class="sd">      ids_to_garbage_collect: A set of int ids to delete.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">existing_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/ckpt-*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">))</span>
     <span class="c1"># Filter to make sure we catch only the ckpt files.</span>
     <span class="n">existing_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">existing_files</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">RE_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
     <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">existing_files</span><span class="p">:</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ids</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ids_to_garbage_collect</span><span class="p">:</span>
         <span class="c1"># TODO(zhifengc): May need to find a bulk delete method.</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Garbage collecting </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
@@ -259,10 +278,6 @@
 <span class="sd">      If the checkpoint is successfully generated, returns its global step</span>
 <span class="sd">      and file prefix. Otherwise, raises an Aborted error.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Garbage collect. Do so before generates the checkpoint</span>
-    <span class="c1"># in case we repeatedly fails the sanity checks.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_GarbageCollect</span><span class="p">()</span>
-
     <span class="n">_</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
         <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">],</span>
         <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">})</span>
@@ -340,11 +355,19 @@
         <span class="n">unique_ts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
         <span class="n">path_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
+    <span class="c1"># Identify all checkpoints that were in the state file before</span>
+    <span class="c1"># but will be garbage collected due to the policy.</span>
+    <span class="n">ids_to_garbage_collect</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">all_model_checkpoint_pairs</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path_set</span><span class="p">:</span>
+        <span class="n">ids_to_garbage_collect</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
     <span class="c1"># Serialize to state.</span>
     <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unique_paths</span>
     <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unique_ts</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_SetState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SetState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_GarbageCollect</span><span class="p">(</span><span class="n">ids_to_garbage_collect</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Saver.Restore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Restore variables from a checkpoint.</span>
