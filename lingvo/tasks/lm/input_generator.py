@@ -298,6 +298,10 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
         'Only used when p.enable_packing is set. Batch size before packing. '
         'Note that this does not affect post-packing batch size but may '
         'have a minor effect on how tight the packed output is.')
+    p.Define(
+        'remove_mask', False,
+        'Whether to remove masking to force masking on the fly. '
+        'Should only be used on the training data.')
     return p
 
   def __init__(self, params):
@@ -357,6 +361,10 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
     ret.paddings = 1.0 - ret.segment_ids
     pos = tf.cast(tf.range(p.max_sequence_length), dtype=tf.float32)
     ret.segment_pos = tf.cast(ret.segment_ids * pos, dtype=tf.int32)
+
+    if p.remove_mask:
+      del ret.masked_pos
+      del ret.masked_ids
     return ret
 
   def _PadToBatchSize(self, batch):
