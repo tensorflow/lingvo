@@ -580,8 +580,10 @@ class TrainProgram(BaseProgram):
 
     if self._ml_perf:
       mlp_log.mlperf_print(
-          'block_start', None, metadata={
-              'epoch_num': 1,
+          'block_start',
+          None,
+          metadata={
+              'epoch_count': 1,
               'first_epoch_num': 1
           })
 
