@@ -363,6 +363,10 @@
         <span class="s1">&#39;Only used when p.enable_packing is set. Batch size before packing. &#39;</span>
         <span class="s1">&#39;Note that this does not affect post-packing batch size but may &#39;</span>
         <span class="s1">&#39;have a minor effect on how tight the packed output is.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;remove_mask&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to remove masking to force masking on the fly. &#39;</span>
+        <span class="s1">&#39;Should only be used on the training data.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -422,6 +426,10 @@
     <span class="n">ret</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">ret</span><span class="o">.</span><span class="n">segment_ids</span>
     <span class="n">pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">*</span> <span class="n">pos</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">remove_mask</span><span class="p">:</span>
+      <span class="k">del</span> <span class="n">ret</span><span class="o">.</span><span class="n">masked_pos</span>
+      <span class="k">del</span> <span class="n">ret</span><span class="o">.</span><span class="n">masked_ids</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="TFRecordBertInput._PadToBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.TFRecordBertInput._PadToBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">_PadToBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
