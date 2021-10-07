@@ -370,6 +370,12 @@ class TrainProgram(BaseProgram):
     super().__init__(params, shared_model=shared_model, **kwargs)
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
+    p = self.params
+    if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
+        p.ml_perf.steps_per_epoch is not None):
+      self._ml_perf = p.ml_perf
+    else:
+      self._ml_perf = None
 
   def _OutfeedDequeueLoop(self, per_example_tensors, num_loops, num_devices):
     """Process all per-example tensor outfeed data for a TPU sess.run.
@@ -572,6 +578,13 @@ class TrainProgram(BaseProgram):
     if self._ShouldStop(task_global_step):
       return True
 
+    if self._ml_perf:
+      mlp_log.mlperf_print(
+          'block_start', None, metadata={
+              'epoch_num': 1,
+              'first_epoch_num': 1
+          })
+
     if py_utils.IsEagerMode():
       values, outfeeds = self.tpu_ops()
     else:
@@ -617,6 +630,13 @@ class TrainProgram(BaseProgram):
                                                  eval_metrics, outfeeds)
       self._WriteSummaries(
           os.path.basename(self._program_dir), global_step, summaries)
+
+    if self._ml_perf:
+      mlp_log.mlperf_print(
+          'block_stop', None, metadata={
+              'epoch_num': 1,
+              'first_epoch_num': 1
+          })
 
     vizier_early_stop = self._ReportVizierMetrics(
         global_step, self._eval_metrics.ToAverageMetrics())
@@ -729,6 +749,12 @@ class EvalProgram(BaseProgram):
     else:
       global_step = sess.run(self._model.global_step)
 
+    mlperf_epoch_num = None
+    if self._ml_perf:
+      mlperf_epoch_num = int(global_step / self._ml_perf.steps_per_epoch)
+      mlp_log.mlperf_print(
+          'eval_start', None, metadata={'epoch_num': mlperf_epoch_num})
+
     if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
@@ -763,10 +789,11 @@ class EvalProgram(BaseProgram):
       status_strs.append('%s=%s' % (key, val))
 
     if self._ml_perf:
+      mlp_log.mlperf_print(
+          'eval_stop', None, metadata={'epoch_num': mlperf_epoch_num})
       mlperf_metric = self._ml_perf.decoder_metric_name
       if mlperf_metric in eval_metrics:
         mlperf_metric_value = eval_metrics[mlperf_metric][0]
-        mlperf_epoch_num = int(global_step / self._ml_perf.steps_per_epoch)
         mlp_log.mlperf_print(
             'eval_accuracy',
             mlperf_metric_value,
@@ -1383,6 +1410,8 @@ class SimpleProgramSchedule:
     # TODO(blee): Clean these up.
     p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
     mlp = p.ml_perf
+    mlp.Define('submission_metadata', None,
+               'A dictionary of static submission metadata')
     mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
     mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
     mlp.Define('decoder_metric_name', None,
@@ -1409,6 +1438,7 @@ class SimpleProgramSchedule:
       p.train_program.task = p.task_dict[p.train_program.dataset_name]
       p.train_program.num_splits_per_client = p.num_splits_per_client
       p.train_program.task_name = p.task_name
+      p.train_program.ml_perf = p.ml_perf.Copy()
       self.train_program = p.train_program.Instantiate(
           shared_model=shared_model, trial=trial, **kwargs)
       self._programs.append(self.train_program)
@@ -1431,11 +1461,26 @@ class SimpleProgramSchedule:
               shared_model=shared_model, trial=trial, **kwargs))
     self._programs += self.eval_programs
 
+    if p.ml_perf is not None:
+      self._ml_perf = p.ml_perf.Copy()
+      if self._ml_perf.submission_metadata is not None:
+        for key, value in self._ml_perf.submission_metadata.items():
+          mlp_log.mlperf_print(key, value)
+      mlp_log.mlperf_print('init_start', None)
+      self._ml_perf_run_start = None
+    else:
+      self._ml_perf = None
+
   def Programs(self):
     return self._programs
 
   def Run(self, sess=None, threadpool=None):
     """Execute the program schedule."""
+    if self._ml_perf:
+      if not self._ml_perf_run_start:
+        mlp_log.mlperf_print(key='init_stop', value=None)
+        self._ml_perf_run_start = mlp_log.mlperf_print(
+            key='run_start', value=None)
     p = self.params
     start_time = time.time()
     for _ in range(p.train_executions_per_eval):
@@ -1462,6 +1507,8 @@ class SimpleProgramSchedule:
       self.train_program.Shutdown()
     for eval_program in self.eval_programs:
       eval_program.Shutdown()
+    if self._ml_perf:
+      mlp_log.mlperf_print('run_stop', None, metadata={'status': 'success'})
 
 
 def SimpleProgramScheduleForTask(train_dataset_name,

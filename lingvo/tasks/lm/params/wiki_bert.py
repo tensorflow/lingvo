@@ -171,6 +171,18 @@ class MLPerfTrainTemplate(BertTemplate):
 
     # For compliance logging.
     p.ml_perf.benchmark_name = 'bert'
+    p.ml_perf.submission_metadata = {
+        'global_batch_size': self.BATCH_SIZE,
+        'submission_org': 'Google',
+        'submission_platform': 'tpu',
+        'submission_division': 'open',
+        'submission_status': 'research',
+        'submission_benchmark': p.ml_perf.benchmark_name,
+        'submission_model': 'lingvo',
+        'cache_clear': None,
+        'train_samples': 0,
+        'eval_samples': 10000
+    }
 
     # For BERT, we log the number of examples as the epoch.
     # epoch_num = global_step / steps_per_epoch
