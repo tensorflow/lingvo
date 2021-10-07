@@ -3511,7 +3511,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         per_example_weight=label_weights,
         total_xent=total_xent,
         total_weight=total_weights,
-        avg_xent=total_xent / total_weights)
+        avg_xent=total_xent / tf.maximum(total_weights, 1e-6))
 
   def XentLossFromLogits(self,
                          theta,
