@@ -268,6 +268,7 @@ class Controller(base_runner.BaseRunner):
     self._WriteToLog(
         text_format.MessageToString(self.params.ToProto(), as_utf8=True),
         self._control_dir, 'params.pbtxt')
+    self._summary_writer.add_graph(self._graph)
 
   def _CreateCheckpointer(self, train_dir, model, init_op=None):
     """Wrapper method for override purposes."""
@@ -281,7 +282,6 @@ class Controller(base_runner.BaseRunner):
         'controller/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
 
   def _Loop(self):
-    self._summary_writer.add_graph(self._graph)
     with tf.container(self._container_id), self._GetSession() as sess:
       if FLAGS.interactive:
         # Into interactive debugging mode.
