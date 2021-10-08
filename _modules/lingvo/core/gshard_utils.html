@@ -138,6 +138,8 @@
 
 <div class="viewcode-block" id="Replicate"><a class="viewcode-back" href="../../../lingvo.core.gshard_utils.html#lingvo.core.gshard_utils.Replicate">[docs]</a><span class="k">def</span> <span class="nf">Replicate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wrapper of xla_sharding.replicate.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils_flags</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">x</span>
   <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="n">use_sharding_op</span><span class="p">)</span></div>
 
 
