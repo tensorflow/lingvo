@@ -242,18 +242,19 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
     total_tgt_tokens_ += total_tgt_seq_len;
     total_examples_ += input_num;
     total_packed_records_ += num_packed_records;
-    if (num_packed_records > packed_batch_size_) {
+    if (packed_batch_size_ > 0 && num_packed_records > packed_batch_size_) {
       total_dropped_packed_records_ += num_packed_records - packed_batch_size_;
     }
     LOG_EVERY_N_SEC(INFO, 60)
-        << "Packed " << total_examples_ << " examples into "
-        << total_packed_records_ << " rows, dropping "
+        << "Total packed " << total_examples_ << " examples into "
+        << total_packed_records_ << " rows, dropped "
         << total_dropped_packed_records_
-        << " rows. Average src/tgt tokens per example: "
-        << 1. * total_src_tokens_ / total_examples_ << ", "
-        << 1. * total_tgt_tokens_ / total_examples_ << ". Utilization: "
+        << " rows. Average tokens per example: src="
+        << 1. * total_src_tokens_ / total_examples_ << ", tgt="
+        << 1. * total_tgt_tokens_ / total_examples_
+        << ". Post-packing space utilization: src="
         << 1. * total_src_tokens_ / total_packed_records_ / packed_src_seq_len_
-        << ", "
+        << ", tgt="
         << 1. * total_tgt_tokens_ / total_packed_records_ / packed_tgt_seq_len_;
   }
   return num_packed_records;
