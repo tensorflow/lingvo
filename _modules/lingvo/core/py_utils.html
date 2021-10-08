@@ -1630,12 +1630,12 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<span class="n">_VARIABLE_CREATOR_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
+<span class="n">_VARIABLE_CREATOR_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="_GetVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._GetVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_GetVariableCreator</span><span class="p">():</span>
   <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefaultVariableCreator</span>
-  <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">_VARIABLE_CREATOR_STACK</span><span class="p">):</span>
+  <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">):</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">fn</span></div>
 
@@ -1669,11 +1669,11 @@
 <span class="sd">  Args:</span>
 <span class="sd">    variable_creator: A variable creator function.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variable_creator</span><span class="p">)</span>
+  <span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variable_creator</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="k">yield</span>
   <span class="k">finally</span><span class="p">:</span>
-    <span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+    <span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="PlaceOnTpuCore"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.PlaceOnTpuCore">[docs]</a><span class="k">def</span> <span class="nf">PlaceOnTpuCore</span><span class="p">(</span><span class="n">core_id</span><span class="p">):</span>
