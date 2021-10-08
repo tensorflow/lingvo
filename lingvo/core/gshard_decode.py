@@ -308,7 +308,8 @@ class GShardDecode:
           t_begin = time.time()
           sess = self.get_session()
           ret = sess.run(self.heartbeat, options=run_options)
-          self.streamz_heartbeat_latency.Record((time.time() - t_begin) * 1e3)
+          if self.streamz_heartbeat_latency is not None:
+            self.streamz_heartbeat_latency.Record((time.time() - t_begin) * 1e3)
           if count % 100 == 0:
             tf.logging.info('heartbeat: done request_%d ... %s', count, ret)
         except Exception as e:

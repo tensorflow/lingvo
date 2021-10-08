@@ -153,6 +153,39 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
     return p
 
 
+@model_registry.RegisterSingleTaskModel
+class DenseLm8B2x2(DenseLmTemplate):
+  """8B params LM model with 1D split."""
+  SEQUENCE_LENGTH = 1024
+  NUM_DEVICES_PER_SPLIT = 128
+  BATCH_DIM_PER_DEVICE = 0.125
+  NUM_TRANSFORMER_LAYERS = 4  # 4 blocks of [DecSelfAttention, DenseReluDense]
+  DEVICE_MESH_SHAPE = [1, 8]
+  DEVICE_MESH = np.arange(8).reshape(DEVICE_MESH_SHAPE)
+
+  def Task(self):
+    p = super().Task()
+    p.train.tpu_device_order_mode = 2  # DeviceOrderMode.MESH
+    p.builder.model_dim_reshape_segments = self.DEVICE_MESH_SHAPE[1]
+    p.builder.emb_w_split = [-1, 1]
+    p.builder.emb_out_split = [0, -1, 1]
+    p.builder.blm_split = [0, -1, 1]
+    p.builder.logits_split = [0, -1, 1]
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
+class DenseLm8B2x2Decode(DenseLm8B2x2):
+  """8B params LM decoding config."""
+
+  def Task(self):
+    p = super().Task()
+    # relative_attention_use_universal_1d_position should be set to False in
+    # decoding.
+    p.builder.relative_attention_use_universal_1d_position = False
+    return p
+
+
 # Total params: 137,702,416,384.
 # Expect ~ 3.7k tokens/sec
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
