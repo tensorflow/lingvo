@@ -16,6 +16,7 @@
 
 import lingvo.compat as tf
 from lingvo.core import base_model
+from lingvo.core import program
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.tasks.asr import decoder
@@ -292,3 +293,14 @@ class AsrModel(base_model.BaseTask):
       }
 
       return fetches, feeds
+
+  def ProgramSchedule(self):
+    # Only needed if --use_tpu_executor.
+    p = program.SimpleProgramScheduleForTask(
+        train_dataset_name='Train',
+        train_steps_per_loop=1000,
+        eval_dataset_names=[],
+        eval_steps_per_loop=0,
+        decode_steps_per_loop=0)
+    p.train_executions_per_eval = 0
+    return p
