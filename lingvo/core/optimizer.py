@@ -743,7 +743,7 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
 
     Args:
       multiply_by_parameter_scale: a boolean
-      learning_rate: an optional Scalar.
+      learning_rate: a Scalar or callable that returns a Scalar.
       decay_rate: an optional Scalar.
       beta1: a float value between 0 and 1
       clipping_threshold: an optional float >= 1
@@ -877,14 +877,14 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
       decay_rate = tf.cast(self._decay_rate, var.dtype)
       old_val = tf.identity(var)  # TODO(lepikhin): introduce gradient dtype
       assert self._multiply_by_parameter_scale
+      lr = GetLrValue(self._learning_rate)
       if self._multiply_by_parameter_scale:
         parameter_scale = self._parameter_scale(old_val)
         cond = _Upd(cond, 'parameter_scale', parameter_scale)  # 1 (factored)
-        update_scale = self._parameter_scale(old_val) * tf.cast(
-            self._learning_rate, grad_dtype)
+        update_scale = self._parameter_scale(old_val) * tf.cast(lr, grad_dtype)
 
       else:
-        update_scale = self._learning_rate
+        update_scale = lr
       mixing_rate = tf.cast(1.0 - decay_rate, grad_dtype)
       update_scale = tf.cast(update_scale, grad_dtype)
       if factored_dims:
@@ -979,11 +979,11 @@ class XLAShardingAdafactorOptimizer(tf.train.Optimizer):
       cond = _Upd(cond, grad_squared)
       decay_rate = tf.cast(self._decay_rate, var.dtype)
       old_val = tf.identity(var)  # TODO(lepikhin): introduce gradient dtype
+      lr = GetLrValue(self._learning_rate)
       if self._multiply_by_parameter_scale:
-        update_scale = self._parameter_scale(old_val) * tf.cast(
-            self._learning_rate, grad_dtype)
+        update_scale = self._parameter_scale(old_val) * tf.cast(lr, grad_dtype)
       else:
-        update_scale = self._learning_rate
+        update_scale = lr
       mixing_rate = tf.cast(1.0 - decay_rate, grad_dtype)
       update_scale = tf.cast(update_scale, grad_dtype)
       updates = []
@@ -1068,20 +1068,24 @@ class XLAShardingAdafactor(Base):
     params.name = 'Adafactor'
     return params
 
+  def __init__(self, params):
+    super().__init__(params)
+
+    if self.params.decay_exponent_pow:
+      self._decay_rate = _AdafactorDecayRatePow(
+          self.params.decay_exponent_pow,
+          offset=self.params.decay_exponent_offset)
+    else:
+      self._decay_rate = _AdafactorDecayRateAdam(self.params.beta2)
+
   def GetOptimizer(self, lr):
     params = self.params
-    if params.decay_exponent_pow:
-      decay_rate = _AdafactorDecayRatePow(
-          params.decay_exponent_pow, offset=params.decay_exponent_offset)
-    else:
-      decay_rate = _AdafactorDecayRateAdam(params.beta2)
-
     return XLAShardingAdafactorOptimizer(
         learning_rate=lr,
         factored=params.factored,
         clipping_threshold=params.clipping_threshold,
         multiply_by_parameter_scale=params.multiply_by_parameter_scale,
-        decay_rate=decay_rate,
+        decay_rate=self._decay_rate,
         beta1=params.beta1,
         min_dim_size_to_factor=params.min_dim_size_to_factor,
         cond_is_finite=params.cond_is_finite,
