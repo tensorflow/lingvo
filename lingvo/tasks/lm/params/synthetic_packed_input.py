@@ -209,9 +209,7 @@ class DenseLm128B8x8(DenseLmTemplate):
     p.builder.emb_w_split = [-1, 1]
     p.builder.emb_out_split = [0, -1, 1]
     p.builder.blm_split = [0, -1, 1]
-    # Partition final logits along B and L so that the argmax will be fully
-    # partitioned.
-    p.builder.logits_split = [0, 1, -1]
+    p.builder.logits_split = [0, -1, 1]
     return p
 
 
@@ -250,6 +248,33 @@ class DenseLm175B32x32(DenseLm128B16x16):
   DEVICE_MESH_SHAPE = [64, 32]
   DEVICE_MESH = np.reshape(
       np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
+
+
+@model_registry.RegisterSingleTaskModel
+class DenseLm175B8x8Decode2D(DenseLm175B32x32):
+  """175B params LM model decoding on v3-128.
+
+  2D logical mesh. It can load a checkpoint from DenseLm175B32x32.
+  """
+  BATCH_DIM_PER_DEVICE = 0.125
+  NUM_DEVICES_PER_SPLIT = 128
+  # NUM_HEADS is not a multiple of 128 so we use 2D sharding on M and H.
+  DEVICE_MESH_SHAPE = [8, 16]
+  DEVICE_MESH = gshard_utils.GetNonPod2dMesh(DEVICE_MESH_SHAPE, [8, 8, 2])
+
+  def Task(self):
+    p = super().Task()
+    # relative_attention_use_universal_1d_position should be set to False in
+    # decoding.
+    p.builder.relative_attention_use_universal_1d_position = False
+    p.builder.model_dim_reshape_segments = self.DEVICE_MESH_SHAPE[0]
+    p.builder.emb_w_split = [1, 0]
+    p.builder.emb_out_split = [-1, -1, 0]
+    p.builder.blm_split = [-1, -1, 0]
+    p.builder.blh_split = [-1, -1, 1]
+    p.builder.qkv_split = [0, -1, 1, -1]  # [-1, -1, 1, -1] for global batch 1.
+    p.builder.logits_split = [-1, -1, 1]
+    return p
 
 
 # Total params: 1,100,041,175,040.
