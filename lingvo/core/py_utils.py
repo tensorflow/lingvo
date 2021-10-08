@@ -1565,12 +1565,12 @@ def _DefaultVariableCreator(**kwargs):
   return tf.get_variable(**kwargs)
 
 
-_VARIABLE_CREATOR_STACK = ThreadLocalStack().stack
+_VARIABLE_CREATOR_STACK = ThreadLocalStack()
 
 
 def _GetVariableCreator():
   fn = _DefaultVariableCreator
-  for wrapper in reversed(_VARIABLE_CREATOR_STACK):
+  for wrapper in reversed(_VARIABLE_CREATOR_STACK.stack):
     fn = functools.partial(wrapper, fn)
   return fn
 
@@ -1604,11 +1604,11 @@ def VariableCreatorScope(variable_creator):
   Args:
     variable_creator: A variable creator function.
   """
-  _VARIABLE_CREATOR_STACK.append(variable_creator)
+  _VARIABLE_CREATOR_STACK.stack.append(variable_creator)
   try:
     yield
   finally:
-    _VARIABLE_CREATOR_STACK.pop()
+    _VARIABLE_CREATOR_STACK.stack.pop()
 
 
 def PlaceOnTpuCore(core_id):
