@@ -589,6 +589,8 @@ class TrainProgram(BaseProgram):
 
     if py_utils.IsEagerMode():
       values, outfeeds = self.tpu_ops()
+      values = py_utils.Transform(lambda x: x.numpy(), values)
+      outfeeds = py_utils.Transform(lambda x: x.numpy(), outfeeds)
     else:
       infeed_future = self._infeed_pool.apply_async(
           self._InfeedLoop, args=(sess,))
@@ -597,10 +599,6 @@ class TrainProgram(BaseProgram):
 
     self._eval_metrics.PackMetricsValues(values)
     eval_metrics = self._eval_metrics.metrics
-    if py_utils.IsEagerMode():
-      eval_metrics = {
-          k: (v[0].numpy(), v[1].numpy()) for k, v in eval_metrics.items()
-      }
 
     if py_utils.IsEagerMode():
       global_step = self._model.global_step.numpy()
@@ -772,6 +770,7 @@ class EvalProgram(BaseProgram):
 
     if py_utils.IsEagerMode():
       values = self.tpu_ops()
+      values = py_utils.Transform(lambda x: x.numpy(), values)
     else:
       infeed_future = self._infeed_pool.apply_async(
           self._InfeedLoop, args=(sess,))
@@ -781,10 +780,6 @@ class EvalProgram(BaseProgram):
     status_strs = []
     self._eval_metrics.PackMetricsValues(values)
     eval_metrics = self._eval_metrics.metrics
-    if py_utils.IsEagerMode():
-      eval_metrics = {
-          k: (v[0].numpy(), v[1].numpy()) for k, v in eval_metrics.items()
-      }
     for key, (val, _) in sorted(eval_metrics.items()):
       self._SummarizeValue(global_step, key, val)
       tf.logging.info((global_step, key, val))
