@@ -274,9 +274,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">emb_w_split</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">emb_out_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">blm_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="c1"># Partition final logits along B and L so that the argmax will be fully</span>
-    <span class="c1"># partitioned.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">logits_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">logits_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
@@ -315,6 +313,33 @@
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
   <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
       <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)),</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="DenseLm175B8x8Decode2D"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm175B8x8Decode2D">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DenseLm175B8x8Decode2D</span><span class="p">(</span><span class="n">DenseLm175B32x32</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;175B params LM model decoding on v3-128.</span>
+
+<span class="sd">  2D logical mesh. It can load a checkpoint from DenseLm175B32x32.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">BATCH_DIM_PER_DEVICE</span> <span class="o">=</span> <span class="mf">0.125</span>
+  <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">128</span>
+  <span class="c1"># NUM_HEADS is not a multiple of 128 so we use 2D sharding on M and H.</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">,</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+<div class="viewcode-block" id="DenseLm175B8x8Decode2D.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm175B8x8Decode2D.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="c1"># relative_attention_use_universal_1d_position should be set to False in</span>
+    <span class="c1"># decoding.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">relative_attention_use_universal_1d_position</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">emb_w_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">emb_out_split</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">blm_split</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">blh_split</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">qkv_split</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># [-1, -1, 1, -1] for global batch 1.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">logits_split</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
 
 
 <span class="c1"># Total params: 1,100,041,175,040.</span>
