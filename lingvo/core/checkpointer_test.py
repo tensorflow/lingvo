@@ -16,12 +16,16 @@
 """Tests for checkpointer."""
 
 import os
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import checkpointer
 from lingvo.core import py_utils
 from lingvo.core import test_utils
+
+
+FLAGS = tf.flags.FLAGS
 
 
 class LinearModel(base_model.BaseTask):
@@ -48,9 +52,14 @@ class LinearModel(base_model.BaseTask):
     self.CreateVariable('b', b)
 
 
-class CheckpointerTest(test_utils.TestCase):
+class CheckpointerTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testSaveRestore(self):
+  @parameterized.named_parameters(
+      ('tf_train_saver', False),
+      ('custom_saver', True),
+  )
+  def testSaveRestore(self, use_custom_saver):
+    FLAGS.use_custom_saver = use_custom_saver
     train_dir = os.path.join(self.get_temp_dir(), 'testSaveRestore')
     os.mkdir(train_dir)
     p = base_model.SingleTaskModel.Params(LinearModel.Params())

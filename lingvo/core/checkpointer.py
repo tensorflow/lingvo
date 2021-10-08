@@ -21,7 +21,105 @@ import time
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
+from lingvo.core import saver as custom_saver
 import six
+
+
+tf.flags.DEFINE_boolean('use_custom_saver', False,
+                        'Uses customized saver if True.')
+FLAGS = tf.flags.FLAGS
+
+
+class SaverWrapper:
+  """Wrapper interface between tf.train.Saver and the custom saver."""
+
+  def __init__(self,
+               logdir,
+               train_params,
+               variables_to_restore_dict=None,
+               finite_check=True):
+    """Create a tf.train.Saver or a custom_saver.Saver.
+
+    Args:
+      logdir: The directory path to save checkpoints to.
+      train_params: Training parameters.
+      variables_to_restore_dict: A dictionary mapping names to Saveables.
+        Typically, used in evaluation for substituting exponential moving
+        average weights.  If this is set, then tf.train.Saver is used.
+      finite_check: Whether to santiy check variables to be finite.
+    """
+    self._logdir = logdir
+    self._save_path = os.path.join(self._logdir, 'ckpt')
+    self._use_custom_saver = FLAGS.use_custom_saver and not variables_to_restore_dict
+
+    self._keep_latest_n = train_params.save_max_to_keep
+    self._keep_every_n_hours = train_params.save_keep_checkpoint_every_n_hours
+    self._max_steps = train_params.max_steps
+    self._tpu_steps_per_loop = train_params.tpu_steps_per_loop
+
+    if not self._use_custom_saver:
+      tf.logging.info('Instantiating tf.train.Saver')
+      self._saver = tf.train.Saver(
+          variables_to_restore_dict,
+          sharded=True,
+          max_to_keep=self._keep_latest_n,
+          keep_checkpoint_every_n_hours=self._keep_every_n_hours,
+          pad_step_number=True,  # %08d
+          write_version=tf.train.SaverDef.V2)
+      self._var_list = self._saver._var_list  # pylint: disable=protected-access
+    else:
+      tf.logging.info('Instantiating custom Saver')
+      gsv = py_utils.GetOrCreateGlobalStepVar()
+      self._var_list = tf.all_variables()
+
+      if self._max_steps and self._tpu_steps_per_loop:
+        sanity_checks = [
+            ([gsv],
+             custom_saver.InRange(0,
+                                  self._max_steps + self._tpu_steps_per_loop))
+        ]
+      else:
+        sanity_checks = []
+
+      if finite_check:
+        for var in self._var_list:
+          sanity_checks.append(([var], custom_saver.IsFinite()))
+
+      self._saver = custom_saver.Saver(
+          logdir,
+          variables=self._var_list,
+          sanity_checks=sanity_checks,
+          keep_latest_n=self._keep_latest_n,
+          keep_every_n_hours=self._keep_every_n_hours)
+
+  def Save(self, sess, gsteps):
+    """Save a checkpoint.
+
+    Args:
+      sess: tf.Session.
+      gsteps: Current global step.
+
+    Returns:
+      Path prefix to the checkpoint.
+    """
+    if not self._use_custom_saver:
+      path = self._saver.save(sess, self._save_path, gsteps)
+    else:
+      del gsteps
+      gsteps, path = self._saver.Save(sess)
+    return path
+
+  def Restore(self, sess, path):
+    """Restore from a checkpoint.
+
+    Args:
+      sess: tf.Session.
+      path: Path prefix to the checkpoint.
+    """
+    if not self._use_custom_saver:
+      self._saver.restore(sess, path)
+    else:
+      self._saver.Restore(sess, path=path)
 
 
 class Checkpointer:
@@ -49,6 +147,7 @@ class Checkpointer:
     """
     self._train_dir = train_dir
     self._save_only = save_only
+
     if init_op:
       self._init_op = init_op
     else:
@@ -112,15 +211,14 @@ class Checkpointer:
     do_eval = cluster_factory.Current().do_eval
     if not self._save_only and self._model.ema and do_eval:
       tf.logging.info('Using EMA for evaluation.')
-      return tf.train.Saver(
-          self._model.ema.variables_to_restore(self._model.variables_for_ema))
-    return tf.train.Saver(
-        sharded=True,
-        max_to_keep=self._train_params.save_max_to_keep,
-        keep_checkpoint_every_n_hours=(
-            self._train_params.save_keep_checkpoint_every_n_hours),
-        pad_step_number=True,  # %08d
-        write_version=tf.train.SaverDef.V2)
+      variables_to_restore = self._model.ema.variables_to_restore(
+          self._model.variables_for_ema)
+    else:
+      variables_to_restore = None
+    return SaverWrapper(
+        self._train_dir,
+        self._train_params,
+        variables_to_restore_dict=variables_to_restore)
 
   @property
   def async_checkpointing(self):
@@ -130,7 +228,7 @@ class Checkpointer:
     """Load the checkpoint from specified path."""
     assert not self._save_only
     tf.logging.info('Load from checkpoint %s.', checkpoint_path)
-    self._saver.restore(sess, checkpoint_path)
+    self._saver.Restore(sess, checkpoint_path)
     tf.logging.info('Load checkpoint done.')
     # Successfully restored from checkpoint.
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
@@ -173,7 +271,7 @@ class Checkpointer:
       gsteps: Current global step.
     """
     tf.logging.info('Save checkpoint')
-    path = self._saver.save(sess, self._save_path, gsteps)
+    path = self._saver.Save(sess, gsteps)
     tf.logging.info('Save checkpoint done: %s', path)
     self._prev_ckpt_step = gsteps
     self._UpdateNextSaveTime()
@@ -286,6 +384,7 @@ class EagerCheckpointerV1(Checkpointer):
                train_params=None,
                save_only=False):
     super().__init__(train_dir, model, init_op, train_params, save_only)
+    tf.logging.info('EagerCheckpointerV1')
     # Distinct from EagerCheckpointerV2
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V1')
     if not tf.io.gfile.exists(self._train_dir):
@@ -364,6 +463,7 @@ class EagerCheckpointerV2(Checkpointer):
                train_params=None,
                save_only=False):
     super().__init__(train_dir, model, init_op, train_params, save_only)
+    tf.logging.info('EagerCheckpointerV2')
     # Distinct from EagerCheckpointerV1
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V2')
     if not tf.io.gfile.exists(self._train_dir):

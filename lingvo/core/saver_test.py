@@ -87,7 +87,7 @@ class SaverTest(test_utils.TestCase):
 
       # Restore to a specific checkpoint.
       sess.run(tf.global_variables_initializer())
-      _ = sav.Restore(sess, 6)
+      _ = sav.Restore(sess, checkpoint_id=6)
 
       # Increments global_step out of range, Save() fails.
       for _ in range(5):

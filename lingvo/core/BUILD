@@ -2330,6 +2330,7 @@ py_library(
     deps = [
         ":cluster_factory",
         ":py_utils",
+        ":saver",
         "//lingvo:compat",
         # Implicit six dependency.
     ],

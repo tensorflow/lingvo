@@ -304,11 +304,12 @@ class Saver:
     self._SetState(state)
     self._GarbageCollect(ids_to_garbage_collect)
 
-  def Restore(self, sess, checkpoint_id=None):
+  def Restore(self, sess, path=None, checkpoint_id=None):
     """Restore variables from a checkpoint.
 
     Args:
       sess: A session with tf.Graph under which this object is constructed.
+      path: If not None, restore from this path prefix.
       checkpoint_id: If None, restore from the latest checkpoint. Otherwise,
         restore from the specific checkpoint.
 
@@ -319,7 +320,9 @@ class Saver:
       prefix. Otherwise, raises an error.
     """
 
-    if checkpoint_id:
+    if path:
+      prefix = path
+    elif checkpoint_id:
       prefix = "{}/ckpt-{:08d}".format(self._logdir, checkpoint_id)
     else:
       prefix = self._GetState().model_checkpoint_path
