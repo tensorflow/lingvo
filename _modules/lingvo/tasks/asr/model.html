@@ -81,6 +81,7 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">program</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="kn">import</span> <span class="n">decoder</span>
@@ -356,7 +357,18 @@
           <span class="s1">&#39;encoder_frames&#39;</span><span class="p">:</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span>
       <span class="p">}</span>
 
-      <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
+      <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div>
+
+<div class="viewcode-block" id="AsrModel.ProgramSchedule"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.ProgramSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Only needed if --use_tpu_executor.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
+        <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
+        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 
            </div>
