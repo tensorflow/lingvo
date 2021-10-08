@@ -73,6 +73,8 @@ def Split(x,
 
 def Replicate(x, use_sharding_op=True):
   """Wrapper of xla_sharding.replicate."""
+  if not py_utils_flags.use_tpu():
+    return x
   return xla_sharding.replicate(x, use_sharding_op=use_sharding_op)
 
 
