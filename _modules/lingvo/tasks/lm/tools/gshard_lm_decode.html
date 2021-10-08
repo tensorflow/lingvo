@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lingvo.tasks.lm.tools.gshard_lm_decode &mdash; Lingvo  documentation</title>
+      <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../_static/jquery.js"></script>
+        <script src="../../../../../_static/underscore.js"></script>
+        <script src="../../../../../_static/doctools.js"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+      <li>lingvo.tasks.lm.tools.gshard_lm_decode</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for lingvo.tasks.lm.tools.gshard_lm_decode</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2021 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tool to decode GShard LM models.</span>
+
+<span class="sd">Sample usage:</span>
+
+<span class="sd">.. code-block:: bash</span>
+
+<span class="sd">  $ bazel run -c opt lingvo/tasks/lm/tools:gshard_lm_decode -- \</span>
+<span class="sd">      --model=lm.synthetic_packed_input.DenseLm8B2x2Decode \</span>
+<span class="sd">      --checkpoint=&lt;checkpoint path&gt; \</span>
+<span class="sd">      --input=&lt;input file&gt; --output=&lt;output file&gt; \</span>
+<span class="sd">      --tpu_node=&lt;tpu node&gt; --print_outputs=True</span>
+
+<span class="sd">This binary does not include a tokenizer, so each line in the input file should</span>
+<span class="sd">be space-separated integer strings, e.g.,</span>
+<span class="sd">8 3 5 4 2</span>
+<span class="sd">5 8 2 493 23 432</span>
+<span class="sd">6 22 3 42 2</span>
+
+<span class="sd">To include a tokenizer, override the following functions of GShardLMDecode:</span>
+<span class="sd">init_vocab(), encode_string_to_ids(), and decode_ids_to_string().</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">concurrent.futures</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_registry</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_decode</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Registered model name&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;checkpoint&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Checkpoint path&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Input TSV file&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="s1">&#39;/dev/stdout&#39;</span><span class="p">,</span> <span class="s1">&#39;Output TSV file&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;output_score&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Output score to TSV file&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span>
+    <span class="s1">&#39;output_all_samples&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Output all samples, sampled or within beam, to TSV file&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;tpu_node&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;TPU node address, if remote.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;worker_job&#39;</span><span class="p">,</span> <span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span> <span class="s1">&#39;e.g. /job:trainer.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;prefix_max_len&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;input length limit&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;truncate&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;truncate inputs to max_len&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;batch_delimited_mode&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                        <span class="s1">&#39;For batch decoding, whether to append EOS to input.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;print_outputs&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                        <span class="s1">&#39;if false, does not print to stdout&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;heartbeat&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Run heartbeat thread.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span>
+    <span class="s1">&#39;reshape_weights&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;reshape model weights when &#39;</span>
+    <span class="s1">&#39;restoring from checkpoint as necessary&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;disable_logging&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                        <span class="s1">&#39;disable all tf.logging calls below level &#39;</span>
+                        <span class="s1">&#39;CRITICAL&#39;</span><span class="p">)</span>
+
+<span class="n">_daemon</span> <span class="o">=</span> <span class="n">gshard_decode</span><span class="o">.</span><span class="n">daemon</span>
+
+
+<div class="viewcode-block" id="override_flags"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.override_flags">[docs]</a><span class="k">def</span> <span class="nf">override_flags</span><span class="p">():</span>
+  <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="s1">&#39;tpu&#39;</span></div>
+
+
+<div class="viewcode-block" id="GShardLMDecode"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode">[docs]</a><span class="k">class</span> <span class="nc">GShardLMDecode</span><span class="p">(</span><span class="n">gshard_decode</span><span class="o">.</span><span class="n">GShardDecode</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;GShard LM decoder class.</span>
+
+<span class="sd">  This implementation does not include a tokenizer, and directly reads/writes</span>
+<span class="sd">  integer token IDs. To include a tokenizer, override the following functions:</span>
+<span class="sd">  init_vocab(), encode_string_to_ids(), and decode_ids_to_string().</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="n">tpu</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_node</span><span class="p">,</span>
+        <span class="n">worker_job_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span><span class="p">,</span>
+        <span class="n">prefix_max_len</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">prefix_max_len</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">streamz_heartbeat_latency</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">heartbeat</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_saver_reshape</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">reshape_weights</span>
+
+<div class="viewcode-block" id="GShardLMDecode.init_vocab"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.init_vocab">[docs]</a>  <span class="k">def</span> <span class="nf">init_vocab</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">bos_token_id</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">decoder_bos_id</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">eos_token_id</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">decoder_eos_id</span></div>
+
+<div class="viewcode-block" id="GShardLMDecode.encode_string_to_ids"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.encode_string_to_ids">[docs]</a>  <span class="k">def</span> <span class="nf">encode_string_to_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of IDs by parsing a string.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      string: str.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      int32 vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="GShardLMDecode.decode_ids_to_string"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.decode_ids_to_string">[docs]</a>  <span class="k">def</span> <span class="nf">decode_ids_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a string from token IDs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      ids: int32 vector.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      list of strings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="GShardLMDecode.ids_to_strings_packed"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.ids_to_strings_packed">[docs]</a>  <span class="k">def</span> <span class="nf">ids_to_strings_packed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">,</span> <span class="n">skip_empty</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of strings from packed representation.</span>
+
+<span class="sd">    Strings in the returned as a flat list,</span>
+<span class="sd">    ordered first by batch then by segment id.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      ids: int32 tensor of shape [batch_size, max_len]</span>
+<span class="sd">      segment_id: int32 tensor of shape [batch_size, max_len]</span>
+<span class="sd">      skip_empty: skip empty segments</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      list of strings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">segment_id</span><span class="o">.</span><span class="n">shape</span>
+    <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">)</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">strs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+      <span class="n">buf</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">empty</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_len</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">segment_id</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">empty</span> <span class="o">=</span> <span class="kc">False</span>
+          <span class="n">buf</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">])]</span>
+          <span class="k">if</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">max_len</span> <span class="ow">or</span> <span class="n">segment_id</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">segment_id</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="n">strs</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_ids_to_string</span><span class="p">(</span><span class="n">buf</span><span class="p">)]</span>
+            <span class="k">del</span> <span class="n">buf</span><span class="p">[:]</span>
+      <span class="k">if</span> <span class="n">empty</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">skip_empty</span><span class="p">:</span>
+        <span class="n">strs</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">strs</span></div>
+
+<div class="viewcode-block" id="GShardLMDecode.preload_lm_prompts"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.preload_lm_prompts">[docs]</a>  <span class="k">def</span> <span class="nf">preload_lm_prompts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">tsv_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">tsv_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">max_len</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">truncate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                         <span class="n">append_extra_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Preloads lm prompts from line-delimited files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      tsv_files: input files, list of strings</span>
+<span class="sd">      tsv_data: TSV data returned by read_files_1_col(); overrides tsv_files</span>
+<span class="sd">      batch_size: batch size</span>
+<span class="sd">      max_len: max length</span>
+<span class="sd">      truncate: truncate inputs to max_len</span>
+<span class="sd">      append_extra_eos: whether to tack on EOS at the end of the input (for</span>
+<span class="sd">        delimited_lm model)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      fileno: file number, -1 is padding; int32 tensor [num_batches, batch_size]</span>
+<span class="sd">      lineno: line number, -1 is padding; int32 tensor [num_batches, batch_size]</span>
+<span class="sd">      tgt_id: int32 tensor of shape [num_batches, batch_size, max_len]</span>
+<span class="sd">      tgt_segment_id: int32 tensor of shape [num_batches, batch_size, max_len]</span>
+<span class="sd">      tgt_segment_pos: int32 tensor of shape [num_batches, batch_size, max_len]</span>
+<span class="sd">      tgt_labels: int32 tensor of shape [num_batches, batch_size, max_len]</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if strings exceed max_len</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">tsv_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">tsv_files</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tsv_files</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">tsv_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">tsv_files</span><span class="p">]</span>
+      <span class="n">tsv_data</span> <span class="o">=</span> <span class="n">read_files_1_col</span><span class="p">(</span><span class="n">tsv_files</span><span class="p">)</span>
+    <span class="n">num_lines</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="k">for</span> <span class="n">lines</span> <span class="ow">in</span> <span class="n">tsv_data</span><span class="p">)</span>
+    <span class="n">num_lines_padded</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_lines</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="n">num_lines</span><span class="p">)</span> <span class="o">%</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">num_batches</span> <span class="o">=</span> <span class="n">num_lines_padded</span> <span class="o">//</span> <span class="n">batch_size</span>
+    <span class="k">assert</span> <span class="n">num_lines</span> <span class="o">&lt;=</span> <span class="n">num_batches</span> <span class="o">*</span> <span class="n">batch_size</span>
+
+    <span class="n">fileno</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_batches</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">lineno</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_batches</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">tgt_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_batches</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_batches</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">tgt_segment_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_batches</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span>
+                              <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">tgt_segment_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_batches</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">],</span>
+                               <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">eos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_token_id</span>
+    <span class="n">bos_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_token_id</span>
+
+    <span class="k">for</span> <span class="n">file_index</span><span class="p">,</span> <span class="n">lines</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tsv_data</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">line_index</span><span class="p">,</span> <span class="n">tgt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="n">m</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">t</span> <span class="o">//</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">t</span> <span class="o">%</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">fileno</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_index</span>
+        <span class="n">lineno</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_index</span>
+        <span class="n">tgt_ids_bos</span> <span class="o">=</span> <span class="p">[</span><span class="n">bos_id</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_string_to_ids</span><span class="p">(</span><span class="n">tgt</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+            <span class="p">[</span><span class="n">eos_id</span><span class="p">]</span> <span class="k">if</span> <span class="n">append_extra_eos</span> <span class="k">else</span> <span class="p">[])</span>
+
+        <span class="k">if</span> <span class="n">truncate</span><span class="p">:</span>
+          <span class="k">del</span> <span class="n">tgt_ids_bos</span><span class="p">[</span><span class="n">max_len</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tgt_ids_bos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_len</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+              <span class="s1">&#39;tgt_ids size exceeds max_len (</span><span class="si">%d</span><span class="s1"> &gt; </span><span class="si">%d</span><span class="s1">) for line </span><span class="si">%d</span><span class="s1"> in file </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span>
+              <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tgt_ids_bos</span><span class="p">),</span> <span class="n">max_len</span><span class="p">,</span> <span class="n">line_index</span><span class="p">,</span> <span class="n">tsv_files</span><span class="p">[</span><span class="n">file_index</span><span class="p">]))</span>
+
+        <span class="n">tgt_ids_eos</span> <span class="o">=</span> <span class="n">tgt_ids_bos</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="p">[</span><span class="n">eos_id</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tgt_ids_bos</span><span class="p">)):</span>
+          <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">max_len</span><span class="p">:</span>
+            <span class="k">break</span>
+          <span class="n">tgt_id</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tgt_ids_bos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+          <span class="n">tgt_labels</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tgt_ids_eos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+          <span class="n">tgt_segment_id</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+          <span class="n">tgt_segment_pos</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">fileno</span><span class="p">,</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">tgt_segment_pos</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="read_file_1_col"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.read_file_1_col">[docs]</a><span class="k">def</span> <span class="nf">read_file_1_col</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads one TSV file. Returns list of [(src, tgt)].&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="p">[</span>
+      <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+  <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="read_files_1_col"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.read_files_1_col">[docs]</a><span class="k">def</span> <span class="nf">read_files_1_col</span><span class="p">(</span><span class="n">ff</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads multiple TSV files. Returns nested list of [[(src, tgt)]].&quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">concurrent</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">ff</span><span class="p">))</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">read_file_1_col</span><span class="p">),</span> <span class="n">ff</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="GShardLMDecodeBatch"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch">[docs]</a><span class="k">class</span> <span class="nc">GShardLMDecodeBatch</span><span class="p">(</span><span class="n">GShardLMDecode</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Subclass for LM batch decoding.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="c1"># A list of numpy array of shape [num_batches, batch, seqlen].</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tsv_files</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="GShardLMDecodeBatch.preload_data"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.preload_data">[docs]</a>  <span class="k">def</span> <span class="nf">preload_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Preload data into memory.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading input data&#39;</span><span class="p">)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">tsv_files</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="c1"># in case of TPU rescheduling, skip files already decoded to save time</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tsv_files</span> <span class="o">=</span> <span class="n">tsv_files</span>
+
+    <span class="n">tsv_data</span> <span class="o">=</span> <span class="n">read_files_1_col</span><span class="p">(</span><span class="n">tsv_files</span><span class="p">)</span>
+    <span class="n">tsv_length</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="k">for</span> <span class="n">lines</span> <span class="ow">in</span> <span class="n">tsv_data</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="mi">0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tsv_length</span><span class="p">,</span> <span class="s1">&#39;There input files are empty: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+            <span class="n">tsv_files</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n_line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tsv_length</span><span class="p">)</span> <span class="k">if</span> <span class="n">n_line</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">]))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tsv_length</span> <span class="o">=</span> <span class="n">tsv_length</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preload_lm_prompts</span><span class="p">(</span>
+        <span class="n">tsv_files</span><span class="o">=</span><span class="n">tsv_files</span><span class="p">,</span>
+        <span class="n">tsv_data</span><span class="o">=</span><span class="n">tsv_data</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">max_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix_max_len</span><span class="p">,</span>
+        <span class="n">truncate</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">truncate</span><span class="p">,</span>
+        <span class="n">append_extra_eos</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">batch_delimited_mode</span><span class="p">)</span>
+    <span class="c1"># drop source fields</span>
+    <span class="p">(</span><span class="n">fileno</span><span class="p">,</span> <span class="n">lineno</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">tgt_segment_pos</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">)</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="c1"># add per-example temperature field</span>
+    <span class="n">tgt_sample_temperature</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tgt_id</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">key</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">fileno</span><span class="p">,</span> <span class="n">lineno</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">tgt_id</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">tgt_segment_pos</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span>
+            <span class="n">tgt_sample_temperature</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;dt=</span><span class="si">%0.2f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_batches=</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GShardLMDecodeBatch.write_ith_sample_to_output"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.write_ith_sample_to_output">[docs]</a>  <span class="k">def</span> <span class="nf">write_ith_sample_to_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">,</span>
+                                 <span class="n">topk_scores</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write samples to output file.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">output_all_samples</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">])):</span>
+        <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">output_score</span> <span class="ow">and</span> <span class="n">topk_scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">topk_scores</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%0.2f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">],</span> <span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">],</span> <span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">output_score</span> <span class="ow">and</span> <span class="n">topk_scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">topk_scores</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+          <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%0.2f</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="GShardLMDecodeBatch.batch_decode"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.batch_decode">[docs]</a>  <span class="k">def</span> <span class="nf">batch_decode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Starts batch decoding.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">outfeed_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="n">sess</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_session</span><span class="p">()</span>
+
+    <span class="n">num_batches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_batches: </span><span class="si">%s</span><span class="s1">, batch_size: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">num_batches</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">run_infeed_loop</span><span class="p">():</span>
+
+      <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+          <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infeed_args</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+          <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infeed_args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)}</span>
+          <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;infeed loop </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">t</span><span class="p">)</span>
+          <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infeed_op</span><span class="p">,</span> <span class="n">feeds</span><span class="p">)</span>
+          <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;infeed loop </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">t</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Exception in infeed loop: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="n">infeed_loop_thread</span> <span class="o">=</span> <span class="n">_daemon</span><span class="p">(</span><span class="n">run_infeed_loop</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">run_decode_loop</span><span class="p">():</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">decode_loop</span><span class="p">])</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;decode_loop dt=</span><span class="si">%0.2f</span><span class="s1"> lines/sec=</span><span class="si">%0.2f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">),</span>
+                        <span class="p">(</span><span class="n">num_batches</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+        <span class="k">return</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Exception in decode loop thread: </span><span class="si">%r</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">raise</span>
+
+    <span class="n">decode_loop_thread</span> <span class="o">=</span> <span class="n">_daemon</span><span class="p">(</span><span class="n">run_decode_loop</span><span class="p">)</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">output</span> <span class="ow">or</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">split_output</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Start writing output to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+      <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">):</span>
+      <span class="p">[</span><span class="n">flat_outfeed</span><span class="p">]</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">outfeed_op</span><span class="p">])</span>
+      <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;outfeed_op iter=</span><span class="si">%d</span><span class="s1"> dt=</span><span class="si">%0.2f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+      <span class="n">t1</span> <span class="o">=</span> <span class="n">t0</span>
+
+      <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">,</span> <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">,</span> <span class="n">topk_scores</span><span class="p">,</span>
+       <span class="n">dec_metrics</span><span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outfeed</span><span class="p">,</span> <span class="n">flat_outfeed</span><span class="p">)</span>
+      <span class="n">output_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">topk_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">topk_segment_id</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">output_len</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="n">topk_lens</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">dec_metrics</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">print_outputs</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;dec_metrics:&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%r</span><span class="se">\t</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">k</span><span class="p">)</span>
+
+      <span class="c1"># TODO(krikun): somehow there is -1 in tgt_ids</span>
+      <span class="n">tgt_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids_to_strings_packed</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_segment_id</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">topk_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># TODO(krikun): somehow there is -1 in topk_ids</span>
+        <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">topk_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">topk_decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids_to_strings_packed</span><span class="p">(</span>
+            <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_segment_id</span><span class="p">,</span> <span class="n">skip_empty</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">topk_decoded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">topk_decoded</span> <span class="o">=</span> <span class="kc">None</span>
+
+      <span class="k">if</span> <span class="n">topk_scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">topk_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+      <span class="k">if</span> <span class="n">topk_decoded</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="n">fileno</span><span class="p">,</span> <span class="n">lineno</span> <span class="o">=</span> <span class="n">key</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">key</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">targets</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fileno</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">lineno</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+          <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">print_outputs</span><span class="p">:</span>
+          <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+          <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;prompt[</span><span class="si">%d</span><span class="s1">]: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">target</span><span class="p">))</span>
+          <span class="k">if</span> <span class="n">topk_scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">topk_target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+              <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;topk_decoded[</span><span class="si">%d</span><span class="s1">][</span><span class="si">%d</span><span class="s1">]: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">topk_target</span><span class="p">))</span>
+          <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">topk_scores</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">topk_target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+              <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;topk_decoded[</span><span class="si">%d</span><span class="s1">][</span><span class="si">%d</span><span class="s1">]: (</span><span class="si">%0.2f</span><span class="s1">) </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                    <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">topk_target</span><span class="p">))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">topk_target</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+              <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">printoptions</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;topk_decoded[</span><span class="si">%d</span><span class="s1">][</span><span class="si">%d</span><span class="s1">]: (</span><span class="si">%s</span><span class="s1">) </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                      <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">topk_target</span><span class="p">))</span>
+
+          <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">output</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">write_ith_sample_to_output</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">topk_decoded</span><span class="p">,</span>
+                                          <span class="n">topk_scores</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for infeed thread&#39;</span><span class="p">)</span>
+    <span class="n">infeed_loop_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for TPU thread&#39;</span><span class="p">)</span>
+    <span class="n">decode_loop_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.tools.gshard_lm_decode.html#lingvo.tasks.lm.tools.gshard_lm_decode.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">unused_argv</span><span class="p">):</span>
+  <span class="n">override_flags</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_logging</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="s1">&#39;CRITICAL&#39;</span><span class="p">)</span>
+
+  <span class="n">model_params</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found model </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">batch_size</span>
+
+  <span class="n">decoder</span> <span class="o">=</span> <span class="n">GShardLMDecodeBatch</span><span class="p">()</span>
+  <span class="n">decoder</span><span class="o">.</span><span class="n">init_vocab</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+  <span class="n">decoder</span><span class="o">.</span><span class="n">preload_data</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+
+  <span class="n">decoder</span><span class="o">.</span><span class="n">reset_tpu_cluster</span><span class="p">()</span>
+  <span class="n">decoder</span><span class="o">.</span><span class="n">reset_session</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_node</span><span class="p">)</span>
+
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">decoder</span><span class="o">.</span><span class="n">init_graph</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+    <span class="n">decoder</span><span class="o">.</span><span class="n">run_init_sequence</span><span class="p">()</span>
+    <span class="n">decoder</span><span class="o">.</span><span class="n">batch_decode</span><span class="p">()</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">decoder</span><span class="o">.</span><span class="n">reset_tpu_cluster</span><span class="p">()</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2018.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
