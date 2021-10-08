@@ -369,11 +369,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_SetState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_GarbageCollect</span><span class="p">(</span><span class="n">ids_to_garbage_collect</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Saver.Restore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Saver.Restore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Restore variables from a checkpoint.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      sess: A session with tf.Graph under which this object is constructed.</span>
+<span class="sd">      path: If not None, restore from this path prefix.</span>
 <span class="sd">      checkpoint_id: If None, restore from the latest checkpoint. Otherwise,</span>
 <span class="sd">        restore from the specific checkpoint.</span>
 
@@ -384,7 +385,9 @@
 <span class="sd">      prefix. Otherwise, raises an error.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">checkpoint_id</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+      <span class="n">prefix</span> <span class="o">=</span> <span class="n">path</span>
+    <span class="k">elif</span> <span class="n">checkpoint_id</span><span class="p">:</span>
       <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/ckpt-</span><span class="si">{:08d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetState</span><span class="p">()</span><span class="o">.</span><span class="n">model_checkpoint_path</span>
