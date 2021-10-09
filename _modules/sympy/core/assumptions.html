@@ -105,7 +105,7 @@
 <span class="sd">    imaginary</span>
 <span class="sd">        object value is a number that can be written as a real</span>
 <span class="sd">        number multiplied by the imaginary unit ``I``.  See</span>
-<span class="sd">        [3]_.  Please note, that ``0`` is not considered to be an</span>
+<span class="sd">        [3]_.  Please note that ``0`` is not considered to be an</span>
 <span class="sd">        imaginary number, see</span>
 <span class="sd">        `issue #7649 &lt;https://github.com/sympy/sympy/issues/7649&gt;`_.</span>
 
@@ -450,6 +450,14 @@
 <span class="sd">    &gt;&gt;&gt; check_assumptions(2*x + 1, x)</span>
 <span class="sd">    True</span>
 
+<span class="sd">    To see if a number matches the assumptions of an expression, pass</span>
+<span class="sd">    the number as the first argument, else its specific assumptions</span>
+<span class="sd">    may not have a non-None value in the expression:</span>
+
+<span class="sd">    &gt;&gt;&gt; check_assumptions(x, 3)</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(3, x)</span>
+<span class="sd">    True</span>
+
 <span class="sd">    ``None`` is returned if ``check_assumptions()`` could not conclude.</span>
 
 <span class="sd">    &gt;&gt;&gt; check_assumptions(2*x - 1, x)</span>
@@ -464,8 +472,8 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">expr</span> <span class="o">=</span> <span class="n">sympify</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">against</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">against</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">assume</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">against</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">assume</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s1">&#39;Expecting `against` or `assume`, not both.&#39;</span><span class="p">)</span>
         <span class="n">assume</span> <span class="o">=</span> <span class="n">assumptions</span><span class="p">(</span><span class="n">against</span><span class="p">)</span>
