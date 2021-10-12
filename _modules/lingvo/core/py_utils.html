@@ -1183,7 +1183,11 @@
 
 <div class="viewcode-block" id="WeightInit.CustomVarInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.WeightInit.CustomVarInit">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CustomVarInit</span><span class="p">(</span><span class="n">custom_v_init</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;custom&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">custom_v_init</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;custom&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">custom_v_init</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WeightInit.CustomConstantVarInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.WeightInit.CustomConstantVarInit">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">CustomConstantVarInit</span><span class="p">(</span><span class="n">custom_v_init</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;custom_constant&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">custom_v_init</span><span class="p">)</span></div></div>
 
 
 <span class="n">_DEFAULT_XAVIER_INIT</span> <span class="o">=</span> <span class="mf">1.000001</span>
@@ -1915,11 +1919,15 @@
                                 <span class="n">MaybeOpportunisticVariableReuse</span><span class="p">,</span>
                                 <span class="n">MaybePinVarsToCpu</span><span class="p">,</span> <span class="n">MaybeReuseFromVariableStore</span><span class="p">):</span>
       <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">variable_creator_fn</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;custom_constant&#39;</span><span class="p">:</span>
+      <span class="n">call_shape</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">call_shape</span> <span class="o">=</span> <span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
         <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
         <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
-        <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">call_shape</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
@@ -2182,7 +2190,7 @@
     <span class="n">bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">std_dev</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">random_uniform_initializer</span><span class="p">(</span>
         <span class="n">minval</span><span class="o">=-</span><span class="n">bound</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">bound</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;custom&#39;</span><span class="p">:</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;custom&#39;</span><span class="p">,</span> <span class="s1">&#39;custom_constant&#39;</span><span class="p">]:</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">custom_v_init</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;init_type `</span><span class="si">%s</span><span class="s1">` not supported.&#39;</span> <span class="o">%</span> <span class="n">method</span>
@@ -2418,7 +2426,7 @@
     <span class="n">bound</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">std_dev</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">_DeterministicRandomUniformInitializer</span><span class="p">(</span>
         <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=-</span><span class="n">bound</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">bound</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;custom&#39;</span><span class="p">:</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;custom&#39;</span><span class="p">,</span> <span class="s1">&#39;custom_constant&#39;</span><span class="p">]:</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">custom_v_init</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;init_type </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">method</span>
