@@ -443,8 +443,14 @@ or a MultiTaskSubModel.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._RunPostProcess">
+<span class="sig-name descname"><span class="pre">_RunPostProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threadpool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_out_obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_futures</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._RunPostProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._RunPostProcess" title="Permalink to this definition"></a></dt>
+<dd><p>Run postprocess in sync or async if a threadpool is provided.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._PostProcessStep">
-<span class="sig-name descname"><span class="pre">_PostProcessStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_out_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._PostProcessStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._PostProcessStep" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_PostProcessStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_out_obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._PostProcessStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._PostProcessStep" title="Permalink to this definition"></a></dt>
 <dd><p>Run postprocess for a single decode step.</p>
 </dd></dl>
 
@@ -621,7 +627,7 @@ Run all the eval_programs</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program.SimpleProgramScheduleForTask">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">train_dataset_name</span></em>, <em class="sig-param"><span class="pre">train_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">eval_dataset_names</span></em>, <em class="sig-param"><span class="pre">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">decode_steps_per_loop=None</span></em>, <em class="sig-param"><span class="pre">experimental_decoder=False</span></em>, <em class="sig-param"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">async_postprocess=True</span></em>, <em class="sig-param"><span class="pre">decode_until_out_of_range=False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">train_dataset_name</span></em>, <em class="sig-param"><span class="pre">train_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">eval_dataset_names</span></em>, <em class="sig-param"><span class="pre">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">decode_steps_per_loop=None</span></em>, <em class="sig-param"><span class="pre">experimental_decoder=False</span></em>, <em class="sig-param"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">async_postprocess=True</span></em>, <em class="sig-param"><span class="pre">decode_until_out_of_range=False</span></em>, <em class="sig-param"><span class="pre">postprocess_all_at_once=False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -653,6 +659,11 @@ until there is no more data (OutOfRange error is thrown). If this is True,
 decode_steps_per_loop is ignored (and not required). Currently do not
 support ExperimentalDecodeProgram, which uses loop on TPU. So keep
 experimental_decoder=False</p></li>
+<li><p><strong>postprocess_all_at_once</strong> – bool. Whether to postprocess all the (combined)
+batches at once at the end of Decode program, instead of once per step.
+This is needed if one needs to reference/combine data across different
+batches/steps during postprocess. The PostProcess(DecodeOut) function
+should define the logic of aggregating across steps/batches.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

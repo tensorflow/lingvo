@@ -900,11 +900,18 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decode_until_out_of_range&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="p">(</span><span class="s1">&#39;If set, ignores steps_per_loop and Decode proceeds until an &#39;</span>
               <span class="s1">&#39;OutOfRangeError is triggered by hitting the end of dataset.&#39;</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;postprocess_all_at_once&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If set, decode_out_dict of all steps are accumulated into a list &#39;</span>
+        <span class="s1">&#39;and passed to PostProcess to run only once at the end. Note that&#39;</span>
+        <span class="s1">&#39; the PostProcess of the Task should define logic for aggregating&#39;</span>
+        <span class="s1">&#39;data from the list of decode_out_dict.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;DecodeProgram&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span> <span class="o">=</span> <span class="p">[]</span>
 
 <div class="viewcode-block" id="DecodeProgram._CompileDecodeFn"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._CompileDecodeFn">[docs]</a>  <span class="k">def</span> <span class="nf">_CompileDecodeFn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrap the DecodeFn with split_compile_and_shard.&quot;&quot;&quot;</span>
@@ -985,22 +992,33 @@
     <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpu_pt</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished TPU decoding on step </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
     <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;decode_secs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">postprocess_all_at_once</span><span class="p">:</span>
+      <span class="c1"># Accumulate decode_out_dicts and skip postprocess until the end.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_RunPostProcess</span><span class="p">(</span><span class="n">threadpool</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span>
+                           <span class="n">global_step</span><span class="p">,</span> <span class="n">buffered_decode_out</span><span class="p">,</span>
+                           <span class="n">postprocess_futures</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DecodeProgram._RunPostProcess"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._RunPostProcess">[docs]</a>  <span class="k">def</span> <span class="nf">_RunPostProcess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">decode_out_obj</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span>
+                      <span class="n">global_step</span><span class="p">,</span> <span class="n">buffered_decode_out</span><span class="p">,</span> <span class="n">postprocess_futures</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run postprocess in sync or async if a threadpool is provided.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">threadpool</span><span class="p">:</span>
       <span class="c1"># Run postprocess on separate CPU thread.</span>
       <span class="n">postprocess_futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
           <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_PostProcessStep</span><span class="p">,</span>
-              <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
+              <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">decode_out_obj</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
                     <span class="n">buffered_decode_out</span><span class="p">)))</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_PostProcessStep</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_PostProcessStep</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">decode_out_obj</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
                             <span class="n">buffered_decode_out</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DecodeProgram._PostProcessStep"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._PostProcessStep">[docs]</a>  <span class="k">def</span> <span class="nf">_PostProcessStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
+<div class="viewcode-block" id="DecodeProgram._PostProcessStep"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._PostProcessStep">[docs]</a>  <span class="k">def</span> <span class="nf">_PostProcessStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">decode_out_obj</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
                        <span class="n">buffered_decode_out</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run postprocess for a single decode step.&quot;&quot;&quot;</span>
     <span class="n">post_process_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-    <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
+    <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">decode_out_obj</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
     <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;postprocess_secs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">post_process_start</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;PostProcessed step: </span><span class="si">%d</span><span class="s1"> </span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span>
                     <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">total_value</span><span class="p">))</span>
@@ -1103,6 +1121,11 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting step </span><span class="si">%d</span><span class="s1"> of </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
                          <span class="n">buffered_decode_out</span><span class="p">,</span> <span class="n">postprocess_futures</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
+    <span class="c1"># Run postprocess after the last step if postprocess_all_at_once.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_RunPostProcess</span><span class="p">(</span><span class="n">threadpool</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span><span class="p">,</span>
+                           <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">buffered_decode_out</span><span class="p">,</span>
+                           <span class="n">postprocess_futures</span><span class="p">)</span>
     <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">threadpool</span><span class="p">:</span>
@@ -1588,7 +1611,8 @@
                                  <span class="n">train_program_cls</span><span class="o">=</span><span class="n">TrainProgram</span><span class="p">,</span>
                                  <span class="n">eval_program_cls</span><span class="o">=</span><span class="n">EvalProgram</span><span class="p">,</span>
                                  <span class="n">async_postprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                 <span class="n">decode_until_out_of_range</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                                 <span class="n">decode_until_out_of_range</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">postprocess_all_at_once</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convenient helper method for common case.</span>
 
 <span class="sd">  Args:</span>
@@ -1619,6 +1643,11 @@
 <span class="sd">      decode_steps_per_loop is ignored (and not required). Currently do not</span>
 <span class="sd">      support ExperimentalDecodeProgram, which uses loop on TPU. So keep</span>
 <span class="sd">      experimental_decoder=False</span>
+<span class="sd">    postprocess_all_at_once: bool. Whether to postprocess all the (combined)</span>
+<span class="sd">      batches at once at the end of Decode program, instead of once per step.</span>
+<span class="sd">      This is needed if one needs to reference/combine data across different</span>
+<span class="sd">      batches/steps during postprocess. The PostProcess(DecodeOut) function</span>
+<span class="sd">      should define the logic of aggregating across steps/batches.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A populated SimpleProgramSchedule.Params()</span>
@@ -1674,6 +1703,7 @@
       <span class="n">decode_program_params</span> <span class="o">=</span> <span class="n">DecodeProgram</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">decode_program_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;decode_tpu&#39;</span>
       <span class="n">decode_program_params</span><span class="o">.</span><span class="n">dataset_name</span> <span class="o">=</span> <span class="n">dataset_name</span>
+      <span class="n">decode_program_params</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span>
       <span class="n">decode_program_params</span><span class="o">.</span><span class="n">decode_until_out_of_range</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decode_program_params</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -1684,6 +1714,7 @@
       <span class="c1"># TODO(blee): This should be derived from the Dataset size.</span>
       <span class="n">decode_program_params</span><span class="o">.</span><span class="n">steps_per_loop</span> <span class="o">=</span> <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
       <span class="n">decode_program_params</span><span class="o">.</span><span class="n">dataset_name</span> <span class="o">=</span> <span class="n">dataset_name</span>
+      <span class="n">decode_program_params</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span>
       <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decode_program_params</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">program_schedule_params</span></div>
