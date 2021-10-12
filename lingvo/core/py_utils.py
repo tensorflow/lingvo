@@ -1120,6 +1120,10 @@ class WeightInit:
   def CustomVarInit(custom_v_init):
     return WeightInit._Params('custom', 1.0, None, custom_v_init)
 
+  @staticmethod
+  def CustomConstantVarInit(custom_v_init):
+    return WeightInit._Params('custom_constant', 1.0, None, custom_v_init)
+
 
 _DEFAULT_XAVIER_INIT = 1.000001
 
@@ -1850,11 +1854,15 @@ def _CreateVariableStateful(name,
                                 MaybeOpportunisticVariableReuse,
                                 MaybePinVarsToCpu, MaybeReuseFromVariableStore):
       context_stack.enter_context(VariableCreatorScope(variable_creator_fn))
+    if method == 'custom_constant':
+      call_shape = None
+    else:
+      call_shape = GetVariableShapePrefixes() + list(shape)
     var = _GetVariableCreator()(
         var_name=var_name,
         var_params=p,
         name='var',
-        shape=GetVariableShapePrefixes() + list(shape),
+        shape=call_shape,
         dtype=var_dtype,
         initializer=v_init,
         collections=collections,
@@ -2117,7 +2125,7 @@ def _CreateVarInitStateful(name,
     bound = np.sqrt(3.0) * std_dev
     v_init = init_ops.random_uniform_initializer(
         minval=-bound, maxval=bound, seed=seed, dtype=init_dtype)
-  elif method == 'custom':
+  elif method in ['custom', 'custom_constant']:
     v_init = custom_v_init
   else:
     assert False, 'init_type `%s` not supported.' % method
@@ -2353,7 +2361,7 @@ def _CreateVarInitStateless(name,
     bound = np.sqrt(3.0) * std_dev
     v_init = _DeterministicRandomUniformInitializer(
         seed=seed, minval=-bound, maxval=bound)
-  elif method == 'custom':
+  elif method in ['custom', 'custom_constant']:
     v_init = custom_v_init
   else:
     assert False, 'init_type %s not supported.' % method

@@ -20,6 +20,7 @@ from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import summary_utils
+from tensorflow.python.training import moving_averages  # pylint: disable=g-direct-tensorflow-import
 
 
 def ConvertToBlocks(x, block_size, padding_val=0.0):
@@ -512,6 +513,9 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     p.Define(
         'apply_layer_norm', True, 'Whether to apply LayerNorm() on the '
         'inputs first. If unset, caller must normalize first.')
+    p.Define(
+        'use_ema', False, 'If True then use an exponential moving average'
+        'to smooth the counts over time.')
     p.Define('use_bfloat16', False, 'Whether to explicitly use bfloat16 for '
              'computation.')
     p.Define('trainable', True, 'Whether to allow centroids to be trainable.')
@@ -529,12 +533,35 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     p = self.params
     self._dtype = tf.bfloat16 if p.use_bfloat16 else tf.float32
     # The per-head centroids. Shape [N, K, H].
+    if p.apply_layer_norm:
+      p.params_init = py_utils.WeightInit.UniformUnitScaling()
+    else:
+      p.params_init = py_utils.WeightInit.Gaussian()
     means = py_utils.WeightParams(
         shape=[p.num_heads, p.num_clusters, p.dim_per_head],
-        init=py_utils.WeightInit.Gaussian(),
+        init=p.params_init,
         dtype=self._dtype,
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('means', means, trainable=p.trainable)
+    if p.use_ema:
+      init_value_op = getattr(self.vars.means, 'initialized_value', None)
+      if callable(init_value_op):
+        initial_value = self.vars.means.initialized_value()
+      else:
+        initial_value = self.vars.means
+      ema_means = py_utils.WeightParams(
+          init=py_utils.WeightInit.CustomConstantVarInit(
+              custom_v_init=initial_value),
+          dtype=p.dtype,
+          shape=[p.num_heads, p.num_clusters, p.dim_per_head],
+          collections=[self.__class__.__name__ + '_vars'])
+      ema_count = py_utils.WeightParams(
+          shape=[p.num_heads, p.num_clusters],
+          init=py_utils.WeightInit.Constant(0.),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('ema_means', ema_means, trainable=False)
+      self.CreateVariable('ema_count', ema_count, trainable=False)
 
   @classmethod
   def LayerNorm(cls, x, epsilon=1e-6):
@@ -588,7 +615,15 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
 
     # 'x' is normalized (but theta.means is not), we use negative dot product to
     # approximate the Euclidean distance here.
-    dists = -tf.einsum('BLNH, NKH -> BLNK', x, theta.means)
+    dists = -2 * tf.einsum('BLNH, NKH -> BLNK', x, theta.means)
+    if not p.apply_layer_norm:
+      # If entries are not normalized, compute norms here.
+      x_norm_sq = tf.reduce_sum(tf.square(x), axis=-1, keepdims=True)
+      means_norm_sq = tf.reduce_sum(
+          tf.square(theta.means), axis=-1, keepdims=False)
+      means_norm_sq = tf.expand_dims(means_norm_sq, axis=0)
+      means_norm_sq = tf.expand_dims(means_norm_sq, axis=0)
+      dists += x_norm_sq + means_norm_sq
 
     # For padded positions we update the distances to very large numbers.
     very_large_dists = tf.ones_like(dists) * tf.constant(
@@ -649,20 +684,38 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
       per_cluster_count = tf.tpu.cross_replica_sum(per_cluster_count)
       sum_x = tf.tpu.cross_replica_sum(sum_x)
 
-    # If per_cluster_count for a cluster is 0, then 'nearest_one_hot' in that
-    # cluster's position will always be 0, hence 'sum_x' in that dimension will
-    # be 0.
-    new_means = sum_x / tf.maximum(
-        tf.constant(1.0, dtype=per_cluster_count.dtype),
-        tf.expand_dims(per_cluster_count, axis=-1))
-
-    # We use exponential moving average. TODO(zhouwk): investigate smooth this
-    # over an exponentially moving averaged per cluster count.
-    #
-    # Note that we intentionally do not normalize the means after this update
-    # as empirically this works better.
-    update_means_diff = tf.cast((1.0 - p.decay) * (new_means - theta.means),
-                                self.vars.means.dtype)
+    if p.use_ema:
+      updated_ema_count = moving_averages.assign_moving_average(
+          self.vars.ema_count,
+          tf.cast(per_cluster_count, self.vars.ema_count.dtype),
+          p.decay,
+          zero_debias=False)
+      updated_ema_means = moving_averages.assign_moving_average(
+          self.vars.ema_means,
+          tf.cast(sum_x, self.vars.ema_means.dtype),
+          p.decay,
+          zero_debias=False)
+      n = tf.reduce_sum(updated_ema_count, axis=-1, keepdims=True)
+      updated_ema_count = ((updated_ema_count + p.epsilon) /
+                           (n + p.num_clusters * p.epsilon) * n)
+      # pylint: disable=g-no-augmented-assignment
+      updated_ema_means = updated_ema_means / tf.expand_dims(
+          updated_ema_count, axis=-1)
+      # pylint: enable=g-no-augmented-assignment
+      updated_ema_means = tf.cast(updated_ema_means, self.vars.means.dtype)
+      means = tf.cast(theta.means, updated_ema_means.dtype)
+      update_means_diff = updated_ema_means - means
+    else:
+      # If per_cluster_count for a cluster is 0, then 'nearest_one_hot' in that
+      # cluster's position will always be 0, hence 'sum_x' in that dimension
+      # will be 0.
+      new_means = sum_x / tf.maximum(
+          tf.constant(1.0, dtype=per_cluster_count.dtype),
+          tf.expand_dims(per_cluster_count, axis=-1))
+      # Note that we intentionally do not normalize the means after this update
+      # as empirically this works better.
+      update_means_diff = tf.cast((1.0 - p.decay) * (new_means - theta.means),
+                                  self.vars.means.dtype)
     return py_utils.with_dependencies(
         [tf.assign_add(self.vars.means, update_means_diff)],
         dists), k_means_loss
