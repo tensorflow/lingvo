@@ -659,6 +659,16 @@
         <span class="s1">&#39;Only needed when p.apply_source_mask is True.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_input&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to use input ln&#39;</span><span class="p">)</span>
 
+    <span class="c1"># Individually tagged inputs related.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;individually_tagged_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Enables tags for each input &#39;</span>
+        <span class="s1">&#39;token. The tags are looked up in the token embedding matrix, so they &#39;</span>
+        <span class="s1">&#39;need to be reserved in the WPM vocabulary. They are assumed to be &#39;</span>
+        <span class="s1">&#39;written as common.source_segment_id in the input NMTExample; &#39;</span>
+        <span class="s1">&#39;the input generator must make them available as &#39;</span>
+        <span class="s1">&#39;input_batch.segment_ids, e.g. as the input_generator.NmtPackedInput &#39;</span>
+        <span class="s1">&#39;does.&#39;</span><span class="p">)</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">=</span> <span class="mi">6</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">8192</span>
@@ -712,6 +722,20 @@
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;enc_ln_input&#39;</span>
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm_input&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+    <span class="c1"># Individually tagged input functionality assumes that p.packed_input is</span>
+    <span class="c1"># turned off.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">individually_tagged_input</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="c1"># Concatenate tag embeddings to token+position embedding.</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s1">&#39;(2*</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="si">}</span><span class="s1"> vs. </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="si">}</span><span class="s1">), &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;creating a projection for concat input+tag embeddings!&#39;</span><span class="p">)</span>
+      <span class="n">proj_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_projection_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;concat_emb_and_tag_proj&#39;</span>
+      <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+      <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">proj_p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerEncoder._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerEncoder._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
@@ -799,7 +823,30 @@
         <span class="n">position_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">position_emb</span><span class="p">,</span> <span class="n">max_time</span><span class="p">)</span>
         <span class="n">position_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">position_embs</span><span class="p">,</span>
                                    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+      <span class="c1"># Position embeddings are simply added to token embeddings.</span>
       <span class="n">input_embs</span> <span class="o">+=</span> <span class="n">position_embs</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">individually_tagged_input</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+        <span class="c1"># Look up tag embeddings; this assumes that the tags arriving on</span>
+        <span class="c1"># input_batch.segment_ids (originating as common.source_segment_id</span>
+        <span class="c1"># in the input NMTExample) have been reserved in the WPM vocabulary</span>
+        <span class="c1"># as context tags, e.g. the ids for &lt;src_token&gt; and &lt;ctxt_token&gt; in</span>
+        <span class="c1"># wide source context experiments.</span>
+        <span class="n">input_tags</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">ids</span><span class="p">)),</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">],</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">)</span>
+        <span class="n">tag_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">token_emb</span><span class="p">,</span>
+                                                  <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">input_tags</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">tag_embeddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tag_embeddings</span><span class="p">,</span>
+                                    <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_time</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+        <span class="c1"># Concatenate the tag embeddings to the input embeddings, and then</span>
+        <span class="c1"># project back to the original embedding dimensionality.</span>
+        <span class="n">concat_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">input_embs</span><span class="p">,</span> <span class="n">tag_embeddings</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_emb_and_tag_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">concat_emb_and_tag_proj</span><span class="p">,</span> <span class="n">concat_embs</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_input</span><span class="p">:</span>
         <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm_input</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm_input</span><span class="p">,</span>
