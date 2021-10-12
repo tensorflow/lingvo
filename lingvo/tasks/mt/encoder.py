@@ -594,6 +594,16 @@ class TransformerEncoder(base_layer.BaseLayer):
         'Only needed when p.apply_source_mask is True.')
     p.Define('ln_input', None, 'Whether to use input ln')
 
+    # Individually tagged inputs related.
+    p.Define(
+        'individually_tagged_input', False, 'Enables tags for each input '
+        'token. The tags are looked up in the token embedding matrix, so they '
+        'need to be reserved in the WPM vocabulary. They are assumed to be '
+        'written as common.source_segment_id in the input NMTExample; '
+        'the input generator must make them available as '
+        'input_batch.segment_ids, e.g. as the input_generator.NmtPackedInput '
+        'does.')
+
     p.transformer_stack.num_transformer_layers = 6
     p.transformer_stack.transformer_tpl.tr_atten_tpl.num_attention_heads = 8
     p.transformer_stack.transformer_tpl.tr_fflayer_tpl.hidden_dim = 8192
@@ -647,6 +657,20 @@ class TransformerEncoder(base_layer.BaseLayer):
       params.name = 'enc_ln_input'
       params.input_dim = p.model_dim
       self.CreateChild('layer_norm_input', params)
+
+    # Individually tagged input functionality assumes that p.packed_input is
+    # turned off.
+    if p.individually_tagged_input:
+      assert not p.packed_input
+      # Concatenate tag embeddings to token+position embedding.
+      tf.logging.warning(
+          f'(2*{p.token_emb.embedding_dim} vs. {p.model_dim}), '
+          f'creating a projection for concat input+tag embeddings!')
+      proj_p = p.emb_projection_tpl.Copy()
+      proj_p.name = 'concat_emb_and_tag_proj'
+      proj_p.input_dim = 2 * p.token_emb.embedding_dim
+      proj_p.output_dim = p.model_dim
+      self.CreateChild(proj_p.name, proj_p)
 
   def _CreateChildrenVariables(self):
     if self.params.shared_emb:
@@ -734,7 +758,30 @@ class TransformerEncoder(base_layer.BaseLayer):
         position_embs = self.position_emb.FProp(theta.position_emb, max_time)
         position_embs = tf.reshape(position_embs,
                                    [1, max_time, p.token_emb.embedding_dim])
+      # Position embeddings are simply added to token embeddings.
       input_embs += position_embs
+
+      if p.individually_tagged_input:
+        assert not p.packed_input
+        # Look up tag embeddings; this assumes that the tags arriving on
+        # input_batch.segment_ids (originating as common.source_segment_id
+        # in the input NMTExample) have been reserved in the WPM vocabulary
+        # as context tags, e.g. the ids for <src_token> and <ctxt_token> in
+        # wide source context experiments.
+        input_tags = py_utils.with_dependencies([
+            py_utils.assert_shape_match(
+                tf.shape(input_batch.segment_ids), tf.shape(input_batch.ids)),
+            py_utils.assert_equal(tf.rank(input_batch.segment_ids), 2)
+        ], input_batch.segment_ids)
+        tag_embeddings = self.token_emb.EmbLookup(theta.token_emb,
+                                                  tf.reshape(input_tags, [-1]))
+        tag_embeddings = tf.reshape(tag_embeddings,
+                                    [-1, max_time, p.token_emb.embedding_dim])
+        # Concatenate the tag embeddings to the input embeddings, and then
+        # project back to the original embedding dimensionality.
+        concat_embs = tf.concat([input_embs, tag_embeddings], -1)
+        input_embs = self.concat_emb_and_tag_proj.FProp(
+            theta.concat_emb_and_tag_proj, concat_embs)
 
       if p.ln_input:
         input_embs = self.layer_norm_input.FProp(theta.layer_norm_input,

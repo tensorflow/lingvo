@@ -420,6 +420,41 @@ class TransformerEncoderTest(test_utils.TestCase):
 
         self.assertAllClose(actual_packed_enc_out, actual_enc_out)
 
+  def testForwardPassWithIndividuallyTaggedTokens(self):
+    with self.session(use_gpu=False):
+      bs = 3
+      sl = 3
+      tf.random.set_seed(8372749040)
+      p = self._EncoderParams()
+      p.packed_input = False
+      p.individually_tagged_input = True
+      mt_enc_tagged = encoder.TransformerEncoder(p)
+
+      batch = py_utils.NestedMap()
+      batch.ids = tf.constant(
+          np.random.randint(low=0, high=63, size=[bs, sl], dtype=np.int32))
+      batch.paddings = tf.zeros([bs, sl])
+
+      tagged_batch = py_utils.NestedMap()
+      tagged_batch.ids = tf.reshape(batch.ids, [1, -1])
+      tagged_batch.paddings = tf.reshape(batch.paddings, [1, -1])
+      tagged_batch.segment_ids = tf.constant([[0, 0, 0, 1, 1, 1, 2, 2, 2]],
+                                             dtype=tf.int32)
+
+      tagged_enc_out = mt_enc_tagged.FPropDefaultTheta(tagged_batch)
+      tagged_enc_out_sum = tf.reduce_sum(tagged_enc_out.encoded, 0)
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_tagged_enc_out = tagged_enc_out_sum.eval()
+      print(actual_tagged_enc_out)
+
+      expected_enc_out = [[
+          19.668077, -11.905859, 7.9366484, -16.66984, 23.359558, 13.41925,
+          13.443447, -14.168186, 9.430209, -16.471195, 2.6439285, 11.756948,
+          -4.6066704, -10.32788, 13.434055, 8.899297
+      ]]
+      self.assertAllClose(actual_tagged_enc_out, expected_enc_out, atol=1.0e-4)
+
   def testForwardPassSplitBatch(self):
     with self.session(use_gpu=False):
       bs = 8
