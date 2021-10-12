@@ -1910,9 +1910,8 @@ class PoolingLayer(quant_utils.QuantizableLayer):
                                                 p.padding_algorithm)
         if p.pooling_type == 'MAX':
           # Fill dtype.min in padded positions.
-          min_value = tf.ones_like(inputs) * p.dtype.min
           inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis, tf.newaxis],
-                                         inputs, min_value)
+                                         inputs, inputs.dtype.min)
       else:
         out_padding = None
       inputs = self.QTensor('output', inputs)

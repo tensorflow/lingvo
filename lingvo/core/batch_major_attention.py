@@ -5629,13 +5629,11 @@ class FunnelPoolingLayer(StrideLayer):
     if paddings is not None and p.exclude_pad_effect:
       if p.pooling_type == 'MAX':
         # Fill dtype.min in padded positions.
-        min_value = tf.ones_like(inputs) * p.dtype.min
         inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis], inputs,
-                                       min_value)
+                                       inputs.dtype.min)
       elif p.pooling_type == 'AVG':
         # Fill 0 in padded positions.
-        inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis], inputs,
-                                       tf.zeros_like(inputs))
+        inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis], inputs)
 
     pool_window = p.pool_window or p.stride
     pooled_tensor = tf.nn.pool(
