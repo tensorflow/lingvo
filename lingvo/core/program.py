@@ -835,11 +835,18 @@ class DecodeProgram(BaseProgram):
     p.Define('decode_until_out_of_range', False,
              ('If set, ignores steps_per_loop and Decode proceeds until an '
               'OutOfRangeError is triggered by hitting the end of dataset.'))
+    p.Define(
+        'postprocess_all_at_once', False,
+        'If set, decode_out_dict of all steps are accumulated into a list '
+        'and passed to PostProcess to run only once at the end. Note that'
+        ' the PostProcess of the Task should define logic for aggregating'
+        'data from the list of decode_out_dict.')
     return p
 
   def __init__(self, params, shared_model=None, **kwargs):
     super().__init__(params, shared_model=shared_model, **kwargs)
     self._program_name = 'DecodeProgram'
+    self._decode_out_dict_lst = []
 
   def _CompileDecodeFn(self):
     """Wrap the DecodeFn with split_compile_and_shard."""
@@ -920,22 +927,33 @@ class DecodeProgram(BaseProgram):
     decode_out_dict = _FetchDecodeOut(sess, self.decode_tensors, self.cpu_pt)
     tf.logging.info('Finished TPU decoding on step %f', step)
     dec_metrics['decode_secs'].Update(time.time() - fetch_start)
+    if self.params.postprocess_all_at_once:
+      # Accumulate decode_out_dicts and skip postprocess until the end.
+      self._decode_out_dict_lst.append(decode_out_dict)
+    else:
+      self._RunPostProcess(threadpool, step, decode_out_dict, dec_metrics,
+                           global_step, buffered_decode_out,
+                           postprocess_futures)
+
+  def _RunPostProcess(self, threadpool, step, decode_out_obj, dec_metrics,
+                      global_step, buffered_decode_out, postprocess_futures):
+    """Run postprocess in sync or async if a threadpool is provided."""
     if threadpool:
       # Run postprocess on separate CPU thread.
       postprocess_futures.append(
           threadpool.apply_async(
               self._PostProcessStep,
-              args=(step, decode_out_dict, dec_metrics, global_step,
+              args=(step, decode_out_obj, dec_metrics, global_step,
                     buffered_decode_out)))
     else:
-      self._PostProcessStep(step, decode_out_dict, dec_metrics, global_step,
+      self._PostProcessStep(step, decode_out_obj, dec_metrics, global_step,
                             buffered_decode_out)
 
-  def _PostProcessStep(self, idx, decode_out_dict, dec_metrics, global_step,
+  def _PostProcessStep(self, idx, decode_out_obj, dec_metrics, global_step,
                        buffered_decode_out):
     """Run postprocess for a single decode step."""
     post_process_start = time.time()
-    decode_out = self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
+    decode_out = self._task.PostProcessDecodeOut(decode_out_obj, dec_metrics)
     dec_metrics['postprocess_secs'].Update(time.time() - post_process_start)
     tf.logging.info('PostProcessed step: %d %f' %
                     (idx, dec_metrics['num_samples_in_batch'].total_value))
@@ -1038,6 +1056,11 @@ class DecodeProgram(BaseProgram):
         tf.logging.info('Starting step %d of %d', step, self._steps_per_loop)
         self._DecodeStep(sess, step, dec_metrics, global_step,
                          buffered_decode_out, postprocess_futures, threadpool)
+    # Run postprocess after the last step if postprocess_all_at_once.
+    if self.params.postprocess_all_at_once and self._decode_out_dict_lst:
+      self._RunPostProcess(threadpool, step, self._decode_out_dict_lst,
+                           dec_metrics, global_step, buffered_decode_out,
+                           postprocess_futures)
     infeed_future.wait()
 
     if threadpool:
@@ -1523,7 +1546,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  train_program_cls=TrainProgram,
                                  eval_program_cls=EvalProgram,
                                  async_postprocess=True,
-                                 decode_until_out_of_range=False):
+                                 decode_until_out_of_range=False,
+                                 postprocess_all_at_once=False):
   """Convenient helper method for common case.
 
   Args:
@@ -1554,6 +1578,11 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       decode_steps_per_loop is ignored (and not required). Currently do not
       support ExperimentalDecodeProgram, which uses loop on TPU. So keep
       experimental_decoder=False
+    postprocess_all_at_once: bool. Whether to postprocess all the (combined)
+      batches at once at the end of Decode program, instead of once per step.
+      This is needed if one needs to reference/combine data across different
+      batches/steps during postprocess. The PostProcess(DecodeOut) function
+      should define the logic of aggregating across steps/batches.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -1609,6 +1638,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       decode_program_params = DecodeProgram.Params()
       decode_program_params.name = 'decode_tpu'
       decode_program_params.dataset_name = dataset_name
+      decode_program_params.postprocess_all_at_once = postprocess_all_at_once
       decode_program_params.decode_until_out_of_range = True
       program_schedule_params.eval_programs.append(decode_program_params)
     elif decode_steps_per_loop[idx] > 0:
@@ -1619,6 +1649,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       # TODO(blee): This should be derived from the Dataset size.
       decode_program_params.steps_per_loop = decode_steps_per_loop[idx]
       decode_program_params.dataset_name = dataset_name
+      decode_program_params.postprocess_all_at_once = postprocess_all_at_once
       program_schedule_params.eval_programs.append(decode_program_params)
 
   return program_schedule_params

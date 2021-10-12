@@ -834,7 +834,8 @@ class BaseTask(base_layer.BaseLayer):
     """Post-processes decoder out and updates contents of `decode_metrics_dict`.
 
     Args:
-      decode_out_dict: A dictionary of Tensors fetched.
+      decode_out_dict: A dictionary of Tensors fetched. Could also be a list of
+        such dictionaries, each one representing results from one batch/step.
       decode_metrics_dict: A dict mapping from string key to `.BaseMetric`
         object as created by `CreateDecoderMetrics`.
 
