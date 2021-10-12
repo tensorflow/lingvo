@@ -1975,9 +1975,8 @@
                                                 <span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;MAX&#39;</span><span class="p">:</span>
           <span class="c1"># Fill dtype.min in padded positions.</span>
-          <span class="n">min_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">min</span>
           <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
-                                         <span class="n">inputs</span><span class="p">,</span> <span class="n">min_value</span><span class="p">)</span>
+                                         <span class="n">inputs</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">out_padding</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
