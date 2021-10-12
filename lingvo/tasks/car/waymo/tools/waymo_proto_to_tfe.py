@@ -229,8 +229,9 @@ class FrameToTFE(object):
     self.extract_laser_calibrations(feature, item.context.laser_calibrations)
 
     range_image_pose = self._get_range_image_pose(item.lasers)
-    feature['TOP_pose'].float_list.value[:] = range_image_pose.numpy().reshape(
-        [-1])
+    if range_image_pose is not None:
+      feature['TOP_pose'].float_list.value[:] = (
+          range_image_pose.numpy().reshape([-1]))
 
     # From the range images, also turn them into 3D point clouds.
     self.add_point_cloud(feature, laser_names, range_image_pose)
@@ -254,6 +255,11 @@ class FrameToTFE(object):
     for laser in lasers:
       if laser.name != dataset_pb2.LaserName.TOP:
         continue
+
+      # Skip if range_image_pose_compressed is empty.
+      if not laser.ri_return1.range_image_pose_compressed:
+        return None
+
       pose_str = zlib.decompress(laser.ri_return1.range_image_pose_compressed)
       # Deserialize from MatrixFloat serialization.
       range_image_top_pose = dataset_pb2.MatrixFloat()
@@ -475,7 +481,7 @@ class FrameToTFE(object):
         batched_pixel_pose = None
         batched_frame_pose = None
         # At the moment, only the top has per-pixel pose.
-        if laser_name == 'TOP':
+        if laser_name == 'TOP' and range_image_pose is not None:
           batched_pixel_pose = range_image_pose[tf.newaxis, ...]
           batched_frame_pose = self.frame_pose[tf.newaxis, ...]
 
