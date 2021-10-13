@@ -1459,7 +1459,7 @@ class SimpleProgramSchedule:
     if p.train_executions_per_eval > 0:
       p.train_program.logdir = p.logdir
       if p.train_program.dataset_name not in p.task_dict:
-        tf.logging.error('could not find %s in %s' %
+        raise ValueError('could not find train dataset %s in %s' %
                          (p.train_program.dataset_name, p.task_dict))
       p.train_program.task = p.task_dict[p.train_program.dataset_name]
       p.train_program.num_splits_per_client = p.num_splits_per_client
@@ -1471,6 +1471,9 @@ class SimpleProgramSchedule:
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir
+      if eval_program_params.dataset_name not in p.task_dict:
+        raise ValueError('could not find eval dataset %s in %s' %
+                         (eval_program_params.dataset_name, p.task_dict))
       eval_program_params.task = p.task_dict[eval_program_params.dataset_name]
       eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
@@ -1537,6 +1540,17 @@ class SimpleProgramSchedule:
       mlp_log.mlperf_print('run_stop', None, metadata={'status': 'success'})
 
 
+def _CreateProgramParams(cls, program_name, dataset_name, steps_per_loop):
+  p = cls.Params()
+  p.name = program_name
+  p.dataset_name = dataset_name
+  if program_name == 'decode_tpu':
+    _SetDecodeStepsPerLoop(p, steps_per_loop)
+  else:
+    p.steps_per_loop = steps_per_loop
+  return p
+
+
 def SimpleProgramScheduleForTask(train_dataset_name,
                                  train_steps_per_loop,
                                  eval_dataset_names,
@@ -1559,8 +1573,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       eval_dataset_names.
     decode_steps_per_loop: Number of steps to execute the decode program. Can be
       a single value or a list of values corresponding to the entries in
-      eval_dataset_names. If it is None, then decode_until_out_of_range must
-      be True.
+      eval_dataset_names. If it is None, then decode_until_out_of_range must be
+      True.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
     train_program_cls: The class to use for training programs.  Defaults to
@@ -1589,11 +1603,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   """
 
   program_schedule_params = SimpleProgramSchedule.Params()
-  train_program_params = train_program_cls.Params()
-  train_program_params.name = 'train'
-  train_program_params.steps_per_loop = train_steps_per_loop
-  train_program_params.dataset_name = train_dataset_name
-  program_schedule_params.train_program = train_program_params
+  program_schedule_params.train_program = _CreateProgramParams(
+      train_program_cls, 'train', train_dataset_name, train_steps_per_loop)
 
   program_schedule_params.dataset_names = []
 
@@ -1621,12 +1632,9 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   for idx, dataset_name in enumerate(eval_dataset_names):
     program_schedule_params.dataset_names.append(dataset_name)
     if eval_steps_per_loop[idx] > 0:
-      eval_program_params = eval_program_cls.Params()
-      eval_program_params.name = 'eval_tpu'
-      # TODO(blee): This should be derived from the Dataset size.
-      eval_program_params.steps_per_loop = eval_steps_per_loop[idx]
-      eval_program_params.dataset_name = dataset_name
-      program_schedule_params.eval_programs.append(eval_program_params)
+      program_schedule_params.eval_programs.append(
+          _CreateProgramParams(eval_program_cls, 'eval_tpu', dataset_name,
+                               eval_steps_per_loop[idx]))
 
     if decode_until_out_of_range:
       if decode_steps_per_loop is not None:
@@ -1635,24 +1643,124 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       if experimental_decoder:
         raise ValueError(
             'experimental_decoder must be False for decode_until_out_of_range')
-      decode_program_params = DecodeProgram.Params()
-      decode_program_params.name = 'decode_tpu'
-      decode_program_params.dataset_name = dataset_name
-      decode_program_params.postprocess_all_at_once = postprocess_all_at_once
-      decode_program_params.decode_until_out_of_range = True
-      program_schedule_params.eval_programs.append(decode_program_params)
+      decoder_param = _CreateProgramParams(DecodeProgram, 'decode_tpu',
+                                           dataset_name, -1)
+      decoder_param.postprocess_all_at_once = postprocess_all_at_once
+      program_schedule_params.eval_programs.append(decoder_param)
     elif decode_steps_per_loop[idx] > 0:
       decoder = (
           ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
-      decode_program_params = decoder.Params()
-      decode_program_params.name = 'decode_tpu'
-      # TODO(blee): This should be derived from the Dataset size.
-      decode_program_params.steps_per_loop = decode_steps_per_loop[idx]
-      decode_program_params.dataset_name = dataset_name
-      decode_program_params.postprocess_all_at_once = postprocess_all_at_once
-      program_schedule_params.eval_programs.append(decode_program_params)
+      decoder_param = _CreateProgramParams(decoder, 'decode_tpu', dataset_name,
+                                           decode_steps_per_loop[idx])
+      decoder_param.postprocess_all_at_once = postprocess_all_at_once
+      program_schedule_params.eval_programs.append(decoder_param)
 
   return program_schedule_params
+
+
+def _GetDecodeStepsPerLoop(decode_program):
+  if decode_program.decode_until_out_of_range:
+    return -1
+  else:
+    return decode_program.steps_per_loop
+
+
+def _SetDecodeStepsPerLoop(decode_program, steps_per_loop):
+  if steps_per_loop == -1:
+    decode_program.decode_until_out_of_range = True
+  else:
+    decode_program.decode_until_out_of_range = False
+    decode_program.steps_per_loop = steps_per_loop
+
+
+def _ClearSpecifiedProgram(program_list, program_cls_to_clear):
+  ret_programs = []
+  for program in program_list:
+    if not isinstance(program.cls, program_cls_to_clear):
+      ret_programs.append(program)
+  return ret_programs
+
+
+def UpdateProgramSchedule(ps_params, dataset_list, train_executions_per_eval,
+                          eval_steps_per_loop, decode_steps_per_loop):
+  """Update ProgramSchedule params with the given new configs.
+
+  Currently this override only support EvalProgram and DecodeProgram.
+
+  Args:
+    ps_params: SimpleProgramSchedule.Params(), to be overriden.
+    dataset_list: Optional[List[str]], if not None, it will override eval
+      datasets in ps_params.
+    train_executions_per_eval: Optional[int], if not None, it will override
+      train_executions_per_eval in ps_params.
+    eval_steps_per_loop: Optional[int], if not None, it will override all the
+      eval programs steps_per_loop. Currently list not supported.
+    decode_steps_per_loop: Optional[int], if not None, it will override all the
+      decode programs steps_per_loop. If set to -1, it will set
+      decode_until_out_of_range=True. Currently list not supported.
+
+  Returns:
+    ps_params after overriden.
+  """
+  assert ps_params
+  if dataset_list is not None:
+    ps_params.dataset_names = dataset_list
+    # Dict for all the override datasets:
+    # - key: each dataset name
+    # - value: dict with keys ('eval_exist', 'decode_exist') and bool values,
+    #          indicate whether the dataset already exist in current
+    #          EvalProgram, DecodeProgram. If not, we will create them.
+    ds_dict = {}
+    for dataset in dataset_list:
+      ds_dict[dataset] = {'eval_exist': False, 'decode_exist': False}
+    eval_programs = []
+    default_eval_steps_per_loop = 0
+    default_decode_steps_per_loop = 0
+    for eval_program in ps_params.eval_programs:
+      if isinstance(eval_program.cls, EvalProgram):
+        default_eval_steps_per_loop = eval_program.steps_per_loop
+      elif isinstance(eval_program.cls, DecodeProgram):
+        default_decode_steps_per_loop = _GetDecodeStepsPerLoop(eval_program)
+      if eval_program.dataset_name in ds_dict:
+        eval_programs.append(eval_program)
+        if isinstance(eval_program.cls, EvalProgram):
+          ds_dict[eval_program.dataset_name]['eval_exist'] = True
+        elif isinstance(eval_program.cls, DecodeProgram):
+          ds_dict[eval_program.dataset_name]['decode_exist'] = True
+
+    for dataset_name, exists in ds_dict.items():
+      if not exists['eval_exist']:
+        eval_programs.append(
+            _CreateProgramParams(EvalProgram, 'eval_tpu', dataset_name,
+                                 default_eval_steps_per_loop))
+      if not exists['decode_exist']:
+        eval_programs.append(
+            _CreateProgramParams(DecodeProgram, 'decode_tpu', dataset_name,
+                                 default_decode_steps_per_loop))
+    ps_params.eval_programs = eval_programs
+
+  if train_executions_per_eval is not None:
+    ps_params.train_executions_per_eval = train_executions_per_eval
+
+  if eval_steps_per_loop is not None:
+    if eval_steps_per_loop == 0:
+      ps_params.eval_programs = _ClearSpecifiedProgram(ps_params.eval_programs,
+                                                       EvalProgram)
+    else:
+      for eval_program in ps_params.eval_programs:
+        if isinstance(eval_program.cls, EvalProgram):
+          eval_program.steps_per_loop = eval_steps_per_loop
+
+  if decode_steps_per_loop is not None:
+    if decode_steps_per_loop == 0:
+      ps_params.eval_programs = _ClearSpecifiedProgram(ps_params.eval_programs,
+                                                       DecodeProgram)
+    else:
+      for eval_program in ps_params.eval_programs:
+        if isinstance(eval_program.cls, DecodeProgram):
+          _SetDecodeStepsPerLoop(eval_program, decode_steps_per_loop)
+
+  return ps_params
 
 
 class MLPerfProgramSchedule:

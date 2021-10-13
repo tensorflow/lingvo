@@ -130,6 +130,7 @@ py_library(
         ":compat",
         ":model_imports_no_params",
         "//lingvo/core:base_model_params",
+        "//lingvo/core:program_lib",
     ],
 )
 

@@ -23,6 +23,7 @@ import inspect
 from lingvo import model_imports
 import lingvo.compat as tf
 from lingvo.core import base_model_params
+from lingvo.core import program
 
 tf.flags.DEFINE_string(
     'model_params_override', '', 'Optional text specifying'
@@ -38,6 +39,18 @@ tf.flags.DEFINE_string(
     ' format. Each param must occur on a single line.  Only one'
     ' of --model_params_override and'
     ' --model_params_file_override may be specified.')
+tf.flags.DEFINE_string(
+    'executor_datasets_to_eval', None, 'Semicolon separated dataset list for '
+    'executor to eval and decode.')
+tf.flags.DEFINE_integer(
+    'executor_train_executions_per_eval', None,
+    'To override ProgramSchedule.train_executions_per_eval.')
+tf.flags.DEFINE_integer('executor_eval_steps_per_loop', None,
+                        'To override ProgramSchedule.eval_steps_per_loop.')
+tf.flags.DEFINE_integer(
+    'executor_decode_steps_per_loop', None,
+    'To override ProgramSchedule.decode_steps_per_loop, '
+    '-1 indicate decode_until_out_of_range.')
 
 FLAGS = tf.flags.FLAGS
 
@@ -256,6 +269,14 @@ class _ModelRegistryHelper:
     model_params_cls = cls.GetClass(class_key)
     model_params = model_params_cls()
     program_schedule_cfg = model_params.ProgramSchedule()
+    datasets_to_eval = None
+    if FLAGS.executor_datasets_to_eval is not None:
+      datasets_to_eval = FLAGS.executor_datasets_to_eval.split(';')
+    program_schedule_cfg = program.UpdateProgramSchedule(
+        program_schedule_cfg, datasets_to_eval,
+        FLAGS.executor_train_executions_per_eval,
+        FLAGS.executor_eval_steps_per_loop,
+        FLAGS.executor_decode_steps_per_loop)
     return program_schedule_cfg
 
 
