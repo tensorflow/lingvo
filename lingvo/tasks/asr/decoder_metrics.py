@@ -66,7 +66,7 @@ def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
     # TODO(b/195027707): remove EOS token in better way.
     decoded = ids_to_strings_fn(ids, lens - 1)
     decoded = tf.identity(decoded, name='top_k_decoded%s' % tag)
-    decoded = tf.reshape(decoded, tf.shape(hyps))
+    decoded = tf.reshape(decoded, tf.shape(scores))
   if scores is not None and hyps is not None:
     scores = tf.identity(
         tf.reshape(scores, tf.shape(lens)), name='top_k_scores%s' % tag)
