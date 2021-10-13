@@ -476,15 +476,32 @@
     <span class="k">return</span> <span class="n">rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span></div></div>
 
 
-<div class="viewcode-block" id="ModelAnalysis"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.ModelAnalysis">[docs]</a><span class="k">def</span> <span class="nf">ModelAnalysis</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns a text showing variable sizes and their total size.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ModelAnalysis"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.ModelAnalysis">[docs]</a><span class="k">def</span> <span class="nf">ModelAnalysis</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">topn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">part_pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a text showing variable sizes and their total size.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">     model: a Model object;</span>
+<span class="sd">     topn: number of top-sized tensors to print it out;</span>
+<span class="sd">     part_pattern: a Dict with key being the part name, and the value is a regex</span>
+<span class="sd">       to match the variables for the specific part.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">class</span> <span class="nc">Analyzer</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Helper class.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">part_pattern</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_seen_var</span> <span class="o">=</span> <span class="p">{}</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c1"># part_pattern is a part_name to pattern Dict, which specifies what</span>
+      <span class="c1"># variables (via regex) belongs to which part (e.g., encoder/decoder)</span>
+      <span class="c1"># of the model.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">part_size</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">part_pattern</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">part_size</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">part</span><span class="p">,</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">part_pattern</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">part_size</span><span class="p">[</span><span class="n">part</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">),</span> <span class="mi">0</span><span class="p">]</span>
+      <span class="c1"># record all variable&#39;s size so that we can find top-n tensors.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">variable_size_table</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
       <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span>
@@ -497,17 +514,44 @@
           <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%-20s</span><span class="s1"> </span><span class="si">%10s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s1">&#39;n/a&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">variable_size_table</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seen_var</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_seen_var</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">+=</span> <span class="n">size</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_size</span><span class="p">:</span>
+          <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_size</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">part_size</span><span class="p">[</span><span class="n">part</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">):</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">part_size</span><span class="p">[</span><span class="n">part</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">size</span>
       <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%-20s</span><span class="s1"> </span><span class="si">%10d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">)</span>
 
-  <span class="n">analyzer</span> <span class="o">=</span> <span class="n">Analyzer</span><span class="p">()</span>
+  <span class="n">analyzer</span> <span class="o">=</span> <span class="n">Analyzer</span><span class="p">(</span><span class="n">part_pattern</span><span class="p">)</span>
   <span class="n">output</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
   <span class="n">output</span> <span class="o">+=</span> <span class="n">model</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">analyzer</span><span class="p">)</span><span class="o">.</span><span class="n">DebugString</span><span class="p">()</span>
   <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
   <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">100</span>
   <span class="n">output</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">total #params: </span><span class="si">{</span><span class="n">analyzer</span><span class="o">.</span><span class="n">total</span><span class="si">:</span><span class="s1">,</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span>
+  <span class="k">if</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">part_size</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">part_size</span><span class="p">:</span>
+      <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">100</span>
+      <span class="n">pattern</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">part_size</span><span class="p">[</span><span class="n">part</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pattern</span>
+      <span class="n">size</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">part_size</span><span class="p">[</span><span class="n">part</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Part: </span><span class="si">{:10s}</span><span class="s1">(</span><span class="si">{:40s}</span><span class="s1">)</span><span class="se">\t</span><span class="si">{:12d}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="n">part</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span> <span class="o">+</span> <span class="n">pattern</span> <span class="o">+</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">topn</span><span class="p">:</span>
+    <span class="c1"># print out topn tensors</span>
+    <span class="n">topn_variables</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">analyzer</span><span class="o">.</span><span class="n">variable_size_table</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">topn</span><span class="p">]</span>
+    <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Top-</span><span class="si">{}</span><span class="s1"> tensors by size</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">topn</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">topn_variables</span><span class="p">):</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="n">var</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">size</span> <span class="o">=</span> <span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">var</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">output</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s1">100s</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">size</span><span class="si">:</span><span class="s1">,</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span>
+
   <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">total</span></div>
 
 

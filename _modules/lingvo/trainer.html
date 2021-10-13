@@ -153,7 +153,21 @@
     <span class="s1">&#39;shell: an interactive shell for development; &#39;</span>
     <span class="s1">&#39;inspect_evaler: print evaler dataset names; &#39;</span>
     <span class="s1">&#39;inspect_decoder: print decoder dataset names; &#39;</span>
+    <span class="s1">&#39;inspect_model: print the model params name and shape; &#39;</span>
     <span class="s1">&#39;write_inference_graph: write inference graphs to logdir.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_multi_string</span><span class="p">(</span>
+    <span class="s1">&#39;inspect_model_part_regex&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;This argument is used to check the number of params in different part &#39;</span>
+    <span class="s1">&#39;of the model. (e.g. encoder or decoder or any specific layers of &#39;</span>
+    <span class="s1">&#39;encoder/decoder.) The value should be in the name:regex format. &#39;</span>
+    <span class="s1">&#39;For example, --inspect_model_part_regex=encoder:^.+conformer_encoder.+ &#39;</span>
+    <span class="s1">&#39;means any tensor</span><span class="se">\&#39;</span><span class="s1">s name matched with regex `^.+conformer_encoder.+` will &#39;</span>
+    <span class="s1">&#39;be counted as `encoder`, and the number of params in `encoder` will be &#39;</span>
+    <span class="s1">&#39;printed out when `inspect_model`. &#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;inspect_model_topn&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                        <span class="s1">&#39;print `topn` tensors when inspec_model&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;controller_job&#39;</span><span class="p">,</span> <span class="s1">&#39;/job:controller&#39;</span><span class="p">,</span> <span class="s1">&#39;Job name.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;controller_gpus&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of controller GPUs.&#39;</span><span class="p">)</span>
@@ -325,7 +339,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_num_params</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">ModelAnalysis</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_model_topn</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_model_part_regex</span><span class="p">)</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">LogMultiLines</span><span class="p">(</span><span class="s1">&#39;MODEL ANALYSIS&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span>
                      <span class="s1">&#39;model_analysis.txt&#39;</span><span class="p">)</span>
@@ -592,7 +606,8 @@
 
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_num_params</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">summary_utils</span><span class="o">.</span><span class="n">ModelAnalysis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">))</span>
+          <span class="n">summary_utils</span><span class="o">.</span><span class="n">ModelAnalysis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_model_topn</span><span class="p">,</span>
+                                      <span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_model_part_regex</span><span class="p">))</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">LogMultiLines</span><span class="p">(</span><span class="s1">&#39;MODEL ANALYSIS&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                        <span class="s1">&#39;model_analysis.txt&#39;</span><span class="p">)</span>
@@ -1522,8 +1537,24 @@
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
     <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
+    <span class="n">model_part_regex</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_model_part_regex</span>
+    <span class="n">part_pattern</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">model_part_regex</span><span class="p">:</span>
+      <span class="n">part_pattern</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">pat_str</span> <span class="ow">in</span> <span class="n">model_part_regex</span><span class="p">:</span>
+        <span class="n">first_colon</span> <span class="o">=</span> <span class="n">pat_str</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">first_colon</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Cannot understand --inspect_model_part_regex=</span><span class="si">{</span><span class="n">pat_str</span><span class="si">}</span><span class="s1">.&#39;</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">pat_str</span><span class="p">[:</span><span class="n">first_colon</span><span class="p">]</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">pat_str</span><span class="p">[</span><span class="n">first_colon</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+        <span class="n">part_pattern</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">pattern</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">c</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
-      <span class="n">analysis</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">ModelAnalysis</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">())</span>
+      <span class="n">analysis</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">ModelAnalysis</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(),</span>
+          <span class="n">topn</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_model_topn</span><span class="p">,</span>
+          <span class="n">part_pattern</span><span class="o">=</span><span class="n">part_pattern</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="RunnerManager.InspectDatasets"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.InspectDatasets">[docs]</a>  <span class="k">def</span> <span class="nf">InspectDatasets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
