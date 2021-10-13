@@ -220,6 +220,8 @@
         <span class="s1">&#39;tables are freezed); &#39;</span>
         <span class="s1">&#39;&quot;train&quot;: both enqueue ops and gradient will be generated when &#39;</span>
         <span class="s1">&#39;do_eval is False, otherwise fallback to &quot;inference&quot; mode; }.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cpu_passthrough_keys&#39;</span><span class="p">,</span> <span class="p">[],</span>
+             <span class="s1">&#39;A list of keys in the input batch to not send to TPU device.&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -753,7 +755,7 @@
 <span class="sd">        which may be combined with the output of Decode() prior to</span>
 <span class="sd">        PostProcessDecodeOut().</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">[]</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cpu_passthrough_keys</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.CreateCpuPassthroughEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateCpuPassthroughEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates enqueue ops to pass through CPU inputs to the output.&quot;&quot;&quot;</span>
