@@ -1170,6 +1170,19 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
     <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
 
+<div class="viewcode-block" id="BaseLayer._RemoveChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._RemoveChildren">[docs]</a>  <span class="k">def</span> <span class="nf">_RemoveChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Remove a list of sublayers instantiated earlier from this layer.</span>
+
+<span class="sd">    This method should only be called by subclasses, and is usually used to</span>
+<span class="sd">    remove unused layer list instantiated by the super class&#39;s CreateChildren().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: the name of an existing list of sublayers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
 <div class="viewcode-block" id="BaseLayer._VerifyChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._VerifyChildren">[docs]</a>  <span class="k">def</span> <span class="nf">_VerifyChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Verify all children created by this layer are via `CreateChild(ren)`.&quot;&quot;&quot;</span>
     <span class="n">created_children</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">)</span>
