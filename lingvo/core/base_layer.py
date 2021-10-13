@@ -1105,6 +1105,19 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._children_list.remove(self._private_children[name])
     del self._private_children[name]
 
+  def _RemoveChildren(self, name: str) -> None:
+    """Remove a list of sublayers instantiated earlier from this layer.
+
+    This method should only be called by subclasses, and is usually used to
+    remove unused layer list instantiated by the super class's CreateChildren().
+
+    Args:
+      name: the name of an existing list of sublayers.
+    """
+    for child in self._private_children[name]:
+      self._children_list.remove(child)
+    del self._private_children[name]
+
   def _VerifyChildren(self) -> None:
     """Verify all children created by this layer are via `CreateChild(ren)`."""
     created_children = py_utils.Flatten(self._private_children)
