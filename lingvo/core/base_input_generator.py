@@ -155,6 +155,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'tables are freezed); '
         '"train": both enqueue ops and gradient will be generated when '
         'do_eval is False, otherwise fallback to "inference" mode; }.')
+    p.Define('cpu_passthrough_keys', [],
+             'A list of keys in the input batch to not send to TPU device.')
 
     return p
 
@@ -688,7 +690,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
         which may be combined with the output of Decode() prior to
         PostProcessDecodeOut().
     """
-    return []
+    return self.params.cpu_passthrough_keys
 
   def CreateCpuPassthroughEnqueueOps(self):
     """Creates enqueue ops to pass through CPU inputs to the output."""
