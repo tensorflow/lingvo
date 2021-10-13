@@ -626,6 +626,11 @@ Run all the eval_programs</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.program._CreateProgramParams">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_CreateProgramParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">program_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps_per_loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_CreateProgramParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._CreateProgramParams" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program.SimpleProgramScheduleForTask">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">train_dataset_name</span></em>, <em class="sig-param"><span class="pre">train_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">eval_dataset_names</span></em>, <em class="sig-param"><span class="pre">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="pre">decode_steps_per_loop=None</span></em>, <em class="sig-param"><span class="pre">experimental_decoder=False</span></em>, <em class="sig-param"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></em>, <em class="sig-param"><span class="pre">async_postprocess=True</span></em>, <em class="sig-param"><span class="pre">decode_until_out_of_range=False</span></em>, <em class="sig-param"><span class="pre">postprocess_all_at_once=False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
 <dd><p>Convenient helper method for common case.</p>
@@ -640,8 +645,8 @@ single value or a list of values corresponding to the entries in
 eval_dataset_names.</p></li>
 <li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program. Can be
 a single value or a list of values corresponding to the entries in
-eval_dataset_names. If it is None, then decode_until_out_of_range must
-be True.</p></li>
+eval_dataset_names. If it is None, then decode_until_out_of_range must be
+True.</p></li>
 <li><p><strong>experimental_decoder</strong> – bool. Whether to use experimental deocder which is
 placed in a tpu loop.</p></li>
 <li><p><strong>train_program_cls</strong> – The class to use for training programs.  Defaults to
@@ -668,6 +673,47 @@ should define the logic of aggregating across steps/batches.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A populated SimpleProgramSchedule.Params()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.program._GetDecodeStepsPerLoop">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_GetDecodeStepsPerLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode_program</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_GetDecodeStepsPerLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._GetDecodeStepsPerLoop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.program._SetDecodeStepsPerLoop">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_SetDecodeStepsPerLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode_program</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps_per_loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_SetDecodeStepsPerLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._SetDecodeStepsPerLoop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.program._ClearSpecifiedProgram">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_ClearSpecifiedProgram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">program_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">program_cls_to_clear</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_ClearSpecifiedProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._ClearSpecifiedProgram" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.program.UpdateProgramSchedule">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">UpdateProgramSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ps_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_executions_per_eval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#UpdateProgramSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.UpdateProgramSchedule" title="Permalink to this definition"></a></dt>
+<dd><p>Update ProgramSchedule params with the given new configs.</p>
+<p>Currently this override only support EvalProgram and DecodeProgram.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ps_params</strong> – SimpleProgramSchedule.Params(), to be overriden.</p></li>
+<li><p><strong>dataset_list</strong> – Optional[List[str]], if not None, it will override eval
+datasets in ps_params.</p></li>
+<li><p><strong>train_executions_per_eval</strong> – Optional[int], if not None, it will override
+train_executions_per_eval in ps_params.</p></li>
+<li><p><strong>eval_steps_per_loop</strong> – Optional[int], if not None, it will override all the
+eval programs steps_per_loop. Currently list not supported.</p></li>
+<li><p><strong>decode_steps_per_loop</strong> – Optional[int], if not None, it will override all the
+decode programs steps_per_loop. If set to -1, it will set
+decode_until_out_of_range=True. Currently list not supported.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>ps_params after overriden.</p>
 </dd>
 </dl>
 </dd></dl>

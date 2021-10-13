@@ -88,6 +88,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_imports</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">program</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;model_params_override&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Optional text specifying&#39;</span>
@@ -103,6 +104,18 @@
     <span class="s1">&#39; format. Each param must occur on a single line.  Only one&#39;</span>
     <span class="s1">&#39; of --model_params_override and&#39;</span>
     <span class="s1">&#39; --model_params_file_override may be specified.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;executor_datasets_to_eval&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Semicolon separated dataset list for &#39;</span>
+    <span class="s1">&#39;executor to eval and decode.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;executor_train_executions_per_eval&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;To override ProgramSchedule.train_executions_per_eval.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;executor_eval_steps_per_loop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="s1">&#39;To override ProgramSchedule.eval_steps_per_loop.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
+    <span class="s1">&#39;executor_decode_steps_per_loop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;To override ProgramSchedule.decode_steps_per_loop, &#39;</span>
+    <span class="s1">&#39;-1 indicate decode_until_out_of_range.&#39;</span><span class="p">)</span>
 
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
@@ -321,6 +334,14 @@
     <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
     <span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="p">()</span>
     <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">ProgramSchedule</span><span class="p">()</span>
+    <span class="n">datasets_to_eval</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_datasets_to_eval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">datasets_to_eval</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_datasets_to_eval</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+    <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">UpdateProgramSchedule</span><span class="p">(</span>
+        <span class="n">program_schedule_cfg</span><span class="p">,</span> <span class="n">datasets_to_eval</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_train_executions_per_eval</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_eval_steps_per_loop</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_decode_steps_per_loop</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">program_schedule_cfg</span></div></div>
 
 
