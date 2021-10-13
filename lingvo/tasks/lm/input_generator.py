@@ -187,15 +187,6 @@ class PackedTextInputGenerator(base_input_generator.BaseSequenceInputGenerator):
       ret.segment_pos = 0
     return ret
 
-  def _NotTruncated(self, nm):
-    """Returns True if and only if the given NestedMap is not truncated."""
-    # If the last element is not padding, and the id is not EOS, the
-    # input text has been truncated.
-    truncated = tf.math.logical_and(
-        tf.math.equal(nm.weights[-1], 1.0),
-        tf.math.not_equal(nm.ids[-1], self.params.tokenizer.target_eos_id))
-    return tf.math.logical_not(truncated)
-
   def _InputBatch(self):
     """Returns tf.data.Dataset of unbatched NestedMap."""
     p = self.params
@@ -203,7 +194,6 @@ class PackedTextInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     dataset = dataset.map(
         self._ProcessSingleExample,
         num_parallel_calls=tf.data.AUTOTUNE).unbatch()
-    dataset = dataset.filter(self._NotTruncated)
     dataset = dataset.take(p.num_samples if p.num_samples > 0 else -1)
 
     if p.enable_packing:
