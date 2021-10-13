@@ -411,15 +411,32 @@ class StepRateTracker:
     return rate, example_rate, total_examples
 
 
-def ModelAnalysis(model):
-  """Returns a text showing variable sizes and their total size."""
+def ModelAnalysis(model, topn=0, part_pattern=None):
+  """Returns a text showing variable sizes and their total size.
+
+  Args:
+     model: a Model object;
+     topn: number of top-sized tensors to print it out;
+     part_pattern: a Dict with key being the part name, and the value is a regex
+       to match the variables for the specific part.
+  """
 
   class Analyzer:
     """Helper class."""
 
-    def __init__(self):
+    def __init__(self, part_pattern=None):
       self._seen_var = {}
       self.total = 0
+      # part_pattern is a part_name to pattern Dict, which specifies what
+      # variables (via regex) belongs to which part (e.g., encoder/decoder)
+      # of the model.
+      self.part_size = None
+      if part_pattern:
+        self.part_size = {}
+        for part, pattern in part_pattern.items():
+          self.part_size[part] = [re.compile(pattern), 0]
+      # record all variable's size so that we can find top-n tensors.
+      self.variable_size_table = {}
 
     def __call__(self, v):
       assert isinstance(v, tf.Variable)
@@ -432,17 +449,44 @@ def ModelAnalysis(model):
           return '%-20s %10s %s' % (v.shape, 'n/a', v._shared_name)
       else:
         size = v.shape.num_elements()
+      self.variable_size_table[v._shared_name] = (size, v.shape)
       if v._shared_name not in self._seen_var:
         self._seen_var[v._shared_name] = size
         self.total += size
+        if self.part_size:
+          for part in self.part_size:
+            if re.search(self.part_size[part][0], v._shared_name):
+              self.part_size[part][1] += size
       return '%-20s %10d %s' % (v.shape, size, v._shared_name)
 
-  analyzer = Analyzer()
+  analyzer = Analyzer(part_pattern)
   output = '\n'
   output += model.vars.Transform(analyzer).DebugString()
   output += '\n'
   output += '=' * 100
   output += f'\ntotal #params: {analyzer.total:,}\n'
+  if analyzer.part_size:
+    for part in analyzer.part_size:
+      output += '-' * 100
+      pattern = analyzer.part_size[part][0].pattern
+      size = analyzer.part_size[part][1]
+      output += '\nPart: {:10s}({:40s})\t{:12d}\n'.format(
+          part, '"' + pattern + '"', size)
+  if topn:
+    # print out topn tensors
+    topn_variables = sorted(
+        analyzer.variable_size_table.items(),
+        key=lambda item: item[1][0],
+        reverse=True)[:topn]
+    output += '\n'
+    output += '=' * 100
+    output += '\nTop-{} tensors by size\n'.format(topn)
+    for idx, var in enumerate(topn_variables):
+      name = var[0]
+      size = var[1][0]
+      shape = var[1][1]
+      output += f'{idx}: {name:100s}\t{size:,}\t{shape}\n'
+
   return output, analyzer.total
 
 

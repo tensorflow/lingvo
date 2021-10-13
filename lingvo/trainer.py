@@ -88,7 +88,21 @@ tf.flags.DEFINE_string(
     'shell: an interactive shell for development; '
     'inspect_evaler: print evaler dataset names; '
     'inspect_decoder: print decoder dataset names; '
+    'inspect_model: print the model params name and shape; '
     'write_inference_graph: write inference graphs to logdir.')
+
+tf.flags.DEFINE_multi_string(
+    'inspect_model_part_regex', None,
+    'This argument is used to check the number of params in different part '
+    'of the model. (e.g. encoder or decoder or any specific layers of '
+    'encoder/decoder.) The value should be in the name:regex format. '
+    'For example, --inspect_model_part_regex=encoder:^.+conformer_encoder.+ '
+    'means any tensor\'s name matched with regex `^.+conformer_encoder.+` will '
+    'be counted as `encoder`, and the number of params in `encoder` will be '
+    'printed out when `inspect_model`. ')
+
+tf.flags.DEFINE_integer('inspect_model_topn', 0,
+                        'print `topn` tensors when inspec_model')
 
 tf.flags.DEFINE_string('controller_job', '/job:controller', 'Job name.')
 tf.flags.DEFINE_integer('controller_gpus', 0, 'Number of controller GPUs.')
@@ -260,7 +274,7 @@ class Controller(base_runner.BaseRunner):
 
     self._ExportMetrics(params=self.params)
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
-        self._model)
+        self._model, FLAGS.inspect_model_topn, FLAGS.inspect_model_part_regex)
     py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
     self._WriteToLog(self._model_analysis, self._control_dir,
                      'model_analysis.txt')
@@ -527,7 +541,8 @@ class TrainerTpu(base_runner.BaseRunner):
 
     if FLAGS.checkpoint_in_trainer_tpu:
       self._model_analysis, self._total_num_params = (
-          summary_utils.ModelAnalysis(self._model))
+          summary_utils.ModelAnalysis(self._model, FLAGS.inspect_model_topn,
+                                      FLAGS.inspect_model_part_regex))
       py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
       self._WriteToLog(self._model_analysis, self._train_dir,
                        'model_analysis.txt')
@@ -1457,8 +1472,24 @@ class RunnerManager:
     FLAGS.mode = 'sync'
     p = self.GetParamsForDataset('controller', 'Train')
     c = cluster_factory.Cluster(p.cluster)
+    model_part_regex = FLAGS.inspect_model_part_regex
+    part_pattern = None
+    if model_part_regex:
+      part_pattern = {}
+      for pat_str in model_part_regex:
+        first_colon = pat_str.find(':')
+        if first_colon < 0:
+          msg = f'Cannot understand --inspect_model_part_regex={pat_str}.'
+          raise ValueError(msg)
+        name = pat_str[:first_colon]
+        pattern = pat_str[first_colon + 1:]
+        part_pattern[name] = pattern
+
     with tf.Graph().as_default(), c, tf.device(c.GetPlacer()):
-      analysis, _ = summary_utils.ModelAnalysis(p.Instantiate())
+      analysis, _ = summary_utils.ModelAnalysis(
+          p.Instantiate(),
+          topn=FLAGS.inspect_model_topn,
+          part_pattern=part_pattern)
     print(analysis)
 
   def InspectDatasets(self):
