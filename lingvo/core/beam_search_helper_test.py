@@ -218,6 +218,94 @@ class BeamSearchHelperTest(test_utils.TestCase, parameterized.TestCase):
       else:
         self.assertAllGreater(topk_lens, 0)
 
+  @parameterized.named_parameters(
+      # eos score is too low to terminate
+      # 1 hyp terminated at first frame by eoc, and then two other
+      # terminated at second frame by eoc
+      ('last_chunk_eoc_in_topk', True, True, -10., [1, 2, 2, 1, 2, 2],
+       [[-1., -1., -1.], [-1., -1., -1.]]),
+      # Not last chunk or not forcing in topk, eoc can not terminate.
+      # eos score is low, can not terminate either
+      ('last_chunk_eoc_not_in_topk1', True, False, -10., [0, 0, 0, 0, 0, 0],
+       [[-0., -0., -0.], [-0., -0., -0.]]),
+      ('last_chunk_eoc_not_in_topk2', False, True, -10., [0, 0, 0, 0, 0, 0],
+       [[-0., -0., -0.], [-0., -0., -0.]]),
+      ('last_chunk_eoc_not_in_topk3', False, False, -10., [0, 0, 0, 0, 0, 0],
+       [[-0., -0., -0.], [-0., -0., -0.]]),
+      # eos score is high and can terminate
+      # 1 hyp terminated at first frame by eos, and then two other
+      # terminated at second frame by eos
+      ('last_chunk_eoc_not_in_topk_eos_in_top_k', False, False, 1.,
+       [1, 2, 2, 1, 2, 2], [[1., 1., 1.], [1., 1., 1.]]),
+      # both can terminate at each step, use the lower score.
+      ('last_chunk_eoc_in_topk_eos_in_top_k', True, True, 1.,
+       [1, 2, 2, 1, 2, 2], [[-1., -1., -1.], [-1., -1., -1.]]),
+  )
+  def testBeamSearchForceLastChunkEocInTopK(self, is_last_chunk,
+                                            force_last_chunk_eoc_in_top_k,
+                                            eos_score, expected_topk_lens,
+                                            expected_topk_scores):
+    with self.session() as sess:
+      vocab_size = 30
+      tgt_len = 10
+      num_hyps_per_beam = 3
+      src_batch_size = 2
+      tgt_batch_size = src_batch_size * num_hyps_per_beam
+      p = beam_search_helper.BeamSearchHelper.Params().Set(
+          name='bsh',
+          target_eoc_id=0,
+          target_seq_len=tgt_len,
+          num_hyps_per_beam=num_hyps_per_beam,
+          beam_size=100000.0,  # Beam search until the end.
+          force_last_chunk_eoc_in_top_k=force_last_chunk_eoc_in_top_k,
+      )
+      bs_helper = p.Instantiate()
+
+      def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
+                                 unused_num_hyps_per_beam):
+        return py_utils.NestedMap(
+            log_probs=tf.zeros([tgt_batch_size, vocab_size]),
+            atten_probs=tf.zeros([tgt_batch_size, 0]),
+            is_last_chunk=tf.zeros([tgt_batch_size],
+                                   tf.bool)), py_utils.NestedMap()
+
+      def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                    unused_step_ids, states,
+                                    unused_num_hyps_per_beam):
+        # Same probs for each id.
+        logits = tf.zeros([tgt_batch_size, vocab_size])
+        # Except eoc has slightly lower score.
+        logits = logits - 1.0 * tf.expand_dims(
+            tf.one_hot(p.target_eoc_id, vocab_size), 0)
+        # eos has very low score (can not terminate by eos)
+        logits = logits + eos_score * tf.expand_dims(
+            tf.one_hot(p.target_eos_id, vocab_size), 0)
+        return py_utils.NestedMap(
+            atten_probs=tf.zeros([tgt_batch_size, 0]),
+            log_probs=logits,
+            is_last_chunk=tf.fill([tgt_batch_size],
+                                  value=is_last_chunk)), states
+
+      def PostBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                     unused_new_step_ids, states):
+        return states
+
+      encoder_outputs = py_utils.NestedMap(
+          seq_lengths=tf.zeros([src_batch_size], dtype=tf.int32))
+      theta = py_utils.NestedMap()
+
+      beam_search_output = bs_helper.BeamSearchDecode(
+          theta,
+          encoder_outputs,
+          init_beam_search_state=InitBeamSearchCallBack,
+          pre_beam_search_step_callback=PreBeamSearchStepCallback,
+          post_beam_search_step_callback=PostBeamSearchStepCallback)
+
+      topk_lens, topk_scores = sess.run(
+          [beam_search_output.topk_lens, beam_search_output.topk_scores])
+      self.assertAllEqual(topk_lens, expected_topk_lens)
+      self.assertAllClose(topk_scores, expected_topk_scores, atol=1e-6)
+
   def testCustomStepIds(self):
     with self.session(use_gpu=False):
       np.random.seed(9384758)

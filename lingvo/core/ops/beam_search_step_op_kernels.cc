@@ -104,13 +104,15 @@ bool all_less_than(const float* p, float threshold) {
 // eos_in_topk is filled with true/false to indicate whether or not the eos
 // symbol is among the topk candidate for a hyp.
 // terminal_symbols stores the terminal token id (eos or eoc).
-void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
+void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
                  const int32 k, const int32 eos_id, const int32 eoc_id,
                  const int32 num_beams, const float valid_eos_max_logit_delta,
                  const float local_eos_threshold, bool is_first_step,
                  bool is_last_decoder_step, const Tensor& is_last_chunk,
                  bool merge_paths, bool allow_empty_terminated_hyp,
-                 bool force_eos_in_top_k, const std::vector<bool>& skip_beam,
+                 bool force_eos_in_top_k, bool force_last_chunk_eoc_in_top_k,
+                 int merged_topk_buffer_size_factor,
+                 const std::vector<bool>& skip_beam,
                  // Note that this is functionally a bool, however
                  // vector<bool> is not safe to parallel write into
                  // since it's underlying storage is at the byte-level.
@@ -138,7 +140,8 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
       TopK<Hyp, HigherScore, ExtractGlobalScore, InsertHypWithEpsilonDedupe>>
       merged_topk_vec(num_beams, TopK<Hyp, HigherScore, ExtractGlobalScore,
                                       InsertHypWithEpsilonDedupe>(
-                                     k, epsilon_id_for_path_merging));
+                                     k, epsilon_id_for_path_merging,
+                                     merged_topk_buffer_size_factor));
   // Each mutex is used to protect corresponding merged_topk_vec.
   std::vector<mutex> mu_vec(num_beams);
   // The thread sharding is along the hyps_size.
@@ -215,6 +218,27 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
                                  hyps[hyp_id].prev_labels});
             }
           }
+          if (force_last_chunk_eoc_in_top_k && eoc_id >= 0 &&
+              is_last_chunk.vec<bool>()(hyp_id) &&
+              (std::find_if(entries.begin(), entries.end(),
+                            [=](const Hyp& hyp) {return hyp.word_id == eoc_id;})
+               == entries.end())) {
+            Hyp last_hyp = Hyp(entries.back());
+            entries.pop_back();
+            entries.pop_back();
+            const float eoc_score = scores_matrix(hyp_id, eoc_id);
+            // Forced last chunk eoc is located in the second last position.
+            // We choose to overwrite the second last position instead of the
+            // very last one as the latter may already have been overwritten
+            // due to force_eos_in_top_k.
+            // Also note when eoc_id >= 0, we have reserved two additional
+            // positions with topk_size, one for eos and one for eoc. So we
+            // can afford to overwrite a different position for eoc than eos.
+            entries.push_back({hyps[hyp_id].beam_id, hyp_id, eoc_id,
+                               eoc_score, current_global_score + eoc_score,
+                               hyps[hyp_id].prev_labels});
+            entries.push_back(last_hyp);
+          }
           const float eos_score_threshold =
               entries[0].global_score - valid_eos_max_logit_delta;
           VLOG(3) << "Best_score=" << entries[0].global_score
@@ -223,9 +247,17 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
             const int beam_id = hyps[hyp_id].beam_id;
             mutex_lock l(mu_vec[beam_id]);
             for (const auto& e : entries) {
+              VLOG(3) << "Extension for beam_id=" << beam_id
+                      << ", hyp_id=" << hyp_id
+                      << ": global_score=" << e.global_score
+                      << ", local_score=" << e.local_score
+                      << ", toks=[" << str_util::Join(e.prev_labels, " ")
+                      << "], proposing token " << e.word_id;
               if (e.word_id == eos_id) {
-                VLOG(3) << "EOS hyp score=" << e.global_score
-                        << " toks=" << str_util::Join(e.prev_labels, " ");
+                VLOG(3) << "EOS hyp: global_score=" << e.global_score
+                        << ", local_score=" << e.local_score
+                        << ", toks=[" << str_util::Join(e.prev_labels, " ")
+                        << "]";
                 // We move terminated hyps off of the beam.
                 if (is_last_decoder_step ||
                     (e.global_score > eos_score_threshold &&
@@ -236,17 +268,21 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
                 }
               } else if (eoc_id >= 0 && is_last_chunk.vec<bool>()(hyp_id) &&
                          e.word_id == eoc_id) {
-                VLOG(3) << "last chunk hyp score=" << e.global_score
-                        << " toks=" << str_util::Join(e.prev_labels, " ");
                 // At the last chunk and output <epsilon>. We terminate the
                 // hypothesis, even though <eos> was not predicted, and
                 // indicate that the final symbol for the hypothesis is
                 // <epsilon>, not <eos>.
                 if (e.global_score > eos_score_threshold &&
+                    e.local_score > local_eos_threshold &&
                     // Only allow an empty hyp (all <epsilon>s) to be
                     // considered terminated, if explicitly permitted.
                     // 'prev_labels' contains only non-epsilons.
                     (allow_empty_terminated_hyp || !e.prev_labels.empty())) {
+                    VLOG(3) << "Last chunk EOC hyp: global_score="
+                        << e.global_score
+                        << ", local_score=" << e.local_score
+                        << ", toks=[" << str_util::Join(e.prev_labels, " ")
+                        << "]";
                   (*eos_in_topk)[hyp_id] = true;
                   (*eos_hyps)[hyp_id] = e;
                   (*terminal_symbols)[hyp_id] = eoc_id;
@@ -268,8 +304,14 @@ void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
     std::sort(ith_topk.begin(), ith_topk.end(), HigherScore());
     const int num_hyps =
         std::min(static_cast<int>(ith_topk.size()), hyps_per_beam);
+    VLOG(3) << "Active hyps for beam_id=" << i;
     for (int j = 0; j < num_hyps; ++j) {
       (*top_k)[j * num_beams + i] = ith_topk[j];
+      VLOG(3) << "Active hyp " << j
+              << ", global_score=" << ith_topk[j].global_score
+              << ", local score=" << ith_topk[j].local_score
+              << ", toks=[" << str_util::Join(ith_topk[j].prev_labels, " ")
+              << "]";
     }
   }
   VLOG(1) << "Topk done";
@@ -309,11 +351,18 @@ class BeamSearchStepOp : public OpKernel {
                                        &atten_vecs_in_hypothesis_protos_));
       OP_REQUIRES_OK(ctx,
                      ctx->GetAttr("force_eos_in_top_k", &force_eos_in_top_k_));
+      OP_REQUIRES_OK(ctx,
+                     ctx->GetAttr("force_last_chunk_eoc_in_top_k",
+                                  &force_last_chunk_eoc_in_top_k_));
+      OP_REQUIRES_OK(ctx,
+                     ctx->GetAttr("merged_topk_buffer_size_factor",
+                                  &merged_topk_buffer_size_factor_));
     }
 
     DCHECK_GE(eos_id_, 0);
     DCHECK_GT(beam_size_, 0.0);
     DCHECK_GT(num_hyps_per_beam_, 0);
+    DCHECK_GT(merged_topk_buffer_size_factor_, 1);
 
     if (merge_paths_) {
       OP_REQUIRES(
@@ -593,9 +642,10 @@ class BeamSearchStepOp : public OpKernel {
           hyps->at(i).prev_labels.push_back(prev_id);
         }
       }
-      VLOG(3) << "Step " << t << " hyp " << i
-              << " score=" << hyps->at(i).global_score
-              << " toks=" << str_util::Join(hyps->at(i).prev_labels, " ");
+      VLOG(3) << "Step " << t << " input hyp " << i
+              << ": global_score=" << hyps->at(i).global_score
+              << ", toks=[" << str_util::Join(hyps->at(i).prev_labels, " ")
+              << "]";
     }
   }
 
@@ -630,7 +680,7 @@ class BeamSearchStepOp : public OpKernel {
     const int t = cur_step.scalar<int>()();
     DCHECK_EQ(num_hyps_per_beam_, num_hyps / num_beams);
     DCHECK_LT(t, in_hyps.dim_size(0));
-    VLOG(2) << "BeamSearchStepOp(" << num_hyps_per_beam_ << ") step=" << t;
+    VLOG(2) << "BeamSearchStepOp(" << num_hyps_per_beam_ << ") Step=" << t;
 
     // Assembles hyps from inputs.
     std::vector<Hyp> hyps(num_hyps);
@@ -648,11 +698,12 @@ class BeamSearchStepOp : public OpKernel {
         skip_beam[i] = input_beam_done.vec<bool>()(i);
       }
     }
-    ComputeTopK(hyps, scores, /*k=*/num_hyps_per_beam_,
+    ComputeTopK(t, hyps, scores, /*k=*/num_hyps_per_beam_,
                 /*eos_id=*/eos_id_, /*eoc_id=*/eoc_id_, num_beams,
                 valid_eos_max_logit_delta_, local_eos_threshold_,
                 /*is_first_step=*/t == 0, is_last_decoder_step, is_last_chunk,
                 merge_paths_, allow_empty_terminated_hyp_, force_eos_in_top_k_,
+                force_last_chunk_eoc_in_top_k_, merged_topk_buffer_size_factor_,
                 skip_beam, &eos_in_topk, &top_k_hyps, &eos_hyps,
                 &terminal_symbols);
 
@@ -716,9 +767,12 @@ class BeamSearchStepOp : public OpKernel {
       if (eos_in_topk[i]) {
         // We have a good terminated hyp.
         DCHECK_EQ(beam_id, eos_hyps[i].beam_id);
-        VLOG(2) << "Top EOS hyp @step " << t
-                << " score=" << eos_hyps[i].global_score
-                << " toks=" << str_util::Join(eos_hyps[i].prev_labels, " ");
+        VLOG(2) << "Terminated hyp @step " << t
+                << ", global_score=" << eos_hyps[i].global_score
+                << ", local_score=" << eos_hyps[i].local_score
+                << ", terminal_symbol=" << terminal_symbols[i]
+                << ", toks=[" << str_util::Join(eos_hyps[i].prev_labels, " ")
+                << " " << terminal_symbols[i] << "]";
         // Update the best scores.
         if (eos_hyps[i].global_score > t_out_best_scores(beam_id)) {
           t_out_best_scores(beam_id) = eos_hyps[i].global_score;
@@ -800,13 +854,14 @@ class BeamSearchStepOp : public OpKernel {
       // Now check for hyp quality.  If for all hyps are below best score -
       // 'beam_size', this beam is done.
       bool all_below_beam_size = true;
+      VLOG(3) << "Check hyp quality for beam_id=" << beam_id
+              << ": best score=" << t_out_best_scores(beam_id)
+              << ", beam_size=" << beam_size_;
       for (int hyp_id = 0; hyp_id < num_hyps_per_beam_; ++hyp_id) {
         int i = hyp_id * num_beams + beam_id;
         const Hyp& hyp = top_k_hyps[i];
         DCHECK_EQ(beam_id, hyp.beam_id);
-        VLOG(3) << "Hyp =" << hyp.DebugString()
-                << " beam best=" << t_out_best_scores(beam_id)
-                << " beam size=" << beam_size_;
+        VLOG(3) << "Hyp=[" << hyp.DebugString() << "]";
         if (hyp.global_score > t_out_best_scores(beam_id) - beam_size_) {
           all_below_beam_size = false;
           break;
@@ -843,6 +898,8 @@ class BeamSearchStepOp : public OpKernel {
   bool ensure_full_beam_ = false;
   bool force_eos_in_last_step_ = false;
   bool force_eos_in_top_k_ = false;
+  bool force_last_chunk_eoc_in_top_k_ = false;
+  int merged_topk_buffer_size_factor_ = 2;
 
   // Whether each beam terminates independently. Only supported when op_version
   // is 2.
@@ -919,9 +976,10 @@ class TopKTerminatedHypsOp : public OpKernel {
                         NormalizedScore(hypothesis, src_size);
                     hypothesis.set_normalized_score(normalized_score);
                     VLOG(2)
-                        << "Add to terminated top-k "
+                        << "Add to terminated top-k:"
                         << " score=" << hypothesis.normalized_score()
-                        << " toks=" << str_util::Join(hypothesis.ids(), " ");
+                        << ", toks=[" << str_util::Join(hypothesis.ids(), " ")
+                        << "]";
                     // TODO(xbing): avoid acquiring a mutex for each record.
                     mutex_lock l(mu_vec[hyp_id % num_beams]);
                     topk->Add(hypothesis);
@@ -939,7 +997,9 @@ class TopKTerminatedHypsOp : public OpKernel {
       for (int j = 0; j < ith_topk.size(); ++j) {
         t_topk_hyps(i, j) = ith_topk[j].SerializeAsString();
         VLOG(2) << "TopK(" << i << ", " << j
-                << ") = " << str_util::Join(ith_topk[j].ids(), " ");
+                << ") ids = [" << str_util::Join(ith_topk[j].ids(), " ")
+                << "], scores = [" << str_util::Join(ith_topk[j].scores(), ", ")
+                << "]";
       }
     }
   }

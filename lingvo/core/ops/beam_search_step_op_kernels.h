@@ -146,10 +146,14 @@ struct InsertHypWithEpsilonDedupe {
     for (int i = 0; i < items->size(); ++i) {
       const Hyp& old_hyp = (*items)[i];
       if (IsDuplicateHyp(hyp, old_hyp, epsilon_id)) {
+        VLOG(3) << "merging:";
+        VLOG(3) << "hyp1=[" << hyp.DebugString() << "]";
+        VLOG(3) << "hyp2=[" << old_hyp.DebugString() << "]";
         Hyp combined_hyp = better_hyp(hyp, old_hyp) ? hyp : old_hyp;
         combined_hyp.global_score =
             LogSumExp(hyp.global_score, old_hyp.global_score);
         (*items)[i] = combined_hyp;
+        VLOG(3) << "combined=[" << combined_hyp.DebugString() << "]";
         return;
       }
     }
@@ -177,15 +181,18 @@ template <typename T, typename Comp = std::greater<T>, typename Extract = Id<T>,
           typename Insert = DefaultInsert<T>>
 class TopK {
  public:
-  explicit TopK(int k, int epsilon_id)
-      : k_(k), comp_(), extract_(), insert_(epsilon_id), selected_(false) {}
+  explicit TopK(int k, int epsilon_id, int buffer_size_factor = 2)
+      : k_(k), comp_(), extract_(), insert_(epsilon_id), selected_(false),
+        buffer_size_factor_(buffer_size_factor) {}
   // eos_id and inlclude_eos flag will be passed on to the Comparator.
-  explicit TopK(int k, int epsilon_id, int eos_id, bool include_eos)
+  explicit TopK(int k, int epsilon_id, int eos_id, bool include_eos,
+                int buffer_size_factor = 2)
       : k_(k),
         comp_(Comp(eos_id, include_eos)),
         extract_(),
         insert_(epsilon_id),
-        selected_(false) {}
+        selected_(false),
+        buffer_size_factor_(buffer_size_factor) {}
 
   int k() const { return k_; }
 
@@ -196,7 +203,7 @@ class TopK {
   U Add(const T& e) {
     if (!selected_ || comp_(e, items_[k_ - 1])) {
       insert_(e, &items_);
-      if (items_.size() >= 2 * k_) Shrink();
+      if (items_.size() >= buffer_size_factor_ * k_) Shrink();
     }
     if (!selected_) return std::numeric_limits<U>::lowest();
     return extract_(items_[k_ - 1]);
@@ -219,6 +226,9 @@ class TopK {
   Insert insert_;
   bool selected_;  // Becomes true if k-th top element so far is known.
   std::vector<T> items_;
+  // Buffer size is buffer_size_factor_ * k before invoking Shrink() in Add().
+  // A reasonable default value is 2.
+  int buffer_size_factor_;
 
   void Shrink() {
     // Pivot is the k-th element, i.e., items_[k_-1].
@@ -232,13 +242,15 @@ class TopK {
 // Exposed for benchmarking purposes.
 //
 // Please see the definition for function comments.
-void ComputeTopK(const std::vector<Hyp>& hyps, const Tensor& scores,
+void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
                  const int32 k, const int32 eos_id, const int32 eoc_id,
                  const int32 num_beams, const float valid_eos_max_logit_delta,
                  const float local_eos_threshold, bool is_first_step,
                  bool is_last_decoder_step, const Tensor& is_last_chunk,
                  bool merge_paths, bool allow_empty_terminated_hyp,
-                 bool force_eos_in_top_k, const std::vector<bool>& skip_beam,
+                 bool force_eos_in_top_k, bool force_last_chunk_eoc_in_top_k,
+                 int merged_topk_buffer_size_factor,
+                 const std::vector<bool>& skip_beam,
                  std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
                  std::vector<Hyp>* eos_hyps,
                  std::vector<int32>* terminal_symbols);

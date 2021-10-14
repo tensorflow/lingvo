@@ -125,8 +125,12 @@ class BeamSearchSharedParams(base_layer.BaseLayer):
         ' Set this id to a non-negative value only for NT.')
     p.Define(
         'target_seq_len', 0, 'Maximum allowed target seq length. Note '
-        'that decoding terminates if an end of sentence token '
-        'is not emitted after target_seq_len decode steps.')
+        'this parameter is often used to determine the maximum number of '
+        'decode steps. For example, for the LAS model which does not uses eoc, '
+        'decoding terminates if an end of sentence (eos) token is not emitted '
+        'after target_seq_len decode steps. For the RNN-T model which does use '
+        'eoc, decoding terminates if an terminal token (eos or last frame eoc) '
+        'is not emitted after source_seq_len + target_seq_len.')
     p.Define(
         'merge_paths', False, 'If true, hyps which are identical when '
         'epsilons are removed will be combined into a single hyp.  The '
@@ -303,6 +307,22 @@ class BeamSearchHelper(BeamSearchSharedParams):
         'Whether to write atten_vecs fields in the Hypothesis protos. Setting '
         'this to False saves memory, and can be used when the protos become '
         'too large for long sequences, but requires p.coverage_penalty == 0.0.')
+    p.Define(
+        'force_last_chunk_eoc_in_top_k', False,
+        'Whether to always consider the last chunk eoc token to be among the '
+        'top k tokens. This is effective only when decoding has reached the '
+        'last frame of input. When True, hyps can terminate at the last frame '
+        'by eoc even if the eoc score is not high enough to enter the top k. '
+        'Note that p.valid_eos_max_logit_delta and p.local_eos_threshold '
+        'always apply regardless of this.')
+    p.Define(
+        'merged_topk_buffer_size_factor', 2,
+        'The buffer size factor when pruning the per hyp top-k extensions to '
+        'form the per beam top-k extensions. If this factor is set to greater '
+        'than or equal num_hyps_per_beam + 2 when eoc_id >= 0, there will be '
+        'no pruning before all possible path mergings are performed (if '
+        'merge_paths=True). To be memory efficient (i.e., to maintain less '
+        'hyps during pruning), a reasonable value is 2.')
     p.name = 'beam_search'
     return p
 
@@ -385,6 +405,8 @@ class BeamSearchHelper(BeamSearchSharedParams):
          ensure_full_beam=p.ensure_full_beam,
          force_eos_in_last_step=p.force_eos_in_last_step,
          force_eos_in_top_k=p.force_eos_in_top_k,
+         force_last_chunk_eoc_in_top_k=p.force_last_chunk_eoc_in_top_k,
+         merged_topk_buffer_size_factor=p.merged_topk_buffer_size_factor,
          local_eos_threshold=p.local_eos_threshold,
          beam_independence=p.terminate_beams_independently,
          atten_vecs_in_hypothesis_protos=p.atten_vecs_in_hypothesis_protos)

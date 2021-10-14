@@ -179,6 +179,8 @@ REGISTER_OP("BeamSearchStepV2")
     .Attr("ensure_full_beam: bool = false")
     .Attr("force_eos_in_last_step: bool = false")
     .Attr("force_eos_in_top_k: bool = false")
+    .Attr("force_last_chunk_eoc_in_top_k: bool = false")
+    .Attr("merged_topk_buffer_size_factor: int = 2")
     .Attr("beam_independence: bool = false")
     .Attr("atten_vecs_in_hypothesis_protos: bool = true")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
@@ -303,6 +305,18 @@ force_eos_in_top_k: Whether to always consider the eos token to be among the top
     k tokens for every step. When False, hyps can only terminate if the eos
     token is part of the top k. Note that valid_eos_max_logit_delta and
     local_eos_threshold always apply regardless of this.
+force_last_chunk_eoc_in_top_k: Whether to always consider the last chunk eoc
+    token to be among the top k tokens. This is effective only when decoding
+    has reached the last frame of input. When True, hyps can terminate at the
+    last frame by eoc even if the eoc score is not high enough to enter the
+    top k. Note that p.valid_eos_max_logit_delta and p.local_eos_threshold
+    always apply regardless of this.
+merged_topk_buffer_size_factor: The buffer size factor when pruning the per
+    hyp top-k extensions to form the per beam top-k extensions. If this factor
+    is set to greater than or equal num_hyps_per_beam + 2 when eoc_id >= 0,
+    there will be no pruning before all possible path mergings are performed
+    (if merge_paths=True). To be memory efficient (i.e., to maintain less hyps
+    during pruning), a reasonable value is 2.
 beam_independence: When enabled, this step will become a no-op for beam_id if
     and only if in_beam_done[beam_id] == True.
 atten_vecs_in_hypothesis_protos: Whether to populate the atten_vecs fields in
