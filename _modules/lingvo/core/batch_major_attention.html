@@ -1884,8 +1884,8 @@
     <span class="c1"># -&gt; [B, N, U, W, C]</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_blocks</span><span class="p">,</span> <span class="n">key_block_context</span><span class="p">)</span>
 
-    <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span>
-        <span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">use_select</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span>
+                                          <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_scaling_code_motion</span><span class="p">:</span>
       <span class="c1"># Split the softmax into two parts. Do the 1st part here; the 2nd part</span>
@@ -2509,10 +2509,7 @@
 
       <span class="c1"># [B, Q, N, S]</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">final_masks</span><span class="p">),</span>
-          <span class="n">logits</span><span class="p">,</span>
-          <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
-          <span class="n">use_select</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">final_masks</span><span class="p">),</span> <span class="n">logits</span><span class="p">,</span> <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
       <span class="c1"># [B, Q, N, S]</span>
       <span class="n">posteriors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span>
           <span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">)</span>
