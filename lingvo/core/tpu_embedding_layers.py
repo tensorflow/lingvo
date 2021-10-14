@@ -748,14 +748,19 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     if self.table_name in all_table_vars:
       embedding_table_vars = all_table_vars[self.table_name]
     else:
+      inference_with_merged_var = (
+          p.is_inference and p.inference_use_merged_variable)
       w_pc = py_utils.WeightParams(
-          shape=[self._ids_per_shard, p.embedding_dim],
+          shape=[
+              p.vocab_size if inference_with_merged_var else
+              self._ids_per_shard, p.embedding_dim
+          ],
           init=p.params_init,
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
 
       embedding_table_vars = []
-      if p.is_inference and p.inference_use_merged_variable:
+      if inference_with_merged_var:
         with py_utils.outside_all_rewrites():
           var_name = 'merged_var'
           self.CreateVariable(var_name, w_pc)
