@@ -913,7 +913,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'cached_count: %r', cached_count)
     tf.logging.vlog(1, 'cached_var: %r', cached_var)
 
-    inputs = py_utils.ApplyPadding(paddings, inputs, use_select=False)
+    inputs = py_utils.ApplyPadding(paddings, inputs)
 
     input_rank = py_utils.GetRank(inputs)
     assert input_rank is not None, (f'inputs rank must be staic for '
@@ -945,10 +945,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     mean = sum_v / tf.maximum(count_v, 1.0)
 
     sum_vv = tf.reduce_sum(
-        py_utils.ApplyPadding(
-            paddings,
-            tf.math.squared_difference(inputs, mean),
-            use_select=False),
+        py_utils.ApplyPadding(paddings,
+                              tf.math.squared_difference(inputs, mean)),
         reduce_over_dims,
         keepdims=True)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)

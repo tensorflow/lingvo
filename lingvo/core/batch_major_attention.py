@@ -1819,8 +1819,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     # -> [B, N, U, W, C]
     logits = self._AttenLogits(theta, query_blocks, key_block_context)
 
-    padded_logits = py_utils.ApplyPadding(
-        paddings, logits, GetDtypeMin(logits.dtype), use_select=False)
+    padded_logits = py_utils.ApplyPadding(paddings, logits,
+                                          GetDtypeMin(logits.dtype))
 
     if p.enable_scaling_code_motion:
       # Split the softmax into two parts. Do the 1st part here; the 2nd part
@@ -2444,10 +2444,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       # [B, Q, N, S]
       logits = py_utils.ApplyPadding(
-          tf.logical_not(final_masks),
-          logits,
-          GetDtypeMin(logits.dtype),
-          use_select=False)
+          tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype))
       # [B, Q, N, S]
       posteriors = py_utils.Softmax(
           logits, axis=-1, extra_logit=p.atten_extra_logit)
