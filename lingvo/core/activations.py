@@ -24,6 +24,7 @@ from lingvo.core import py_utils
 _ACTIVATIONS = {
     'RELU': tf.nn.relu,
     'RELU6': tf.nn.relu6,
+    'LEAKY_RELU': tf.nn.leaky_relu,
     'SIGMOID': tf.sigmoid,
     'TANH': tf.tanh,
     'GELU': tf.nn.gelu,
@@ -39,6 +40,9 @@ _ACTIVATIONS_FLOPS = {
     'NONE': 0,
     'RELU': 1,
     'RELU6': 1,
+    # ReLU(x) - 0.2 * ReLU(-x)
+    # neg, relu, mul, sub, relu
+    'LEAKY_RELU': 5,
     # 1 / (1 + exp(-x))
     'SIGMOID': 4,  # neg, exp, add, div
     # (exp(2*x) - 1) / (exp(2*x) + 1)
