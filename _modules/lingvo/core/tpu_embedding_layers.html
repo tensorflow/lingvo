@@ -813,14 +813,19 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span> <span class="ow">in</span> <span class="n">all_table_vars</span><span class="p">:</span>
       <span class="n">embedding_table_vars</span> <span class="o">=</span> <span class="n">all_table_vars</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="n">inference_with_merged_var</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_merged_variable</span><span class="p">)</span>
       <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="k">if</span> <span class="n">inference_with_merged_var</span> <span class="k">else</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span>
+          <span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
       <span class="n">embedding_table_vars</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_merged_variable</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">inference_with_merged_var</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
           <span class="n">var_name</span> <span class="o">=</span> <span class="s1">&#39;merged_var&#39;</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
