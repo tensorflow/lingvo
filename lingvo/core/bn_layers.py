@@ -916,12 +916,16 @@ class GroupNormLayer(base_layer.BaseLayer):
     inputs = py_utils.ApplyPadding(paddings, inputs)
 
     input_rank = py_utils.GetRank(inputs)
-    assert input_rank is not None, (f'inputs rank must be staic for '
-                                    f'{repr(inputs)}')
-    reduce_over_dims = list(range(input_rank))
-    # Skip B, T, and N. Reduce {F,G} or just G.
-    reduce_over_dims = reduce_over_dims[2:-2] + reduce_over_dims[-1:]
-    tf.logging.vlog(1, 'reduce_over_dims: %s', reduce_over_dims)
+    input_shape = py_utils.GetShape(inputs)
+    if input_rank == 4:
+      # Skip {B,T,N}. Reduce just G.
+      reduce_over_dims = [3]
+      multiplier = input_shape[3]
+    else:
+      assert input_rank == 5
+      # Skip {B,T,N}. Reduce {F,G}.
+      reduce_over_dims = [2, 4]
+      multiplier = input_shape[2] * input_shape[4]
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
     sum_v = tf.reduce_sum(inputs, reduce_over_dims, keepdims=True)
@@ -932,13 +936,6 @@ class GroupNormLayer(base_layer.BaseLayer):
     mask = tf.ones([], inputs.dtype) - tf.cast(paddings, inputs.dtype)
     count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=True)
     count_v = tf.math.cumsum(count_v, axis=1)
-    input_shape = py_utils.GetShape(inputs)
-    if input_rank == 4:
-      # F * G
-      multiplier = input_shape[-1] * input_shape[-3]
-    else:
-      # G
-      multiplier = input_shape[-1]
     count_v *= multiplier
     count_v += cached_count
 
