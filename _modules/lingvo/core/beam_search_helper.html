@@ -190,8 +190,12 @@
         <span class="s1">&#39; Set this id to a non-negative value only for NT.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Maximum allowed target seq length. Note &#39;</span>
-        <span class="s1">&#39;that decoding terminates if an end of sentence token &#39;</span>
-        <span class="s1">&#39;is not emitted after target_seq_len decode steps.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;this parameter is often used to determine the maximum number of &#39;</span>
+        <span class="s1">&#39;decode steps. For example, for the LAS model which does not uses eoc, &#39;</span>
+        <span class="s1">&#39;decoding terminates if an end of sentence (eos) token is not emitted &#39;</span>
+        <span class="s1">&#39;after target_seq_len decode steps. For the RNN-T model which does use &#39;</span>
+        <span class="s1">&#39;eoc, decoding terminates if an terminal token (eos or last frame eoc) &#39;</span>
+        <span class="s1">&#39;is not emitted after source_seq_len + target_seq_len.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;merge_paths&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If true, hyps which are identical when &#39;</span>
         <span class="s1">&#39;epsilons are removed will be combined into a single hyp.  The &#39;</span>
@@ -368,6 +372,22 @@
         <span class="s1">&#39;Whether to write atten_vecs fields in the Hypothesis protos. Setting &#39;</span>
         <span class="s1">&#39;this to False saves memory, and can be used when the protos become &#39;</span>
         <span class="s1">&#39;too large for long sequences, but requires p.coverage_penalty == 0.0.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;force_last_chunk_eoc_in_top_k&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to always consider the last chunk eoc token to be among the &#39;</span>
+        <span class="s1">&#39;top k tokens. This is effective only when decoding has reached the &#39;</span>
+        <span class="s1">&#39;last frame of input. When True, hyps can terminate at the last frame &#39;</span>
+        <span class="s1">&#39;by eoc even if the eoc score is not high enough to enter the top k. &#39;</span>
+        <span class="s1">&#39;Note that p.valid_eos_max_logit_delta and p.local_eos_threshold &#39;</span>
+        <span class="s1">&#39;always apply regardless of this.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;merged_topk_buffer_size_factor&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s1">&#39;The buffer size factor when pruning the per hyp top-k extensions to &#39;</span>
+        <span class="s1">&#39;form the per beam top-k extensions. If this factor is set to greater &#39;</span>
+        <span class="s1">&#39;than or equal num_hyps_per_beam + 2 when eoc_id &gt;= 0, there will be &#39;</span>
+        <span class="s1">&#39;no pruning before all possible path mergings are performed (if &#39;</span>
+        <span class="s1">&#39;merge_paths=True). To be memory efficient (i.e., to maintain less &#39;</span>
+        <span class="s1">&#39;hyps during pruning), a reasonable value is 2.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;beam_search&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -450,6 +470,8 @@
          <span class="n">ensure_full_beam</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ensure_full_beam</span><span class="p">,</span>
          <span class="n">force_eos_in_last_step</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_last_step</span><span class="p">,</span>
          <span class="n">force_eos_in_top_k</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_top_k</span><span class="p">,</span>
+         <span class="n">force_last_chunk_eoc_in_top_k</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_last_chunk_eoc_in_top_k</span><span class="p">,</span>
+         <span class="n">merged_topk_buffer_size_factor</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">merged_topk_buffer_size_factor</span><span class="p">,</span>
          <span class="n">local_eos_threshold</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">local_eos_threshold</span><span class="p">,</span>
          <span class="n">beam_independence</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">terminate_beams_independently</span><span class="p">,</span>
          <span class="n">atten_vecs_in_hypothesis_protos</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_vecs_in_hypothesis_protos</span><span class="p">)</span>
