@@ -101,14 +101,10 @@ class Predictor:
     self._session_config = session_config
 
     if load_graph_def_from_inference_graph:
-      self._graph = tf.Graph()
-      with self._graph.as_default():
-        tf.logging.info(
-            "Loading inference graph for prediction subgraph_name={}.".format(
-                subgraph_name))
-        with tf.device("/%s:0" %
-                       "cpu" if device_type == "tpu" else device_type):
-          tf.import_graph_def(inference_graph.graph_def, name="")
+      tf.logging.info(
+          "Loading inference graph for prediction subgraph_name={}.".format(
+              subgraph_name))
+      self._graph = self._load_graph_from_inference_graph(inference_graph)
     else:
       self._graph = tf.get_default_graph()
 
@@ -141,6 +137,23 @@ class Predictor:
     self._sess_lock = threading.Lock()
     self._cur_sess_id = 0
     self._create_new_session()
+
+  def _load_graph_from_inference_graph(self, inference_graph):
+    """Returns a tf.Graph() constructed from `inference_graph`.
+
+    Args:
+      inference_graph: An InferenceGraph proto from which a graph_def is loaded
+        from.
+
+    Returns:
+      A loaded tf.Graph().
+    """
+    graph = tf.Graph()
+    with graph.as_default():
+      with tf.device("/%s:0" % "cpu" if self._device_type ==
+                     "tpu" else self._device_type):
+        tf.import_graph_def(inference_graph.graph_def, name="")
+    return graph
 
   @property
   def fetch_keys(self):
@@ -224,10 +237,7 @@ class Predictor:
     if self._device_type == "tpu":
       sess.run(self._graph.get_operation_by_name("tpu_init_op"))
     if self._checkpoint:
-      sess.run(self._inference_graph.saver_def.restore_op_name, {
-          self._inference_graph.saver_def.filename_tensor_name: self._checkpoint
-      })
-
+      self._LoadCheckpoint(sess, self._checkpoint)
     else:
       try:
         init_op = self._graph.get_operation_by_name("init_all_variables")
@@ -273,9 +283,7 @@ class Predictor:
     if checkpoint != self._checkpoint:
       sess_id = self._cur_sess_id
       try:
-        self._sess.run(
-            self._inference_graph.saver_def.restore_op_name,
-            {self._inference_graph.saver_def.filename_tensor_name: checkpoint})
+        self._LoadCheckpoint(self._sess, checkpoint)
       except py_utils.transient_tf_errors:
         # self._sess is invalid, most likely due to the worker being preempted.
         # Make sure a new session is created before re-raising the exception and
@@ -283,6 +291,20 @@ class Predictor:
         self._maybe_create_new_session(sess_id)
         raise
       self._checkpoint = checkpoint
+
+  def _LoadCheckpoint(self, sess, checkpoint):  # pylint: disable=invalid-name
+    """Run the op to load the checkpoint.
+
+    Can be overridden for additional functionality.
+
+    Args:
+      sess: The tf.Session to use.
+      checkpoint: The path to the checkpoint to restore.
+    """
+    tf.logging.info("Restoring checkpoint from %s", checkpoint)
+    sess.run(self._inference_graph.saver_def.restore_op_name,
+             {self._inference_graph.saver_def.filename_tensor_name: checkpoint})
+    tf.logging.info("Vars restored.")
 
   def Run(self,
           fetch_keys,
