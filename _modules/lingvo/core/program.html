@@ -730,6 +730,7 @@
     <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">steps_per_epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -856,23 +857,48 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">((</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
       <span class="n">status_strs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
 
+    <span class="n">mlperf_done</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="p">:</span>
-      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
-          <span class="s1">&#39;eval_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="n">mlperf_epoch_num</span><span class="p">})</span>
       <span class="n">mlperf_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_name</span>
-      <span class="k">if</span> <span class="n">mlperf_metric</span> <span class="ow">in</span> <span class="n">eval_metrics</span><span class="p">:</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">mlperf_metric</span>
+          <span class="ow">in</span> <span class="n">eval_metrics</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_success_threshold</span>
+                                <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
         <span class="n">mlperf_metric_value</span> <span class="o">=</span> <span class="n">eval_metrics</span><span class="p">[</span><span class="n">mlperf_metric</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
             <span class="s1">&#39;eval_accuracy&#39;</span><span class="p">,</span>
             <span class="n">mlperf_metric_value</span><span class="p">,</span>
             <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="n">mlperf_epoch_num</span><span class="p">})</span>
 
+        <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+            <span class="s1">&#39;eval_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="n">mlperf_epoch_num</span><span class="p">})</span>
+        <span class="c1"># Successful ML Perf run if we exceed target accuracy</span>
+        <span class="k">if</span> <span class="n">mlperf_metric_value</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_success_threshold</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ml_perf_final_threshold: </span><span class="si">%f</span><span class="s1"> exceeded&#39;</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_success_threshold</span><span class="p">)</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span> <span class="o">=</span> <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+                <span class="s1">&#39;run_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;success&#39;</span><span class="p">})</span>
+            <span class="n">mlperf_done</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Failed ML Perf run if we fail to reach target accuracy after</span>
+        <span class="c1"># predefined number of steps.</span>
+        <span class="k">elif</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">max_steps_to_train</span><span class="p">:</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span> <span class="o">=</span> <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+                <span class="s1">&#39;run_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;abort&#39;</span><span class="p">})</span>
+            <span class="n">mlperf_done</span> <span class="o">=</span> <span class="kc">True</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span>
         <span class="sa">f</span><span class="s1">&#39;Executing eval program on dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1"> &#39;</span>
         <span class="sa">f</span><span class="s2">&quot;at step </span><span class="si">{</span><span class="n">global_step</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_strs</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReportVizierMetrics</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
-                                     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">ToAverageMetrics</span><span class="p">())</span></div></div>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">mlperf_done</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReportVizierMetrics</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">ToAverageMetrics</span><span class="p">())</span></div></div>
 
 
 <div class="viewcode-block" id="_FetchDecodeOut"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program._FetchDecodeOut">[docs]</a><span class="k">def</span> <span class="nf">_FetchDecodeOut</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">decode_tensors</span><span class="p">,</span> <span class="n">cpu_passthrough_tensors</span><span class="p">):</span>
@@ -1452,6 +1478,8 @@
       <span class="n">mlperf_metric_value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dec_metrics</span><span class="p">[</span><span class="n">mlperf_metric</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
           <span class="s1">&#39;eval_accuracy&#39;</span><span class="p">,</span> <span class="n">mlperf_metric_value</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">})</span>
+
+      <span class="c1"># Successful ML Perf run if we exceed target accuracy</span>
       <span class="k">if</span> <span class="n">mlperf_metric_value</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_success_threshold</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ml_perf_final_threshold: </span><span class="si">%f</span><span class="s1"> exceeded&#39;</span><span class="p">,</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_success_threshold</span><span class="p">)</span>
@@ -1461,6 +1489,17 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;MLPerf run_time: </span><span class="si">%.2f</span><span class="s1">&#39;</span> <span class="o">%</span>
                                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_start</span><span class="p">))</span>
           <span class="k">return</span> <span class="kc">True</span>
+
+      <span class="c1"># Failed ML Perf run if we fail to reach target accuracy after</span>
+      <span class="c1"># predefined number of steps.</span>
+      <span class="k">elif</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">max_steps_to_train</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span> <span class="o">=</span> <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+              <span class="s1">&#39;run_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;abort&#39;</span><span class="p">})</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;MLPerf run_time: </span><span class="si">%.2f</span><span class="s1">&#39;</span> <span class="o">%</span>
+                                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_stop</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_start</span><span class="p">))</span>
+          <span class="k">return</span> <span class="kc">True</span>
+
     <span class="k">return</span> <span class="kc">False</span></div></div>
 
 
@@ -1507,6 +1546,10 @@
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;steps_per_epoch&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of training steps per epoch.&#39;</span><span class="p">)</span>
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_metric_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
                <span class="s1">&#39;Name of the decoder metric to report for compliance log.&#39;</span><span class="p">)</span>
+    <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_metric_success_threshold&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="s1">&#39;Benchmark run must exceed this value to succeed.&#39;</span><span class="p">)</span>
+    <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_steps_to_train&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="s1">&#39;Maximum number of steps to reach target accuracy&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1584,25 +1627,38 @@
     <span class="n">train_finish_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">train_time_in_secs</span> <span class="o">=</span> <span class="n">train_finish_time</span> <span class="o">-</span> <span class="n">start_time</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Train took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">)</span>
+
+    <span class="c1"># Return when no more evals are needed so we can have an exit</span>
+    <span class="c1"># for ML Perf</span>
+    <span class="n">evals_done</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">async_postprocess</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">):</span>
-        <span class="c1"># For now, Post-process is only in Decode, other Eval programs do not</span>
-        <span class="c1"># take or use threadpool.</span>
-        <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="p">:</span>
+        <span class="n">one_eval_done</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">async_postprocess</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">):</span>
+          <span class="c1"># For now, Post-process is only in Decode, other Eval programs do not</span>
+          <span class="c1"># take or use threadpool.</span>
+          <span class="n">one_eval_done</span> <span class="o">=</span> <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">one_eval_done</span> <span class="o">=</span> <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">one_eval_done</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">evals_done</span> <span class="o">|=</span> <span class="n">one_eval_done</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">async_postprocess</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">):</span>
+          <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+
     <span class="n">eval_time_in_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">train_finish_time</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Eval took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">eval_time_in_secs</span><span class="p">)</span>
-    <span class="n">should_exit</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">should_exit</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">evals_done</span>
     <span class="k">return</span> <span class="n">should_exit</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">,</span> <span class="n">eval_time_in_secs</span></div>
 
 <div class="viewcode-block" id="SimpleProgramSchedule.Shutdown"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Shutdown">[docs]</a>  <span class="k">def</span> <span class="nf">Shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
-      <span class="n">eval_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="p">:</span>
-      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;run_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;success&#39;</span><span class="p">})</span></div></div>
+      <span class="n">eval_program</span><span class="o">.</span><span class="n">Shutdown</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="_CreateProgramParams"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program._CreateProgramParams">[docs]</a><span class="k">def</span> <span class="nf">_CreateProgramParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">program_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">steps_per_loop</span><span class="p">):</span>
@@ -1852,6 +1908,8 @@
                <span class="s1">&#39;Name of the decoder metric to report for compliance log.&#39;</span><span class="p">)</span>
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_metric_success_threshold&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
                <span class="s1">&#39;Benchmark run must exceed this value to succeed.&#39;</span><span class="p">)</span>
+    <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_steps_to_train&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+               <span class="s1">&#39;Maximum number of steps to reach target accuracy&#39;</span><span class="p">)</span>
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;steps_per_epoch&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of training steps per epoch.&#39;</span><span class="p">)</span>
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;global_batch_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Global batch size.&#39;</span><span class="p">)</span>
     <span class="n">mlp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_sequence_length&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Maximum sequence length.&#39;</span><span class="p">)</span>
