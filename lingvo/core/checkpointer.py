@@ -182,7 +182,15 @@ class Checkpointer:
     # TODO(b/160786085): Move this logic into Overriding vars logic itself,
     # which requires refactoring things out of py_utils to avoid circular deps.
     def _ResolveCkptPath(ckpt_rules):
-      return {GetSpecificCheckpoint(k): v for k, v in ckpt_rules.items()}
+      res_rules = {}
+      for k, v in ckpt_rules.items():
+        new_k = GetSpecificCheckpoint(k)
+        if not new_k:
+          tf.logging.warning(
+              f'Empty checkpoint path init rules are ignored, key={k}')
+        else:
+          res_rules.update({new_k: v})
+      return res_rules
 
     self._restore_fns = []
 

@@ -175,11 +175,13 @@ class BaseTask(base_layer.BaseLayer):
         '{"checkpoint_path": ([("(.*)", "%s")], [])} will initialize all the '
         'model parameters from the checkpoint_path.')
     tp.Define(
-        'init_from_checkpoint_override', '',
+        'init_from_checkpoint_override', None,
         'If set, override keys in init_from_checkpoint_rules with this. '
         'Once set, only one key is expected in '
         'init_from_checkpoint_rules. This is for easier param override '
-        'when using --model_params_override or in xm.')
+        'when using --model_params_override or in xm.'
+        'Default is None, nothing override; If set to empty string, the '
+        'defined init_from_checkpoint_rules will be ignored.')
     tp.Define(
         'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
         'with hyperparameter: value pairs. See google-research.model_pruning.')
@@ -313,7 +315,7 @@ class BaseTask(base_layer.BaseLayer):
 
   def __init__(self, params):
     tp = params.train
-    if tp and tp.init_from_checkpoint_override:
+    if tp and tp.init_from_checkpoint_override is not None:
       assert len(tp.init_from_checkpoint_rules) == 1
       rules = list(tp.init_from_checkpoint_rules.values())[0]
       tp.init_from_checkpoint_rules.clear()
