@@ -841,12 +841,14 @@
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
-      <span class="n">cache_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="n">cached_count_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="n">cached_moment_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">cache_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cache_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-    <span class="n">cached_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cache_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-    <span class="n">cached_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cache_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+      <span class="n">cached_count_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="n">cached_moment_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cached_moment_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">cached_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cached_count_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">cached_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cached_moment_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">cached_sum</span><span class="o">=</span><span class="n">cached_sum</span><span class="p">,</span> <span class="n">cached_count</span><span class="o">=</span><span class="n">cached_count</span><span class="p">,</span> <span class="n">cached_var</span><span class="o">=</span><span class="n">cached_var</span><span class="p">)</span></div>
 
@@ -962,15 +964,15 @@
 <span class="sd">      inputs: [B, T, F, N, G] or [B, T, N, G]</span>
 <span class="sd">      paddings: [B, T, 1, 1, 1] or [B, T, 1, 1] (same rank as inputs)</span>
 <span class="sd">      cached_sum: [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)</span>
-<span class="sd">      cached_count: same shape as cached_sum.</span>
-<span class="sd">      cached_var: same shape as cached_sum.</span>
+<span class="sd">      cached_count: [B, 1, 1, 1, 1] or [B, 1, 1, 1] (same rank as inputs)</span>
+<span class="sd">      cached_var: [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      mean: [B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)</span>
 <span class="sd">      variance: same shape as mean.</span>
 <span class="sd">      new_cached_sum: same shape as cached_sum.</span>
-<span class="sd">      new_cached_count: same shape as cached_sum.</span>
-<span class="sd">      new_cached_var: same shape as cached_sum.</span>
+<span class="sd">      new_cached_count: same shape as cached_count.</span>
+<span class="sd">      new_cached_var: same shape as cached_var.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;inputs: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;paddings: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
@@ -1023,7 +1025,9 @@
 
     <span class="c1"># [B, 1, 1, N, 1] or [B, 1, N, 1]</span>
     <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">sum_v</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="c1"># [B, 1, 1, 1, 1] or [B, 1, 1, 1]</span>
     <span class="n">cached_count</span> <span class="o">=</span> <span class="n">count_v</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="c1"># [B, 1, 1, N, 1] or [B, 1, N, 1]</span>
     <span class="n">cached_var</span> <span class="o">=</span> <span class="n">sum_vv</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
 
     <span class="c1"># [B, T, 1, N, 1] or [B, T, N, 1]</span>
