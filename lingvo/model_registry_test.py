@@ -59,6 +59,17 @@ class DummyModel(base_model_params.SingleTaskModelParams):
     return p
 
 
+@model_registry.RegisterSingleTaskModel
+class DummyModelWithInitRules(DummyModel):
+
+  def Task(self):
+    p = super().Task()
+    p.train.init_from_checkpoint_rules = {
+        '/ckpt/path': ([('abc', 'def')], []),
+    }
+    return p
+
+
 class ModelRegistryTest(test_utils.TestCase):
 
   def setUp(self):
@@ -114,6 +125,21 @@ class ModelRegistryTest(test_utils.TestCase):
                         {'ckpt': (['abc', 'def'], [])})
     self.assertEqual(cfg2.train.init_from_checkpoint_rules,
                      {'ckpt': (['abc', 'def'], [])})
+
+  def testGetParamsOverrideWithInitCheckpointPath(self):
+    # Without override, default value is None.
+    cfg = model_registry.GetParams('test.DummyModel', 'Train')
+    self.assertIsNone(cfg.task.train.init_from_checkpoint_override)
+    # Override ckpt path from empty to flag.
+    FLAGS.model_params_override = (
+        'task.train.init_from_checkpoint_override:/new/ckpt/path')
+    cfg1 = model_registry.GetParams('test.DummyModel', 'Train')
+    self.assertEqual(cfg1.task.train.init_from_checkpoint_override,
+                     '/new/ckpt/path')
+    # Unset checkpoint path.
+    FLAGS.model_params_override = ('task.train.init_from_checkpoint_override:')
+    cfg2 = model_registry.GetParams('test.DummyModelWithInitRules', 'Train')
+    self.assertEqual(cfg2.task.train.init_from_checkpoint_override, '')
 
   def testGetParamsCanOverrideWithFlagsRaises(self):
     FLAGS.model_params_override = 'task.SOME_UNKNOWN_PARAM : 10'

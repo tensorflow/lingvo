@@ -166,7 +166,14 @@ class _ModelRegistryHelper:
       params_override = FLAGS.model_params_override.replace(';', '\n')
       tf.logging.info('Applying params overrides:\n%s\nTo:\n%s',
                       params_override, cfg.ToText())
-      cfg.FromText(params_override)
+      # FromText() inferred param type from the default_value of the param.
+      # init_from_checkpoint_override's default_value is None, type cannot be
+      # inferred, so we have to explicilty set type_overrides. Otherwise,
+      # this override does not succeed.
+      # TODO(xingwu): Consider to refactor to a more elegent way.
+      cfg.FromText(
+          params_override,
+          type_overrides={'task.train.init_from_checkpoint_override': 'str'})
     if (FLAGS.model_params_file_override and
         tf.io.gfile.exists(FLAGS.model_params_file_override)):
       params_override = tf.io.gfile.GFile(FLAGS.model_params_file_override,
