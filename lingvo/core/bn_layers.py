@@ -776,12 +776,14 @@ class GroupNormLayer(base_layer.BaseLayer):
       return py_utils.NestedMap()
 
     if p.input_rank == 4:
-      cache_shape = [batch_size, 1, 1, num_groups, 1]
+      cached_count_shape = [batch_size, 1, 1, 1, 1]
+      cached_moment_shape = [batch_size, 1, 1, num_groups, 1]
     else:
-      cache_shape = [batch_size, 1, num_groups, 1]
-    cached_sum = tf.zeros(cache_shape, py_utils.FPropDtype(p))
-    cached_count = tf.zeros(cache_shape, py_utils.FPropDtype(p))
-    cached_var = tf.zeros(cache_shape, py_utils.FPropDtype(p))
+      cached_count_shape = [batch_size, 1, 1, 1]
+      cached_moment_shape = [batch_size, 1, num_groups, 1]
+    cached_sum = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
+    cached_count = tf.zeros(cached_count_shape, py_utils.FPropDtype(p))
+    cached_var = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
     return py_utils.NestedMap(
         cached_sum=cached_sum, cached_count=cached_count, cached_var=cached_var)
 
@@ -897,15 +899,15 @@ class GroupNormLayer(base_layer.BaseLayer):
       inputs: [B, T, F, N, G] or [B, T, N, G]
       paddings: [B, T, 1, 1, 1] or [B, T, 1, 1] (same rank as inputs)
       cached_sum: [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)
-      cached_count: same shape as cached_sum.
-      cached_var: same shape as cached_sum.
+      cached_count: [B, 1, 1, 1, 1] or [B, 1, 1, 1] (same rank as inputs)
+      cached_var: [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)
 
     Returns:
       mean: [B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)
       variance: same shape as mean.
       new_cached_sum: same shape as cached_sum.
-      new_cached_count: same shape as cached_sum.
-      new_cached_var: same shape as cached_sum.
+      new_cached_count: same shape as cached_count.
+      new_cached_var: same shape as cached_var.
     """
     tf.logging.vlog(1, 'inputs: %r', inputs)
     tf.logging.vlog(1, 'paddings: %r', paddings)
@@ -958,7 +960,9 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     # [B, 1, 1, N, 1] or [B, 1, N, 1]
     cached_sum = sum_v[:, -1:]
+    # [B, 1, 1, 1, 1] or [B, 1, 1, 1]
     cached_count = count_v[:, -1:]
+    # [B, 1, 1, N, 1] or [B, 1, N, 1]
     cached_var = sum_vv[:, -1:]
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
