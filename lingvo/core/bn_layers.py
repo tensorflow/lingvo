@@ -895,13 +895,13 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     Args:
       inputs: [B, T, F, N, G] or [B, T, N, G]
-      paddings: [B, T, 1, 1, 1] or [B, T, 1, 1]
-      cached_sum: [B, 1, 1, N, 1] or [B, 1, N, 1]
+      paddings: [B, T, 1, 1, 1] or [B, T, 1, 1] (same rank as inputs)
+      cached_sum: [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)
       cached_count: same shape as cached_sum.
       cached_var: same shape as cached_sum.
 
     Returns:
-      mean: [B, T, 1, N, 1] or [B, T, N, 1]
+      mean: [B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)
       variance: same shape as mean.
       new_cached_sum: same shape as cached_sum.
       new_cached_count: same shape as cached_sum.
@@ -916,6 +916,11 @@ class GroupNormLayer(base_layer.BaseLayer):
     inputs = py_utils.ApplyPadding(paddings, inputs)
 
     input_rank = py_utils.GetRank(inputs)
+    paddings = py_utils.HasRank(paddings, input_rank)
+    cached_sum = py_utils.HasRank(cached_sum, input_rank)
+    cached_count = py_utils.HasRank(cached_count, input_rank)
+    cached_var = py_utils.HasRank(cached_var, input_rank)
+
     input_shape = py_utils.GetShape(inputs)
     if input_rank == 4:
       # Skip {B,T,N}. Reduce just G.
@@ -939,8 +944,10 @@ class GroupNormLayer(base_layer.BaseLayer):
     count_v *= multiplier
     count_v += cached_count
 
+    # [B, T, 1, N, 1] or [B, T, N, 1]
     mean = sum_v / tf.maximum(count_v, 1.0)
 
+    # [B, T, 1, N, 1] or [B, T, N, 1]
     sum_vv = tf.reduce_sum(
         py_utils.ApplyPadding(paddings,
                               tf.math.squared_difference(inputs, mean)),
@@ -949,13 +956,13 @@ class GroupNormLayer(base_layer.BaseLayer):
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
     sum_vv += cached_var
 
+    # [B, 1, 1, N, 1] or [B, 1, N, 1]
     cached_sum = sum_v[:, -1:]
     cached_count = count_v[:, -1:]
     cached_var = sum_vv[:, -1:]
 
-    variance = py_utils.with_dependencies([
-        py_utils.assert_greater_equal(sum_vv, tf.cast(0, sum_vv.dtype)),
-    ], sum_vv / tf.maximum(count_v, 1.0))
+    # [B, T, 1, N, 1] or [B, T, N, 1]
+    variance = sum_vv / tf.maximum(count_v, 1.0)
 
     tf.logging.vlog(1, 'sum_v: %r', sum_v)
     tf.logging.vlog(1, 'count_v: %r', count_v)
