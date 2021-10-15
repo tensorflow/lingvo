@@ -665,6 +665,7 @@ class EvalProgram(BaseProgram):
     if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
         p.ml_perf.steps_per_epoch is not None):
       self._ml_perf = p.ml_perf
+      self._run_stop = None
     else:
       self._ml_perf = None
 
@@ -791,23 +792,48 @@ class EvalProgram(BaseProgram):
       tf.logging.info((global_step, key, val))
       status_strs.append('%s=%s' % (key, val))
 
+    mlperf_done = False
     if self._ml_perf:
-      mlp_log.mlperf_print(
-          'eval_stop', None, metadata={'epoch_num': mlperf_epoch_num})
       mlperf_metric = self._ml_perf.decoder_metric_name
-      if mlperf_metric in eval_metrics:
+      if (mlperf_metric
+          in eval_metrics) and (self._ml_perf.decoder_metric_success_threshold
+                                is not None):
         mlperf_metric_value = eval_metrics[mlperf_metric][0]
         mlp_log.mlperf_print(
             'eval_accuracy',
             mlperf_metric_value,
             metadata={'epoch_num': mlperf_epoch_num})
 
+        mlp_log.mlperf_print(
+            'eval_stop', None, metadata={'epoch_num': mlperf_epoch_num})
+        # Successful ML Perf run if we exceed target accuracy
+        if mlperf_metric_value > self._ml_perf.decoder_metric_success_threshold:
+          tf.logging.info('ml_perf_final_threshold: %f exceeded',
+                          self._ml_perf.decoder_metric_success_threshold)
+          if not self._run_stop:
+            self._run_stop = mlp_log.mlperf_print(
+                'run_stop', None, metadata={'status': 'success'})
+            mlperf_done = True
+
+        # Failed ML Perf run if we fail to reach target accuracy after
+        # predefined number of steps.
+        elif global_step >= self._ml_perf.max_steps_to_train:
+          if not self._run_stop:
+            self._run_stop = mlp_log.mlperf_print(
+                'run_stop', None, metadata={'status': 'abort'})
+            mlperf_done = True
+
     self.SetStatusMessage(
         f'Executing eval program on dataset {self.params.dataset_name} '
         f"at step {global_step}\n{','.join(status_strs)}")
+
     self._summary_writer.flush()
-    return self._ReportVizierMetrics(global_step,
-                                     self._eval_metrics.ToAverageMetrics())
+
+    if self._ml_perf:
+      return mlperf_done
+    else:
+      return self._ReportVizierMetrics(global_step,
+                                       self._eval_metrics.ToAverageMetrics())
 
 
 def _FetchDecodeOut(sess, decode_tensors, cpu_passthrough_tensors):
@@ -1387,6 +1413,8 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       mlperf_metric_value = float(self.dec_metrics[mlperf_metric].value)
       mlp_log.mlperf_print(
           'eval_accuracy', mlperf_metric_value, metadata={'epoch_num': epoch})
+
+      # Successful ML Perf run if we exceed target accuracy
       if mlperf_metric_value > self._ml_perf.decoder_metric_success_threshold:
         tf.logging.info('ml_perf_final_threshold: %f exceeded',
                         self._ml_perf.decoder_metric_success_threshold)
@@ -1396,6 +1424,17 @@ class MLPerfTrainDecodeProgram(BaseProgram):
           self.SetStatusMessage('MLPerf run_time: %.2f' %
                                 (self._run_stop - self._run_start))
           return True
+
+      # Failed ML Perf run if we fail to reach target accuracy after
+      # predefined number of steps.
+      elif global_step >= self._ml_perf.max_steps_to_train:
+        if not self._run_stop:
+          self._run_stop = mlp_log.mlperf_print(
+              'run_stop', None, metadata={'status': 'abort'})
+          self.SetStatusMessage('MLPerf run_time: %.2f' %
+                                (self._run_stop - self._run_start))
+          return True
+
     return False
 
 
@@ -1442,6 +1481,10 @@ class SimpleProgramSchedule:
     mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
     mlp.Define('decoder_metric_name', None,
                'Name of the decoder metric to report for compliance log.')
+    mlp.Define('decoder_metric_success_threshold', None,
+               'Benchmark run must exceed this value to succeed.')
+    mlp.Define('max_steps_to_train', None,
+               'Maximum number of steps to reach target accuracy')
     return p
 
   def __init__(self,
@@ -1519,16 +1562,31 @@ class SimpleProgramSchedule:
     train_finish_time = time.time()
     train_time_in_secs = train_finish_time - start_time
     tf.logging.info('Train took %f seconds.', train_time_in_secs)
+
+    # Return when no more evals are needed so we can have an exit
+    # for ML Perf
+    evals_done = False
     for eval_program in self.eval_programs:
-      if p.async_postprocess and isinstance(eval_program, DecodeProgram):
-        # For now, Post-process is only in Decode, other Eval programs do not
-        # take or use threadpool.
-        eval_program.Run(sess, threadpool)
+      tf.logging.info(p.ml_perf, self._ml_perf)
+      if self._ml_perf:
+        one_eval_done = None
+        if p.async_postprocess and isinstance(eval_program, DecodeProgram):
+          # For now, Post-process is only in Decode, other Eval programs do not
+          # take or use threadpool.
+          one_eval_done = eval_program.Run(sess, threadpool)
+        else:
+          one_eval_done = eval_program.Run(sess)
+        if one_eval_done is not None:
+          evals_done |= one_eval_done
       else:
-        eval_program.Run(sess)
+        if p.async_postprocess and isinstance(eval_program, DecodeProgram):
+          eval_program.Run(sess, threadpool)
+        else:
+          eval_program.Run(sess)
+
     eval_time_in_secs = time.time() - train_finish_time
     tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
-    should_exit = p.train_executions_per_eval == 0
+    should_exit = (p.train_executions_per_eval == 0) or evals_done
     return should_exit, train_time_in_secs, eval_time_in_secs
 
   def Shutdown(self):
@@ -1536,8 +1594,6 @@ class SimpleProgramSchedule:
       self.train_program.Shutdown()
     for eval_program in self.eval_programs:
       eval_program.Shutdown()
-    if self._ml_perf:
-      mlp_log.mlperf_print('run_stop', None, metadata={'status': 'success'})
 
 
 def _CreateProgramParams(cls, program_name, dataset_name, steps_per_loop):
@@ -1787,6 +1843,8 @@ class MLPerfProgramSchedule:
                'Name of the decoder metric to report for compliance log.')
     mlp.Define('decoder_metric_success_threshold', None,
                'Benchmark run must exceed this value to succeed.')
+    mlp.Define('max_steps_to_train', None,
+               'Maximum number of steps to reach target accuracy')
     mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
     mlp.Define('global_batch_size', None, 'Global batch size.')
     mlp.Define('max_sequence_length', None, 'Maximum sequence length.')

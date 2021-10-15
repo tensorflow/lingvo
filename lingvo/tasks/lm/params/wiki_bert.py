@@ -193,6 +193,8 @@ class MLPerfTrainTemplate(BertTemplate):
     p.ml_perf.steps_per_epoch = 1 / examples_per_step
 
     p.ml_perf.decoder_metric_name = 'acc1'
+    p.ml_perf.decoder_metric_success_threshold = 0.6
+    p.ml_perf.max_steps_to_train = 31790
 
     return p
 
