@@ -397,14 +397,14 @@ paddings is not None.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inputs</strong> – [B, T, F, N, G] or [B, T, N, G]</p></li>
-<li><p><strong>paddings</strong> – [B, T, 1, 1, 1] or [B, T, 1, 1]</p></li>
-<li><p><strong>cached_sum</strong> – [B, 1, 1, N, 1] or [B, 1, N, 1]</p></li>
+<li><p><strong>paddings</strong> – [B, T, 1, 1, 1] or [B, T, 1, 1] (same rank as inputs)</p></li>
+<li><p><strong>cached_sum</strong> – [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)</p></li>
 <li><p><strong>cached_count</strong> – same shape as cached_sum.</p></li>
 <li><p><strong>cached_var</strong> – same shape as cached_sum.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>[B, T, 1, N, 1] or [B, T, N, 1]
+<dd class="field-even"><p>[B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)
 variance: same shape as mean.
 new_cached_sum: same shape as cached_sum.
 new_cached_count: same shape as cached_sum.
