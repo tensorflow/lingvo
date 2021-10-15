@@ -231,7 +231,14 @@
       <span class="n">params_override</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying params overrides:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">To:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
                       <span class="n">params_override</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
-      <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span>
+      <span class="c1"># FromText() inferred param type from the default_value of the param.</span>
+      <span class="c1"># init_from_checkpoint_override&#39;s default_value is None, type cannot be</span>
+      <span class="c1"># inferred, so we have to explicilty set type_overrides. Otherwise,</span>
+      <span class="c1"># this override does not succeed.</span>
+      <span class="c1"># TODO(xingwu): Consider to refactor to a more elegent way.</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span>
+          <span class="n">params_override</span><span class="p">,</span>
+          <span class="n">type_overrides</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;task.train.init_from_checkpoint_override&#39;</span><span class="p">:</span> <span class="s1">&#39;str&#39;</span><span class="p">})</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span> <span class="ow">and</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">)):</span>
       <span class="n">params_override</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span>
