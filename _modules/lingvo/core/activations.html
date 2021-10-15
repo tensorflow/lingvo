@@ -89,6 +89,7 @@
 <span class="n">_ACTIVATIONS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
     <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span>
+    <span class="s1">&#39;LEAKY_RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">,</span>
     <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span>
     <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span>
     <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">,</span>
@@ -104,6 +105,9 @@
     <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
     <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
     <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="c1"># ReLU(x) - 0.2 * ReLU(-x)</span>
+    <span class="c1"># neg, relu, mul, sub, relu</span>
+    <span class="s1">&#39;LEAKY_RELU&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
     <span class="c1"># 1 / (1 + exp(-x))</span>
     <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># neg, exp, add, div</span>
     <span class="c1"># (exp(2*x) - 1) / (exp(2*x) + 1)</span>
