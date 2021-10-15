@@ -247,7 +247,15 @@
     <span class="c1"># TODO(b/160786085): Move this logic into Overriding vars logic itself,</span>
     <span class="c1"># which requires refactoring things out of py_utils to avoid circular deps.</span>
     <span class="k">def</span> <span class="nf">_ResolveCkptPath</span><span class="p">(</span><span class="n">ckpt_rules</span><span class="p">):</span>
-      <span class="k">return</span> <span class="p">{</span><span class="n">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ckpt_rules</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+      <span class="n">res_rules</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ckpt_rules</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">new_k</span> <span class="o">=</span> <span class="n">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">new_k</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+              <span class="sa">f</span><span class="s1">&#39;Empty checkpoint path init rules are ignored, key=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">res_rules</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">new_k</span><span class="p">:</span> <span class="n">v</span><span class="p">})</span>
+      <span class="k">return</span> <span class="n">res_rules</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span> <span class="o">=</span> <span class="p">[]</span>
 
