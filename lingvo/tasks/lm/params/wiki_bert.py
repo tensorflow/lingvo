@@ -271,6 +271,31 @@ class MLPerfBertDense175B(MLPerfBertDense1T):
   NUM_HEADS = 96
   NUM_TRANSFORMER_LAYERS = 96
 
-  GATED_GELU = False
   POSITIONAL_EMBEDDING = True
   TRAIN_STEPS_PER_LOOP = 20
+
+
+@model_registry.RegisterSingleTaskModel
+class MLPerfBertDense500B(MLPerfBertDense1T):
+  """Large Bert model with 481B parameters on 1024 chips."""
+  VOCAB_SIZE = 30522
+  BATCH_SIZE = 4096
+
+  NUM_TRANSFORMER_LAYERS = 64
+  LABEL_SMOOTHING = 0.1
+
+  POSITIONAL_EMBEDDING = True
+  REMOVE_MASK = True
+  TRAIN_STEPS_PER_LOOP = 100
+  TRAIN_EXES_PER_EVAL = 1
+
+
+@model_registry.RegisterSingleTaskModel
+class MLPerfBertDense500B2K(MLPerfBertDense500B):
+  """Large Bert model with 481B parameters on 2048 chips."""
+  DEVICE_MESH_SHAPE = [256, 8]
+  DEVICE_MESH = np.arange(0, np.product(DEVICE_MESH_SHAPE)).reshape(
+      [8, 16, 16]).transpose([1, 2, 0]).reshape(DEVICE_MESH_SHAPE)
+
+  HIDDEN_DIM_RESHAPE_SEGMENTS = 8
+  MODEL_DIM_RESHAPE_SEGMENTS = [8]
