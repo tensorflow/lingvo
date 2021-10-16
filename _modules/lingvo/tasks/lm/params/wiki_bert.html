@@ -336,9 +336,34 @@
   <span class="n">NUM_HEADS</span> <span class="o">=</span> <span class="mi">96</span>
   <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">96</span>
 
-  <span class="n">GATED_GELU</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">POSITIONAL_EMBEDDING</span> <span class="o">=</span> <span class="kc">True</span>
   <span class="n">TRAIN_STEPS_PER_LOOP</span> <span class="o">=</span> <span class="mi">20</span></div>
+
+
+<div class="viewcode-block" id="MLPerfBertDense500B"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.wiki_bert.html#lingvo.tasks.lm.params.wiki_bert.MLPerfBertDense500B">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">MLPerfBertDense500B</span><span class="p">(</span><span class="n">MLPerfBertDense1T</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Large Bert model with 481B parameters on 1024 chips.&quot;&quot;&quot;</span>
+  <span class="n">VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">30522</span>
+  <span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="mi">4096</span>
+
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">64</span>
+  <span class="n">LABEL_SMOOTHING</span> <span class="o">=</span> <span class="mf">0.1</span>
+
+  <span class="n">POSITIONAL_EMBEDDING</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">REMOVE_MASK</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">TRAIN_STEPS_PER_LOOP</span> <span class="o">=</span> <span class="mi">100</span>
+  <span class="n">TRAIN_EXES_PER_EVAL</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="MLPerfBertDense500B2K"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.wiki_bert.html#lingvo.tasks.lm.params.wiki_bert.MLPerfBertDense500B2K">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">MLPerfBertDense500B2K</span><span class="p">(</span><span class="n">MLPerfBertDense500B</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Large Bert model with 481B parameters on 2048 chips.&quot;&quot;&quot;</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)</span>
+
+  <span class="n">HIDDEN_DIM_RESHAPE_SEGMENTS</span> <span class="o">=</span> <span class="mi">8</span>
+  <span class="n">MODEL_DIM_RESHAPE_SEGMENTS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">]</span></div>
 </pre></div>
 
            </div>
