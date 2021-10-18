@@ -44,9 +44,7 @@ class FlaxModuleLayer(base_layer.BaseLayer):
     """
     raise NotImplementedError()
 
-  def _InitModuleStates(
-      self, prng_key: JTensor,
-      use_hardware_rng_for_var_init: bool) -> Dict[str, JTensor]:
+  def _InitModuleStates(self, prng_key: JTensor) -> Dict[str, JTensor]:
     """Initializes and returns module variables.
 
     A sub-class must implement this function.
@@ -60,8 +58,6 @@ class FlaxModuleLayer(base_layer.BaseLayer):
 
     Args:
       prng_key: The random key used to initialize the module states.
-      use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-        hardware RNG for var init.
 
     Returns:
       A nested dictionary of module states.
@@ -75,8 +71,7 @@ class FlaxModuleLayer(base_layer.BaseLayer):
     # Note: it is not very efficient that we have to actually create the
     # variable in order to know their meta information.
     dummy_prng_key = jnp.array([0, 0], dtype=jnp.uint32)
-    initial_vars = self._InitModuleStates(
-        dummy_prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = self._InitModuleStates(dummy_prng_key)
     initial_vars = NestedMap.FromNestedDict(initial_vars)
 
     def _GetWeightParams(init_var):
@@ -92,16 +87,14 @@ class FlaxModuleLayer(base_layer.BaseLayer):
     self._private_vars = tf.nest.map_structure(_GetWeightParams, initial_vars)
     self._create_variables_status = CreateLayerVariablesStatus.COMPLETED
 
-  def InstantiateVariables(self, prng_key: JTensor,
-                           use_hardware_rng_for_var_init: bool) -> NestedMap:
+  def InstantiateVariables(self, prng_key: JTensor) -> NestedMap:
     """Initiates module states (params and other states)."""
     # NOTE(yonghui): Here we create variables twice.
     # TODO(yonghui): Optimize to reduce to creating variables only once.
     if self._create_variables_status != CreateLayerVariablesStatus.COMPLETED:
       self.InstantiateVariableConfigs()
 
-    initial_vars = self._InitModuleStates(prng_key,
-                                          use_hardware_rng_for_var_init)
+    initial_vars = self._InitModuleStates(prng_key)
     initial_vars = NestedMap.FromNestedDict(initial_vars)
     return initial_vars
 

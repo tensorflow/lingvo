@@ -67,8 +67,7 @@ class NormalizationsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=1234)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [2, 200, 8])
@@ -134,8 +133,7 @@ class NormalizationsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123456)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     initial_vars.beta = jnp.array([0.7])
     initial_vars.gamma = jnp.array([1.8])
     logging.info('initial_vars: %s', initial_vars)
@@ -191,8 +189,7 @@ class NormalizationsTest(test_util.JaxTestCase):
     layer_norm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123456)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer_norm.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer_norm.InstantiateVariables(init_key)
     initial_vars.scale = scale
     initial_vars.bias = bias
     npy_input = np.random.normal(1.0, 0.5,

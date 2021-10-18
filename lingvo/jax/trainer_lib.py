@@ -48,12 +48,11 @@ ExtendFn = Callable[[NestedJTensor, NestedMap, JTensor, JTensor, NestedMap],
                     Tuple[NestedJTensor, NestedJTensor]]
 
 
-def InitializesModelState(jax_model: model.BaseTask, prng_key: PRNGKey,
-                          use_hardware_rng_for_var_init: bool) -> TrainState:
+def InitializesModelState(jax_model: model.BaseTask,
+                          prng_key: PRNGKey) -> TrainState:
   """Initializes the model states."""
   logging.info('init_var prng_seed: %s', prng_key)
-  initial_vars = jax_model.InstantiateVariables(prng_key,
-                                                use_hardware_rng_for_var_init)
+  initial_vars = jax_model.InstantiateVariables(prng_key)
   logging.debug('initial_vars: %s', initial_vars)
   learnable_vars = tf.nest.map_structure(
       lambda v: not base_layer.VarNotTrainable(v), jax_model.vars)
@@ -66,12 +65,10 @@ def ReplicateModelState(model_states: TrainState) -> TrainState:
   return jax.device_put_replicated(model_states, jax.local_devices())
 
 
-def InitializeReplicateModelState(
-    jax_model: model.BaseTask, prng_key: PRNGKey,
-    use_hardware_rng_for_var_init: bool) -> TrainState:
+def InitializeReplicateModelState(jax_model: model.BaseTask,
+                                  prng_key: PRNGKey) -> TrainState:
   """Initializes and replicates the model states."""
-  model_states = InitializesModelState(jax_model, prng_key,
-                                       use_hardware_rng_for_var_init)
+  model_states = InitializesModelState(jax_model, prng_key)
   return ReplicateModelState(model_states)
 
 
@@ -408,7 +405,6 @@ def EvalStepSingleLearner(
 def InitializePartitionedModelStates(
     mdl: model.BaseTask,
     prng_key: PRNGKey,
-    use_hardware_rng_for_var_init: bool,
 ) -> Tuple[TrainState, NestedShape, TrainState]:
   """Initializes model vars that are partitioned over TPU devices.
 
@@ -418,8 +414,6 @@ def InitializePartitionedModelStates(
   Args:
     mdl: The model which is an instance of model.BaseTask.
     prng_key: A PRNGKey.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
 
   Returns:
     The partitioned specs, the shapes of the partitioned vars, and the
@@ -431,10 +425,7 @@ def InitializePartitionedModelStates(
   train_state_partition_specs = mdl.CreateTrainStatePartitionSpecs(var_specs)
   assert train_state_partition_specs is not None
 
-  init_model_from_seed = functools.partial(
-      InitializesModelState,
-      mdl,
-      use_hardware_rng_for_var_init=use_hardware_rng_for_var_init)
+  init_model_from_seed = functools.partial(InitializesModelState, mdl)
 
   in_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   out_shape = jax.eval_shape(init_model_from_seed, in_shape)
@@ -614,7 +605,6 @@ def ExtendDecoderState(
 def PartitionSpmdModel(
     mdl_params: InstantiableParams,
     init_key: PRNGKey,
-    use_hardware_rng_for_var_init: bool,
     inputs_shape: NestedShapeDtypeStruct,
     decoder_mdl_params: Optional[InstantiableParams] = None,
     decoder_inputs_shape: Optional[NestedShapeDtypeStruct] = None,
@@ -635,8 +625,6 @@ def PartitionSpmdModel(
   Args:
     mdl_params: Model parameters of type NestedMap.
     init_key: PRNGKey for initializing the model variables.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
     inputs_shape: Shape of the inputs for use in pjit sharding.
     decoder_mdl_params: Model parameters used to build the decoder functions
       (Optional). If this is not None, then decoder functions are returned.
@@ -670,8 +658,7 @@ def PartitionSpmdModel(
 
   # Initialize the partitioned vars.
   train_state_partition_specs, var_shapes, partitioned_train_state = (
-      InitializePartitionedModelStates(mdl, init_key,
-                                       use_hardware_rng_for_var_init))
+      InitializePartitionedModelStates(mdl, init_key))
   total_num_params = mdl.total_num_vars
 
   prng_key_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)

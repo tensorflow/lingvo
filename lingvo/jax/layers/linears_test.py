@@ -46,8 +46,7 @@ class LinearsTest(test_util.JaxTestCase):
         name='jax_ffn', input_dims=3, output_dims=20, activation=activation)
     ffn = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = ffn.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = ffn.InstantiateVariables(prng_key)
     npy_input = np.random.normal(1.0, 0.5,
                                  [10, 10, p.input_dims]).astype('float32')
     inputs = jnp.asarray(npy_input)

@@ -36,8 +36,7 @@ class StochaticsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=12346)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = jnp.ones([10, 1000], dtype=jnp.bfloat16)
@@ -79,8 +78,7 @@ class StochaticsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=12346)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = jnp.ones([2, 10, 6, 8], dtype=jnp.bfloat16)

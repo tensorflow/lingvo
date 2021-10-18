@@ -57,8 +57,7 @@ class PoolingsTest(test_util.JaxTestCase):
         padding=padding)
     pooling_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = pooling_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = pooling_layer.InstantiateVariables(prng_key)
     if int_inputs:
       npy_inputs = np.random.randint(0, 100, input_shape).astype('int32')
     else:
@@ -107,8 +106,7 @@ class PoolingsTest(test_util.JaxTestCase):
         padding=padding)
     pooling_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = pooling_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = pooling_layer.InstantiateVariables(prng_key)
     if int_inputs:
       npy_inputs = np.random.randint(0, 100, input_shape).astype('int32')
     else:

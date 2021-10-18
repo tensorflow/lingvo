@@ -55,8 +55,7 @@ class TransformersTest(test_util.JaxTestCase):
     batch_size = 10
     transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = transformer_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = transformer_layer.InstantiateVariables(prng_key)
     npy_inputs = np.random.normal(
         1.0, 0.5, [batch_size, seq_len, p.input_dims]).astype('float32')
     inputs = jnp.asarray(npy_inputs)
@@ -162,8 +161,7 @@ class TransformersTest(test_util.JaxTestCase):
     batch_size = 4
     transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = transformer_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = transformer_layer.InstantiateVariables(prng_key)
     initial_states = transformer_layer.InitStates(initial_vars, batch_size,
                                                   seq_len)
     npy_inputs = np.random.normal(
@@ -253,8 +251,7 @@ class TransformersTest(test_util.JaxTestCase):
     batch_size = 10
     stacked_transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = stacked_transformer_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = stacked_transformer_layer.InstantiateVariables(prng_key)
     npy_inputs = np.random.normal(
         1.0, 0.5, [batch_size, seq_len, p.model_dims]).astype('float32')
     inputs = jnp.asarray(npy_inputs)
@@ -371,8 +368,7 @@ class TransformersTest(test_util.JaxTestCase):
     stacked_transformer_layer = p1.Instantiate()
     repeated_transformer_layer = p2.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = stacked_transformer_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = stacked_transformer_layer.InstantiateVariables(prng_key)
     repeated_transformer_layer.InstantiateVariableConfigs()
 
     def _StackVars(*args):
@@ -459,8 +455,7 @@ class TransformersTest(test_util.JaxTestCase):
     batch_size = 4
     stacked_transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = stacked_transformer_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = stacked_transformer_layer.InstantiateVariables(prng_key)
     initial_states = stacked_transformer_layer.InitStates(
         initial_vars, batch_size, seq_len)
     npy_inputs = np.random.normal(
@@ -560,8 +555,7 @@ class TransformersTest(test_util.JaxTestCase):
     layer1 = p1.Instantiate()
     layer2 = p2.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = layer1.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer1.InstantiateVariables(prng_key)
     layer2.InstantiateVariableConfigs()
 
     npy_inputs = np.random.normal(
@@ -634,8 +628,7 @@ class TransformersTest(test_util.JaxTestCase):
     seq_len = 512
     bert_lm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = bert_lm.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = bert_lm.InstantiateVariables(prng_key)
     input_ids = jax.random.randint(
         jax.random.PRNGKey(1234), [batch_size, seq_len], 0, 51)
     input_paddings = jnp.zeros([batch_size, seq_len])
@@ -672,8 +665,7 @@ class TransformersTest(test_util.JaxTestCase):
     seq_len = 512
     ffwd = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = ffwd.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = ffwd.InstantiateVariables(prng_key)
     inputs = jax.random.normal(
         jax.random.PRNGKey(1234), [batch_size, seq_len, 8])
     input_paddings = jnp.zeros([batch_size, seq_len])

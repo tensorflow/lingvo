@@ -139,8 +139,7 @@ class RecurrentTest(test_util.JaxTestCase):
         name='dropout01', keep_prob=0.5)
     layer = dropout_l.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    dropout_layer_vars = layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    dropout_layer_vars = layer.InstantiateVariables(prng_key)
     logging.info('dropout_layer_vars: %s', dropout_layer_vars)
 
     inputs = NestedMap(x=np.ones([5, 3, 4]))

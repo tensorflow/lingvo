@@ -48,8 +48,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         scale_sqrt_depth=scale_sqrt_depth)
     emb_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = emb_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = emb_layer.InstantiateVariables(prng_key)
     npy_input = np.random.randint(0, p.vocab_size, [10, 20]).astype('int32')
     inputs = jnp.asarray(npy_input)
     outputs = emb_layer.FProp(initial_vars, inputs)
@@ -87,8 +86,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         soft_cap_logits=soft_cap_logits)
     softmax_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=1234)
-    initial_vars = softmax_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = softmax_layer.InstantiateVariables(prng_key)
     npy_input = np.random.normal(1.5, 2.0, [8, 10, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [8, 10, 1])
@@ -138,8 +136,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         name='jax_softmax', num_classes=num_classes, input_dims=40)
     softmax_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = softmax_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = softmax_layer.InstantiateVariables(prng_key)
     npy_input = np.random.normal(1.5, 2.0, [batch_size, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [batch_size, 1])
@@ -187,8 +184,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         name='jax_softmax', num_classes=num_classes, input_dims=40)
     softmax_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = softmax_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = softmax_layer.InstantiateVariables(prng_key)
     npy_input = np.random.normal(1.5, 2.0, [batch_size, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [batch_size, 1])
@@ -234,8 +230,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         name='jax_softmax', num_classes=num_classes, input_dims=40)
     softmax_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = softmax_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = softmax_layer.InstantiateVariables(prng_key)
     npy_input = np.random.normal(1.5, 2.0, [batch_size, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [batch_size, 1])
@@ -261,8 +256,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         scale_sqrt_depth=scale_sqrt_depth)
     softmax_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = softmax_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = softmax_layer.InstantiateVariables(prng_key)
     npy_input = np.random.normal(1.5, 2.0, [8, 10, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [8, 10, 1])
@@ -315,8 +309,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         max_timescale=max_timescale)
     pos_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = pos_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = pos_layer.InstantiateVariables(prng_key)
     seq_length = np.random.randint(100, 1000)
     output = pos_layer.FProp(initial_vars, seq_length)
     output = jnp.squeeze(output, axis=0)
@@ -344,8 +337,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         max_timescale=max_timescale)
     pos_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = pos_layer.InstantiateVariables(
-        prng_key, use_hardware_rng_for_var_init=False)
+    initial_vars = pos_layer.InstantiateVariables(prng_key)
     position = np.array([[0, 1, 2, 3, 4, 0, 1, 2, 3, 4],
                          [0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
                          [0, 1, 2, 3, 4, 5, 6, 0, 1, 2],

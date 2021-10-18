@@ -127,8 +127,7 @@ class MnistCnnLayer(flax_wrapper.FlaxModuleLayer):
   def _CreateFlaxModule(self) -> flax_nn.Module:
     return CNN()
 
-  def _InitModuleStates(self, prng_key: JTensor,
-                        use_hardware_rng_for_var_init: bool) -> NestedMap:
+  def _InitModuleStates(self, prng_key: JTensor) -> NestedMap:
     prng_key, sub_key1 = jrandom.split(prng_key)
     prng_key, sub_key2 = jrandom.split(prng_key)
     jit_init = jax.jit(self._module.init)

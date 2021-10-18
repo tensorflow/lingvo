@@ -309,8 +309,7 @@ def GetFanInFanOut(shape: Sequence[int]) -> Tuple[Optional[int], Optional[int]]:
     return fan_in, fan_out
 
 
-def InitVar(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey,
-            use_hardware_rng_for_var_init: bool) -> JTensor:
+def InitVar(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
   """Creates an initial value of a var."""
   method = var_p.init.method
   scale = var_p.init.scale
@@ -380,27 +379,8 @@ def InitVar(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey,
   elif method in ['xavier']:
     fan_in, fan_out = GetFanInFanOut(shape)
     limit = scale * math.sqrt(6. / (fan_in + fan_out))
-    # TODO(zhangqiaorjc): Generalize this for other rng functions.
-    if use_hardware_rng_for_var_init:
-      # TODO(zhangqiaorjc): Make it work for jax.random.normal too.
-      def HardwareUniform(
-          rng_key: PRNGKey,
-          shape: Sequence[int],
-          dtype: jnp.dtype = np.float32,
-          minval: Union[float, NpTensor] = np.float32(0),
-          maxval: Union[float, NpTensor] = np.float32(1)
-      ) -> JTensor:
-        """Random uniform method that uses non-deterministic TPU hardware."""
-        del rng_key  # non-deterministic prng.
-        minval = jax.lax.convert_element_type(minval, dtype)
-        maxval = jax.lax.convert_element_type(maxval, dtype)
-        return jax.lax.rng_uniform(minval, maxval, shape)
-
-      return limit * HardwareUniform(
-          prng_key, final_shape, init_dtype, minval=-1.0, maxval=1.0)
-    else:
-      return limit * jrandom.uniform(
-          prng_key, final_shape, init_dtype, minval=-1.0, maxval=1.0)
+    return limit * jrandom.uniform(
+        prng_key, final_shape, init_dtype, minval=-1.0, maxval=1.0)
   else:
     assert False, 'init_type %s not supported.' % method
 
@@ -1179,8 +1159,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
     self.CreateLayerVariables()
     self._create_variables_status = CreateLayerVariablesStatus.COMPLETED
 
-  def InstantiateVariables(self, prng_key: PRNGKey,
-                           use_hardware_rng_for_var_init: bool) -> NestedMap:
+  def InstantiateVariables(self, prng_key: PRNGKey) -> NestedMap:
     """Creates variables for this layer and its children layers.
 
     Note: this function can be called multple times. With the same prng_key as
@@ -1188,8 +1167,6 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
     Args:
       prng_key: A rank-2 tensor of prng keys.
-      use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-        hardware RNG for var init.
 
     Returns:
       A NestedMap of Variables for this layer and its sub-layers.
@@ -1204,8 +1181,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
     prng_key, *subkeys = jax.random.split(prng_key, len(flattened_children) + 1)
     for child, subkey in zip(flattened_children, subkeys):
       assert isinstance(child, BaseLayer)
-      children_vars.append(
-          child.InstantiateVariables(subkey, use_hardware_rng_for_var_init))
+      children_vars.append(child.InstantiateVariables(subkey))
     children_vars_map = self._private_children.Pack(children_vars)
     assert isinstance(children_vars_map, NestedMap)
 
@@ -1213,8 +1189,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
     prng_key, *subkeys = jax.random.split(prng_key, len(self._private_vars) + 1)
     for (v_k, v_p), subkey in zip(self._private_vars.items(), subkeys):
       var_full_name = self_path + '.' + v_k
-      children_vars_map[v_k] = InitVar(var_full_name, v_p, subkey,
-                                       use_hardware_rng_for_var_init)
+      children_vars_map[v_k] = InitVar(var_full_name, v_p, subkey)
 
     return children_vars_map
 

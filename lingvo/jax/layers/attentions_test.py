@@ -66,8 +66,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     initial_vars.per_dim_scale = jnp.array([-0.5, 0.5, 1.0, 0.0],
                                            dtype=jnp.float32)
     logging.info('initial_vars: %s', initial_vars)
@@ -111,8 +110,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [5, 16]).astype(np.float32)
@@ -162,8 +160,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [5, 2, 5]).astype(np.float32)
@@ -213,8 +210,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
 
     # Now run TF based computation.
     tf_layer_p = batch_major_attention.MultiHeadedProjectionLayer.Params().Set(
@@ -254,8 +250,7 @@ class AttentionsTest(test_util.JaxTestCase):
     layer = test_layer_p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
     logging.info('initial_vars: %s', initial_vars)
     target_batch_size = 3
     source_max_length = 16
@@ -315,8 +310,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = layer.InstantiateVariables(init_key)
 
     target_batch_size = 3
     source_max_length = 8
@@ -393,8 +387,7 @@ class AttentionsTest(test_util.JaxTestCase):
     causal_dconv_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = causal_dconv_layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = causal_dconv_layer.InstantiateVariables(init_key)
     if isinstance(hidden_dims, list):
       kernel_shape = hidden_dims
     else:
@@ -422,8 +415,7 @@ class AttentionsTest(test_util.JaxTestCase):
     causal_dconv_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = causal_dconv_layer.InstantiateVariables(
-        init_key, use_hardware_rng_for_var_init=False)
+    initial_vars = causal_dconv_layer.InstantiateVariables(init_key)
     jax_dconv_out = causal_dconv_layer.FProp(initial_vars, inputs, axis=axis)
     jax_np_out = test_utils.ToNp(jax_dconv_out)
     jax_extend_step_out = jnp.zeros_like(jax_dconv_out)

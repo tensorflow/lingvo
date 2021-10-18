@@ -67,10 +67,6 @@ flags.DEFINE_integer('max_train_steps', None,
 flags.DEFINE_float(
     'target_accuracy', None,
     'If set, the target accuracy to stop training after reaching.')
-# TODO(zhangqiaorjc): Remove this flag.
-flags.DEFINE_bool(
-    'use_hardware_rng_for_var_init', False,
-    'Whether to use fast non-deterministic hardware RNG for var init.')
 flags.DEFINE_bool(
     'globally_use_hardware_rng', True,
     'Whether to globally use fast hardware RNG. Deterministic only at the '
@@ -137,15 +133,13 @@ def main(argv):
         restore_checkpoint_step=FLAGS.restore_checkpoint_step,
         max_train_steps=FLAGS.max_train_steps,
         target_accuracy=FLAGS.target_accuracy,
-        use_hardware_rng_for_var_init=FLAGS.use_hardware_rng_for_var_init,
         eval_on_test=FLAGS.eval_on_test,
         mllogger=mllogger)
   elif FLAGS.mode == 'eval':
     continuous_eval.evaluate(
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
-        multi_host_checkpointing=FLAGS.multi_host_checkpointing,
-        use_hardware_rng_for_var_init=FLAGS.use_hardware_rng_for_var_init)
+        multi_host_checkpointing=FLAGS.multi_host_checkpointing)
   else:
     raise ValueError(f'Invalid mode: {FLAGS.mode}, mode must be train or eval.')
 

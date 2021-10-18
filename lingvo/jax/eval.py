@@ -45,16 +45,13 @@ SummaryWriter = tf.summary.SummaryWriter
 
 
 def evaluate(model_name: str, job_log_dir: Optional[str],
-             multi_host_checkpointing: Optional[bool],
-             use_hardware_rng_for_var_init: bool) -> None:
+             multi_host_checkpointing: Optional[bool]) -> None:
   """Runs the evaluation loop on the entire eval data set.
 
   Args:
     model_name: The name of the model from the registry to evaluate.
     job_log_dir: The directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
   """
   model_config = model_utils.get_model(model_name)()
   model_p = model_config.Task()
@@ -62,24 +59,20 @@ def evaluate(model_name: str, job_log_dir: Optional[str],
   eval_input_p = [eval_param.input_gen_params for eval_param in eval_input_p]
   if model_p.device_mesh is not None:
     evaluate_spmd_model(model_p, eval_input_p, job_log_dir,
-                        multi_host_checkpointing, use_hardware_rng_for_var_init)
+                        multi_host_checkpointing)
   else:
-    evaluate_pmap_model(model_p, eval_input_p, job_log_dir,
-                        use_hardware_rng_for_var_init)
+    evaluate_pmap_model(model_p, eval_input_p, job_log_dir)
 
 
 def evaluate_pmap_model(model_p: InstantiableParams,
                         eval_input_p: List[InstantiableParams],
-                        job_log_dir: Optional[str],
-                        use_hardware_rng_for_var_init: bool) -> None:
+                        job_log_dir: Optional[str]) -> None:
   """Runs the evaluation loop on the entire test dataset for PMAP model.
 
   Args:
     model_p: Params for the data parallel model.
     eval_input_p: List of params for the eval data input pipeline.
     job_log_dir: Directory for the job logs.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
   """
   logging.info('Using pmap for data parallelism.')
   jax_model = model_p.Instantiate()
@@ -91,8 +84,7 @@ def evaluate_pmap_model(model_p: InstantiableParams,
   prng_key, init_key = jax.random.split(prng_key)
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
-  model_states = trainer_lib.InitializesModelState(
-      jax_model, init_key, use_hardware_rng_for_var_init)
+  model_states = trainer_lib.InitializesModelState(jax_model, init_key)
   model_states = checkpoints.RestoreCheckpoint(model_states, checkpoint_dir)
   replicated_model_states = trainer_lib.ReplicateModelState(model_states)
   logging.info('replicated_model_states: %s',
@@ -174,8 +166,7 @@ def evaluate_pmap_model(model_p: InstantiableParams,
 def evaluate_spmd_model(model_p: InstantiableParams,
                         eval_input_p: InstantiableParams,
                         job_log_dir: Optional[str],
-                        multi_host_checkpointing: bool,
-                        use_hardware_rng_for_var_init: bool) -> None:
+                        multi_host_checkpointing: bool) -> None:
   """Runs the evaluation loop on the entire test dataset for SPMD model.
 
   Args:
@@ -183,8 +174,6 @@ def evaluate_spmd_model(model_p: InstantiableParams,
     eval_input_p: Params for the eval data pipeline.
     job_log_dir: Directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
   """
   logging.info('Using SPMD sharding for model parallelism.')
   eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
@@ -215,7 +204,6 @@ def evaluate_spmd_model(model_p: InstantiableParams,
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     partitioned_train_state, _, _, eval_step, _, _, _ = (
         trainer_lib.PartitionSpmdModel(model_p, init_key,
-                                       use_hardware_rng_for_var_init,
                                        inputs_shape))
     partitioned_train_state = checkpoints.RestoreCheckpoint(
         partitioned_train_state, checkpoint_task_dir)

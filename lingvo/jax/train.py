@@ -38,7 +38,6 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
                        multi_host_checkpointing: Optional[bool],
                        restore_checkpoint_dir: Optional[str],
                        restore_checkpoint_step: Optional[int],
-                       use_hardware_rng_for_var_init: bool,
                        eval_on_test: Optional[bool]) -> None:
   """Runs the training and evaluation loop.
 
@@ -51,8 +50,6 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
       instead.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
     eval_on_test: Whether to eval on test as a part of the training loop.
   """
   model_config = model_utils.get_model(model_name)()
@@ -87,18 +84,17 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
     train_and_evaluate_spmd_model(model_p, train_input_p, job_log_dir,
                                   multi_host_checkpointing,
                                   restore_checkpoint_dir,
-                                  restore_checkpoint_step,
-                                  use_hardware_rng_for_var_init, eval_input_p)
+                                  restore_checkpoint_step, eval_input_p)
   else:
     train_and_evaluate_pmap(model_p, train_input_p, job_log_dir,
                             restore_checkpoint_dir, restore_checkpoint_step,
-                            use_hardware_rng_for_var_init, eval_input_p)
+                            eval_input_p)
 
 
 def train_and_evaluate_pmap(
     model_p: InstantiableParams, train_input_p: InstantiableParams,
     job_log_dir: Optional[str], restore_checkpoint_dir: Optional[str],
-    restore_checkpoint_step: Optional[int], use_hardware_rng_for_var_init: bool,
+    restore_checkpoint_step: Optional[int],
     eval_input_p: Optional[List[InstantiableParams]]) -> None:
   """Runs the training and evaluation loop.
 
@@ -111,8 +107,6 @@ def train_and_evaluate_pmap(
       instead.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
     eval_input_p: Optional list of params for the eval input pipeline.
   """
   logging.info('Using pmap for data parallelism.')
@@ -135,8 +129,7 @@ def train_and_evaluate_pmap(
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
   restore_checkpoint_dir = restore_checkpoint_dir or checkpoint_dir
-  model_states = trainer_lib.InitializesModelState(
-      jax_model, init_key, use_hardware_rng_for_var_init)
+  model_states = trainer_lib.InitializesModelState(jax_model, init_key)
   model_states = checkpoints.RestoreCheckpoint(
       model_states, restore_checkpoint_dir, step=restore_checkpoint_step)
   total_num_params = jax_model.total_num_vars
@@ -321,7 +314,7 @@ def train_and_evaluate_spmd_model(
     model_p: InstantiableParams, train_input_p: InstantiableParams,
     job_log_dir: Optional[str], multi_host_checkpointing: bool,
     restore_checkpoint_dir: Optional[str],
-    restore_checkpoint_step: Optional[int], use_hardware_rng_for_var_init: bool,
+    restore_checkpoint_step: Optional[int],
     eval_input_p: Optional[InstantiableParams]) -> None:
   """Runs the training and evaluation loop.
 
@@ -335,8 +328,6 @@ def train_and_evaluate_spmd_model(
       instead.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    use_hardware_rng_for_var_init: Whether to use fast non-deterministic
-      hardware RNG for var init.
     eval_input_p: Optional list of params for the eval input pipeline.
   """
   logging.info('Using SPMD sharding for model parallelism.')
@@ -390,8 +381,8 @@ def train_and_evaluate_spmd_model(
   logging.info('device_mesh: %s', device_mesh)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     (partitioned_train_state, _, train_step, eval_step, _, _,
-     total_num_params) = trainer_lib.PartitionSpmdModel(
-         model_p, init_key, use_hardware_rng_for_var_init, inputs_shape)
+     total_num_params) = trainer_lib.PartitionSpmdModel(model_p, init_key,
+                                                        inputs_shape)
 
     partitioned_train_state = checkpoints.RestoreCheckpoint(
         partitioned_train_state,
