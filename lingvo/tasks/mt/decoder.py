@@ -693,7 +693,11 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       else:
         target_segment_id = tf.zeros_like(target_paddings)
 
-      if py_utils.use_tpu():
+      if p.device_mesh is not None:
+        # We perform spmd based partitioning, in which case, we don't
+        # specifically assign any operation to a particular device.
+        emb_device = ''
+      elif py_utils.use_tpu():
         emb_device = self.cluster.WorkerDeviceInModelSplit(0)
       else:
         emb_device = ''

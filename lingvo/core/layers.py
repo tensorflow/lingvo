@@ -2432,6 +2432,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         shape=weight_shape,
         init=p.params_init,
         dtype=p.dtype,
+        device_mesh=p.device_mesh,
         tensor_split_dims_mapping=p.weight_split_dims_mapping,
         collections=[self.__class__.__name__ + '_vars'])
 

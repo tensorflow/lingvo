@@ -18,6 +18,7 @@
 import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import gshard_utils
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -1015,6 +1016,8 @@ class DotProductAttention(BaseAttentionLayer):
 
       # => [n, source_batch, context_dim].
       context_vector = tf.transpose(context_vector, [1, 0, 2])
+      context_vector = gshard_utils.MeshSplit(context_vector, p.device_mesh,
+                                              p.activation_split_dims_mapping)
       # => [n * source_batch, context_dim].
       context_vector = tf.reshape(context_vector, [target_batch, -1])
 
@@ -1311,6 +1314,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           shape=[p.source_dim, p.hidden_dim],
           init=InitProj(p.source_dim),
           dtype=p.dtype,
+          device_mesh=p.device_mesh,
+          tensor_split_dims_mapping=p.weight_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('source_proj', pc)
       if p.use_bias:
@@ -1323,6 +1328,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           shape=[p.query_dim, p.hidden_dim],
           init=InitProj(p.query_dim),
           dtype=p.dtype,
+          device_mesh=p.device_mesh,
+          tensor_split_dims_mapping=p.weight_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('query_proj', pc)
       if p.use_bias:
@@ -1336,6 +1343,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           shape=[p.context_dim, p.hidden_dim],
           init=InitProj(p.context_dim),
           dtype=p.dtype,
+          device_mesh=p.device_mesh,
+          tensor_split_dims_mapping=p.weight_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('ctx_proj', pc)
       if p.use_bias:
@@ -1351,10 +1360,15 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         pc_b_shape = [p.ctx_post_proj_dim, p.num_post_proj]
       else:
         raise ValueError('num_post_proj must > 0!')
+      weight_split_dims_mapping = p.weight_split_dims_mapping
+      if weight_split_dims_mapping and p.num_post_proj > 1:
+        weight_split_dims_mapping = weight_split_dims_mapping + [-1]
       pc = py_utils.WeightParams(
           shape=pc_shape,
           init=InitProj(p.hidden_dim),
           dtype=p.dtype,
+          device_mesh=p.device_mesh,
+          tensor_split_dims_mapping=weight_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('ctx_post_proj', pc)
       if p.use_bias:
@@ -1438,6 +1452,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                 qt='source_proj_add')
         else:
           source_projected = tf.reshape(source_vecs, [-1, source_vec_depth])
+        if p.activation_split_dims_mapping:
+          source_projected = gshard_utils.MeshSplit(
+              source_projected, p.device_mesh,
+              p.activation_split_dims_mapping[1:])
     with tf.name_scope('init__1'):
       num_heads = p.num_attention_heads
       # => [time, source_batch * num_heads, hidden / num_heads]
@@ -1445,6 +1463,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           time_steps, batch_size * num_heads,
           symbolic.ToStatic(p.hidden_dim // num_heads)
       ])
+      source_projected = gshard_utils.MeshSplit(source_projected, p.device_mesh,
+                                                p.activation_split_dims_mapping)
       source_projected = self.ProcessProjectionVec(theta, source_projected,
                                                    'source')
       if p.use_source_vec_as_attention_value:
@@ -1469,6 +1489,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                 source_contexts_projected,
                 fns.qweight(theta.ctx_proj_b),
                 qt='ctx_pre_proj_add')
+          if p.activation_split_dims_mapping:
+            source_contexts_projected = gshard_utils.MeshSplit(
+                source_contexts_projected, p.device_mesh,
+                p.activation_split_dims_mapping[1:])
         else:
           source_contexts_projected = source_contexts
 
@@ -1477,6 +1501,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             time_steps, batch_size * num_heads,
             source_context_depth // num_heads
         ])
+        source_contexts_projected = gshard_utils.MeshSplit(
+            source_contexts_projected, p.device_mesh,
+            p.activation_split_dims_mapping)
         source_contexts_projected = self.ProcessProjectionVec(
             theta, source_contexts_projected, 'ctx')
 
@@ -1694,6 +1721,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                                                       'query')
     else:
       query_vec_projected = tf.reshape(query_vec, query_vec_projected_shape)
+    if p.activation_split_dims_mapping:
+      query_vec_projected = gshard_utils.MeshSplit(
+          query_vec_projected, p.device_mesh,
+          p.activation_split_dims_mapping[1:])
 
     query_batch_size = py_utils.GetShape(query_vec)[0]
     if query_segment_id is None:
@@ -1725,6 +1756,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         theta.atten, packed_src, query_vec_projected, inner_state,
         per_step_source_padding, query_segment_id)
     ctx_vec = tf.reshape(ctx_vec, [batch_size, -1])
+    if p.activation_split_dims_mapping:
+      ctx_vec = gshard_utils.MeshSplit(ctx_vec, p.device_mesh,
+                                       p.activation_split_dims_mapping[1:])
     if p.enable_ctx_post_proj:
       if atten_idx is None:
         assert p.num_post_proj == 1, (
