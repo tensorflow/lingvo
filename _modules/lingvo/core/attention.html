@@ -83,6 +83,7 @@
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
@@ -1080,6 +1081,8 @@
 
       <span class="c1"># =&gt; [n, source_batch, context_dim].</span>
       <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="n">context_vector</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                              <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
       <span class="c1"># =&gt; [n * source_batch, context_dim].</span>
       <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
@@ -1376,6 +1379,8 @@
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;source_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
@@ -1388,6 +1393,8 @@
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;query_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
@@ -1401,6 +1408,8 @@
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">context_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">context_dim</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
@@ -1416,10 +1425,15 @@
         <span class="n">pc_b_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span><span class="p">]</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;num_post_proj must &gt; 0!&#39;</span><span class="p">)</span>
+      <span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+      <span class="k">if</span> <span class="n">weight_split_dims_mapping</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">weight_split_dims_mapping</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="n">pc_shape</span><span class="p">,</span>
           <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
@@ -1503,6 +1517,10 @@
                 <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;source_proj_add&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">source_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_vec_depth</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">:</span>
+          <span class="n">source_projected</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+              <span class="n">source_projected</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init__1&#39;</span><span class="p">):</span>
       <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
       <span class="c1"># =&gt; [time, source_batch * num_heads, hidden / num_heads]</span>
@@ -1510,6 +1528,8 @@
           <span class="n">time_steps</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span>
           <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">)</span>
       <span class="p">])</span>
+      <span class="n">source_projected</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">source_projected</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                                <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
       <span class="n">source_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ProcessProjectionVec</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_projected</span><span class="p">,</span>
                                                    <span class="s1">&#39;source&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_source_vec_as_attention_value</span><span class="p">:</span>
@@ -1534,6 +1554,10 @@
                 <span class="n">source_contexts_projected</span><span class="p">,</span>
                 <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj_b</span><span class="p">),</span>
                 <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">:</span>
+            <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+                <span class="n">source_contexts_projected</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">source_contexts</span>
 
@@ -1542,6 +1566,9 @@
             <span class="n">time_steps</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span>
             <span class="n">source_context_depth</span> <span class="o">//</span> <span class="n">num_heads</span>
         <span class="p">])</span>
+        <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+            <span class="n">source_contexts_projected</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
         <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ProcessProjectionVec</span><span class="p">(</span>
             <span class="n">theta</span><span class="p">,</span> <span class="n">source_contexts_projected</span><span class="p">,</span> <span class="s1">&#39;ctx&#39;</span><span class="p">)</span>
 
@@ -1759,6 +1786,10 @@
                                                       <span class="s1">&#39;query&#39;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">query_vec_projected_shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">:</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span>
+          <span class="n">query_vec_projected</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
 
     <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">query_segment_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1790,6 +1821,9 @@
         <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">,</span> <span class="n">query_vec_projected</span><span class="p">,</span> <span class="n">inner_state</span><span class="p">,</span>
         <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">:</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                       <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_post_proj</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">atten_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_post_proj</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
