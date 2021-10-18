@@ -76,6 +76,10 @@ if [[ "$PIP_MANYLINUX2010" == "1" ]]; then
   write_to_bazelrc "test --config=manylinux2010"
 fi
 
+# Exclude lingvo Jax from the pip package.
+# TODO(b/203463351): Add lingvo jax into a pip package.
+rm -rf lingvo/jax/
+
 # It is expected that you have git cloned this repo at the branch you want,
 # ideally in our docker.
 

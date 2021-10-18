@@ -27,3 +27,5 @@ More specifically:
 *   [abseil](http://github.com/abseil/abseil-py)
 
 *   [clu](http://pypi.org/project/clu/)
+
+*   (optional) [MLPerf logging](http://github.com/mlcommons/logging)

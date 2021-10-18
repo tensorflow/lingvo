@@ -37,6 +37,7 @@ cp -f bazel-bin/lingvo/core/ops/record_pb2.py lingvo/core/ops
 cp -f bazel-bin/lingvo/core/ops/versioned_file_set_pb2.py lingvo/core/ops
 cp -f bazel-bin/lingvo/tasks/mt/text_input_pb2.py lingvo/tasks/mt
 rm -rf lingvo/tasks/car  # TODO(b/179168646): generate APIdocs for car.
+rm -rf lingvo/jax  # TODO(b/203463351): generate APIdocs for lingvo jax.
 sphinx-apidoc -o "$OUTDIR" -efPM --implicit-namespaces lingvo/ $(find . -name '*_test.py')
 cp docs/apidoc/{conf.py,index.rst} "$OUTDIR"
 (export PYTHONPATH="$(pwd)" && cd "$OUTDIR" && sphinx-build -b html -T -j auto . build)

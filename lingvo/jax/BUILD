@@ -1,7 +1,6 @@
 # Description:
 #   Base directory for the lingvo Jax library.
 
-load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 load("//lingvo:lingvo.bzl", "pytype_strict_binary", "pytype_strict_library")
 load("//lingvo:lingvo.bzl", "py_strict_test")
 load("//lingvo/jax:build-visibility.bzl", "JAX_VISIBILITY")
@@ -349,18 +348,4 @@ py_strict_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
     ],
-)
-
-bzl_library(
-    name = "build_visibility_github_bzl",
-    srcs = ["build-visibility.github.bzl"],
-    parse_tests = False,
-    visibility = ["//visibility:private"],
-)
-
-bzl_library(
-    name = "build_visibility_bzl",
-    srcs = ["build-visibility.bzl"],
-    parse_tests = False,
-    visibility = ["//visibility:private"],
 )
