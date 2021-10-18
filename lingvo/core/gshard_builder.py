@@ -2046,14 +2046,15 @@ class DenseBuilder(MoEBuilder):
     p = self.params
     return self._Graph(
         name, input_endpoints, ['outputs', 'aux_loss'],
-        ('vec->input_split', self.MeshSplit('input_split', p.blm_split)),
+        ('vec->input_split',
+         self.MeshSplit('input_split', self._AdjustMSplit(p.blm_split, 2))),
         ('segment_id->segment_id_split',
          self.MeshSplit('segment_id_split', p.blm_split[:-1])),
         ('->wi,wo', self._ShardedFeedForwardNetworksWeights(name)),
         ('input_split,segment_id_split,wi,wo->outputs_pre_split,aux_loss',
          self._ShardedMoEPositionWiseFeedForwardNetworks('ffw')),
         ('outputs_pre_split->outputs',
-         self.MeshSplit('outputs_split', p.blm_split)))
+         self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))))
 
   def _ShardedFeedForwardNetworksWeights(self, name, model_dim=None):
     """Gets the sharded weights for the two layer feedforward nets."""
