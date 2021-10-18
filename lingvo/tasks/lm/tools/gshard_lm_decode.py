@@ -23,7 +23,7 @@ Sample usage:
       --model=lm.synthetic_packed_input.DenseLm8B2x2Decode \
       --checkpoint=<checkpoint path> \
       --input=<input file> --output=<output file> \
-      --tpu_node=<tpu node> --print_outputs=True
+      --tpu=<tpu node name> --print_outputs=True --is_cloud_tpu_node=True
 
 This binary does not include a tokenizer, so each line in the input file should
 be space-separated integer strings, e.g.,
@@ -54,15 +54,17 @@ tf.flags.DEFINE_boolean('output_score', False, 'Output score to TSV file')
 tf.flags.DEFINE_boolean(
     'output_all_samples', False,
     'Output all samples, sampled or within beam, to TSV file')
-tf.flags.DEFINE_string('tpu_node', '', 'TPU node address, if remote.')
-tf.flags.DEFINE_string('worker_job', '/job:localhost', 'e.g. /job:trainer.')
+tf.flags.DEFINE_string('tpu', '', 'TPU node address, if remote.')
+tf.flags.DEFINE_boolean('is_cloud_tpu_node', True,
+                        'Whether tpu is cloud TPU node.')
+tf.flags.DEFINE_string('worker_job', 'worker', 'e.g. worker.')
 tf.flags.DEFINE_integer('prefix_max_len', 1024, 'input length limit')
 tf.flags.DEFINE_boolean('truncate', True, 'truncate inputs to max_len')
 tf.flags.DEFINE_boolean('batch_delimited_mode', False,
                         'For batch decoding, whether to append EOS to input.')
 tf.flags.DEFINE_boolean('print_outputs', False,
                         'if false, does not print to stdout')
-tf.flags.DEFINE_boolean('heartbeat', True, 'Run heartbeat thread.')
+tf.flags.DEFINE_boolean('heartbeat', False, 'Run heartbeat thread.')
 tf.flags.DEFINE_boolean(
     'reshape_weights', True, 'reshape model weights when '
     'restoring from checkpoint as necessary')
@@ -88,9 +90,10 @@ class GShardLMDecode(gshard_decode.GShardDecode):
 
   def __init__(self):
     super().__init__(
-        tpu=FLAGS.tpu_node,
+        tpu=FLAGS.tpu,
         worker_job_name=FLAGS.worker_job,
-        prefix_max_len=FLAGS.prefix_max_len)
+        prefix_max_len=FLAGS.prefix_max_len,
+        is_cloud_tpu_node=FLAGS.is_cloud_tpu_node)
     self.streamz_heartbeat_latency = None
     self.ckpt = FLAGS.checkpoint
     self._heartbeat = FLAGS.heartbeat
@@ -457,7 +460,7 @@ def main(unused_argv):
   decoder.preload_data(batch_size)
 
   decoder.reset_tpu_cluster()
-  decoder.reset_session(FLAGS.tpu_node)
+  decoder.reset_session()
 
   try:
     decoder.init_graph(model_params)

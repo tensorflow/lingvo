@@ -153,7 +153,11 @@ class GShardDecode:
     spm: SentencePieceModel object
   """
 
-  def __init__(self, tpu=None, worker_job_name=None, prefix_max_len=128):
+  def __init__(self,
+               tpu=None,
+               worker_job_name=None,
+               prefix_max_len=128,
+               is_cloud_tpu_node=False):
     self._tpu = tpu
     self._worker_job = worker_job_name
     self._prefix_max_len = prefix_max_len
@@ -180,6 +184,19 @@ class GShardDecode:
     self._saver_reshape = True
     # set in load_spm
     self.spm = None
+
+    if worker_job_name is not None:
+      if worker_job_name.startswith('/job:'):
+        worker_job_name = worker_job_name.split(':')[1]
+      else:
+        self._worker_job = '/job:' + worker_job_name
+    if is_cloud_tpu_node:
+      cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+          self._tpu, job_name=worker_job_name)
+      self._cluster_def = cluster_resolver.cluster_spec().as_cluster_def()
+      self._tpu = cluster_resolver.master()
+    else:
+      self._cluster_def = None
 
   def load_spm(self, spm):
     self.spm = gshard_utils.LoadSpm(spm)
@@ -210,9 +227,10 @@ class GShardDecode:
                 opt_level=tf.OptimizerOptions.L0,
                 do_common_subexpression_elimination=False,
                 do_function_inlining=False,
-                do_constant_folding=False)))
+                do_constant_folding=False)),
+        cluster_def=self._cluster_def)
 
-  def reset_session(self, target):
+  def reset_session(self, target=None):
     """Resets session on target worker with current graph."""
     self._c.acquire()
     if self._sess is not None:
@@ -224,6 +242,8 @@ class GShardDecode:
         pass
 
     tf.logging.info('Creating new session ...')
+    if target is None:
+      target = self._tpu
     self._sess = tf.Session(
         target=target, graph=self.graph, config=self._no_opt_sess_cfg())
     tf.logging.info('Done creating new session.')
@@ -369,7 +389,8 @@ class GShardDecode:
     with graph.as_default():
       init_tpu_op = tf.tpu.initialize_system()
     try:
-      sess = tf.Session(target=self._tpu, graph=graph)
+      sess = tf.Session(
+          target=self._tpu, graph=graph, config=self._no_opt_sess_cfg())
       topology = sess.run(init_tpu_op)
     except Exception as e:
       tf.logging.fatal('TPU initialization failed: %s', e)
