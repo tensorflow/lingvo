@@ -150,9 +150,12 @@ py_library(
     deps = [
         ":compat",
         ":model_registry",
+        # Implicit absl.testing.flagsaver dependency.
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
+        "//lingvo/core:program_lib",
         "//lingvo/core:test_utils",
     ],
 )

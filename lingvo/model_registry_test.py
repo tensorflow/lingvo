@@ -14,12 +14,15 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for model_registry."""
+from absl.testing import flagsaver
+from absl.testing import parameterized
 
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import base_model_params
+from lingvo.core import program
 from lingvo.core import test_utils
 
 FLAGS = tf.flags.FLAGS
@@ -58,6 +61,16 @@ class DummyModel(base_model_params.SingleTaskModelParams):
     p.name = 'DatasetSpecificTask'
     return p
 
+  def ProgramSchedule(self):
+    p = program.SimpleProgramScheduleForTask(
+        train_dataset_name='Train',
+        train_steps_per_loop=1000,
+        eval_dataset_names=['Dev', 'Test'],
+        eval_steps_per_loop=1,
+        decode_steps_per_loop=1)
+    p.train_executions_per_eval = 0
+    return p
+
 
 @model_registry.RegisterSingleTaskModel
 class DummyModelWithInitRules(DummyModel):
@@ -70,7 +83,7 @@ class DummyModelWithInitRules(DummyModel):
     return p
 
 
-class ModelRegistryTest(test_utils.TestCase):
+class ModelRegistryTest(test_utils.TestCase, parameterized.TestCase):
 
   def setUp(self):
     FLAGS.model_params_override = ''
@@ -158,6 +171,77 @@ class ModelRegistryTest(test_utils.TestCase):
     cfg2 = model_registry.GetParams('test.DummyModel', 'Train')
     self.assertNotEqual(cfg.input.num_samples, 100)
     self.assertEqual(cfg2.input.num_samples, 100)
+
+  def _CheckProgramParams(self, eval_programs, expt_eval_dev, expt_eval_test,
+                          expt_decode_dev, expt_decode_test):
+    eval_dev, eval_test, decode_dev, decode_test = 0, 0, 0, 0
+    for eval_program in eval_programs:
+      if eval_program.dataset_name == 'Dev':
+        if issubclass(eval_program.cls, program.EvalProgram):
+          self.assertEqual(eval_program.name, 'eval_tpu')
+          eval_dev += 1
+        elif issubclass(eval_program.cls, program.DecodeProgram):
+          self.assertEqual(eval_program.name, 'decode_tpu')
+          decode_dev += 1
+      elif eval_program.dataset_name == 'Test':
+        if issubclass(eval_program.cls, program.EvalProgram):
+          self.assertEqual(eval_program.name, 'eval_tpu')
+          eval_test += 1
+        elif issubclass(eval_program.cls, program.DecodeProgram):
+          self.assertEqual(eval_program.name, 'decode_tpu')
+          decode_test += 1
+    self.assertEqual(eval_dev, expt_eval_dev)
+    self.assertEqual(eval_test, expt_eval_test)
+    self.assertEqual(decode_dev, expt_decode_dev)
+    self.assertEqual(decode_test, expt_decode_test)
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('DevOnly', 'Dev', 0, 3, -1),
+      ('OverrideExecutions', None, 1, None, None),
+      ('DecodeOnly', None, None, 0, None),
+      ('EvalOnly', None, None, None, 0),
+  )
+  def testProgramSchedule(self,
+                          dataset_list_override=None,
+                          train_executions_per_eval_override=None,
+                          eval_steps_per_loop_override=None,
+                          decode_steps_per_loop_override=None):
+    with flagsaver.flagsaver(
+        executor_datasets_to_eval=dataset_list_override,
+        executor_train_executions_per_eval=train_executions_per_eval_override,
+        executor_eval_steps_per_loop=eval_steps_per_loop_override,
+        executor_decode_steps_per_loop=decode_steps_per_loop_override):
+      ps_params = model_registry.GetProgramSchedule('test.DummyModel')
+
+      if dataset_list_override is not None:
+        self.assertAllEqual(ps_params.dataset_names,
+                            dataset_list_override.split(';'))
+      else:
+        self.assertAllEqual(ps_params.dataset_names, ['Dev', 'Test'])
+
+      if train_executions_per_eval_override is not None:
+        self.assertEqual(ps_params.train_executions_per_eval,
+                         train_executions_per_eval_override)
+      else:
+        self.assertEqual(ps_params.train_executions_per_eval, 0)
+
+      # Assume only Dev and Test are avaiable eval datasets.
+      eval_dev, eval_test, decode_dev, decode_test = 0, 0, 0, 0
+      if dataset_list_override is None or 'Dev' in dataset_list_override:
+        if eval_steps_per_loop_override != 0:
+          eval_dev += 1
+        if decode_steps_per_loop_override != 0:
+          decode_dev += 1
+      if dataset_list_override is None or 'Test' in dataset_list_override:
+        if eval_steps_per_loop_override != 0:
+          eval_test += 1
+        if decode_steps_per_loop_override != 0:
+          decode_test += 1
+      self.assertLen(ps_params.eval_programs,
+                     eval_dev + decode_dev + eval_test + decode_test)
+      self._CheckProgramParams(ps_params.eval_programs, eval_dev, eval_test,
+                               decode_dev, decode_test)
 
   def testModelParamsIncludeSourceInfo(self):
     path = 'lingvo/model_registry_test.py'

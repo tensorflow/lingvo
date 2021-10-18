@@ -1567,7 +1567,8 @@ class SimpleProgramSchedule:
     # for ML Perf
     evals_done = False
     for eval_program in self.eval_programs:
-      tf.logging.info(p.ml_perf, self._ml_perf)
+      tf.logging.info(p.ml_perf)
+      tf.logging.info(self._ml_perf)
       if self._ml_perf:
         one_eval_done = None
         if p.async_postprocess and isinstance(eval_program, DecodeProgram):
@@ -1732,7 +1733,7 @@ def _SetDecodeStepsPerLoop(decode_program, steps_per_loop):
 def _ClearSpecifiedProgram(program_list, program_cls_to_clear):
   ret_programs = []
   for program in program_list:
-    if not isinstance(program.cls, program_cls_to_clear):
+    if not issubclass(program.cls, program_cls_to_clear):
       ret_programs.append(program)
   return ret_programs
 
@@ -1773,15 +1774,15 @@ def UpdateProgramSchedule(ps_params, dataset_list, train_executions_per_eval,
     default_eval_steps_per_loop = 0
     default_decode_steps_per_loop = 0
     for eval_program in ps_params.eval_programs:
-      if isinstance(eval_program.cls, EvalProgram):
+      if issubclass(eval_program.cls, EvalProgram):
         default_eval_steps_per_loop = eval_program.steps_per_loop
-      elif isinstance(eval_program.cls, DecodeProgram):
+      elif issubclass(eval_program.cls, DecodeProgram):
         default_decode_steps_per_loop = _GetDecodeStepsPerLoop(eval_program)
       if eval_program.dataset_name in ds_dict:
         eval_programs.append(eval_program)
-        if isinstance(eval_program.cls, EvalProgram):
+        if issubclass(eval_program.cls, EvalProgram):
           ds_dict[eval_program.dataset_name]['eval_exist'] = True
-        elif isinstance(eval_program.cls, DecodeProgram):
+        elif issubclass(eval_program.cls, DecodeProgram):
           ds_dict[eval_program.dataset_name]['decode_exist'] = True
 
     for dataset_name, exists in ds_dict.items():
@@ -1804,7 +1805,7 @@ def UpdateProgramSchedule(ps_params, dataset_list, train_executions_per_eval,
                                                        EvalProgram)
     else:
       for eval_program in ps_params.eval_programs:
-        if isinstance(eval_program.cls, EvalProgram):
+        if issubclass(eval_program.cls, EvalProgram):
           eval_program.steps_per_loop = eval_steps_per_loop
 
   if decode_steps_per_loop is not None:
@@ -1813,7 +1814,7 @@ def UpdateProgramSchedule(ps_params, dataset_list, train_executions_per_eval,
                                                        DecodeProgram)
     else:
       for eval_program in ps_params.eval_programs:
-        if isinstance(eval_program.cls, DecodeProgram):
+        if issubclass(eval_program.cls, DecodeProgram):
           _SetDecodeStepsPerLoop(eval_program, decode_steps_per_loop)
 
   return ps_params
