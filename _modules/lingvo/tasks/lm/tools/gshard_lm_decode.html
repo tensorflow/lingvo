@@ -88,7 +88,7 @@
 <span class="sd">      --model=lm.synthetic_packed_input.DenseLm8B2x2Decode \</span>
 <span class="sd">      --checkpoint=&lt;checkpoint path&gt; \</span>
 <span class="sd">      --input=&lt;input file&gt; --output=&lt;output file&gt; \</span>
-<span class="sd">      --tpu_node=&lt;tpu node&gt; --print_outputs=True</span>
+<span class="sd">      --tpu=&lt;tpu node name&gt; --print_outputs=True --is_cloud_tpu_node=True</span>
 
 <span class="sd">This binary does not include a tokenizer, so each line in the input file should</span>
 <span class="sd">be space-separated integer strings, e.g.,</span>
@@ -119,15 +119,17 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span>
     <span class="s1">&#39;output_all_samples&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Output all samples, sampled or within beam, to TSV file&#39;</span><span class="p">)</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;tpu_node&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;TPU node address, if remote.&#39;</span><span class="p">)</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;worker_job&#39;</span><span class="p">,</span> <span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span> <span class="s1">&#39;e.g. /job:trainer.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;tpu&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;TPU node address, if remote.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;is_cloud_tpu_node&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+                        <span class="s1">&#39;Whether tpu is cloud TPU node.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;worker_job&#39;</span><span class="p">,</span> <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;e.g. worker.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;prefix_max_len&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;input length limit&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;truncate&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;truncate inputs to max_len&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;batch_delimited_mode&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                         <span class="s1">&#39;For batch decoding, whether to append EOS to input.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;print_outputs&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                         <span class="s1">&#39;if false, does not print to stdout&#39;</span><span class="p">)</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;heartbeat&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Run heartbeat thread.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;heartbeat&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Run heartbeat thread.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span>
     <span class="s1">&#39;reshape_weights&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;reshape model weights when &#39;</span>
     <span class="s1">&#39;restoring from checkpoint as necessary&#39;</span><span class="p">)</span>
@@ -153,9 +155,10 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-        <span class="n">tpu</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_node</span><span class="p">,</span>
+        <span class="n">tpu</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu</span><span class="p">,</span>
         <span class="n">worker_job_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span><span class="p">,</span>
-        <span class="n">prefix_max_len</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">prefix_max_len</span><span class="p">)</span>
+        <span class="n">prefix_max_len</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">prefix_max_len</span><span class="p">,</span>
+        <span class="n">is_cloud_tpu_node</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">is_cloud_tpu_node</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">streamz_heartbeat_latency</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">ckpt</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">heartbeat</span>
@@ -522,7 +525,7 @@
   <span class="n">decoder</span><span class="o">.</span><span class="n">preload_data</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
 
   <span class="n">decoder</span><span class="o">.</span><span class="n">reset_tpu_cluster</span><span class="p">()</span>
-  <span class="n">decoder</span><span class="o">.</span><span class="n">reset_session</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_node</span><span class="p">)</span>
+  <span class="n">decoder</span><span class="o">.</span><span class="n">reset_session</span><span class="p">()</span>
 
   <span class="k">try</span><span class="p">:</span>
     <span class="n">decoder</span><span class="o">.</span><span class="n">init_graph</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>

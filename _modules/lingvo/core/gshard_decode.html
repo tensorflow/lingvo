@@ -218,7 +218,11 @@
 <span class="sd">    spm: SentencePieceModel object</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">worker_job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefix_max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">tpu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">worker_job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">prefix_max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+               <span class="n">is_cloud_tpu_node</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span> <span class="o">=</span> <span class="n">tpu</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_worker_job</span> <span class="o">=</span> <span class="n">worker_job_name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_prefix_max_len</span> <span class="o">=</span> <span class="n">prefix_max_len</span>
@@ -245,6 +249,19 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver_reshape</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="c1"># set in load_spm</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">spm</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">worker_job_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">worker_job_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/job:&#39;</span><span class="p">):</span>
+        <span class="n">worker_job_name</span> <span class="o">=</span> <span class="n">worker_job_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:&#39;</span> <span class="o">+</span> <span class="n">worker_job_name</span>
+    <span class="k">if</span> <span class="n">is_cloud_tpu_node</span><span class="p">:</span>
+      <span class="n">cluster_resolver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">distribute</span><span class="o">.</span><span class="n">cluster_resolver</span><span class="o">.</span><span class="n">TPUClusterResolver</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="n">worker_job_name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">cluster_spec</span><span class="p">()</span><span class="o">.</span><span class="n">as_cluster_def</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span> <span class="o">=</span> <span class="n">cluster_resolver</span><span class="o">.</span><span class="n">master</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="GShardDecode.load_spm"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.load_spm">[docs]</a>  <span class="k">def</span> <span class="nf">load_spm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spm</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">spm</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">LoadSpm</span><span class="p">(</span><span class="n">spm</span><span class="p">)</span></div>
@@ -275,9 +292,10 @@
                 <span class="n">opt_level</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">OptimizerOptions</span><span class="o">.</span><span class="n">L0</span><span class="p">,</span>
                 <span class="n">do_common_subexpression_elimination</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">do_function_inlining</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">do_constant_folding</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span></div>
+                <span class="n">do_constant_folding</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span>
+        <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="GShardDecode.reset_session"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.reset_session">[docs]</a>  <span class="k">def</span> <span class="nf">reset_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+<div class="viewcode-block" id="GShardDecode.reset_session"><a class="viewcode-back" href="../../../lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode.reset_session">[docs]</a>  <span class="k">def</span> <span class="nf">reset_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Resets session on target worker with current graph.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_c</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -289,6 +307,8 @@
         <span class="k">pass</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating new session ...&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
         <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_no_opt_sess_cfg</span><span class="p">())</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done creating new session.&#39;</span><span class="p">)</span>
@@ -434,7 +454,8 @@
     <span class="k">with</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
       <span class="n">init_tpu_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-      <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">)</span>
+      <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+          <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_no_opt_sess_cfg</span><span class="p">())</span>
       <span class="n">topology</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">init_tpu_op</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;TPU initialization failed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
