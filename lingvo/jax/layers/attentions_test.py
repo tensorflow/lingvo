@@ -279,6 +279,9 @@ class AttentionsTest(test_util.JaxTestCase):
           start = max(0, t + 1 - dconv_kernel_size)
           end = t + 1
           query_vec_prefix = query_vec[:, start:end, :]
+          pad_width = dconv_kernel_size - end + start
+          paddings = [(0, 0), (pad_width, 0), (0, 0)]
+          query_vec_prefix = jnp.pad(query_vec_prefix, paddings)
         else:
           query_vec_prefix = query_vec[:, t, :]
         atten_states, encoded = layer.ExtendStep(

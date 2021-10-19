@@ -857,7 +857,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     if p.dconv_qkv:
       # Aggregate depth-wise convolution for keys and values at time step.
       window_size = new_key_proj.shape[1]
-      assert window_size <= p.dconv_kernel_size
+      assert window_size == p.dconv_kernel_size
       # The step here is the step in the prefix window (kernel size) and is not
       # related to `time_step`, since the `query_vec` is the same size as the
       # convolution window and the current position being decoded is always the
