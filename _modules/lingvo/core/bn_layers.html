@@ -980,8 +980,6 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;cached_count: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cached_count</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;cached_var: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cached_var</span><span class="p">)</span>
 
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-
     <span class="n">input_rank</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">input_rank</span><span class="p">)</span>
     <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">cached_sum</span><span class="p">,</span> <span class="n">input_rank</span><span class="p">)</span>
@@ -1000,7 +998,10 @@
       <span class="n">multiplier</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
 
     <span class="c1"># [B, T, 1, N, 1] or [B, T, N, 1]</span>
-    <span class="n">sum_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">reduce_over_dims</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">sum_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="p">),</span>
+        <span class="n">reduce_over_dims</span><span class="p">,</span>
+        <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">sum_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">sum_v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">sum_v</span> <span class="o">+=</span> <span class="n">cached_sum</span>
 
