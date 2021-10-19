@@ -915,8 +915,6 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'cached_count: %r', cached_count)
     tf.logging.vlog(1, 'cached_var: %r', cached_var)
 
-    inputs = py_utils.ApplyPadding(paddings, inputs)
-
     input_rank = py_utils.GetRank(inputs)
     paddings = py_utils.HasRank(paddings, input_rank)
     cached_sum = py_utils.HasRank(cached_sum, input_rank)
@@ -935,7 +933,10 @@ class GroupNormLayer(base_layer.BaseLayer):
       multiplier = input_shape[2] * input_shape[4]
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
-    sum_v = tf.reduce_sum(inputs, reduce_over_dims, keepdims=True)
+    sum_v = tf.reduce_sum(
+        py_utils.ApplyPadding(paddings, inputs),
+        reduce_over_dims,
+        keepdims=True)
     sum_v = tf.math.cumsum(sum_v, axis=1)
     sum_v += cached_sum
 
