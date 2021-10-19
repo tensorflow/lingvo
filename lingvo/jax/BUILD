@@ -43,6 +43,35 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "base_input",
+    srcs = ["base_input.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":py_utils",
+        ":pytypes",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "base_input_test",
+    srcs = ["base_input_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_input",
+        ":py_utils",
+        # Implicit absl.flags dependency.
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:generic_input",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+pytype_strict_library(
     name = "base_model_params",
     srcs = ["base_model_params.py"],
     srcs_version = "PY3",
