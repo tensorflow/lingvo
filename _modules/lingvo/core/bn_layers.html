@@ -840,12 +840,10 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">cumulative</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
-      <span class="n">cached_count_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-      <span class="n">cached_moment_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">cached_count_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-      <span class="n">cached_moment_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># Note: Prefer storing data in &lt;=4D tensors, as TFLite doesn&#39;t support</span>
+    <span class="c1"># implicit broadcasting for 5D (or larger) tensors on many operators.</span>
+    <span class="n">cached_count_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">cached_moment_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">]</span>
     <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cached_moment_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="n">cached_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cached_count_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="n">cached_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cached_moment_shape</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
@@ -963,9 +961,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">      inputs: [B, T, F, N, G] or [B, T, N, G]</span>
 <span class="sd">      paddings: [B, T, 1, 1, 1] or [B, T, 1, 1] (same rank as inputs)</span>
-<span class="sd">      cached_sum: [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)</span>
-<span class="sd">      cached_count: [B, 1, 1, 1, 1] or [B, 1, 1, 1] (same rank as inputs)</span>
-<span class="sd">      cached_var: [B, 1, 1, N, 1] or [B, 1, N, 1] (same rank as inputs)</span>
+<span class="sd">      cached_sum: [B, N]</span>
+<span class="sd">      cached_count: [B, 1]</span>
+<span class="sd">      cached_var: [B, N]</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      mean: [B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)</span>
@@ -982,57 +980,61 @@
 
     <span class="n">input_rank</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">input_rank</span><span class="p">)</span>
-    <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">cached_sum</span><span class="p">,</span> <span class="n">input_rank</span><span class="p">)</span>
-    <span class="n">cached_count</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">cached_count</span><span class="p">,</span> <span class="n">input_rank</span><span class="p">)</span>
-    <span class="n">cached_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">cached_var</span><span class="p">,</span> <span class="n">input_rank</span><span class="p">)</span>
+    <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">cached_sum</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">cached_count</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">cached_count</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">cached_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">cached_var</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
     <span class="n">input_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">output_shape</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[:]</span>
     <span class="k">if</span> <span class="n">input_rank</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
       <span class="c1"># Skip {B,T,N}. Reduce just G.</span>
       <span class="n">reduce_over_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">]</span>
       <span class="n">multiplier</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">output_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">input_rank</span> <span class="o">==</span> <span class="mi">5</span>
       <span class="c1"># Skip {B,T,N}. Reduce {F,G}.</span>
       <span class="n">reduce_over_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
       <span class="n">multiplier</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+      <span class="n">output_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">output_shape</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="c1"># [B, T, 1, N, 1] or [B, T, N, 1]</span>
+    <span class="c1"># [B, T, N]</span>
     <span class="n">sum_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="p">),</span>
         <span class="n">reduce_over_dims</span><span class="p">,</span>
-        <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">sum_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">sum_v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">sum_v</span> <span class="o">+=</span> <span class="n">cached_sum</span>
+    <span class="n">sum_v</span> <span class="o">+=</span> <span class="n">cached_sum</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
 
-    <span class="c1"># [B, T, 1, 1, 1] or [B, T, 1, 1]</span>
+    <span class="c1"># [B, T, 1]</span>
     <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([],</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">reduce_over_dims</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">reduce_over_dims</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">count_v</span> <span class="o">*=</span> <span class="n">multiplier</span>
-    <span class="n">count_v</span> <span class="o">+=</span> <span class="n">cached_count</span>
+    <span class="n">count_v</span> <span class="o">+=</span> <span class="n">cached_count</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
 
     <span class="c1"># [B, T, 1, N, 1] or [B, T, N, 1]</span>
-    <span class="n">mean</span> <span class="o">=</span> <span class="n">sum_v</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sum_v</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">output_shape</span><span class="p">)</span>
 
-    <span class="c1"># [B, T, 1, N, 1] or [B, T, N, 1]</span>
+    <span class="c1"># [B, T, N]</span>
     <span class="n">sum_vv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">squared_difference</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mean</span><span class="p">)),</span>
         <span class="n">reduce_over_dims</span><span class="p">,</span>
-        <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">sum_vv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">sum_vv</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">sum_vv</span> <span class="o">+=</span> <span class="n">cached_var</span>
+    <span class="n">sum_vv</span> <span class="o">+=</span> <span class="n">cached_var</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
 
-    <span class="c1"># [B, 1, 1, N, 1] or [B, 1, N, 1]</span>
-    <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">sum_v</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
-    <span class="c1"># [B, 1, 1, 1, 1] or [B, 1, 1, 1]</span>
-    <span class="n">cached_count</span> <span class="o">=</span> <span class="n">count_v</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
-    <span class="c1"># [B, 1, 1, N, 1] or [B, 1, N, 1]</span>
-    <span class="n">cached_var</span> <span class="o">=</span> <span class="n">sum_vv</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="c1"># [B, N]</span>
+    <span class="n">cached_sum</span> <span class="o">=</span> <span class="n">sum_v</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># [B, 1]</span>
+    <span class="n">cached_count</span> <span class="o">=</span> <span class="n">count_v</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># [B, N]</span>
+    <span class="n">cached_var</span> <span class="o">=</span> <span class="n">sum_vv</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="c1"># [B, T, 1, N, 1] or [B, T, N, 1]</span>
-    <span class="n">variance</span> <span class="o">=</span> <span class="n">sum_vv</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sum_vv</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">output_shape</span><span class="p">)</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;sum_v: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sum_v</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;count_v: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">count_v</span><span class="p">)</span>
