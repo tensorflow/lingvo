@@ -402,8 +402,20 @@ or a MultiTaskSubModel.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program._FetchDecodeOut">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_FetchDecodeOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_passthrough_tensors</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_FetchDecodeOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._FetchDecodeOut" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_FetchDecodeOut</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tpu_outs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_FetchDecodeOut"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._FetchDecodeOut" title="Permalink to this definition"></a></dt>
 <dd><p>Fetch decoder outputs, combining with CPU passthrough tensors if needed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tpu_outs</strong> – A list of decoded tensors and list of cpu passthrough tensors in
+graph mode, or a callable returning such in eager mode.</p></li>
+<li><p><strong>sess</strong> – A session to use in graph mode.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dict containing merged decoded outputs.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -417,8 +429,8 @@ or a MultiTaskSubModel.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._CompileDecodeFn">
-<span class="sig-name descname"><span class="pre">_CompileDecodeFn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._CompileDecodeFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._CompileDecodeFn" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.DecodeFunc">
+<span class="sig-name descname"><span class="pre">DecodeFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.DecodeFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.DecodeFunc" title="Permalink to this definition"></a></dt>
 <dd><p>Wrap the DecodeFn with split_compile_and_shard.</p>
 </dd></dl>
 
@@ -484,8 +496,8 @@ default DecodeProgram.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram._CompileDecodeLoop">
-<span class="sig-name descname"><span class="pre">_CompileDecodeLoop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._CompileDecodeLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._CompileDecodeLoop" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.DecodeFunc">
+<span class="sig-name descname"><span class="pre">DecodeFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.DecodeFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.DecodeFunc" title="Permalink to this definition"></a></dt>
 <dd><p>Wrap the DecodeLoop with split_compile_and_shard.</p>
 </dd></dl>
 
@@ -499,11 +511,14 @@ default DecodeProgram.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue">
-<span class="sig-name descname"><span class="pre">_OutfeedDequeue</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._OutfeedDequeue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_OutfeedDequeue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode_nm</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._OutfeedDequeue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue" title="Permalink to this definition"></a></dt>
 <dd><p>Collect outfeed dequeue from all devices.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A list of tensors corresponding to stacked decoded outputs. The decoder
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>decode_nm</strong> – A NestedMap containing decoded tensors.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of tensors corresponding to stacked decoded outputs. The decoder
 outputs are stacked on the first dimension (usually corresponds to
 batch size).</p>
 </dd>
