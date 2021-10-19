@@ -744,8 +744,13 @@ class TransformerLayer(base_layer.BaseLayer):
     params.keep_prob = (1.0 - p.residual_dropout_prob)
     self.CreateChild('residual_dropout', params)
 
-    # Initialize multi-headed cross-attention
+    # Initialize multi-headed cross-attention and layer norm.
     if p.cross_attention:
+      params = p.ln_tpl.Copy()
+      params.name = 'cross_layer_norm'
+      params.input_dims = p.input_dims
+      self.CreateChild('cross_layer_norm', params)
+
       params = p.tr_atten_tpl.Copy()
       params.name = 'multihead_self_atten'
       params.input_dim = p.input_dims
@@ -822,7 +827,7 @@ class TransformerLayer(base_layer.BaseLayer):
 
       cross_atten_output, cross_atten_probs = self.cross_attention.FProp(
           theta.cross_attention,
-          self.layer_norm.FProp(theta.layer_norm, atten_output),
+          self.cross_layer_norm.FProp(theta.cross_layer_norm, atten_output),
           cross_inputs,
           cross_inputs,
           atten_mask=cross_attention_mask)
@@ -898,8 +903,8 @@ class TransformerLayer(base_layer.BaseLayer):
       assert cross_inputs is not None
       assert cross_attention_mask is not None
 
-      atten_output_normalized = self.layer_norm.FProp(
-          theta.layer_norm, jnp.expand_dims(atten_output, axis=1))
+      atten_output_normalized = self.cross_layer_norm.FProp(
+          theta.cross_layer_norm, jnp.expand_dims(atten_output, axis=1))
       cross_atten_output, _ = self.cross_attention.FProp(
           theta.cross_attention,
           atten_output_normalized,

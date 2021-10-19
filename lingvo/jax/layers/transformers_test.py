@@ -232,6 +232,75 @@ class TransformersTest(test_util.JaxTestCase):
     np_decoder_outputs = test_utils.ToNp(decoder_out_transposed)
     self.assertAllClose(np_fprop_outputs, np_decoder_outputs, atol=1e-5)
 
+  @parameterized.parameters(True, False)
+  def test_transformer_layer_cross_attention_ln(self, packed_input):
+    p = transformers.TransformerLayer.Params().Set(
+        name='jax_transformer_layer',
+        input_dims=8,
+        hidden_dims=32,
+        num_heads=4,
+        mask_self_attention=True,
+        packed_input=packed_input,
+        cross_attention=True)
+    seq_len = 5
+    batch_size = 4
+    transformer_layer = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_layer.InstantiateVariables(prng_key)
+    # Change the self attention initial vars.
+    initial_vars.layer_norm.scale = 0.5
+    initial_vars.layer_norm.bias = 5.0
+    # Change the cross attention initial vars.
+    initial_vars.cross_layer_norm.scale = 15
+    initial_vars.cross_layer_norm.bias = 1.5
+    npy_inputs = np.random.normal(
+        1.0, 0.5, [batch_size, seq_len, p.input_dims]).astype('float32')
+    inputs = jnp.asarray(npy_inputs)
+    npy_paddings = np.random.randint(0, 1,
+                                     [batch_size, seq_len]).astype('float32')
+    paddings = jnp.asarray(npy_paddings)
+    attention_mask = attentions.ConvertPaddingsToMask(paddings)
+    causal_mask = attentions.CausalMask(inputs)
+    attention_mask = jnp.minimum(causal_mask, attention_mask)
+    if packed_input:
+      segment_ids = np.random.random_integers(0, 2, [batch_size, seq_len])
+      segment_mask = attentions.SegmentMask(segment_ids, dtype=np.float32)
+      attention_mask = jnp.minimum(attention_mask, segment_mask)
+    with base_layer.JaxContext.NewContext(
+        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+      inputs_normalized = transformer_layer.layer_norm.FProp(
+          initial_vars.layer_norm, inputs)
+      # Compute self-attention, key/value vectors are the input itself
+      atten_output, _ = transformer_layer.self_attention.FProp(
+          initial_vars.self_attention,
+          inputs_normalized,
+          inputs_normalized,
+          inputs_normalized,
+          atten_mask=attention_mask)
+      # Residual dropout and connection.
+      atten_output = transformer_layer.residual_dropout.FProp(
+          initial_vars.residual_dropout, atten_output)
+      atten_output += inputs
+      # Normalize atten outputs using cross attention.
+      atten_output_normalized = transformer_layer.cross_layer_norm.FProp(
+          initial_vars.cross_layer_norm, atten_output)
+      inputs_normalized = test_utils.ToNp(inputs_normalized)
+      atten_output_normalized = test_utils.ToNp(atten_output_normalized)
+    self.assertAllClose(
+        initial_vars.layer_norm.bias, inputs_normalized.mean(), atol=1e-3)
+    self.assertAllClose(
+        (1.0 + initial_vars.layer_norm.scale)**2,
+        np.var(inputs_normalized),
+        atol=5e-3)
+    self.assertAllClose(
+        initial_vars.cross_layer_norm.bias,
+        atten_output_normalized.mean(),
+        atol=1e-3)
+    self.assertAllClose(
+        (1.0 + initial_vars.cross_layer_norm.scale)**2,
+        np.var(atten_output_normalized),
+        atol=5e-3)
+
   @parameterized.parameters((True, True, True), (True, False, True),
                             (True, True, False), (False, True, True),
                             (True, False, False), (False, True, False),
