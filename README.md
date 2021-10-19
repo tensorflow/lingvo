@@ -66,6 +66,7 @@ Nothing here.
 #### 0.10.0
 
 *   **General**
+    *   Tensorflow 2.6 is now the required version.
     *   The theta_fn arg to CreateVariable() has been removed.
 
 #### 0.9.1
