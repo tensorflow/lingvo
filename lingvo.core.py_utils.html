@@ -2132,7 +2132,7 @@ seqlen, …].</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.ApplyPadding">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">ApplyPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_select</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyPadding" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">ApplyPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_select</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyPadding" title="Permalink to this definition"></a></dt>
 <dd><p>Applies padding to a tensor.</p>
 <p>This is preferable to using arithmetic means for masking out padded values
 such as:</p>
@@ -2159,6 +2159,7 @@ Must have a shape broadcastable to ‘x’ if specified.</p></li>
 (True/default) or arithmetically (False). Some platforms have a
 sensitivity to one or the other and this is used to work around such
 issues.</p></li>
+<li><p><strong>ensure_shape</strong> – If true, ensures the shape of the result is the same as of x.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
