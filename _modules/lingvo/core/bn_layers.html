@@ -1008,10 +1008,12 @@
     <span class="n">sum_v</span> <span class="o">+=</span> <span class="n">cached_sum</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
 
     <span class="c1"># [B, T, 1]</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([],</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">reduce_over_dims</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span>
+            <span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ensure_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="n">reduce_over_dims</span><span class="p">,</span>
+        <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">count_v</span> <span class="o">*=</span> <span class="n">multiplier</span>
     <span class="n">count_v</span> <span class="o">+=</span> <span class="n">cached_count</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
 
     <span class="c1"># [B, T, 1, N, 1] or [B, T, N, 1]</span>
