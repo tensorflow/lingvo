@@ -4002,7 +4002,7 @@ def PadSequenceTo(xs, padding, length, pad_val):
     return tuple(res), padding
 
 
-def ApplyPadding(padding, x, padded=None, use_select=True):
+def ApplyPadding(padding, x, padded=None, use_select=True, ensure_shape=True):
   """Applies padding to a tensor.
 
   This is preferable to using arithmetic means for masking out padded values
@@ -4030,6 +4030,7 @@ def ApplyPadding(padding, x, padded=None, use_select=True):
       (True/default) or arithmetically (False). Some platforms have a
       sensitivity to one or the other and this is used to work around such
       issues.
+    ensure_shape: If true, ensures the shape of the result is the same as of x.
 
   Returns:
     A tensor with the same shape as x with padded values masked.
@@ -4047,12 +4048,13 @@ def ApplyPadding(padding, x, padded=None, use_select=True):
     if padding.dtype != tf.bool:
       padding = padding > tf.zeros([], padding.dtype)
     result = tf.where_v2(padding, padded, x)
-    return tf.ensure_shape(result, x.shape)
   else:
     result = x * tf.cast(1.0 - tf.cast(padding, tf.float32), x.dtype)
     if padded is not None:
       result += padded * tf.cast(padding, padded.dtype)
-    return result
+  if ensure_shape:
+    result = tf.ensure_shape(result, x.shape)
+  return result
 
 
 def LengthsFromPaddings(paddings):
