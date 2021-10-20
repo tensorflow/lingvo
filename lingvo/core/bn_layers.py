@@ -943,10 +943,12 @@ class GroupNormLayer(base_layer.BaseLayer):
     sum_v += cached_sum[:, tf.newaxis, :]
 
     # [B, T, 1]
-    mask = tf.ones([], inputs.dtype) - tf.cast(paddings, inputs.dtype)
-    count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=False)
+    count_v = tf.reduce_sum(
+        py_utils.ApplyPadding(
+            paddings, tf.cast(multiplier, inputs.dtype), ensure_shape=False),
+        reduce_over_dims,
+        keepdims=False)
     count_v = tf.math.cumsum(count_v, axis=1)
-    count_v *= multiplier
     count_v += cached_count[:, tf.newaxis, :]
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
