@@ -1331,7 +1331,6 @@ py_library(
         ":predictor_lib",
         ":py_utils",
         # Implicit absl.flags dependency.
-        # Implicit concurrent.futures dependency.
         "//lingvo:compat",
         # Implicit six dependency.
     ],
