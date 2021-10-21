@@ -383,7 +383,6 @@ py_library(
         ":detection_3d_lib",
         ":geometry",
         ":point_detector",
-        # Implicit enum dependency.
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
@@ -429,7 +428,6 @@ py_library(
         ":detection_3d_lib",
         ":geometry",
         ":point_detector",
-        # Implicit enum dependency.
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
