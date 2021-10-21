@@ -2099,6 +2099,44 @@ class ShiftLeftTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
 
+class CreateIdsAndLablesTest(test_utils.TestCase):
+
+  def testCreateIdsAndLables(self):
+    with self.session(use_gpu=False):
+      ids = tf.range(4, 10, dtype=tf.int32)
+      ids = tf.tile(tf.expand_dims(ids, 0), [4, 1])
+      paddings = 1.0 - tf.sequence_mask(
+          [0, 1, 6, 4], maxlen=6, dtype=tf.float32)
+      targets = self.evaluate(py_utils.CreateIdsAndLabels(ids, paddings))
+      self.assertAllEqual(np.sum(1.0 - targets.paddings, -1), [1, 2, 7, 5])
+      # pyformat: disable
+      self.assertAllEqual(
+          targets.ids,
+          [[1, 2, 2, 2, 2, 2, 2],
+           [1, 4, 2, 2, 2, 2, 2],
+           [1, 4, 5, 6, 7, 8, 9],
+           [1, 4, 5, 6, 7, 2, 2]])
+      self.assertAllEqual(
+          targets.labels,
+          [[2, 2, 2, 2, 2, 2, 2],
+           [4, 2, 2, 2, 2, 2, 2],
+           [4, 5, 6, 7, 8, 9, 2],
+           [4, 5, 6, 7, 2, 2, 2]])
+      self.assertAllEqual(
+          targets.paddings,
+          [[0, 1, 1, 1, 1, 1, 1],
+           [0, 0, 1, 1, 1, 1, 1],
+           [0, 0, 0, 0, 0, 0, 0],
+           [0, 0, 0, 0, 0, 1, 1]])
+      self.assertAllEqual(
+          targets.weights,
+          [[1, 0, 0, 0, 0, 0, 0],
+           [1, 1, 0, 0, 0, 0, 0],
+           [1, 1, 1, 1, 1, 1, 1],
+           [1, 1, 1, 1, 1, 0, 0]])
+      # pyformat: enable
+
+
 class PadOrTrimToTest(test_utils.TestCase):
 
   def test2DConstantShapePad(self):

@@ -4274,6 +4274,32 @@ def ShiftLeft(tensor, shift_size, pad_val=0, axis=1):
         tf.slice(tensor, begin, size=[-1] * rank), time, pad_val, axis=axis)
 
 
+def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2):
+  """Creates ids and labels to be used as decoder targets.
+
+  Args:
+    ids: int Tensor of shape [batch, maxlen], without sos or eos.
+    paddings: float Tensor of shape [batch, maxlen].
+    sos_id: ID for the sos special token.
+    eos_id: ID for the eos special token.
+
+  Returns:
+    A NestedMap with:
+     - ids: int Tensor of shape [batch, maxlen + 1], with sos prepended.
+     - labels: int Tensor of shape [batch, maxlen + 1], with eos appended.
+     - paddings: float Tensor of shape [batch, maxlen + 1].
+     - weights: float Tensor of shape [batch, maxlen + 1].
+  """
+  ids = tf.where(
+      tf.equal(paddings, 0.0), ids, tf.broadcast_to([[eos_id]], GetShape(ids)))
+  targets = NestedMap()
+  targets.ids = tf.pad(ids, [[0, 0], [1, 0]], constant_values=sos_id)
+  targets.labels = tf.pad(ids, [[0, 0], [0, 1]], constant_values=eos_id)
+  targets.paddings = tf.pad(paddings, [[0, 0], [1, 0]])
+  targets.weights = 1.0 - targets.paddings
+  return targets
+
+
 def Retry(*args, **kwargs):
   return retry.Retry(*args, **kwargs)
 
