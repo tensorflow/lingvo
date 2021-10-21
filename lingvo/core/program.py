@@ -292,7 +292,7 @@ class BaseProgram:
     self._task.input.Initialize(sess)
     self.SetStatusMessage('Init inputs %s done.' % self._program_name)
 
-    if self._compile_op is not None:
+    if not py_utils.IsEagerMode() and self._compile_op is not None:
       self.SetStatusMessage('Compiling %s' % self._program_name)
       result = sess.run(self._compile_op)
       proto = tpu_compilation_result.CompilationResultProto()
@@ -491,15 +491,7 @@ class TrainProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
-
-    # In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.
-    # In eager mode, we run it once at the start to initialize
-    # the datasets and iterators before `tf.function` because
-    # `tf.function` does not trace python side effects.
-    # https://www.tensorflow.org/guide/function#executing_python_side_effects
-    self._task.input.CreateTpuEnqueueOps()
-    if not py_utils.IsEagerMode():
-      self._task.input.CreateTpuEmbeddingEnqueueOps()
+    self._task.input.TpuSetup()
 
     @tpu_function.on_device_training_loop
     def TpuTrainLoop():
@@ -735,14 +727,7 @@ class EvalProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      # In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.
-      # In eager mode, we run it once at the start to initialize
-      # the datasets and iterators before `tf.function` because
-      # `tf.function` does not trace python side effects.
-      # https://www.tensorflow.org/guide/function#executing_python_side_effects
-      self._task.input.CreateTpuEnqueueOps()
-      if not py_utils.IsEagerMode():
-        self._task.input.CreateTpuEmbeddingEnqueueOps()
+      self._task.input.TpuSetup()
 
       if py_utils.IsEagerMode():
         self.tpu_outs = (
@@ -910,6 +895,7 @@ class DecodeProgram(BaseProgram):
       # InfeedQueue.
       def InfeedBody(i):
         self._task.input.CreateTpuEnqueueOps()
+        self._task.input.CreateCpuPassthroughEnqueueOps()
         # Auto control dependency may not support TPU infeed ops, so add the
         # dependency manually.
         with tf.control_dependencies(self._task.input.tpu_infeed_op):
@@ -968,15 +954,7 @@ class DecodeProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      # In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.
-      # In eager mode, we run it once at the start to initialize
-      # the datasets and iterators before `tf.function` because
-      # `tf.function` does not trace python side effects.
-      # https://www.tensorflow.org/guide/function#executing_python_side_effects
-      self._task.input.CreateTpuEnqueueOps()
-      self._task.input.CreateCpuPassthroughEnqueueOps()
-      if not py_utils.IsEagerMode():
-        self._task.input.CreateTpuEmbeddingEnqueueOps()
+      self._task.input.TpuSetup(cpu_passthrough=True)
 
       if py_utils.IsEagerMode():
         self.tpu_outs = (
@@ -1226,9 +1204,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      self._task.input.CreateTpuEnqueueOps()
-      self._task.input.CreateCpuPassthroughEnqueueOps()
-      self._task.input.CreateTpuEmbeddingEnqueueOps()
+      self._task.input.TpuSetup(cpu_passthrough=True)
 
       self.tpu_outs = self.DecodeFunc()
 
@@ -1356,7 +1332,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._train_model = self._train_task_params.Instantiate()
     self._train_task = self._train_model.GetTask()
-    self._train_task.input.CreateTpuEnqueueOps()
+    self._train_task.input.TpuSetup()
     self._model = self._train_model
 
     def TpuTrainStep():
@@ -1384,8 +1360,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._decode_model = self._InstantiateTaskModel(self._decode_task_params)
     self._decode_task = self._decode_model.GetTask()
-    self._decode_task.input.CreateTpuEnqueueOps()
-    self._decode_task.input.CreateCpuPassthroughEnqueueOps()
+    self._decode_task.input.TpuSetup(cpu_passthrough=True)
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""

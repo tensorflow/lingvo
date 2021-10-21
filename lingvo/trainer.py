@@ -450,7 +450,7 @@ class TrainerTpu(base_runner.BaseRunner):
           self._cluster.GetPlacer()), self._TF2SummaryContext():
         self._model = self.params.Instantiate()
         self._task = self._model.GetTask()
-        self._task.input.CreateTpuEnqueueOps()
+        self._task.input.TpuSetup()
         self._eval_metrics = metrics.TpuEvalMetrics()
         # Needed due to the AddExtraTheta() reference to global_step when
         # instantiating the InputGenerator.
@@ -503,7 +503,6 @@ class TrainerTpu(base_runner.BaseRunner):
         outfeed_dequeue_op = self._OutfeedDequeueLoop(
             self._task.per_example_tensors, self._steps_per_loop,
             self._cluster.num_splits_per_client)
-        self._task.input.CreateTpuEmbeddingEnqueueOps()
 
         def _ConstructPostTrainingLoop(train_loop_op, outfeed_dequeue_op):
           """Returns the op for tpu training with tail cpu computation."""

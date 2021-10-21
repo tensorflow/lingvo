@@ -658,6 +658,23 @@ class BaseInputGenerator(base_layer.BaseLayer):
               embedding_indices, sample_indices)
     return enqueue_data
 
+  def TpuSetup(self, cpu_passthrough=False):
+    """Set up the input pipeline for TPU."""
+    if py_utils.IsEagerMode():
+      # In eager mode, we run CreateTpuEnqueueOps once at the start to
+      # initialize the datasets and iterators before `tf.function` because
+      # `tf.function` does not trace python side effects.
+      # https://www.tensorflow.org/guide/function#executing_python_side_effects
+      self.CreateTpuEnqueueOps()
+      if cpu_passthrough:
+        self.CreateCpuPassthroughEnqueueOps()
+    else:
+      # In graph mode, the calls create ops but don't execute them.
+      self.CreateTpuEnqueueOps()
+      if cpu_passthrough:
+        self.CreateCpuPassthroughEnqueueOps()
+      self.CreateTpuEmbeddingEnqueueOps()
+
   def PreprocessTpuEmbeddingInputBatch(self, input_batch):
     """Hook to manipulate the TPU embedding input batch.
 
