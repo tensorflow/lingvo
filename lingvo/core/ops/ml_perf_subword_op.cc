@@ -56,8 +56,11 @@ Status MlPerfSubword::LoadLines(const std::vector<string>& lines) {
 // This is a direct port of the tokenizer decode method in the MLPerf
 // reference implementation for Translate/Transformer.
 void MlPerfSubword::Decode(const std::vector<int32>& ids, string* out) {
-  std::vector<string> subtokens_raw(ids.size());
+  std::vector<string> subtokens_raw;
+  subtokens_raw.reserve(ids.size());
   for (const auto& id : ids) {
+    CHECK_LT(id, id_to_token_.size())
+        << "Id out of range: " << id << " " << id_to_token_.size();
     subtokens_raw.emplace_back(id_to_token_[id]);
   }
   string inter = absl::StrJoin(subtokens_raw, "");
@@ -75,7 +78,7 @@ void MlPerfSubword::Decode(const std::vector<int32>& ids, string* out) {
 
   for (int i = 0; i < subtokens.size(); ++i) {
     const auto& token = subtokens[i];
-    if (i > 0 && token_is_alnum[i - 1] & token_is_alnum[i]) {
+    if (i > 0 && token_is_alnum[i - 1] && token_is_alnum[i]) {
       ret.push_back(" ");
     }
     ret.push_back(token);
