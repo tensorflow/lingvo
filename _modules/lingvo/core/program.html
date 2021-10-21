@@ -357,7 +357,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1"> done.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Compiling </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
       <span class="n">result</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">)</span>
       <span class="n">proto</span> <span class="o">=</span> <span class="n">tpu_compilation_result</span><span class="o">.</span><span class="n">CompilationResultProto</span><span class="p">()</span>
@@ -556,15 +556,7 @@
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-
-    <span class="c1"># In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.</span>
-    <span class="c1"># In eager mode, we run it once at the start to initialize</span>
-    <span class="c1"># the datasets and iterators before `tf.function` because</span>
-    <span class="c1"># `tf.function` does not trace python side effects.</span>
-    <span class="c1"># https://www.tensorflow.org/guide/function#executing_python_side_effects</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">()</span>
 
     <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
     <span class="k">def</span> <span class="nf">TpuTrainLoop</span><span class="p">():</span>
@@ -800,14 +792,7 @@
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-      <span class="c1"># In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.</span>
-      <span class="c1"># In eager mode, we run it once at the start to initialize</span>
-      <span class="c1"># the datasets and iterators before `tf.function` because</span>
-      <span class="c1"># `tf.function` does not trace python side effects.</span>
-      <span class="c1"># https://www.tensorflow.org/guide/function#executing_python_side_effects</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">()</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
@@ -975,6 +960,7 @@
       <span class="c1"># InfeedQueue.</span>
       <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
         <span class="c1"># Auto control dependency may not support TPU infeed ops, so add the</span>
         <span class="c1"># dependency manually.</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">):</span>
@@ -1033,15 +1019,7 @@
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-      <span class="c1"># In graph mode, `CreateTpuEnqueueOps` builds the relevant infeed ops.</span>
-      <span class="c1"># In eager mode, we run it once at the start to initialize</span>
-      <span class="c1"># the datasets and iterators before `tf.function` because</span>
-      <span class="c1"># `tf.function` does not trace python side effects.</span>
-      <span class="c1"># https://www.tensorflow.org/guide/function#executing_python_side_effects</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">(</span><span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
@@ -1291,9 +1269,7 @@
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">(</span><span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">()</span></div>
 
@@ -1421,7 +1397,7 @@
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span>
 
     <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">():</span>
@@ -1449,8 +1425,7 @@
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">(</span><span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>

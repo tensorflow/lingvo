@@ -515,7 +515,7 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TF2SummaryContext</span><span class="p">():</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
         <span class="c1"># Needed due to the AddExtraTheta() reference to global_step when</span>
         <span class="c1"># instantiating the InputGenerator.</span>
@@ -568,7 +568,6 @@
         <span class="n">outfeed_dequeue_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedDequeueLoop</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span>
 
         <span class="k">def</span> <span class="nf">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">,</span> <span class="n">outfeed_dequeue_op</span><span class="p">):</span>
           <span class="sd">&quot;&quot;&quot;Returns the op for tpu training with tail cpu computation.&quot;&quot;&quot;</span>
