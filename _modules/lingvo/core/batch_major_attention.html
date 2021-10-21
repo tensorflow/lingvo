@@ -4807,6 +4807,13 @@
         <span class="s1">&#39;Apply dropout at this prob at various places. If None, dropout values &#39;</span>
         <span class="s1">&#39;in transformer_layer_params_tpl will be used. If set, p.dropout_prob &#39;</span>
         <span class="s1">&#39;will override transformer_layer_params_tpl.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;stochastic_depth_droppath_prob&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The probability of dropping the residual branches (feedforward blocks &#39;</span>
+        <span class="s1">&#39;and attention blocks). See Deep Networks with Stochastic Depth: &#39;</span>
+        <span class="s1">&#39;https://arxiv.org/pdf/1603.09382.pdf&#39;</span>
+        <span class="s1">&#39;Note: the droppath prob is linearly increasing from block 0 to the &#39;</span>
+        <span class="s1">&#39;last block with dropout ratio from 0 to targeted ratio.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_unnormalized_input&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;If set, uses unnormalized input in the residual add.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -4910,6 +4917,10 @@
         <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span>
         <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span>
         <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">relu_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stochastic_depth_droppath_prob</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ratio</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stochastic_depth_droppath_prob</span> <span class="o">*</span> <span class="n">ii</span> <span class="o">/</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_droppath_prob</span> <span class="o">=</span> <span class="n">ratio</span>
+        <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">residual_droppath_prob</span> <span class="o">=</span> <span class="n">ratio</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span>
