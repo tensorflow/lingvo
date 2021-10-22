@@ -17,6 +17,7 @@
 Currently support: MASS
 """
 
+import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import ops
 from lingvo.core import py_utils
@@ -81,22 +82,28 @@ class MASS(base_layer.BaseLayer):
 
   def Mask(self, seq_ids, weights, actual_seq_len):
     p = self.params
-    (src_ids, tgt_ids, tgt_labels, tgt_weights) = ops.mass(
-        seq_ids,
-        weights,
-        actual_seq_len,
-        mask_id=p.mask_id,
-        mask_ratio=p.mask_ratio,
-        mask_minlen=p.mask_minlen,
-        span_len=p.span_len,
-        random_start_prob=p.random_start_prob,
-        keep_prob=p.keep_prob,
-        rand_prob=p.rand_prob,
-        mask_prob=p.mask_prob,
-        mask_target=p.mask_target,
-        vocab_size=p.vocab_size,
-        first_unreserved_id=p.first_unreserved_id)
-
+    if p.mask_ratio == 0.:
+      tf.logging.info('ATTENTION! mask ratio is set to 0, no mask is applied')
+      src_ids = seq_ids
+      tgt_ids = tf.pad(seq_ids, [[0, 0], [1, 0]], constant_values=1)[:, :-1]
+      tgt_labels = seq_ids
+      tgt_weights = weights
+    else:
+      (src_ids, tgt_ids, tgt_labels, tgt_weights) = ops.mass(
+          seq_ids,
+          weights,
+          actual_seq_len,
+          mask_id=p.mask_id,
+          mask_ratio=p.mask_ratio,
+          mask_minlen=p.mask_minlen,
+          span_len=p.span_len,
+          random_start_prob=p.random_start_prob,
+          keep_prob=p.keep_prob,
+          rand_prob=p.rand_prob,
+          mask_prob=p.mask_prob,
+          mask_target=p.mask_target,
+          vocab_size=p.vocab_size,
+          first_unreserved_id=p.first_unreserved_id)
     mass_out = py_utils.NestedMap()
     mass_out.src = py_utils.NestedMap()
     mass_out.src.ids = src_ids
