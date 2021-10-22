@@ -253,6 +253,7 @@ py_strict_test(
     srcs_version = "PY3",
     deps = [
         ":attentions",
+        ":embedding_softmax",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.

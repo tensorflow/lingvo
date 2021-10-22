@@ -39,7 +39,13 @@ JTensor = pytypes.JTensor
 
 def _GetLargeNegativeNumber(dtype):
   # -0.7 is a float64 in Jax. Explicit cast output to target dtype.
-  return (-0.7 * jnp.finfo(dtype).max).astype(dtype)
+  if jnp.issubdtype(dtype, jnp.inexact):
+    dtype_max = jnp.finfo(dtype).max
+  elif jnp.issubdtype(dtype, jnp.integer):
+    dtype_max = jnp.iinfo(dtype).max
+  else:
+    raise ValueError('Unsupported dtype for inputs.')
+  return jnp.asarray(-0.7 * dtype_max, dtype=dtype)
 
 
 def CausalMask(input_t: JTensor) -> JTensor:
@@ -461,6 +467,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         'atten_logit_cap', 0.0, 'Cap the absolute values of logits by '
         'tanh. Enabled when a positive value is specified. May not be '
         'supported by a subclass.')
+    p.Define(
+        'position_emb_tpl', None, 'Position embedding to add to queries'
+        'and keys directly before computing self attention scores.'
+        'For example one can choose to apply Rotary Position embeddings'
+        'to the queries and keys for relative attention.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -536,6 +547,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       self.CreateChild('key', ProjectInput(key_input_dim))
       self.CreateChild('query', ProjectInput(query_input_dim))
       self.CreateChild('value', ProjectInput(value_input_dim))
+
+    if p.position_emb_tpl is not None:
+      pos_emb_p = p.position_emb_tpl.Copy()
+      pos_emb_p.embedding_dims = dim_per_head
+      self.CreateChild('position_emb', pos_emb_p)
 
     if p.dconv_qkv:
       causal_dconv_p = CausalDepthwiseConv1D.Params().Set(
@@ -777,6 +793,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       key_proj = self.key.FProp(theta.key, key_vec)
       value_proj = self.value.FProp(theta.value, value_vec)
 
+    # Apply position embeddings if present.
+    if p.position_emb_tpl is not None:
+      query_proj += self.position_emb.FProp(theta.position_emb, query_proj)
+      key_proj += self.position_emb.FProp(theta.position_emb, key_proj)
+
     if p.dconv_qkv:
       query_proj = self.dconv_q.FProp(theta.dconv_q, query_proj, axis=1)
       key_proj = self.dconv_k.FProp(theta.dconv_k, key_proj, axis=1)
@@ -853,6 +874,13 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       new_key_proj = self.key.FProp(theta.key, query_vec)
       new_value_proj = self.value.FProp(theta.value, query_vec)
       query_proj = self.query.FProp(theta.query, query_vec)
+
+    # Apply position embeddings if present.
+    if p.position_emb_tpl is not None:
+      query_proj += self.position_emb.ExtendStep(theta.position_emb, query_proj,
+                                                 time_step)
+      new_key_proj += self.position_emb.ExtendStep(theta.position_emb,
+                                                   new_key_proj, time_step)
 
     if p.dconv_qkv:
       # Aggregate depth-wise convolution for keys and values at time step.

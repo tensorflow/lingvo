@@ -757,6 +757,8 @@ class TransformerLayer(base_layer.BaseLayer):
       params.hidden_dim = p.input_dims
       params.num_heads = p.num_heads
       params.atten_dropout_prob = p.atten_dropout_prob
+      # Note that cross attention should not use position embeddings.
+      params.position_emb_tpl = None
       self.CreateChild('cross_attention', params)
 
     # Initialize feed-forward layer
@@ -1500,10 +1502,11 @@ class TransformerLm(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
-    # Positional embedding layer.
-    params = p.position_emb_tpl.Copy()
-    params.embedding_dims = p.model_dims
-    self.CreateChild('position_emb', params)
+    # Optional positional embedding layer.
+    if p.position_emb_tpl is not None:
+      params = p.position_emb_tpl.Copy()
+      params.embedding_dims = p.model_dims
+      self.CreateChild('position_emb', params)
 
     # Transformer layers
     params = p.stacked_transformer_tpl.Copy()
@@ -1632,22 +1635,30 @@ class TransformerLm(base_layer.BaseLayer):
       assert aux_loss_ctx is not None
       input_emb = self.softmax.EmbLookup(theta.softmax, inputs)
       batch, seq_length = inputs.shape
+
       if segment_ids is None:
         assert segment_pos is None
         # Fold the paddings with the segment mask
         segment_ids = jnp.asarray(1 - paddings, jnp.int32)
         segment_pos = jnp.tile(
             jnp.arange(seq_length, dtype=jnp.int32)[None, :], [batch, 1])
-      position_emb = self.position_emb.FProp(
-          theta.position_emb, seq_length=seq_length, position=segment_pos)
-      inputs = input_emb + position_emb
+
+      if p.position_emb_tpl is not None:
+        position_emb = self.position_emb.FProp(
+            theta.position_emb, seq_length=seq_length, position=segment_pos)
+        inputs = input_emb + position_emb
+      else:
+        inputs = input_emb
+
       if p.masked_lm:
         segment_mask = attentions.SegmentMask(segment_ids, segment_ids,
                                               inputs.dtype)
       else:
         segment_mask = attentions.CausalSegmentMask(segment_ids, inputs.dtype)
+
       output = self.transformer.FProp(
           theta.transformer, inputs, paddings, segment_mask=segment_mask)
+
       # Final layer norm
       output = self.final_ln.FProp(theta.final_ln, output)
 

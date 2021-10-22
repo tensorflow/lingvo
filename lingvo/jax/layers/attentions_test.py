@@ -25,6 +25,7 @@ from lingvo.core import batch_major_attention
 from lingvo.jax import base_layer
 from lingvo.jax import test_utils
 from lingvo.jax.layers import attentions
+from lingvo.jax.layers import embedding_softmax
 import numpy as np
 import tensorflow.compat.v2 as tf
 
@@ -59,6 +60,11 @@ class AttentionsTest(test_util.JaxTestCase):
     super().setUp()
     np.random.seed(123456)
     tf.random.set_seed(123)
+
+  @parameterized.parameters(jnp.int32, jnp.float32, jnp.int64, jnp.float64)
+  def test_get_large_negative_number(self, dtype):
+    jax_number = attentions._GetLargeNegativeNumber(dtype)
+    self.assertDtypesMatch(jax_number, dtype)
 
   def test_per_dim_scale(self):
     test_layer_p = attentions.PerDimScaleLayer.Params().Set(name='scale', dim=4)
@@ -230,11 +236,12 @@ class AttentionsTest(test_util.JaxTestCase):
     tf_mask = batch_major_attention.CausalSegmentMask(a, tf.float32)
     self.assertAllClose(test_utils.ToNp(jax_mask), test_utils.ToNp(tf_mask))
 
-  @parameterized.parameters([(False, True, 3),
-                             (True, True, 3), (False, True, 4), (True, True, 4),
-                             (False, False, 1), (True, False, 1),
-                             (False, False, 1), (True, False, 1)])
-  def test_mha_01(self, combine_qkv, dconv_qkv, dconv_kernel_size):
+  @parameterized.parameters([(False, True, 3, True), (True, True, 3, True),
+                             (False, True, 4, False), (True, True, 4, True),
+                             (False, False, 1, False), (True, False, 1, True),
+                             (False, False, 1, True), (True, False, 1, True)])
+  def test_mha_01(self, combine_qkv, dconv_qkv, dconv_kernel_size,
+                  use_rotary_position_emb):
     mdl_dim = 16
     hidden_dim = 32
     num_heads = 4
@@ -247,6 +254,9 @@ class AttentionsTest(test_util.JaxTestCase):
         combine_qkv=combine_qkv,
         dconv_qkv=dconv_qkv,
         dconv_kernel_size=dconv_kernel_size)
+    if use_rotary_position_emb:
+      test_layer_p.position_emb_tpl = (
+          embedding_softmax.RotaryPositionalEmbeddingLayer.Params())
     layer = test_layer_p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)

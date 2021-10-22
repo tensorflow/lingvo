@@ -16,7 +16,7 @@
 """Embedding and softmax layers."""
 
 import math
-from typing import Optional
+from typing import Optional, Union
 
 import jax
 from jax import numpy as jnp
@@ -287,3 +287,86 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     # time.
     signal = jnp.pad(signal, [[0, 0], [0, 0], [0, np.mod(p.embedding_dims, 2)]])
     return signal
+
+
+class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
+  """Applies rotary position embedding for a given 1-d sequence.
+
+  The Rotary position embedding is described in https://arxiv.org/abs/2104.09864
+  """
+
+  def FProp(self,
+            theta: NestedMap,
+            inputs: JTensor,
+            position: Optional[JTensor] = None) -> JTensor:
+    """Generates a JTensor of sinusoids with different frequencies.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The input sequence on which to apply the Rotary position
+        embedding. Since rotary position embeddings are applied to query and
+        keys after projection, it is assumed of shape [B, S, N, H].
+      position: Optional position JTensor which denotes the position of each
+        token in the sequence. This only needs to be supplied when the sequence
+        is packed. It is of shape [B, S].
+
+    Returns:
+      a JTensor of shape [B, S, N, H] if position JTensor
+      is specified, else of shape [1, S, N, H].
+    """
+    p = self.params
+    if len(inputs.shape) != 4:
+      raise ValueError('Input is assumed to be a rank 4 tensor of shape'
+                       '[batch, sequence, heads, dims].')
+    if p.embedding_dims % 2:
+      raise ValueError('Embedding dim for rotary position embedding must be a'
+                       'multiple of 2.')
+    half_embedding_dim = p.embedding_dims // 2
+    fraction = 2 * jnp.arange(0, half_embedding_dim) / p.embedding_dims
+    timescale = p.min_timescale * (p.max_timescale / p.min_timescale)**fraction
+    if position is None:
+      seq_length = inputs.shape[1]
+      position = jnp.arange(seq_length, dtype=jnp.float32)[jnp.newaxis, :]
+    position = position[:, :, jnp.newaxis, jnp.newaxis]
+    timescale = timescale[jnp.newaxis, jnp.newaxis, jnp.newaxis, :]
+    sinusoid_inp = position / timescale
+    sin = jnp.sin(sinusoid_inp)
+    cos = jnp.cos(sinusoid_inp)
+    first_half, second_half = jnp.split(inputs, 2, axis=-1)
+    first_part = first_half * cos - second_half * sin
+    second_part = second_half * cos + first_half * sin
+    return jnp.concatenate([first_part, second_part], axis=-1)
+
+  def ExtendStep(self,
+                 theta: NestedMap,
+                 inputs: JTensor,
+                 time_step: Optional[Union[int, JTensor]] = None) -> JTensor:
+    """Generates a JTensor of sinusoids with different frequencies for a step.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The input sequence on which to apply the Rotary position
+        embedding. Since rotary position embeddings are applied to query and
+        keys after projection, it is assumed of shape [B, N, H] or of shape [B,
+        P, N, H] where P may be a prefix length.
+      time_step: The time step which is being decoded, this should correspond to
+        the time step of the last token in the prefix window (P) in the entire
+        sequence length S.
+
+    Returns:
+      a JTensor of the same shape as input.
+    """
+    assert len(inputs.shape) in [3, 4]
+    inputs_shape = inputs.shape
+    if len(inputs_shape) == 3:
+      inputs = inputs[:, jnp.newaxis, :, :]
+    seq_length = inputs.shape[1]
+    # Adjust the position with the time step.
+    position = jnp.arange(time_step - seq_length + 1, time_step + 1)
+    position = jnp.asarray([max(x, 0) for x in position])
+    output = self.FProp(theta, inputs, position=position[jnp.newaxis, :])
+    if len(inputs_shape) == 3:
+      output = jnp.squeeze(output, axis=1)
+    return output

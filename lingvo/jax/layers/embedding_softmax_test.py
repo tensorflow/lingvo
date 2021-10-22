@@ -357,6 +357,96 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     tf_np_pos = ToNp(tf_output)
     self.assertAllClose(tf_np_pos, np_pos, atol=1e-3)
 
+  @parameterized.parameters((1, 10, 1), (1, 1e5, 3), (10, 20, 4), (10, 1e5, 5))
+  def test_rotary_position_embedding_layer_prefix(self, min_timescale,
+                                                  max_timescale, window_size):
+    embedding_dims = 32
+    p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params().Set(
+        name='jax_pos',
+        embedding_dims=embedding_dims,
+        min_timescale=min_timescale,
+        max_timescale=max_timescale)
+    pos_layer = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = pos_layer.InstantiateVariables(prng_key)
+    inputs = np.random.normal(1.5, 2.5, (2, 8, 4, embedding_dims))
+    output = pos_layer.FProp(initial_vars, inputs=inputs)
+    # Test whether ExtendStep returns same output.
+    for i in range(inputs.shape[1]):
+      start = max(0, i + 1 - window_size)
+      end = i + 1
+      inputs_prefix = inputs[:, start:end, :, :]
+      pad_width = window_size - end + start
+      paddings = [(0, 0), (pad_width, 0), (0, 0), (0, 0)]
+      inputs_prefix = jnp.pad(inputs_prefix, paddings)
+      jax_extend_step_out = pos_layer.ExtendStep(
+          initial_vars, inputs_prefix, time_step=i)
+      jax_extend_step_out = jax.lax.dynamic_slice_in_dim(
+          jax_extend_step_out,
+          start_index=window_size - 1,
+          slice_size=1,
+          axis=1)
+      jax_np_extend_step_out = test_utils.ToNp(jax_extend_step_out)
+      jax_fprop_slice = jax.lax.dynamic_slice_in_dim(
+          output, start_index=i, slice_size=1, axis=1)
+      self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out)
+
+  @parameterized.parameters((1, 10), (1, 1e5), (10, 20), (10, 1e5))
+  def test_rotary_position_embedding_layer_no_prefix(self, min_timescale,
+                                                     max_timescale):
+    embedding_dims = 32
+    p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params().Set(
+        name='jax_pos',
+        embedding_dims=embedding_dims,
+        min_timescale=min_timescale,
+        max_timescale=max_timescale)
+    pos_layer = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = pos_layer.InstantiateVariables(prng_key)
+    inputs = np.random.normal(1.5, 2.5, (2, 8, 4, embedding_dims))
+    output = pos_layer.FProp(initial_vars, inputs=inputs)
+    # Test whether ExtendStep returns same output.
+    for i in range(inputs.shape[1]):
+      jax_extend_step_out = pos_layer.ExtendStep(
+          initial_vars, inputs[:, i, :, :], time_step=i)
+      jax_np_extend_step_out = test_utils.ToNp(jax_extend_step_out)
+      jax_fprop_slice = output[:, i, :, :]
+      self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out)
+
+  @parameterized.parameters(
+      ([0, 1, 0, 1],),
+      ([0, 1, 2, 3],),
+      ([0, 1, 2, 0],),
+      ([0, 0, 1, 2],),
+      (None),
+  )
+  def test_rotary_position_embedding_layer_2d(self, position):
+    embedding_dims = 2
+    min_timescale = 1
+    max_timescale = 1e4
+    p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params().Set(
+        name='jax_pos',
+        embedding_dims=embedding_dims,
+        min_timescale=min_timescale,
+        max_timescale=max_timescale)
+    pos_layer = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = pos_layer.InstantiateVariables(prng_key)
+    inputs = np.random.normal(1.5, 2.5, (1, 4, 1, embedding_dims))
+    if position is None:
+      position = jnp.arange(4, dtype=jnp.float32)
+    position = jnp.array(position)
+    output = pos_layer.FProp(
+        initial_vars, inputs=inputs, position=position[jnp.newaxis, :])
+    np_output = test_utils.ToNp(output)
+    sinusoid_inp = position
+    sin = jnp.sin(sinusoid_inp)
+    cos = jnp.cos(sinusoid_inp)
+    first_part = inputs[0, :, 0, 0] * cos - inputs[0, :, 0, 1] * sin
+    second_part = inputs[0, :, 0, 1] * cos + inputs[0, :, 0, 0] * sin
+    expected_output = np.stack([first_part, second_part], axis=-1)
+    self.assertArraysEqual(np_output[0, :, 0, :], expected_output)
+
 
 if __name__ == '__main__':
   absltest.main()
