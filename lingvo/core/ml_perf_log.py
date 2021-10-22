@@ -55,7 +55,7 @@ def get_caller(stack_index=2, root_dir=None):
 
 # :::MLLOG {"time_ms": 1556733699.71, "key": "run_start", "value": null,
 # "metadata": {"lineno": 77, "file": main.py}}
-LOG_TEMPLATE = (':::MLLOG {{"time_ms": {:.3f}, "key": {}, "value": {}, '
+LOG_TEMPLATE = (':::MLLOG {{"time_ms": {:.0f}, "key": {}, "value": {}, '
                 '"metadata": {}}}')
 
 

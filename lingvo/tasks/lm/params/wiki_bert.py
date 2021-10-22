@@ -174,13 +174,13 @@ class MLPerfTrainTemplate(BertTemplate):
     p.ml_perf.submission_metadata = {
         'global_batch_size': self.BATCH_SIZE,
         'submission_org': 'Google',
-        'submission_platform': 'tpu',
+        'submission_platform': 'tpu-v4-4096',
         'submission_division': 'open',
-        'submission_status': 'research',
+        'submission_status': 'cloud',
         'submission_benchmark': p.ml_perf.benchmark_name,
         'submission_model': 'lingvo',
         'cache_clear': None,
-        'train_samples': 0,
+        'train_samples': 156725653,
         'eval_samples': 10000
     }
 
