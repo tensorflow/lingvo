@@ -344,10 +344,10 @@ always apply regardless of this.</p></li>
 <li><p><strong>merged_topk_buffer_size_factor</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">2</span></code>.
 The buffer size factor when pruning the per
 hyp top-k extensions to form the per beam top-k extensions. If this factor
-is set to greater than or equal num_hyps_per_beam + 2 when eoc_id &gt;= 0,
-there will be no pruning before all possible path mergings are performed
-(if merge_paths=True). To be memory efficient (i.e., to maintain less hyps
-during pruning), a reasonable value is 2.</p></li>
+is set to be greater than or equal to num_hyps_per_beam + 2 when
+eoc_id &gt;= 0, there will be no pruning before all possible path mergings are
+performed (if merge_paths=True). To be memory efficient (i.e., to maintain
+less hyps during pruning), a reasonable value is 2.</p></li>
 <li><p><strong>beam_independence</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
 When enabled, this step will become a no-op for beam_id if
 and only if in_beam_done[beam_id] == True.</p></li>

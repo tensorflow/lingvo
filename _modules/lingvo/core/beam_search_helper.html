@@ -209,6 +209,14 @@
         <span class="s1">&#39;is part of the top k. Note that p.valid_eos_max_logit_delta and &#39;</span>
         <span class="s1">&#39;p.local_eos_threshold always apply regardless of this.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;force_last_chunk_eoc_in_top_k&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to always consider the last chunk eoc token to be among the &#39;</span>
+        <span class="s1">&#39;top k tokens. This is effective only when decoding has reached the &#39;</span>
+        <span class="s1">&#39;last frame of input. When True, hyps can terminate at the last frame &#39;</span>
+        <span class="s1">&#39;by eoc even if the eoc score is not high enough to enter the top k. &#39;</span>
+        <span class="s1">&#39;Note that p.valid_eos_max_logit_delta and p.local_eos_threshold &#39;</span>
+        <span class="s1">&#39;always apply regardless of this.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;batch_major_state&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If True, we use batch as the major &#39;</span>
         <span class="s1">&#39;dimension of the hyp states. Otherwise, timing becomes the major &#39;</span>
         <span class="s1">&#39;dimension, and the gathers are performed along the second-to-major &#39;</span>
@@ -318,7 +326,7 @@
 <span class="sd">              src_batch &quot;b&quot; and hyp_per_beam &quot;h&quot; is represented at index</span>
 <span class="sd">              ``(h * src_batch + b)``.</span>
 <span class="sd">            - is_last_chunk: Whether each of the hyp is at the end of a chunk.</span>
-<span class="sd">              If non-empty, it has shape [num_hyps_per_beam * src_batch, 1].</span>
+<span class="sd">              If non-empty, it has shape [num_hyps_per_beam * src_batch].</span>
 
 <span class="sd">          - out_states: A `.NestedMap`. The updated states. This &#39;out_states&#39;</span>
 <span class="sd">            should be of the exact same structure as &#39;in_states&#39;</span>
@@ -373,21 +381,13 @@
         <span class="s1">&#39;this to False saves memory, and can be used when the protos become &#39;</span>
         <span class="s1">&#39;too large for long sequences, but requires p.coverage_penalty == 0.0.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;force_last_chunk_eoc_in_top_k&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Whether to always consider the last chunk eoc token to be among the &#39;</span>
-        <span class="s1">&#39;top k tokens. This is effective only when decoding has reached the &#39;</span>
-        <span class="s1">&#39;last frame of input. When True, hyps can terminate at the last frame &#39;</span>
-        <span class="s1">&#39;by eoc even if the eoc score is not high enough to enter the top k. &#39;</span>
-        <span class="s1">&#39;Note that p.valid_eos_max_logit_delta and p.local_eos_threshold &#39;</span>
-        <span class="s1">&#39;always apply regardless of this.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;merged_topk_buffer_size_factor&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span>
         <span class="s1">&#39;The buffer size factor when pruning the per hyp top-k extensions to &#39;</span>
-        <span class="s1">&#39;form the per beam top-k extensions. If this factor is set to greater &#39;</span>
-        <span class="s1">&#39;than or equal num_hyps_per_beam + 2 when eoc_id &gt;= 0, there will be &#39;</span>
-        <span class="s1">&#39;no pruning before all possible path mergings are performed (if &#39;</span>
-        <span class="s1">&#39;merge_paths=True). To be memory efficient (i.e., to maintain less &#39;</span>
-        <span class="s1">&#39;hyps during pruning), a reasonable value is 2.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;form the per beam top-k extensions. If this factor is set to be &#39;</span>
+        <span class="s1">&#39;greater than or equal to num_hyps_per_beam + 2 when eoc_id &gt;= 0, &#39;</span>
+        <span class="s1">&#39;there will be no pruning before all possible path mergings are &#39;</span>
+        <span class="s1">&#39;performed (if merge_paths=True). To be memory efficient (i.e., to &#39;</span>
+        <span class="s1">&#39;maintain less hyps during pruning), a reasonable value is 2.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;beam_search&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -398,6 +398,9 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_vecs_in_hypothesis_protos</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">coverage_penalty</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.atten_vecs_in_hypothesis_protos requires &#39;</span>
                        <span class="s1">&#39;p.coverage_penalty == 0.0.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_top_k</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">force_last_chunk_eoc_in_top_k</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Currently do not support both force_eos_in_top_k &#39;</span>
+                       <span class="s1">&#39;and force_last_chunk_eoc_in_top_k being True.&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BeamSearchHelper._BeamSearchStep"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep">[docs]</a>  <span class="k">def</span> <span class="nf">_BeamSearchStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span>
                       <span class="n">core_bs_states</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
