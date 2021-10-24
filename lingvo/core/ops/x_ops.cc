@@ -313,10 +313,10 @@ force_last_chunk_eoc_in_top_k: Whether to always consider the last chunk eoc
     always apply regardless of this.
 merged_topk_buffer_size_factor: The buffer size factor when pruning the per
     hyp top-k extensions to form the per beam top-k extensions. If this factor
-    is set to greater than or equal num_hyps_per_beam + 2 when eoc_id >= 0,
-    there will be no pruning before all possible path mergings are performed
-    (if merge_paths=True). To be memory efficient (i.e., to maintain less hyps
-    during pruning), a reasonable value is 2.
+    is set to be greater than or equal to num_hyps_per_beam + 2 when
+    eoc_id >= 0, there will be no pruning before all possible path mergings are
+    performed (if merge_paths=True). To be memory efficient (i.e., to maintain
+    less hyps during pruning), a reasonable value is 2.
 beam_independence: When enabled, this step will become a no-op for beam_id if
     and only if in_beam_done[beam_id] == True.
 atten_vecs_in_hypothesis_protos: Whether to populate the atten_vecs fields in

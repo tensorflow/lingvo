@@ -144,6 +144,14 @@ class BeamSearchSharedParams(base_layer.BaseLayer):
         'is part of the top k. Note that p.valid_eos_max_logit_delta and '
         'p.local_eos_threshold always apply regardless of this.')
     p.Define(
+        'force_last_chunk_eoc_in_top_k', False,
+        'Whether to always consider the last chunk eoc token to be among the '
+        'top k tokens. This is effective only when decoding has reached the '
+        'last frame of input. When True, hyps can terminate at the last frame '
+        'by eoc even if the eoc score is not high enough to enter the top k. '
+        'Note that p.valid_eos_max_logit_delta and p.local_eos_threshold '
+        'always apply regardless of this.')
+    p.Define(
         'batch_major_state', True, 'If True, we use batch as the major '
         'dimension of the hyp states. Otherwise, timing becomes the major '
         'dimension, and the gathers are performed along the second-to-major '
@@ -253,7 +261,7 @@ class BeamSearchHelper(BeamSearchSharedParams):
               src_batch "b" and hyp_per_beam "h" is represented at index
               ``(h * src_batch + b)``.
             - is_last_chunk: Whether each of the hyp is at the end of a chunk.
-              If non-empty, it has shape [num_hyps_per_beam * src_batch, 1].
+              If non-empty, it has shape [num_hyps_per_beam * src_batch].
 
           - out_states: A `.NestedMap`. The updated states. This 'out_states'
             should be of the exact same structure as 'in_states'
@@ -308,21 +316,13 @@ class BeamSearchHelper(BeamSearchSharedParams):
         'this to False saves memory, and can be used when the protos become '
         'too large for long sequences, but requires p.coverage_penalty == 0.0.')
     p.Define(
-        'force_last_chunk_eoc_in_top_k', False,
-        'Whether to always consider the last chunk eoc token to be among the '
-        'top k tokens. This is effective only when decoding has reached the '
-        'last frame of input. When True, hyps can terminate at the last frame '
-        'by eoc even if the eoc score is not high enough to enter the top k. '
-        'Note that p.valid_eos_max_logit_delta and p.local_eos_threshold '
-        'always apply regardless of this.')
-    p.Define(
         'merged_topk_buffer_size_factor', 2,
         'The buffer size factor when pruning the per hyp top-k extensions to '
-        'form the per beam top-k extensions. If this factor is set to greater '
-        'than or equal num_hyps_per_beam + 2 when eoc_id >= 0, there will be '
-        'no pruning before all possible path mergings are performed (if '
-        'merge_paths=True). To be memory efficient (i.e., to maintain less '
-        'hyps during pruning), a reasonable value is 2.')
+        'form the per beam top-k extensions. If this factor is set to be '
+        'greater than or equal to num_hyps_per_beam + 2 when eoc_id >= 0, '
+        'there will be no pruning before all possible path mergings are '
+        'performed (if merge_paths=True). To be memory efficient (i.e., to '
+        'maintain less hyps during pruning), a reasonable value is 2.')
     p.name = 'beam_search'
     return p
 
@@ -333,6 +333,9 @@ class BeamSearchHelper(BeamSearchSharedParams):
     if not p.atten_vecs_in_hypothesis_protos and p.coverage_penalty != 0.0:
       raise ValueError('p.atten_vecs_in_hypothesis_protos requires '
                        'p.coverage_penalty == 0.0.')
+    if p.force_eos_in_top_k and p.force_last_chunk_eoc_in_top_k:
+      raise ValueError('Currently do not support both force_eos_in_top_k '
+                       'and force_last_chunk_eoc_in_top_k being True.')
 
   def _BeamSearchStep(self, theta, encoder_outputs, cur_step, step_ids,
                       core_bs_states, other_states, num_hyps_per_beam,
