@@ -377,9 +377,26 @@ class Checkpointer:
 
 
 def _GetSaveableVariablesDict(model):
+  """Get all variables of the model that should be saved.
+
+  Args:
+    model: a lingvo model object.
+
+  Returns:
+    A map of the variables with their names as keys, trailing `:0` stripepd.
+  """
   res = model.GetVariablesDict()
-  res['global_step:0'] = py_utils.GetGlobalStep()
-  return res
+  res_updated = {}
+  for k in res.keys():
+    k_new = k
+    # strip ':0' from variable names to be backwards compatible with graph mode
+    # checkpoint keys
+    if k[-2:] == ':0':
+      k_new = k[:-2]
+    res_updated[k_new] = res[k]
+
+  res_updated['global_step'] = py_utils.GetGlobalStep()
+  return res_updated
 
 
 class EagerCheckpointerV1(Checkpointer):
