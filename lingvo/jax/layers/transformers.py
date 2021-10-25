@@ -757,8 +757,8 @@ class TransformerLayer(base_layer.BaseLayer):
       params.hidden_dim = p.input_dims
       params.num_heads = p.num_heads
       params.atten_dropout_prob = p.atten_dropout_prob
-      # Note that cross attention should not use position embeddings.
-      params.position_emb_tpl = None
+      # Note that cross attention should not use any position embeddings.
+      params.use_rotary_position_emb = False
       self.CreateChild('cross_attention', params)
 
     # Initialize feed-forward layer
@@ -1688,7 +1688,7 @@ class TransformerLm(base_layer.BaseLayer):
         cached_states.step is incremented to the next time step, and
         cached_states.transformer is updated with the keys and values of the
         current time step.
-      xent_output: A `.NestedMap` object containing the log probabilities and
+        xent_output: A `.NestedMap` object containing the log probabilities and
         probabilities.
     """
     input_emb = self.softmax.EmbLookup(theta.softmax, inputs[:, jnp.newaxis])

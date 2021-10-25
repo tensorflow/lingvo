@@ -25,6 +25,7 @@ from jax.ad_checkpoint import checkpoint_name
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
+from lingvo.jax.layers import embedding_softmax
 from lingvo.jax.layers import stochastics
 import numpy as np
 
@@ -468,10 +469,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         'tanh. Enabled when a positive value is specified. May not be '
         'supported by a subclass.')
     p.Define(
-        'position_emb_tpl', None, 'Position embedding to add to queries'
-        'and keys directly before computing self attention scores.'
-        'For example one can choose to apply Rotary Position embeddings'
-        'to the queries and keys for relative attention.')
+        'use_rotary_position_emb', False, 'Whether to add rotary position'
+        'embedding to the queries and keys before computing self attention'
+        'scores.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -548,10 +548,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       self.CreateChild('query', ProjectInput(query_input_dim))
       self.CreateChild('value', ProjectInput(value_input_dim))
 
-    if p.position_emb_tpl is not None:
-      pos_emb_p = p.position_emb_tpl.Copy()
+    if p.use_rotary_position_emb:
+      pos_emb_p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params()
       pos_emb_p.embedding_dims = dim_per_head
-      self.CreateChild('position_emb', pos_emb_p)
+      self.CreateChild('rotary_position_emb', pos_emb_p)
 
     if p.dconv_qkv:
       causal_dconv_p = CausalDepthwiseConv1D.Params().Set(
@@ -794,9 +794,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       value_proj = self.value.FProp(theta.value, value_vec)
 
     # Apply position embeddings if present.
-    if p.position_emb_tpl is not None:
-      query_proj += self.position_emb.FProp(theta.position_emb, query_proj)
-      key_proj += self.position_emb.FProp(theta.position_emb, key_proj)
+    if p.use_rotary_position_emb:
+      query_proj = self.rotary_position_emb.FProp(theta.rotary_position_emb,
+                                                  query_proj)
+      key_proj = self.rotary_position_emb.FProp(theta.rotary_position_emb,
+                                                key_proj)
 
     if p.dconv_qkv:
       query_proj = self.dconv_q.FProp(theta.dconv_q, query_proj, axis=1)
@@ -876,11 +878,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       query_proj = self.query.FProp(theta.query, query_vec)
 
     # Apply position embeddings if present.
-    if p.position_emb_tpl is not None:
-      query_proj += self.position_emb.ExtendStep(theta.position_emb, query_proj,
-                                                 time_step)
-      new_key_proj += self.position_emb.ExtendStep(theta.position_emb,
-                                                   new_key_proj, time_step)
+    if p.use_rotary_position_emb:
+      query_proj = self.rotary_position_emb.ExtendStep(
+          theta.rotary_position_emb, query_proj, time_step)
+      new_key_proj = self.rotary_position_emb.ExtendStep(
+          theta.rotary_position_emb, new_key_proj, time_step)
 
     if p.dconv_qkv:
       # Aggregate depth-wise convolution for keys and values at time step.

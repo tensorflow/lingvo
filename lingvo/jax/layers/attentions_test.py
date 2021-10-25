@@ -25,7 +25,6 @@ from lingvo.core import batch_major_attention
 from lingvo.jax import base_layer
 from lingvo.jax import test_utils
 from lingvo.jax.layers import attentions
-from lingvo.jax.layers import embedding_softmax
 import numpy as np
 import tensorflow.compat.v2 as tf
 
@@ -253,10 +252,8 @@ class AttentionsTest(test_util.JaxTestCase):
         atten_logit_cap=20.0,
         combine_qkv=combine_qkv,
         dconv_qkv=dconv_qkv,
-        dconv_kernel_size=dconv_kernel_size)
-    if use_rotary_position_emb:
-      test_layer_p.position_emb_tpl = (
-          embedding_softmax.RotaryPositionalEmbeddingLayer.Params())
+        dconv_kernel_size=dconv_kernel_size,
+        use_rotary_position_emb=use_rotary_position_emb)
     layer = test_layer_p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)

@@ -48,6 +48,7 @@ pytype_strict_library(
     srcs = ["attentions.py"],
     srcs_version = "PY3",
     deps = [
+        ":embedding_softmax",
         ":stochastics",
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
@@ -253,7 +254,6 @@ py_strict_test(
     srcs_version = "PY3",
     deps = [
         ":attentions",
-        ":embedding_softmax",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.

@@ -312,8 +312,8 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
         is packed. It is of shape [B, S].
 
     Returns:
-      a JTensor of shape [B, S, N, H] if position JTensor
-      is specified, else of shape [1, S, N, H].
+      a JTensor of shape [B, S, N, H] which includes the inputs together with
+      the rotary position embedding incorporated in it.
     """
     p = self.params
     if len(inputs.shape) != 4:
@@ -322,6 +322,9 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
     if p.embedding_dims % 2:
       raise ValueError('Embedding dim for rotary position embedding must be a'
                        'multiple of 2.')
+    if p.embedding_dims != inputs.shape[3]:
+      raise ValueError('The embedding dims of the rotary position embedding'
+                       'must match the hidden dimension of the inputs.')
     half_embedding_dim = p.embedding_dims // 2
     fraction = 2 * jnp.arange(0, half_embedding_dim) / p.embedding_dims
     timescale = p.min_timescale * (p.max_timescale / p.min_timescale)**fraction
@@ -356,7 +359,8 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
         sequence length S.
 
     Returns:
-      a JTensor of the same shape as input.
+      a JTensor of the same shape as input with the rotary position embedding
+      incorporated in it.
     """
     assert len(inputs.shape) in [3, 4]
     inputs_shape = inputs.shape
