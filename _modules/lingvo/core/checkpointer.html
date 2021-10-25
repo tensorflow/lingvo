@@ -442,9 +442,26 @@
 
 
 <div class="viewcode-block" id="_GetSaveableVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer._GetSaveableVariablesDict">[docs]</a><span class="k">def</span> <span class="nf">_GetSaveableVariablesDict</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get all variables of the model that should be saved.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    model: a lingvo model object.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A map of the variables with their names as keys, trailing `:0` stripepd.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">res</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">GetVariablesDict</span><span class="p">()</span>
-  <span class="n">res</span><span class="p">[</span><span class="s1">&#39;global_step:0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
-  <span class="k">return</span> <span class="n">res</span></div>
+  <span class="n">res_updated</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">k_new</span> <span class="o">=</span> <span class="n">k</span>
+    <span class="c1"># strip &#39;:0&#39; from variable names to be backwards compatible with graph mode</span>
+    <span class="c1"># checkpoint keys</span>
+    <span class="k">if</span> <span class="n">k</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;:0&#39;</span><span class="p">:</span>
+      <span class="n">k_new</span> <span class="o">=</span> <span class="n">k</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">res_updated</span><span class="p">[</span><span class="n">k_new</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+  <span class="n">res_updated</span><span class="p">[</span><span class="s1">&#39;global_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">res_updated</span></div>
 
 
 <div class="viewcode-block" id="EagerCheckpointerV1"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1">[docs]</a><span class="k">class</span> <span class="nc">EagerCheckpointerV1</span><span class="p">(</span><span class="n">Checkpointer</span><span class="p">):</span>
