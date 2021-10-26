@@ -59,7 +59,8 @@ def CausalMask(input_t: JTensor) -> JTensor:
     An attention_mask JTensor of shape [1, 1, T, T]. Attention mask has
     already been converted large negative values.
   """
-  assert input_t.dtype == jnp.float32 or input_t.dtype == jnp.bfloat16
+  assert (input_t.dtype == jnp.float32 or
+          input_t.dtype == jnp.bfloat16), input_t.dtype
   large_negative_number = _GetLargeNegativeNumber(input_t.dtype)
   t = input_t.shape[1]
   col_idx = jnp.tile(jnp.arange(t)[jnp.newaxis, :], [t, 1])
@@ -293,7 +294,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
       batch_eqn = eqn_sym[:(rank - 2)]
       eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
     else:
-      assert shape[-1] == p.input_dim
+      assert shape[-1] == p.input_dim, (
+          f'Expecting shape[-1] == p.input_dim, {shape[-1]} != {p.input_dim}')
       batch_eqn = eqn_sym[:(rank - 1)] if rank else '...'
       eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
     ret = jnp.einsum(eqn, inputs, theta.w)
@@ -465,6 +467,13 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
     p.Define('use_bias', True, 'Whether to use bias for projection layers.')
     p.Define(
+        'internal_enable_per_dim_scale', True,
+        'Internal. Setting to False disables rescaling of attention logits '
+        'with 1/sqrt(dim) factor. Some Transformer variants (GShard, T5) use '
+        'internal_enable_per_dim_scale=False and adjust initialization of the '
+        'linear transformations(einsums), in conjunction with Adafactor '
+        'optimizer.')
+    p.Define(
         'atten_logit_cap', 0.0, 'Cap the absolute values of logits by '
         'tanh. Enabled when a positive value is specified. May not be '
         'supported by a subclass.')
@@ -504,7 +513,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     assert p.hidden_dim, 'hidden_dim is {}'.format(p.hidden_dim)
 
     dim_per_head = p.hidden_dim // p.num_heads
-    assert dim_per_head * p.num_heads == p.hidden_dim
+    assert dim_per_head * p.num_heads == p.hidden_dim, (
+        f'{dim_per_head} * {p.num_heads} != {p.hidden_dim}')
 
     if p.device_mesh is not None:
       assert p.weight_split_dims_mapping is not None
@@ -562,8 +572,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       self.CreateChild('dconv_k', causal_dconv_p)
       self.CreateChild('dconv_v', causal_dconv_p)
 
-    self.CreateChild('per_dim_scale',
-                     PerDimScaleLayer.Params().Set(dim=dim_per_head))
+    if p.internal_enable_per_dim_scale:
+      self.CreateChild('per_dim_scale',
+                       PerDimScaleLayer.Params().Set(dim=dim_per_head))
     self.CreateChild('atten_dropout',
                      p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
     # Setting is_output_projection=True to set the projection direction
@@ -678,6 +689,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       atten_probs: JTensor of shape [B, N, T, S].
     """
     # Add key sharding annotations.
+    p = self.params
     query = self._ShardBlnh(query)
     key = self._ShardBlnh(key)
     value = self._ShardBlnh(value)
@@ -694,7 +706,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     base_layer.AssertHasShape(atten_mask, [-1, 1, -1, s])
     assert atten_mask.shape[2] in [1, t]
     assert atten_mask.shape[0] in [1, b]
-    query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
+    if p.internal_enable_per_dim_scale:
+      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
     logits = jnp.einsum('BTNH,BSNH->BNTS', query, key)
     logits = checkpoint_name(logits, 'logits')
     logits = self._CapLogits(logits)
@@ -732,6 +745,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     """
 
     # TODO(yonghui): switch the cached states to batch major.
+    p = self.params
     key = self._ShardLbnh(key)
     value = self._ShardLbnh(value)
     # query is 3d.
@@ -742,8 +756,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     base_layer.AssertHasShape(query, [b, n, h])
     base_layer.AssertHasShape(atten_mask, [-1, 1, s])
     assert atten_mask.shape[0] in [1, b]
-
-    query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
+    if p.internal_enable_per_dim_scale:
+      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
     logits = jnp.einsum('BNH,SBNH->BNS', query, key)
     logits = self._CapLogits(logits)
     # Attention softmax is always carried out in fp32.
