@@ -110,6 +110,16 @@
 <span class="kn">import</span> <span class="nn">contextlib</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+
+<span class="n">EAGER_MODE_EXCEPTION_STR</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;In Eager mode, TF operations are immediately &#39;</span>
+                            <span class="s1">&#39;executed. Hence, tpu_summary content APIs &#39;</span>
+                            <span class="s1">&#39;including scalar, tensor and pw_tensor, are &#39;</span>
+                            <span class="s1">&#39;prohibited due to performance concerns. If you &#39;</span>
+                            <span class="s1">&#39;still need to add sumamries during TPU jobs &#39;</span>
+                            <span class="s1">&#39;in Eager mode, you can use summary_utils APIs &#39;</span>
+                            <span class="s1">&#39;with soft device placement at the cost of &#39;</span>
+                            <span class="s1">&#39;slower training speed.&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="TpuSummaryScalar"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.TpuSummaryScalar">[docs]</a><span class="k">class</span> <span class="nc">TpuSummaryScalar</span><span class="p">:</span>
@@ -230,7 +240,13 @@
 <span class="sd">    value: scalar tensor value</span>
 <span class="sd">    while_loop_reduce: optional argument, determines what to do when this</span>
 <span class="sd">      summary appears inside a tf.while_loop. Can be &#39;mean&#39; or &#39;sum&#39;.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    RuntimeError: if the function is called in Eager mode.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">EAGER_MODE_EXCEPTION_STR</span><span class="p">)</span>
+
   <span class="k">assert</span> <span class="n">while_loop_reduce</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;sum&#39;</span><span class="p">)</span>
   <span class="n">ctx</span> <span class="o">=</span> <span class="n">TpuSummaryContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">ctx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -247,6 +263,8 @@
 
 <div class="viewcode-block" id="tensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.tensor">[docs]</a><span class="k">def</span> <span class="nf">tensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds summary tensor. Similar to scalar() but allows other shapes.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">EAGER_MODE_EXCEPTION_STR</span><span class="p">)</span>
   <span class="n">ctx</span> <span class="o">=</span> <span class="n">TpuSummaryContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">ctx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">return</span>
@@ -260,6 +278,8 @@
 
 <div class="viewcode-block" id="pw_tensor"><a class="viewcode-back" href="../../../lingvo.core.tpu_summary.html#lingvo.core.tpu_summary.pw_tensor">[docs]</a><span class="k">def</span> <span class="nf">pw_tensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds summary tensor.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">EAGER_MODE_EXCEPTION_STR</span><span class="p">)</span>
   <span class="n">ctx</span> <span class="o">=</span> <span class="n">TpuSummaryContext</span><span class="o">.</span><span class="n">current</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">ctx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">return</span>
