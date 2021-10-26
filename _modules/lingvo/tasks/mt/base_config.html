@@ -290,7 +290,8 @@
                             <span class="n">is_transparent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                             <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
                             <span class="n">add_unnormalized_residuals</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                            <span class="n">atten_hidden_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+                            <span class="n">atten_hidden_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                            <span class="n">num_shards</span><span class="o">=</span><span class="mi">16</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Common setup for transformer model decoder.&quot;&quot;&quot;</span>
   <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
   <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
@@ -344,7 +345,7 @@
       <span class="n">num_classes</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
       <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
       <span class="n">params_init</span><span class="o">=</span><span class="n">emb_params_init</span><span class="p">,</span>
-      <span class="n">num_shards</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+      <span class="n">num_shards</span><span class="o">=</span><span class="n">num_shards</span><span class="p">)</span>
 
   <span class="n">decoder_params</span><span class="o">.</span><span class="n">per_word_avg_loss</span> <span class="o">=</span> <span class="kc">True</span>
   <span class="n">decoder_params</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">UniformLabelSmoother</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
