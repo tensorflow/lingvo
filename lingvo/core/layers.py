@@ -3642,7 +3642,9 @@ class EinsumSoftmax(base_layer.BaseLayer):
     """
     p = self.params
     inputs = self._CastToFPropDtype(inputs)
-    if inputs.shape is not None and inputs.shape.rank < 26:
+    if (inputs.shape
+        is not None) and (inputs.shape.rank
+                          is not None) and (inputs.shape.rank < 26):
       # A common path.
       s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
       r = inputs.shape.rank
