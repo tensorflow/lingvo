@@ -45,6 +45,16 @@ and what to do next.
 import contextlib
 
 from lingvo import compat as tf
+from lingvo.core import py_utils
+
+EAGER_MODE_EXCEPTION_STR = ('In Eager mode, TF operations are immediately '
+                            'executed. Hence, tpu_summary content APIs '
+                            'including scalar, tensor and pw_tensor, are '
+                            'prohibited due to performance concerns. If you '
+                            'still need to add sumamries during TPU jobs '
+                            'in Eager mode, you can use summary_utils APIs '
+                            'with soft device placement at the cost of '
+                            'slower training speed.')
 
 
 class TpuSummaryScalar:
@@ -165,7 +175,13 @@ def scalar(name, value, while_loop_reduce='mean'):
     value: scalar tensor value
     while_loop_reduce: optional argument, determines what to do when this
       summary appears inside a tf.while_loop. Can be 'mean' or 'sum'.
+
+  Raises:
+    RuntimeError: if the function is called in Eager mode.
   """
+  if py_utils.IsEagerMode():
+    raise RuntimeError(EAGER_MODE_EXCEPTION_STR)
+
   assert while_loop_reduce in ('mean', 'sum')
   ctx = TpuSummaryContext.current()
   if ctx is None:
@@ -182,6 +198,8 @@ def scalar(name, value, while_loop_reduce='mean'):
 
 def tensor(name, value):
   """Adds summary tensor. Similar to scalar() but allows other shapes."""
+  if py_utils.IsEagerMode():
+    raise RuntimeError(EAGER_MODE_EXCEPTION_STR)
   ctx = TpuSummaryContext.current()
   if ctx is None:
     return
@@ -195,6 +213,8 @@ def tensor(name, value):
 
 def pw_tensor(name, value):
   """Adds summary tensor."""
+  if py_utils.IsEagerMode():
+    raise RuntimeError(EAGER_MODE_EXCEPTION_STR)
   ctx = TpuSummaryContext.current()
   if ctx is None:
     return

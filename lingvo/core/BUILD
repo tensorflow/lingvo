@@ -1905,6 +1905,7 @@ py_library(
     srcs = ["tpu_summary.py"],
     srcs_version = "PY3",
     deps = [
+        ":py_utils",
         "//lingvo:compat",
     ],
 )
