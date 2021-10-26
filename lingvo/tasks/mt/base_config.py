@@ -225,7 +225,8 @@ def SetupTransformerDecoder(model_dim,
                             is_transparent=False,
                             activation='RELU',
                             add_unnormalized_residuals=False,
-                            atten_hidden_dim=0):
+                            atten_hidden_dim=0,
+                            num_shards=16):
   """Common setup for transformer model decoder."""
   disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
   default_params_init = py_utils.WeightInit.Xavier(1.0)
@@ -279,7 +280,7 @@ def SetupTransformerDecoder(model_dim,
       num_classes=vocab_size,
       vn=disable_vn,
       params_init=emb_params_init,
-      num_shards=16)
+      num_shards=num_shards)
 
   decoder_params.per_word_avg_loss = True
   decoder_params.label_smoothing = layers.UniformLabelSmoother.Params()
