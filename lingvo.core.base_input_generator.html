@@ -197,10 +197,14 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps">
-<span class="sig-name descname"><span class="pre">CreateTpuEnqueueOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEnqueueOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">CreateTpuEnqueueOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_enqueue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEnqueueOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps" title="Permalink to this definition"></a></dt>
 <dd><p>Create the host-side enqueue ops.</p>
 <p>This should be called in an outer non-TPU context.
-:param job_name: the name of the job on which the enqueue operations run.</p>
+:param job_name: the name of the job on which the enqueue operations run.
+:param skip_enqueue: if True, only create the tpu queues, but skip the enqueue</p>
+<blockquote>
+<div><p>call. To be used in eager mode to setup tpu queues.</p>
+</div></blockquote>
 </dd></dl>
 
 <dl class="py method">
@@ -288,7 +292,7 @@ PostProcessDecodeOut().</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps">
-<span class="sig-name descname"><span class="pre">CreateCpuPassthroughEnqueueOps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateCpuPassthroughEnqueueOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">CreateCpuPassthroughEnqueueOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">skip_enqueue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateCpuPassthroughEnqueueOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps" title="Permalink to this definition"></a></dt>
 <dd><p>Creates enqueue ops to pass through CPU inputs to the output.</p>
 </dd></dl>
 
