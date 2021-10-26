@@ -31,6 +31,7 @@ There are three types of batch sizes:
 TODO(rpang): Deal with on packed_inputs.
 """
 
+import functools
 import inspect
 
 import lingvo.compat as tf
@@ -314,12 +315,14 @@ class BaseInputGenerator(base_layer.BaseLayer):
       shards = shards // self.cluster.num_devices_per_split
     return shards
 
-  def CreateTpuEnqueueOps(self, job_name=None):
+  def CreateTpuEnqueueOps(self, job_name=None, skip_enqueue=False):
     """Create the host-side enqueue ops.
 
     This should be called in an outer non-TPU context.
     Args:
       job_name: the name of the job on which the enqueue operations run.
+      skip_enqueue: if True, only create the tpu queues, but skip the enqueue
+        call. To be used in eager mode to setup tpu queues.
     """
     if not py_utils.IsEagerMode():
       assert not self._tpu_queues, (
@@ -483,42 +486,51 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
         self._tpu_queues.append(q)
 
-        if p.use_partitioned_infeed_queue:
-          assert len(batch) == 1
-          input_ops = q.generate_enqueue_ops([batch[0].Flatten()])
-        elif p.use_per_host_infeed:
-          # TODO(ylc/zhifengc): Add this to a policy module and test it.
-          def TPUOrdinalFunction(shard_index_in_host):
-            if p.use_per_core_infeed:
-              return shard_index_in_host
-            device_assignment = py_utils.GetTpuDeviceAssignment()
-            if device_assignment:
-              # We put both enqueue/dequeue ops at core 0 in each replica.
-              replica = device_assignment.lookup_replicas(
-                  task_id, 0)[shard_index_in_host]  # pylint: disable=cell-var-from-loop
-              return device_assignment.tpu_ordinal(replica=replica)
-            else:
-              return shard_index_in_host
+        if not skip_enqueue:
+          if p.use_partitioned_infeed_queue:
+            assert len(batch) == 1
+            input_ops = q.generate_enqueue_ops([batch[0].Flatten()])
+          elif p.use_per_host_infeed:
+            # TODO(ylc/zhifengc): Add this to a policy module and test it.
+            def TPUOrdinalFunction(task_id, shard_index_in_host):
+              if p.use_per_core_infeed:
+                return shard_index_in_host
+              device_assignment = py_utils.GetTpuDeviceAssignment()
+              if device_assignment:
+                # We put both enqueue/dequeue ops at core 0 in each replica.
+                replica = device_assignment.lookup_replicas(
+                    task_id, 0)[shard_index_in_host]
+                return device_assignment.tpu_ordinal(replica=replica)
+              else:
+                return shard_index_in_host
 
-          if len(batch) > 1:
-            # In this case, the `shard_index_in_host` argument of
-            # `TPUOrdinalFunction` is the index of a sharded batch in the
-            # `batch` list.
-            input_ops = q.generate_enqueue_ops(
-                [b.Flatten() for b in batch],
-                placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
-                tpu_ordinal_function=TPUOrdinalFunction)
+            def HostPlacementFunction(host_device, x):
+              del x  # Unused.
+              return host_device
+
+            if len(batch) > 1:
+              # In this case, the `shard_index_in_host` argument of
+              # `TPUOrdinalFunction` is the index of a sharded batch in the
+              # `batch` list.
+              input_ops = q.generate_enqueue_ops(
+                  [b.Flatten() for b in batch],
+                  placement_function=functools.partial(HostPlacementFunction,
+                                                       host_device),
+                  tpu_ordinal_function=functools.partial(
+                      TPUOrdinalFunction, task_id))
+            else:
+              input_ops = q.split_inputs_and_generate_enqueue_ops(
+                  batch[0].Flatten(),
+                  placement_function=functools.partial(HostPlacementFunction,
+                                                       host_device),
+                  tpu_ordinal_function=functools.partial(
+                      TPUOrdinalFunction, task_id))
           else:
+            assert len(batch) == 1
             input_ops = q.split_inputs_and_generate_enqueue_ops(
                 batch[0].Flatten(),
-                placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
-                tpu_ordinal_function=TPUOrdinalFunction)
-        else:
-          assert len(batch) == 1
-          input_ops = q.split_inputs_and_generate_enqueue_ops(
-              batch[0].Flatten(),
-              device_assignment=py_utils.GetTpuDeviceAssignment(job_name))
-        input_ops_list += input_ops
+                device_assignment=py_utils.GetTpuDeviceAssignment(job_name))
+          input_ops_list += input_ops
 
     tf.logging.info('input_ops_list %s', input_ops_list)
     grouped_infeed_op = tf.group(*input_ops_list)
@@ -673,9 +685,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
       # initialize the datasets and iterators before `tf.function` because
       # `tf.function` does not trace python side effects.
       # https://www.tensorflow.org/guide/function#executing_python_side_effects
-      self.CreateTpuEnqueueOps()
+      self.CreateTpuEnqueueOps(skip_enqueue=True)
       if cpu_passthrough:
-        self.CreateCpuPassthroughEnqueueOps()
+        self.CreateCpuPassthroughEnqueueOps(skip_enqueue=True)
     else:
       # In graph mode, the calls create ops but don't execute them.
       self.CreateTpuEnqueueOps()
@@ -717,7 +729,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """
     return self.params.cpu_passthrough_keys
 
-  def CreateCpuPassthroughEnqueueOps(self):
+  def CreateCpuPassthroughEnqueueOps(self, skip_enqueue=False):
     """Creates enqueue ops to pass through CPU inputs to the output."""
     p = self.params
     num_tpu_hosts = self.cluster.num_tpu_hosts
@@ -749,7 +761,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
         # blocking further enqueues.
         host_queue = tf.queue.FIFOQueue(capacity=10000, dtypes=cpu_dtypes)
         self._host_queues[task_id] = host_queue
-        enqueue_ops += [host_queue.enqueue(py_utils.Flatten(batch))]
+        if not skip_enqueue:
+          enqueue_ops += [host_queue.enqueue(py_utils.Flatten(batch))]
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
   def DequeueCpuPassthrough(self, concat=True):
