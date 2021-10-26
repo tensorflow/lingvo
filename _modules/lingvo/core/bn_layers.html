@@ -351,6 +351,8 @@
         <span class="c1"># The mean and variance used for normalization.</span>
         <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_mean</span><span class="p">,</span>
                                     <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_variance</span><span class="p">)</span>
+        <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span><span class="p">))</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">rank</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
         <span class="n">reduce_over_dims</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>

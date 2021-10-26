@@ -522,6 +522,9 @@
         <span class="s1">&#39;An integer or a dict of integer values as number of input nodes. If &#39;</span>
         <span class="s1">&#39;input_dim is a dict, keys must be key, value and query.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of hidden nodes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The output dimension of the attention module. &#39;</span>
+        <span class="s1">&#39;When it is None, use `query_input_dim` for the output projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Num of attention heads.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;dim_per_head&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Hidden dim of each attention head. If None, &#39;</span>
@@ -624,7 +627,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
         <span class="s1">&#39;post&#39;</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">input_dim</span><span class="o">=</span><span class="n">query_input_dim</span><span class="p">,</span>
+            <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="ow">or</span> <span class="n">query_input_dim</span><span class="p">,</span>
             <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
             <span class="n">is_output_projection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
