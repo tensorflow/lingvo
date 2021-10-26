@@ -207,6 +207,36 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertEqual(result_np.shape, tuple(batch_sizes + [model_dims]))
 
+  def testMultiHeadedAttentionDotProductOutputDim(self):
+    # input_batch:6, seq_len:6. Test n = 2 case.
+    bsz, slen = 6, 6
+    input_dim = 2
+    hidden_dim = 4
+    output_dim = 4
+    num_heads = 2
+    with self.session(use_gpu=True) as sess:
+      input_vecs, input_padding, _, _ = self._AttentionInputs(
+          input_dim=input_dim)
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='self_atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          output_dim=output_dim)
+
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      ctx_vec, attn_prob = l.FProp(
+          l.theta,
+          input_vecs,
+          input_vecs,
+          input_vecs,
+          input_padding,
+          segment_mask=None)
+      context_vec_np, attn_prob_np = sess.run([ctx_vec, attn_prob])
+      self.assertEqual(context_vec_np.shape, (bsz, slen, output_dim))
+      self.assertEqual(attn_prob_np.shape, (bsz, num_heads, slen, slen))
+
   @parameterized.named_parameters(
       # Use the default data types.
       ('dtype_default', [], 1e-06),

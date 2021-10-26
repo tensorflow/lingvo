@@ -286,6 +286,8 @@ class BatchNormLayer(base_layer.BaseLayer):
         # The mean and variance used for normalization.
         norm_mean, norm_variance = (self.vars.moving_mean,
                                     self.vars.moving_variance)
+        norm_mean, norm_variance = self._CastToFPropDtype(
+            (norm_mean, norm_variance))
       else:
         rank = tf.rank(paddings)
         reduce_over_dims = tf.range(0, rank - 1)

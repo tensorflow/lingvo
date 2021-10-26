@@ -457,6 +457,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         'An integer or a dict of integer values as number of input nodes. If '
         'input_dim is a dict, keys must be key, value and query.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
+    p.Define(
+        'output_dim', None, 'The output dimension of the attention module. '
+        'When it is None, use `query_input_dim` for the output projection.')
     p.Define('num_heads', 1, 'Num of attention heads.')
     p.Define(
         'dim_per_head', None, 'Hidden dim of each attention head. If None, '
@@ -559,7 +562,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     self.CreateChild(
         'post',
         p.proj_tpl.Copy().Set(
-            input_dim=query_input_dim,
+            input_dim=p.output_dim or query_input_dim,
             num_heads=p.num_heads,
             is_output_projection=True,
             use_bias=p.use_bias,
