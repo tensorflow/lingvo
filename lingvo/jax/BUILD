@@ -96,10 +96,10 @@ pytype_strict_library(
     srcs = ["eval.py"],
     srcs_version = "PY3",
     deps = [
-        ":base_layer",
         ":base_model_params",
         ":checkpoints",
         ":model_utils",
+        ":partitioning",
         ":py_utils",
         ":pytypes",
         ":summary_utils",
@@ -215,6 +215,17 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "partitioning",
+    srcs = ["partitioning.py"],
+    srcs_version = "PY3",
+    deps = [
+        # Implicit absl.logging dependency.
+        # Implicit jax dependency.
+        # Implicit numpy dependency.
+    ],
+)
+
+pytype_strict_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
     srcs_version = "PY3",
@@ -285,9 +296,9 @@ pytype_strict_library(
     srcs = ["train.py"],
     srcs_version = "PY3",
     deps = [
-        ":base_layer",
         ":checkpoints",
         ":model_utils",
+        ":partitioning",
         ":py_utils",
         ":summary_utils",
         ":trainer_lib",

@@ -195,48 +195,6 @@ def WithShardingConstraint(
     return pjit.with_sharding_constraint(x, axis_resources)
 
 
-_DF_DEVICE_KIND = 'TPU v3'
-_PF_DEVICE_KIND = 'TPU v4'
-
-
-def CreateDeviceMesh(mesh_shape: Tuple[int, int, int]) -> np.ndarray:
-  """Creates a device mesh."""
-
-  def MaybeReorderMesh(mesh_shape: Tuple[int, int, int],
-                       device_mesh: np.ndarray) -> np.ndarray:
-    """Possibly re-orders device mesh for better performance."""
-    device_kind = jax.devices()[0].device_kind
-    logging.info('device_kind: "%s", mesh_shape: %s', device_kind, mesh_shape)
-
-    if device_kind == _DF_DEVICE_KIND and mesh_shape[-1] == 8:
-      logging.info('Re-order DF device mesh for better performance.')
-      perm = np.array([0, 1, 2, 3, 6, 7, 4, 5])
-      device_mesh = device_mesh[:, :, perm]
-    elif device_kind == _PF_DEVICE_KIND and mesh_shape == (1, 16, 4):
-      logging.info('Re-order PF device mesh for better performance.')
-      perm = np.array([0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15])
-      device_mesh = device_mesh.reshape((4, 16))[:, perm].reshape(1, 16, 4)
-    elif device_kind == _PF_DEVICE_KIND and mesh_shape == (1, 32, 8):
-      logging.info('Re-order PF device mesh for better performance.')
-      perm = np.array([0, 1, 4, 5, 2, 3, 6, 7])
-      # host-untiling
-      device_mesh = device_mesh.reshape((-1, 8))[:, perm]
-      # x (minor), z(major) for 32, and y for 8
-      device_mesh = device_mesh.reshape((8, 8, 4)).transpose(
-          (0, 2, 1)).reshape(mesh_shape)
-    elif device_kind == _PF_DEVICE_KIND and mesh_shape == (1, 64, 8):
-      logging.info('Re-order PF device mesh for better performance.')
-      perm = np.array([0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15])
-      device_mesh = device_mesh.reshape((-1, 16))[:, perm].reshape(1, 64, 8)
-    elif device_kind == _PF_DEVICE_KIND and mesh_shape == (1, 64, 16):
-      logging.info('Re-order PF device mesh for better performance.')
-      device_mesh = device_mesh.reshape((16, 64, 1)).transpose()
-    return device_mesh
-
-  device_mesh = np.asarray(jax.devices()).reshape(mesh_shape)
-  return MaybeReorderMesh(mesh_shape, device_mesh)
-
-
 def MaybeShard(x: JTensor,
                split_dims_mapping: Optional[SplitDimsMapping] = None,
                mesh_axis_names: Optional[Sequence[str]] = None) -> JTensor:
