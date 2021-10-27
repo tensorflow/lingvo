@@ -251,6 +251,14 @@ class DenseLm175B32x32(DenseLm128B16x16):
 
 
 @model_registry.RegisterSingleTaskModel
+class DenseLM13B32x32(DenseLm175B32x32):
+  MODEL_DIM = 5120
+  HIDDEN_DIM = 5120 * 4
+  NUM_HEADS = 40
+  NUM_TRANSFORMER_LAYERS = 40
+
+
+@model_registry.RegisterSingleTaskModel
 class DenseLm175B8x8Decode2D(DenseLm175B32x32):
   """175B params LM model decoding on v3-128.
 
