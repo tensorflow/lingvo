@@ -125,7 +125,7 @@ def evaluate_pmap_model(model_p: InstantiableParams,
   for i, input_p in enumerate(eval_input_p):
     if 'batch_size' in input_p:
       batch_size[i] = input_p.batch_size
-    if 'bucket_batch_limit' in eval_input_p:
+    if 'bucket_batch_limit' in input_p:
       batch_size[i] = input_p.bucket_batch_limit[0]
   num_steps = [
       math.ceil(input_p.num_samples / batch_size[i])
@@ -151,6 +151,8 @@ def evaluate_pmap_model(model_p: InstantiableParams,
       exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
       if exceeded_ckpt >= model_p.train.num_train_steps:
         break
+    # Release replicated_model_states.
+    del replicated_model_states
     new_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
     while new_checkpoint == last_checkpoint:
       # Sleep for a minute.
