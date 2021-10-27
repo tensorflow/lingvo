@@ -883,6 +883,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'multiplications. This allows for weight updates to be paralellized '
         'across the cores for Shampoo optimizer.')
     p.Define('block_dim', 1024, 'Dimension of the block')
+    p.Define('use_block_diagonal_matmul', False, 'If True, use block diagonal '
+             'matmul.')
+    p.Define(
+        'bd_num_blocks', 1, 'Number of blocks for the block diagonal matmul '
+        'which should divide both input_dim and output_dim')
     # Non-default quantization behaviour for weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
@@ -943,6 +948,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     self.apply_compression = pruning_utils.ApplyCompression(p) and (
         p.input_dim > p.output_dim)
 
+    if p.use_block_diagonal_matmul:
+      assert p.bd_num_blocks > 0
+      assert p.input_dim % p.bd_num_blocks == 0
+      assert p.output_dim % p.bd_num_blocks == 0
+
   def _GetBlockedMatMulInputOutputMultipliers(self):
     """Get number of input and output blocks."""
     p = self.params
@@ -975,6 +985,13 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       w = tf.slice(w, [0, 0, 0], [p.input_dim, w_om, block_dim])
     return w
 
+  def _GetBlockDiagonalInitScale(self, num_blocks, dense_shape, dtype=None):
+    m, n = dense_shape
+    if not dtype:
+      dtype = tf.float32
+    scale = math.sqrt(6.0 / (m // num_blocks + n // num_blocks))
+    return scale
+
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
@@ -983,6 +1000,23 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       w_pc = py_utils.WeightParams(
           shape=[w_im * w_om, p.block_dim, p.block_dim],
           init=p.params_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+    elif p.use_block_diagonal_matmul:
+      w_pc = py_utils.WeightParams(
+          shape=(p.bd_num_blocks, p.input_dim // p.bd_num_blocks,
+                 p.output_dim // p.bd_num_blocks),
+          init=py_utils.WeightInit.Xavier(
+              scale=self._GetBlockDiagonalInitScale(
+                  p.bd_num_blocks, (p.input_dim, p.output_dim), dtype=p.dtype)),
+          dtype=p.dtype,
+          device_mesh=p.device_mesh,
+          tensor_split_dims_mapping=p.weight_split_dims_mapping,
+          collections=[self.__class__.__name__ + '_vars'])
+      mix_kernel_pc = py_utils.WeightParams(
+          shape=(p.bd_num_blocks, p.bd_num_blocks),
+          init=py_utils.WeightInit.CustomVarInit(
+              tf.keras.initializers.Identity()),
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
     else:
@@ -1040,6 +1074,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                                            weights_var_name, w_pc, p.dtype,
                                            p.name)
       self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
+
+    if p.use_block_diagonal_matmul:
+      self.CreateVariable('mix_kernel', mix_kernel_pc)
 
     if p.has_bias:
       self.CreateVariable('b', b_pc)
@@ -1118,6 +1155,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           w = theta.c_matrix_tfvar
       w = self.QWeight(w)
 
+      mix_kernel = theta.mix_kernel if p.use_block_diagonal_matmul else None
+      proj_kwargs = {
+          'mix_kernel': mix_kernel
+      } if p.use_block_diagonal_matmul else {}
+
       if p.affine_last:
         # Reversed computation. Does not handle folding.
         out = inputs
@@ -1127,16 +1169,19 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           if not p.is_inference:
             out = py_utils.CheckNumerics(out)
           out = activations.GetFn(p.activation)(out)
-        out = self._ApplyProjectionKernel(w, b, out, with_activation=False)
+        out = self._ApplyProjectionKernel(
+            w, b, out, with_activation=False, **proj_kwargs)
       else:
         # Normal ordered projection.
         if self._is_bn_folded or not p.batch_norm:
           # Everything folded together. This is the only variant that supports
           # quantization.
-          out = self._ApplyProjectionKernel(w, b, inputs, quant=True)
+          out = self._ApplyProjectionKernel(
+              w, b, inputs, quant=True, **proj_kwargs)
         else:
           # Projection kernel(no activation fn) -> BN -> Activation fn.
-          out = self._ApplyProjectionKernel(w, b, inputs, with_activation=False)
+          out = self._ApplyProjectionKernel(
+              w, b, inputs, with_activation=False, **proj_kwargs)
           if p.batch_norm:
             out = self.bn.FProp(theta.bn, out, paddings)
           if p.activation != 'NONE':
@@ -1205,8 +1250,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     else:
       # Updates moments based on a trial run of the kernel (without activation
       # function).
+      mix_kernel = theta.mix_kernel if p.use_block_diagonal_matmul else None
+      proj_kwargs = {
+          'mix_kernel': mix_kernel
+      } if p.use_block_diagonal_matmul else {}
       raw_output = self._ApplyProjectionKernel(
-          w, b, inputs, with_activation=False)
+          w, b, inputs, with_activation=False, **proj_kwargs)
       mean, variance, beta, gamma = self.bn.ComputeAndUpdateMoments(
           theta.bn, raw_output, paddings)
 
@@ -1223,7 +1272,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                              inputs,
                              with_activation=True,
                              quant=False,
-                             bn=False):
+                             bn=False,
+                             mix_kernel=None):
     """Applies matmul/bias/activation in one step.
 
     Note that it is important that these three ops be computed in this way as
@@ -1238,6 +1288,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       with_activation: Whether to also compute the activation function.
       quant: Whether to apply quantization.
       bn: Apply batchnorm.
+      mix_kernel: (optional) mix_kernel for block diagonal matmul.
 
     Returns:
       Output tensor reshaped.
@@ -1250,11 +1301,30 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         if self.apply_compression:
           out = pruning_utils.PruningOp.GetProjectLastDim(
               inputs, w, p.input_dim, p.output_dim, self)
+        elif p.use_block_diagonal_matmul:
+          if mix_kernel is not None:
+            out = py_utils.BlockDiagonalProjectLastDimWithMix(
+                inputs, w, p.input_dim, p.output_dim, mix_kernel,
+                p.bd_num_blocks)
+          else:
+            out = py_utils.BlockDiagonalProjectLastDim(inputs, w, p.input_dim,
+                                                       p.output_dim,
+                                                       p.bd_num_blocks)
         else:
           out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
       else:
-        out = py_utils.Matmul(
-            tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
+        if p.use_block_diagonal_matmul:
+          if mix_kernel is not None:
+            out = py_utils.BlockDiagonalMatmulWithMix(
+                tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])),
+                w, mix_kernel, p.bd_num_blocks)
+          else:
+            out = py_utils.BlockDiagonalMatmul(
+                tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])),
+                w, p.bd_num_blocks)
+        else:
+          out = py_utils.Matmul(
+              tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
       out = self.FromAqtMatmul('w', out)
     else:
       x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
@@ -1404,6 +1474,12 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
              'A list of activation_split_dims_mapping for each sub-layer.')
     # Non-default quantization behaviour for the weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
+    # Block Diagonal matmul parameters.
+    p.Define(
+        'use_block_diagonal_matmul_pl', [], 'Boolean array to determine '
+        'whether to use block diagonal matmul in the projection layer.')
+    p.Define('num_blocks_pl', [], 'Int array for number of blocks for input '
+             'and output.')
 
     return p
 
@@ -1465,6 +1541,12 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     assert len(weight_split_dims_mapping_list) == num_layers
     assert len(activation_split_dims_mapping_list) == num_layers
 
+    use_block_diagonal_matmul_pl = [False] * num_layers
+    num_blocks_pl = [1] * num_layers
+    if p.use_block_diagonal_matmul_pl and any(p.use_block_diagonal_matmul_pl):
+      use_block_diagonal_matmul_pl = p.use_block_diagonal_matmul_pl
+      num_blocks_pl = p.num_blocks_pl
+
     # Residual connections work better in the form of:
     #   y = x + Affine(Activation(BatchNorm(x)))
     params_fc_layers = []
@@ -1486,7 +1568,9 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
           bn_fold_weights=p.bn_fold_weights,
           device_mesh=p.device_mesh,
           weight_split_dims_mapping=weight_split_dims_mapping_list[i],
-          activation_split_dims_mapping=activation_split_dims_mapping_list[i])
+          activation_split_dims_mapping=activation_split_dims_mapping_list[i],
+          use_block_diagonal_matmul=use_block_diagonal_matmul_pl[i],
+          bd_num_blocks=num_blocks_pl[i])
       params_i.Set(
           input_dim=in_dim,
           output_dim=proj_out_dim,

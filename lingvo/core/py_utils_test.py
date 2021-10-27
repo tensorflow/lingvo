@@ -1358,6 +1358,53 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose([[0.0320586, 0.08714432, 0.2368828],
                            [0.08714432, 0.2368828, 0.6439142]], y_val)
 
+  def testBlockDiagonalMatmul(self):
+    block_mat = tf.constant([[[1, 0], [0, 1]], [[2, 0], [0, 2]]],
+                            dtype=tf.float32)
+    x = tf.constant([[1, 1, 1, 1], [0.5, 1, 1.5, 2]], dtype=tf.float32)
+    y = py_utils.BlockDiagonalMatmul(x, block_mat, 2)
+    with self.session():
+      y_val = self.evaluate(y)
+      self.assertAllClose([[1, 1, 2, 2], [0.5, 1, 3, 4]], y_val)
+
+  def testBlockDiagonalProjectLastDim(self):
+    block_mat = tf.constant([[[1, 0], [0, 1]], [[2, 0], [0, 2]]],
+                            dtype=tf.float32)
+    x = tf.constant(
+        [[[1, 1, 1, 1], [0.5, 1, 1.5, 2]], [[0.5, 1, 1.5, 2], [1, 1, 1, 1]]],
+        dtype=tf.float32)
+    y = py_utils.BlockDiagonalProjectLastDim(x, block_mat, 4, 4, 2)
+    with self.session():
+      y_val = self.evaluate(y)
+      self.assertAllClose(
+          [[[1, 1, 2, 2], [0.5, 1, 3, 4]], [[0.5, 1, 3, 4], [1, 1, 2, 2]]],
+          y_val)
+
+  def testBlockDiagonalMatmulWithMix(self):
+    block_mat = tf.constant([[[1, 0], [0, 1]], [[2, 0], [0, 2]]],
+                            dtype=tf.float32)
+    x = tf.constant([[1, 1, 1, 1], [0.5, 1, 1.5, 2]], dtype=tf.float32)
+    mix_kernel = tf.constant([[1, 0], [0, 1]], dtype=tf.float32)
+    y = py_utils.BlockDiagonalMatmulWithMix(x, block_mat, mix_kernel, 2)
+    with self.session():
+      y_val = self.evaluate(y)
+      self.assertAllClose([[1, 1, 2, 2], [0.5, 1, 3, 4]], y_val)
+
+  def testBlockDiagonalProjectLastDimWithMix(self):
+    block_mat = tf.constant([[[1, 0], [0, 1]], [[2, 0], [0, 2]]],
+                            dtype=tf.float32)
+    x = tf.constant(
+        [[[1, 1, 1, 1], [0.5, 1, 1.5, 2]], [[0.5, 1, 1.5, 2], [1, 1, 1, 1]]],
+        dtype=tf.float32)
+    mix_kernel = tf.constant([[1, 0], [0, 1]], dtype=tf.float32)
+    y = py_utils.BlockDiagonalProjectLastDimWithMix(x, block_mat, 4, 4,
+                                                    mix_kernel, 2)
+    with self.session():
+      y_val = self.evaluate(y)
+      self.assertAllClose(
+          [[[1, 1, 2, 2], [0.5, 1, 3, 4]], [[0.5, 1, 3, 4], [1, 1, 2, 2]]],
+          y_val)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 

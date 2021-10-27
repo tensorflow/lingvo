@@ -6289,3 +6289,199 @@ def GetTrainableVariables(scope, bprop_variable_filter,
     return True
 
   return vmap.Filter(VariableFilter)
+
+
+def BlockDiagonalMatmul(inputs, w, input_num_blocks):
+  """Block diagonal matmul.
+
+  Args:
+    inputs: a tf.Tensor with the last dimension being the dimension for matmul.
+    w: an order-3 tf.Tensor of shape (input_num_blocks, input_dim //
+      input_num_blocks, output_dim // input_num_blocks)
+    input_num_blocks: an int specifying number of blocks for the input.
+
+  Returns:
+    A tf.Tensor of shape: inputs.shape[:-1] + [w.shape[-1]].
+  """
+  input_splitted = tf.split(inputs, input_num_blocks, axis=-1)
+  output_splitted = []
+  for i, input_i in enumerate(input_splitted):
+    output_splitted.append(tf.matmul(input_i, w[i, :, :]))
+  return tf.concat(output_splitted, axis=-1)
+
+
+def BlockDiagonalMatmulWithMix(inputs, w, mix_kernel, input_num_blocks):
+  """Block diagonal matmul with mix.
+
+  With mix, the results from the blocked matmul are (linearly) mixed with
+  trainable weights in mix_kernel.
+
+  Args:
+    inputs: a tf.Tensor with the last dimension being the dimension for matmul.
+    w: an order-3 tf.Tensor of shape (input_num_blocks, input_dim //
+      input_num_blocks, output_dim // input_num_blocks).
+    mix_kernel: an order-2 tf.Tensor of shape (input_num_blocks,
+      input_num_blocks).
+    input_num_blocks: an int specifying number of blocks for the input.
+
+  Returns:
+    A tf.Tensor of shape: inputs.shape[:-1] + [w.shape[-1]].
+  """
+  input_splitted = tf.split(inputs, input_num_blocks, axis=-1)
+  output_splitted = []
+  for i, input_i in enumerate(input_splitted):
+    output_splitted.append(tf.matmul(input_i, w[i, :, :]))
+
+  output_mixed = [0.0] * input_num_blocks
+  for i in range(input_num_blocks):
+    for j in range(input_num_blocks):
+      output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
+  output_splitted = output_mixed
+
+  return tf.concat(output_splitted, axis=-1)
+
+
+def BlockDiagonalProjectLastDim(inputs,
+                                weight,
+                                input_dim,
+                                output_dim,
+                                num_blocks=1):
+  """Block diagonal linear projection on the last dim of the input tensor.
+
+  This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
+  tensor by using Einsum for the compute.
+
+  Args:
+    inputs: An input Tensor, the last dimension of which is input_dim.
+    weight: A weight matrix with shape [input_dim, output_dim].
+    input_dim: An integer or a symbolic dim, the last dimension of the inputs.
+    output_dim: An integer or a symbolic dim, the last dimension of the outputs.
+    num_blocks: An integer or a symbolic dim, the number of blocks.
+
+  Returns:
+    An output Tensor of the same rank as inputs, the last dimension is
+    output_dim.
+  """
+  input_dim = int(
+      symbolic.ToStatic(input_dim) if symbolic.IsExpr(input_dim) else input_dim)
+  output_dim = int(
+      symbolic.ToStatic(output_dim) if symbolic.IsExpr(output_dim
+                                                      ) else output_dim)
+
+  # Assert input_dim and output_dim
+  inputs = with_dependencies([assert_equal(GetShape(inputs)[-1], input_dim)],
+                             inputs)
+  weight = with_dependencies([
+      assert_equal(GetShape(weight)[0], num_blocks),
+      assert_equal(GetShape(weight)[1], input_dim // num_blocks),
+      assert_equal(GetShape(weight)[-1], output_dim // num_blocks)
+  ], weight)
+
+  if (use_tpu() and inputs.shape is not None and
+      inputs.shape.rank is not None and inputs.shape.rank < 26):
+    # Avoids reshape if feasible and uses Einsum.
+    if inputs.shape.rank == 2:
+      # outputs = tf.matmul(inputs, weight)
+      outputs = BlockDiagonalMatmul(inputs, weight, num_blocks)
+    else:
+      # This is equivalent to:
+      #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
+      # Unfortunately ... in einsum() leads to extra HBM usage.
+      s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+      r = inputs.shape.rank
+      input_splitted = tf.split(inputs, num_blocks, axis=-1)
+      output_splitted = []
+      for i, input_i in enumerate(input_splitted):
+        output_splitted.append(
+            tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), input_i,
+                      weight[i, :, :]))
+      outputs = tf.concat(output_splitted, axis=-1)
+  else:
+    outputs = BlockDiagonalMatmul(
+        tf.reshape(inputs, ToStaticShape([-1, input_dim])), weight, num_blocks)
+    outputs = tf.reshape(
+        outputs,
+        tf.concat([
+            tf.cast(GetShape(inputs)[:-1], tf.int32),
+            ToStaticShape([output_dim])
+        ],
+                  axis=0))
+
+  return outputs
+
+
+def BlockDiagonalProjectLastDimWithMix(inputs,
+                                       weight,
+                                       input_dim,
+                                       output_dim,
+                                       mix_kernel,
+                                       num_blocks=1):
+  """Block diagonal linear projection on the last dim with mix.
+
+  This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
+  tensor by using Einsum for the compute.
+
+  Args:
+    inputs: An input Tensor, the last dimension of which is input_dim.
+    weight: A weight matrix with shape [input_dim, output_dim].
+    input_dim: An integer or a symbolic dim, the last dimension of the inputs.
+    output_dim: An integer or a symbolic dim, the last dimension of the outputs.
+    mix_kernel: an order-2 tf.Tensor of shape (num_blocks, num_blocks).
+    num_blocks: An integer or a symbolic dim, the number of blocks.
+
+  Returns:
+    An output Tensor of the same rank as inputs, the last dimension is
+    output_dim.
+  """
+  input_dim = int(
+      symbolic.ToStatic(input_dim) if symbolic.IsExpr(input_dim) else input_dim)
+  output_dim = int(
+      symbolic.ToStatic(output_dim) if symbolic.IsExpr(output_dim
+                                                      ) else output_dim)
+
+  # Assert input_dim and output_dim
+  inputs = with_dependencies([assert_equal(GetShape(inputs)[-1], input_dim)],
+                             inputs)
+  weight = with_dependencies([
+      assert_equal(GetShape(weight)[0], num_blocks),
+      assert_equal(GetShape(weight)[1], input_dim // num_blocks),
+      assert_equal(GetShape(weight)[-1], output_dim // num_blocks)
+  ], weight)
+
+  if (use_tpu() and inputs.shape is not None and
+      inputs.shape.rank is not None and inputs.shape.rank < 26):
+    # Avoids reshape if feasible and uses Einsum.
+    if inputs.shape.rank == 2:
+      outputs = BlockDiagonalMatmulWithMix(inputs, weight, mix_kernel,
+                                           num_blocks)
+    else:
+      # This is equivalent to:
+      #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
+      # Unfortunately ... in einsum() leads to extra HBM usage.
+      s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+      r = inputs.shape.rank
+      input_splitted = tf.split(inputs, num_blocks, axis=-1)
+      output_splitted = []
+      for i, input_i in enumerate(input_splitted):
+        output_splitted.append(
+            tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), input_i,
+                      weight[i, :, :]))
+      output_mixed = [0.0] * num_blocks
+      for i in range(num_blocks):
+        for j in range(num_blocks):
+          output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
+      output_splitted = output_mixed
+      outputs = tf.concat(output_splitted, axis=-1)
+  else:
+    outputs = BlockDiagonalMatmulWithMix(
+        tf.reshape(inputs, ToStaticShape([-1, input_dim])), weight, mix_kernel,
+        num_blocks)
+    outputs = tf.reshape(
+        outputs,
+        tf.concat([
+            tf.cast(GetShape(inputs)[:-1], tf.int32),
+            ToStaticShape([output_dim])
+        ],
+                  axis=0))
+
+  return outputs

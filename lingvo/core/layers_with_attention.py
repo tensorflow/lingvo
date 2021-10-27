@@ -558,6 +558,11 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('pre_layer_norm', True, 'Pre or post layer norm')
     p.Define('residual_droppath_prob', 0.0,
              'Probability at which we drop the entire residual path.')
+    p.Define(
+        'use_block_diagonal_matmul_pl', [],
+        'Boolean array to determine whether to use block diagonal matmul.')
+    p.Define('num_blocks_pl', [], 'Int array for number of blocks for input '
+             'and output.')
     return p
 
   @classmethod
@@ -577,6 +582,11 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     params.name = 'fflayer'
     params.input_dim = p.input_dim
     params.activation = [p.activation, 'NONE']
+    # Set block diagonal params.
+    if 'use_block_diagonal_matmul_pl' in params:
+      params.use_block_diagonal_matmul_pl = p.use_block_diagonal_matmul_pl
+      params.num_blocks_pl = p.num_blocks_pl
+
     if p.output_dim == 0:
       params.hidden_layer_dims = [p.hidden_dim, p.input_dim]
     else:

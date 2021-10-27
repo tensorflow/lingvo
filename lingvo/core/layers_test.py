@@ -2571,6 +2571,86 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     tf.logging.info(output_with_block_matmul)
     self.assertAllClose(output_with_block_matmul, expected_output)
 
+  def testProjectionLayerBlockDiagonal(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ProjectionLayer.Params()
+      params.name = 'blockdiagonal_proj'
+      params.input_dim = 128
+      params.output_dim = 64
+      params.batch_norm = False
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.use_block_diagonal_matmul = True
+      params.bd_num_blocks = 4
+      params.has_bias = True
+
+      layers.ProjectionLayer(params)
+      blockdiagonal_proj_vars = tf.get_collection('ProjectionLayer_vars')
+      var_names = [x.name for x in blockdiagonal_proj_vars]
+      print(var_names)
+      self.assertEqual([
+          'blockdiagonal_proj/w/var:0', 'blockdiagonal_proj/mix_kernel/var:0',
+          'blockdiagonal_proj/b/var:0'
+      ], var_names)
+
+  def testProjectionLayerBlockDiagonalMatmul(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ProjectionLayer.Params()
+      params.name = 'blockdiagonal_proj'
+      params.input_dim = 128
+      params.output_dim = 64
+      params.batch_norm = False
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.use_block_diagonal_matmul = True
+      params.bd_num_blocks = 4
+      params.has_bias = True
+
+      blockdiagonal_proj_layer = params.Instantiate()
+      inputs = tf.random.normal(shape=(16, 32, 128))
+      outputs = blockdiagonal_proj_layer.FPropDefaultTheta(inputs)
+      self.assertEqual(outputs.shape, (16, 32, 64))
+
+  def testProjectionLayerBlockDiagonalMatmulNoBias(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ProjectionLayer.Params()
+      params.name = 'blocksparse_proj'
+      params.input_dim = 128
+      params.output_dim = 64
+      params.batch_norm = False
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.use_block_diagonal_matmul = True
+      params.bd_num_blocks = 4
+      params.has_bias = False
+
+      blockdiagonal_proj_layer = params.Instantiate()
+      inputs = tf.random.normal(shape=(16, 32, 128))
+      outputs = blockdiagonal_proj_layer.FPropDefaultTheta(inputs)
+      self.assertEqual(outputs.shape, (16, 32, 64))
+
+  def testProjectionLayerMaskedMatmul(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.ProjectionLayer.Params()
+      params.name = 'blockdiagonal_proj'
+      params.input_dim = 128
+      params.output_dim = 64
+      params.batch_norm = False
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.use_block_diagonal_matmul = True
+      params.bd_num_blocks = 4
+      params.has_bias = True
+
+      blockdiagonal_proj_layer = params.Instantiate()
+      inputs = tf.random.normal(shape=(16, 32, 128))
+      outputs = blockdiagonal_proj_layer.FPropDefaultTheta(inputs)
+      self.assertEqual(outputs.shape, (16, 32, 64))
+
   @parameterized.named_parameters(
       {
           'testcase_name': 'RELU',
