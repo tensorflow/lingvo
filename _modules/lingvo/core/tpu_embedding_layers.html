@@ -132,7 +132,10 @@
       <span class="k">return</span> <span class="n">singleton</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Maps table name to the list of variables for the corresponding table.</span>
+    <span class="c1"># Maps table name to a tuple (var_list, is_inference_with_bfloat16), where</span>
+    <span class="c1"># var_list is the list of variables for the corresponding table, and</span>
+    <span class="c1"># is_inference_with_bfloat16 is a boolean telling whether this table is</span>
+    <span class="c1"># using bfloat16 for inference.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="c1"># The TPUEmbedding configuration.</span>
@@ -163,16 +166,25 @@
     <span class="c1"># ensure that send gradient op is created only once for each task.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_send_gradient_op_by_task</span> <span class="o">=</span> <span class="p">{}</span>
 
-<div class="viewcode-block" id="TpuEmbeddingCollection.AddTableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddTableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
+<div class="viewcode-block" id="TpuEmbeddingCollection.AddTableVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TpuEmbeddingCollection.AddTableVariables">[docs]</a>  <span class="k">def</span> <span class="nf">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">var_list</span><span class="p">,</span> <span class="n">is_inference_with_bfloat16</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add TPU embedding table variable list to the collection.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Variables for table </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s1"> already exist.&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_list</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">var_list</span><span class="p">,</span> <span class="n">is_inference_with_bfloat16</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">table_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a NestedMap mapping table names to variables.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of table variables.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">val</span><span class="p">:</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">inference_with_bfloat16_var_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of names of table variables that do bfloat16 inference.&quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var_list</span><span class="p">,</span> <span class="n">is_inference_with_bfloat16</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_vars</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">is_inference_with_bfloat16</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">result</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tpu_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -756,6 +768,12 @@
         <span class="s1">&#39;If set to True, only one table variable will be created, and &#39;</span>
         <span class="s1">&#39;the user will need to manually merge the sharded table variables &#39;</span>
         <span class="s1">&#39;in the trained checkpoint before generating the inference graph.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;inference_use_bfloat16&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to use bfloat16 as variable dtype for embedding table during &#39;</span>
+        <span class="s1">&#39;inference. If set to True, the variables in the inference checkpoint &#39;</span>
+        <span class="s1">&#39;must be in bfloat16 format, and the conversion (float-&gt;bfloat16) &#39;</span>
+        <span class="s1">&#39;need to be done offline.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -815,13 +833,15 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">inference_with_merged_var</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_merged_variable</span><span class="p">)</span>
+      <span class="n">is_inference_with_bfloat16</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_bfloat16</span><span class="p">)</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span> <span class="k">if</span> <span class="n">is_inference_with_bfloat16</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
       <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span>
               <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="k">if</span> <span class="n">inference_with_merged_var</span> <span class="k">else</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span>
           <span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
       <span class="n">embedding_table_vars</span> <span class="o">=</span> <span class="p">[]</span>
@@ -846,8 +866,8 @@
             <span class="n">_RemovePrivateVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
 
       <span class="c1"># Track the table variables so they can be excluded from EMA.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
-                                                       <span class="n">embedding_table_vars</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">embedding_table_vars</span><span class="p">,</span> <span class="n">is_inference_with_bfloat16</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="c1"># We don&#39;t need this for TrainerTpu, as the vars are not directly</span>

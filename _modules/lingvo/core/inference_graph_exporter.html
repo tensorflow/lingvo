@@ -88,6 +88,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bfloat16_variables</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">inference_graph_pb2</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_embedding_layers</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
 <span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
@@ -497,6 +498,13 @@
                 <span class="n">bfloat16_variables</span>
                 <span class="o">.</span><span class="n">get_saver_spec_for_variables_with_bf16_overrides</span><span class="p">(</span>
                     <span class="n">variables_to_restore</span><span class="p">))</span>
+            <span class="c1"># For TPU embedding layers, if the table explicitly specifies the</span>
+            <span class="c1"># inference dtype as bfloat16, the variables in the checkpoint must</span>
+            <span class="c1"># already be in bfloat16, so we change back to bfloat16 to avoid</span>
+            <span class="c1"># dtype mismatch.</span>
+            <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="p">(</span><span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
+                             <span class="o">.</span><span class="n">inference_with_bfloat16_var_names</span><span class="p">):</span>
+              <span class="n">saver_var_spec</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">variables_to_restore</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">variables_to_restore</span>
 
