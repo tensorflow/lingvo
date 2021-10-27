@@ -840,6 +840,7 @@ py_library(
         ":bfloat16_variables",
         ":inference_graph_py_pb2",
         ":py_utils",
+        ":tpu_embedding_layers",
         # Implicit python proto dependency.
         "//lingvo:compat",
         # Implicit six dependency.

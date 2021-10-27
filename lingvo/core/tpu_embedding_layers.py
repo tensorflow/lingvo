@@ -67,7 +67,10 @@ class TpuEmbeddingCollection:
       return singleton
 
   def __init__(self):
-    # Maps table name to the list of variables for the corresponding table.
+    # Maps table name to a tuple (var_list, is_inference_with_bfloat16), where
+    # var_list is the list of variables for the corresponding table, and
+    # is_inference_with_bfloat16 is a boolean telling whether this table is
+    # using bfloat16 for inference.
     self._table_vars = py_utils.NestedMap()
 
     # The TPUEmbedding configuration.
@@ -98,16 +101,25 @@ class TpuEmbeddingCollection:
     # ensure that send gradient op is created only once for each task.
     self._send_gradient_op_by_task = {}
 
-  def AddTableVariables(self, table_name, var_list):
+  def AddTableVariables(self, table_name, var_list, is_inference_with_bfloat16):
     """Add TPU embedding table variable list to the collection."""
     if table_name in self._table_vars:
       raise ValueError(f'Variables for table {table_name} already exist.')
-    self._table_vars[table_name] = var_list
+    self._table_vars[table_name] = (var_list, is_inference_with_bfloat16)
 
   @property
   def table_variables(self):
-    """Returns a NestedMap mapping table names to variables."""
-    return self._table_vars
+    """Returns a list of table variables."""
+    return self._table_vars.Transform(lambda val: val[0])
+
+  @property
+  def inference_with_bfloat16_var_names(self):
+    """Returns a list of names of table variables that do bfloat16 inference."""
+    result = []
+    for var_list, is_inference_with_bfloat16 in self._table_vars.values():
+      if is_inference_with_bfloat16:
+        result += [v.op.name for v in var_list]
+    return result
 
   @property
   def tpu_embedding(self):
@@ -691,6 +703,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         'If set to True, only one table variable will be created, and '
         'the user will need to manually merge the sharded table variables '
         'in the trained checkpoint before generating the inference graph.')
+    p.Define(
+        'inference_use_bfloat16', False,
+        'Whether to use bfloat16 as variable dtype for embedding table during '
+        'inference. If set to True, the variables in the inference checkpoint '
+        'must be in bfloat16 format, and the conversion (float->bfloat16) '
+        'need to be done offline.')
     return p
 
   def __init__(self, params):
@@ -750,13 +768,15 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     else:
       inference_with_merged_var = (
           p.is_inference and p.inference_use_merged_variable)
+      is_inference_with_bfloat16 = (p.is_inference and p.inference_use_bfloat16)
+      dtype = tf.bfloat16 if is_inference_with_bfloat16 else p.dtype
       w_pc = py_utils.WeightParams(
           shape=[
               p.vocab_size if inference_with_merged_var else
               self._ids_per_shard, p.embedding_dim
           ],
           init=p.params_init,
-          dtype=p.dtype,
+          dtype=dtype,
           collections=[self.__class__.__name__ + '_vars'])
 
       embedding_table_vars = []
@@ -781,8 +801,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
             _RemovePrivateVar(self, var_name)
 
       # Track the table variables so they can be excluded from EMA.
-      self._tpu_embedding_collection.AddTableVariables(self.table_name,
-                                                       embedding_table_vars)
+      self._tpu_embedding_collection.AddTableVariables(
+          self.table_name, embedding_table_vars, is_inference_with_bfloat16)
 
     if not _IsTpuTraining(p):
       # We don't need this for TrainerTpu, as the vars are not directly
