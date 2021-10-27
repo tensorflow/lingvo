@@ -188,13 +188,13 @@ def _SeqPaddingLength(inputs_nmap):
     return [0, 0]
   time = tf.shape(padding)[0]
   pad_1d = FlattenPadding(padding)
-  mask = tf.cast(tf.equal(pad_1d, 0), tf.int32)  # [time], 1s/0s
-  mask_reverse = tf.cast(tf.equal(tf.reverse(pad_1d, [0]), 0), tf.int32)
+  pad_bool = tf.not_equal(pad_1d, 0)
+  pad_bool_reverse = tf.reverse(pad_bool, [0])
   numbers = tf.range(1, time + 1)
-  padding_end = time - tf.reduce_max(mask * numbers)
+  padding_end = time - tf.reduce_max(py_utils.ApplyPadding(pad_bool, numbers))
   padding_begin = tf.where(
       tf.equal(padding_end, time), 0,
-      time - tf.reduce_max(mask_reverse * numbers))
+      time - tf.reduce_max(py_utils.ApplyPadding(pad_bool_reverse, numbers)))
   return [padding_begin, padding_end]
 
 
