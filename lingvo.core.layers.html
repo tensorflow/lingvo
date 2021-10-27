@@ -519,6 +519,11 @@ expected to be of shape [batch, time].</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.ProjectionLayer._GetBlockDiagonalInitScale">
+<span class="sig-name descname"><span class="pre">_GetBlockDiagonalInitScale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dense_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._GetBlockDiagonalInitScale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._GetBlockDiagonalInitScale" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.layers.ProjectionLayer._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
 <dd><p>Actually create variables for this layer.</p>
@@ -619,7 +624,7 @@ disabled.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.layers.ProjectionLayer._ApplyProjectionKernel">
-<span class="sig-name descname"><span class="pre">_ApplyProjectionKernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._ApplyProjectionKernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._ApplyProjectionKernel" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_ApplyProjectionKernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">with_activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._ApplyProjectionKernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._ApplyProjectionKernel" title="Permalink to this definition"></a></dt>
 <dd><p>Applies matmul/bias/activation in one step.</p>
 <p>Note that it is important that these three ops be computed in this way as
 downstream inference engines (esp. for quantized inference) can recognize
@@ -634,6 +639,7 @@ quantization, it is required.</p>
 <li><p><strong>with_activation</strong> – Whether to also compute the activation function.</p></li>
 <li><p><strong>quant</strong> – Whether to apply quantization.</p></li>
 <li><p><strong>bn</strong> – Apply batchnorm.</p></li>
+<li><p><strong>mix_kernel</strong> – (optional) mix_kernel for block diagonal matmul.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
