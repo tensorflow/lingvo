@@ -231,6 +231,39 @@ class _ModelRegistryHelper:
     return all_params[class_key]
 
   @classmethod
+  def GetParamsFromModelParamsObject(cls, model_params_obj, dataset_name):
+    """Returns a `Params` object for given _BaseModelParams instance.
+
+    In case of default model, params may be updated based on the flags
+    `--model_params_override` or `--model_params_file_override`.
+
+    Args:
+      model_params_obj: A ~.base_model_params._BaseModelParams instance.
+      dataset_name: Method to generate dataset params (i.e. 'Test').
+
+    Returns:
+      Full `~.hyperparams.Params` for the
+        ~.base_model_params._BaseModelParams instance.
+
+    """
+    cfg = model_params_obj.Model()
+    if dataset_name:
+      cfg.input = model_params_obj.GetDatasetParams(dataset_name)
+      # Overwrite dataset specific Task parameters for SingleTaskModel.
+      if isinstance(model_params_obj, base_model_params.SingleTaskModelParams):
+        try:
+          dataset_task_params = model_params_obj.GetDatasetParams('Task_' +
+                                                                  dataset_name)
+          # Overwrite task params with dataset specific ones.
+          cfg.task = dataset_task_params
+        except base_model_params.DatasetError:
+          tf.logging.info('No dataset specific task parameters for %s',
+                          dataset_name)
+
+    cls.MaybeUpdateParamsFromFlags(cfg)
+    return cfg
+
+  @classmethod
   def GetParams(cls, class_key, dataset_name):
     """Constructs a `Params` object for given model and dataset, obeying flags.
 
@@ -245,23 +278,28 @@ class _ModelRegistryHelper:
       Full `~.hyperparams.Params` for the model class.
     """
     model_params_cls = cls.GetClass(class_key)
-    model_params = model_params_cls()
-    cfg = model_params.Model()
-    if dataset_name:
-      cfg.input = model_params.GetDatasetParams(dataset_name)
-      # Overwrite dataset specific Task parameters for SingleTaskModel.
-      if isinstance(model_params, base_model_params.SingleTaskModelParams):
-        try:
-          dataset_task_params = model_params.GetDatasetParams('Task_' +
-                                                              dataset_name)
-          # Overwrite task params with dataset specific ones.
-          cfg.task = dataset_task_params
-        except base_model_params.DatasetError:
-          tf.logging.info('No dataset specific task parameters for %s',
-                          dataset_name)
+    return cls.GetParamsFromModelParamsObject(model_params_cls(), dataset_name)
 
-    cls.MaybeUpdateParamsFromFlags(cfg)
-    return cfg
+  @classmethod
+  def GetProgramScheduleFromModelParamsObject(cls, model_params_obj):
+    """Retrieve the ProgramSchedule and a dict of task params.
+
+    Args:
+      model_params_obj: A ~.base_model_params._BaseModelParams instance.
+
+    Returns:
+      Full `~.hyperparams.Params` for the model class.
+    """
+    program_schedule_cfg = model_params_obj.ProgramSchedule()
+    datasets_to_eval = None
+    if FLAGS.executor_datasets_to_eval is not None:
+      datasets_to_eval = FLAGS.executor_datasets_to_eval.split(';')
+    program_schedule_cfg = program.UpdateProgramSchedule(
+        program_schedule_cfg, datasets_to_eval,
+        FLAGS.executor_train_executions_per_eval,
+        FLAGS.executor_eval_steps_per_loop,
+        FLAGS.executor_decode_steps_per_loop)
+    return program_schedule_cfg
 
   @classmethod
   def GetProgramSchedule(cls, class_key):
@@ -274,18 +312,7 @@ class _ModelRegistryHelper:
       ProgramSchedule.Params()
     """
     model_params_cls = cls.GetClass(class_key)
-    model_params = model_params_cls()
-    program_schedule_cfg = model_params.ProgramSchedule()
-    datasets_to_eval = None
-    if FLAGS.executor_datasets_to_eval is not None:
-      datasets_to_eval = FLAGS.executor_datasets_to_eval.split(';')
-    program_schedule_cfg = program.UpdateProgramSchedule(
-        program_schedule_cfg, datasets_to_eval,
-        FLAGS.executor_train_executions_per_eval,
-        FLAGS.executor_eval_steps_per_loop,
-        FLAGS.executor_decode_steps_per_loop)
-    return program_schedule_cfg
-
+    return cls.GetProgramScheduleFromModelParamsObject(model_params_cls())
 
 # pyformat: disable
 # pylint: disable=invalid-name
