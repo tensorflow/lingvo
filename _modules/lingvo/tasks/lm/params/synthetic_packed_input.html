@@ -315,6 +315,14 @@
       <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)),</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span></div>
 
 
+<div class="viewcode-block" id="DenseLM13B32x32"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLM13B32x32">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DenseLM13B32x32</span><span class="p">(</span><span class="n">DenseLm175B32x32</span><span class="p">):</span>
+  <span class="n">MODEL_DIM</span> <span class="o">=</span> <span class="mi">5120</span>
+  <span class="n">HIDDEN_DIM</span> <span class="o">=</span> <span class="mi">5120</span> <span class="o">*</span> <span class="mi">4</span>
+  <span class="n">NUM_HEADS</span> <span class="o">=</span> <span class="mi">40</span>
+  <span class="n">NUM_TRANSFORMER_LAYERS</span> <span class="o">=</span> <span class="mi">40</span></div>
+
+
 <div class="viewcode-block" id="DenseLm175B8x8Decode2D"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm175B8x8Decode2D">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm175B8x8Decode2D</span><span class="p">(</span><span class="n">DenseLm175B32x32</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;175B params LM model decoding on v3-128.</span>
