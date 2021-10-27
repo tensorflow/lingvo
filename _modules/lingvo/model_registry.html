@@ -295,6 +295,39 @@
                         <span class="n">class_key</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">all_params</span><span class="p">[</span><span class="n">class_key</span><span class="p">]</span></div>
 
+<div class="viewcode-block" id="_ModelRegistryHelper.GetParamsFromModelParamsObject"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetParamsFromModelParamsObject">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetParamsFromModelParamsObject</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model_params_obj</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a `Params` object for given _BaseModelParams instance.</span>
+
+<span class="sd">    In case of default model, params may be updated based on the flags</span>
+<span class="sd">    `--model_params_override` or `--model_params_file_override`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      model_params_obj: A ~.base_model_params._BaseModelParams instance.</span>
+<span class="sd">      dataset_name: Method to generate dataset params (i.e. &#39;Test&#39;).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Full `~.hyperparams.Params` for the</span>
+<span class="sd">        ~.base_model_params._BaseModelParams instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">dataset_name</span><span class="p">:</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
+      <span class="c1"># Overwrite dataset specific Task parameters for SingleTaskModel.</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_params_obj</span><span class="p">,</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">dataset_task_params</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="s1">&#39;Task_&#39;</span> <span class="o">+</span>
+                                                                  <span class="n">dataset_name</span><span class="p">)</span>
+          <span class="c1"># Overwrite task params with dataset specific ones.</span>
+          <span class="n">cfg</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">dataset_task_params</span>
+        <span class="k">except</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">DatasetError</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No dataset specific task parameters for </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                          <span class="n">dataset_name</span><span class="p">)</span>
+
+    <span class="bp">cls</span><span class="o">.</span><span class="n">MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cfg</span></div>
+
 <div class="viewcode-block" id="_ModelRegistryHelper.GetParams"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_key</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs a `Params` object for given model and dataset, obeying flags.</span>
@@ -310,23 +343,28 @@
 <span class="sd">      Full `~.hyperparams.Params` for the model class.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
-    <span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="p">()</span>
-    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">dataset_name</span><span class="p">:</span>
-      <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
-      <span class="c1"># Overwrite dataset specific Task parameters for SingleTaskModel.</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-          <span class="n">dataset_task_params</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="s1">&#39;Task_&#39;</span> <span class="o">+</span>
-                                                              <span class="n">dataset_name</span><span class="p">)</span>
-          <span class="c1"># Overwrite task params with dataset specific ones.</span>
-          <span class="n">cfg</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">dataset_task_params</span>
-        <span class="k">except</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">DatasetError</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No dataset specific task parameters for </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                          <span class="n">dataset_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetParamsFromModelParamsObject</span><span class="p">(</span><span class="n">model_params_cls</span><span class="p">(),</span> <span class="n">dataset_name</span><span class="p">)</span></div>
 
-    <span class="bp">cls</span><span class="o">.</span><span class="n">MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cfg</span></div>
+<div class="viewcode-block" id="_ModelRegistryHelper.GetProgramScheduleFromModelParamsObject"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetProgramScheduleFromModelParamsObject">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetProgramScheduleFromModelParamsObject</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model_params_obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Retrieve the ProgramSchedule and a dict of task params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      model_params_obj: A ~.base_model_params._BaseModelParams instance.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Full `~.hyperparams.Params` for the model class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">ProgramSchedule</span><span class="p">()</span>
+    <span class="n">datasets_to_eval</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_datasets_to_eval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">datasets_to_eval</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_datasets_to_eval</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+    <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">UpdateProgramSchedule</span><span class="p">(</span>
+        <span class="n">program_schedule_cfg</span><span class="p">,</span> <span class="n">datasets_to_eval</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_train_executions_per_eval</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_eval_steps_per_loop</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_decode_steps_per_loop</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">program_schedule_cfg</span></div>
 
 <div class="viewcode-block" id="_ModelRegistryHelper.GetProgramSchedule"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetProgramSchedule">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetProgramSchedule</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_key</span><span class="p">):</span>
@@ -339,18 +377,7 @@
 <span class="sd">      ProgramSchedule.Params()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
-    <span class="n">model_params</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="p">()</span>
-    <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">ProgramSchedule</span><span class="p">()</span>
-    <span class="n">datasets_to_eval</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_datasets_to_eval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">datasets_to_eval</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_datasets_to_eval</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
-    <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">UpdateProgramSchedule</span><span class="p">(</span>
-        <span class="n">program_schedule_cfg</span><span class="p">,</span> <span class="n">datasets_to_eval</span><span class="p">,</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_train_executions_per_eval</span><span class="p">,</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_eval_steps_per_loop</span><span class="p">,</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_decode_steps_per_loop</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">program_schedule_cfg</span></div></div>
-
+    <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetProgramScheduleFromModelParamsObject</span><span class="p">(</span><span class="n">model_params_cls</span><span class="p">())</span></div></div>
 
 <span class="c1"># pyformat: disable</span>
 <span class="c1"># pylint: disable=invalid-name</span>

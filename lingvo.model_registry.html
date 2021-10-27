@@ -189,6 +189,29 @@ directory information into the key to avoid future model name conflicts.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.model_registry._ModelRegistryHelper.GetParamsFromModelParamsObject">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">GetParamsFromModelParamsObject</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_params_obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.GetParamsFromModelParamsObject"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.GetParamsFromModelParamsObject" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code> object for given _BaseModelParams instance.</p>
+<p>In case of default model, params may be updated based on the flags
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">--model_params_override</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">--model_params_file_override</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_params_obj</strong> – A ~.base_model_params._BaseModelParams instance.</p></li>
+<li><p><strong>dataset_name</strong> – Method to generate dataset params (i.e. ‘Test’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Full <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a> for the</dt><dd><p>~.base_model_params._BaseModelParams instance.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.model_registry._ModelRegistryHelper.GetParams">
 <em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">GetParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">class_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.GetParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.GetParams" title="Permalink to this definition"></a></dt>
 <dd><p>Constructs a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code> object for given model and dataset, obeying flags.</p>
@@ -200,6 +223,20 @@ directory information into the key to avoid future model name conflicts.</p>
 <li><p><strong>class_key</strong> – String class key (i.e. <code class="xref py py-obj docutils literal notranslate"><span class="pre">image.mnist.LeNet5</span></code>).</p></li>
 <li><p><strong>dataset_name</strong> – Method to generate dataset params (i.e. ‘Test’).</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Full <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a> for the model class.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.model_registry._ModelRegistryHelper.GetProgramScheduleFromModelParamsObject">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">GetProgramScheduleFromModelParamsObject</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_params_obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.GetProgramScheduleFromModelParamsObject"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.GetProgramScheduleFromModelParamsObject" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieve the ProgramSchedule and a dict of task params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_params_obj</strong> – A ~.base_model_params._BaseModelParams instance.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Full <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a> for the model class.</p>
