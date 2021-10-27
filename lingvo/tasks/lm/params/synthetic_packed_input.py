@@ -69,6 +69,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   DEVICE_MESH_SHAPE = [64, 1]  # prod(DEVICE_MESH_SHAPE) = NUM_DEVICES_PER_SPLIT
   DEVICE_MESH = None
   DEBUG = False
+  ATTEN_LOGIT_CAP = 0
 
   GATED_GELU = True
   POSITIONAL_EMBEDDING = False
@@ -96,6 +97,8 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
             relative_attention_max_distance=128,
             dtype=tf.float32,
             fprop_dtype=tf.bfloat16,
+            atten_logit_cap=self.ATTEN_LOGIT_CAP,
+            attention_logits_dtype=tf.float32,
             dropout_rate=0.0,
             num_devices=1,  # Obsolete params
             attention_dropout_prob=0.0,
@@ -233,6 +236,7 @@ class DenseLm128B16x16(DenseLm128B8x8):
 @model_registry.RegisterSingleTaskModel
 class DenseLm175B32x32(DenseLm128B16x16):
   """175B params LM model with 2D split on v3-2048."""
+  ATTEN_LOGIT_CAP = 50
   HIDDEN_DIM = 12288 * 4
   ATTENTION_KEY_VALUE_DIM = 128
   MODEL_DIM = 12288
