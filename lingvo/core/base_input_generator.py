@@ -319,6 +319,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """Create the host-side enqueue ops.
 
     This should be called in an outer non-TPU context.
+
     Args:
       job_name: the name of the job on which the enqueue operations run.
       skip_enqueue: if True, only create the tpu queues, but skip the enqueue
