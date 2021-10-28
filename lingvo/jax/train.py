@@ -23,6 +23,7 @@ from typing import List, Optional
 from absl import logging
 import jax
 from jax.experimental import maps
+from lingvo.jax import base_input
 from lingvo.jax import checkpoints
 from lingvo.jax import model_utils
 from lingvo.jax import partitioning
@@ -68,18 +69,19 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
 
   model_p = model_config.Task()
   for inp in model_config.Datasets():
-    inp.input_gen_params.num_infeed_hosts = jax.process_count()
-    inp.input_gen_params.infeed_host_index = jax.process_index()
+    if not isinstance(inp, base_input.BaseInputParams):
+      raise ValueError('Expecting BaseInputParams from Datasets(), got: '
+                       f'{inp.ToText()}')
+    inp.num_infeed_hosts = jax.process_count()
+    inp.infeed_host_index = jax.process_index()
   train_input_p = [v for v in model_config.Datasets() if v.is_training]
   if len(train_input_p) != 1:
     raise ValueError(
         f'Expecting exactly one training split. Got `{len(train_input_p)}`.')
-  train_input_p = train_input_p[0].input_gen_params
+  train_input_p = train_input_p[0]
   eval_input_p = None
   if eval_on_test:
-    eval_input_p = [
-        v.input_gen_params for v in model_config.Datasets() if not v.is_training
-    ]
+    eval_input_p = [v for v in model_config.Datasets() if not v.is_training]
   if 'bucket_batch_limit' in train_input_p:
     logging.info('train_input_p.bucket_batch_limit: %s',
                  train_input_p.bucket_batch_limit)
@@ -343,8 +345,8 @@ def train_and_evaluate_spmd_model(
     # Block all hosts until directory is ready.
     py_utils.SyncGlobalDevices(f'checkpointer:makedirs:{checkpoint_dir}')
 
-  logging.info('step=`0`: Retrieving model inputs.')
-  model_inputs = train_input_pipeline.get_next()
+  logging.info('Retrieving model inputs for shape info.')
+  model_inputs_for_shape = train_input_pipeline.get_next()
 
   def get_shape_dtype(x):
     # We assume all the hosts infeed the same data.
@@ -354,7 +356,7 @@ def train_and_evaluate_spmd_model(
     y = jax.ShapeDtypeStruct(x_shape, x.dtype)
     return y
 
-  inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs)
+  inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs_for_shape)
 
   mesh_shape = model_p.device_mesh.shape
   device_mesh = partitioning.CreateDeviceMesh(mesh_shape)
@@ -442,6 +444,13 @@ def train_and_evaluate_spmd_model(
             py_utils.SyncGlobalDevices(
                 f'checkpointer:saved:{checkpoint_dir}:step-{step_i}')
 
+        # Get new model inputs
+        if step_i <= 5:
+          logging.info('step=`%d`: Retrieving model inputs.', step_i)
+        logging.debug('  Retrieving inputs.')
+        model_inputs = train_input_pipeline.get_next()
+        logging.debug('  Retrieved inputs.')
+
         logging.debug('  Performing train_step().')
         (partitioned_train_state, loss, metrics, per_example_out,
          summary_tensors) = train_step(partitioned_train_state, train_key,
@@ -513,10 +522,4 @@ def train_and_evaluate_spmd_model(
                 reshard_inputs=False)
             logging.debug('  Completed eval_step() runs on test splits.')
 
-        # Get new model inputs
-        if step_i <= 5:
-          logging.info('step=`%d`: Retrieving model inputs.', step_i)
-        logging.debug('  Retrieving inputs.')
-        model_inputs = train_input_pipeline.get_next()
-        logging.debug('  Retrieved inputs.')
         logging.debug('step=`%d`: End', step_i - 1)

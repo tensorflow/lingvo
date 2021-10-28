@@ -53,6 +53,7 @@ class BertDataset(base_model_params.BaseModelParams):
     p.mlm_augmenter.Set(mask_token_id=103, vocab_size=30522)
     p.num_samples = 156_725_653
     p.file_buffer_size = self.RANDOM_BUFFER_SIZE
+    p.is_training = True
     return p
 
   def _DatasetTest(self) -> InstantiableParams:
@@ -66,15 +67,12 @@ class BertDataset(base_model_params.BaseModelParams):
     num_local_devices = jax.local_device_count()
     p.batch_size = self.PERCORE_BATCH_SIZE * num_local_devices
     p.num_samples = 10_000
+    p.is_training = False
     return p
 
-  def Datasets(self) -> List[base_model_params.DatasetParams]:
+  def Datasets(self) -> List[InstantiableParams]:
     """Returns a list of dataset parameters."""
-    ds_params_train = base_model_params.DatasetParams().Set(
-        name='train', is_training=True, input_gen_params=self._DatasetTrain())
-    ds_params_test = base_model_params.DatasetParams().Set(
-        name='test', is_training=False, input_gen_params=self._DatasetTest())
-    return [ds_params_train, ds_params_test]
+    return [self._DatasetTrain(), self._DatasetTest()]
 
   def Task(self) -> InstantiableParams:
     raise NotImplementedError()

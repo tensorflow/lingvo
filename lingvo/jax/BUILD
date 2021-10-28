@@ -80,7 +80,10 @@ pytype_strict_library(
     name = "base_model_params",
     srcs = ["base_model_params.py"],
     srcs_version = "PY3",
-    deps = [":py_utils"],
+    deps = [
+        ":base_input",
+        ":py_utils",
+    ],
 )
 
 pytype_strict_library(

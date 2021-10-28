@@ -25,6 +25,45 @@ InstantiableParams = py_utils.InstantiableParams
 ParamsT = pytypes.ParamsT
 
 
+class BaseInputParams(InstantiableParams):
+  """A convenient base type for the params of a dataset."""
+
+  def __init__(self, cls) -> None:
+    super().__init__(cls)
+    self.Define('name', 'input', 'Name of this input dataset.')
+
+    self.Define(
+        'batch_size', None, 'The (Jax per process) Batch size. '
+        'Each call to get_next() returns a batch with this '
+        'batch size.')
+
+    # Sharding behavior.
+    self.Define(
+        'num_infeed_hosts', 1,
+        'Usually set to jax.process_count(). Implementation must '
+        'ensure that the data is sharded into this many shard.')
+    self.Define(
+        'infeed_host_index', 0,
+        'Usually set to jax.process_index(). Implementation must '
+        'ensure that each instance returns a shard with this index.')
+
+    # Deterministic randomness.
+    self.Define(
+        'input_random_seed', None,
+        'If set, implementation must ensure that this is used to seed '
+        'randomness, e.g. when shuffling in a deterministic manner.')
+
+    self.Define(
+        'reset_for_eval', False,
+        'If set, eval will continue until tf.errors.OutOfRange is raised, '
+        'and reset() will called for each eval. Implementation must ensure that'
+        ' all variant p.infeed_host_index instances raise after the same number'
+        ' of calls to get_next() to ensure synchronization across hosts. If not'
+        ' set, get_next() must never raise.')
+    self.Define('is_training', False,
+                'Whether or not this dataset is used for model traning.')
+
+
 class BaseInput:
   """Base class for Jax input classes.
 
@@ -40,38 +79,7 @@ class BaseInput:
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     """Common Params for all inputs."""
-    p = InstantiableParams(cls)
-    p.Define('name', 'input', 'Name of this input.')
-
-    p.Define(
-        'batch_size', None, 'The (Jax per process) Batch size. '
-        'Each call to get_next() returns a batch with this '
-        'batch size.')
-
-    # Sharding behavior.
-    p.Define(
-        'num_infeed_hosts', 1,
-        'Usually set to jax.process_count(). Implementation must '
-        'ensure that the data is sharded into this many shard.')
-    p.Define(
-        'infeed_host_index', 0,
-        'Usually set to jax.process_index(). Implementation must '
-        'ensure that each instance returns a shard with this index.')
-
-    # Deterministic randomness.
-    p.Define(
-        'input_random_seed', None,
-        'If set, implementation must ensure that this is used to seed '
-        'randomness, e.g. when shuffling in a deterministic manner.')
-
-    p.Define(
-        'reset_for_eval', False,
-        'If set, eval will continue until tf.errors.OutOfRange is raised, '
-        'and reset() will called for each eval. Implementation must ensure that'
-        ' all variant p.infeed_host_index instances raise after the same number'
-        ' of calls to get_next() to ensure synchronization across hosts. If not'
-        ' set, get_next() must never raise.')
-    return p
+    return BaseInputParams(cls)
 
   def __init__(self, p: ParamsT) -> None:
     if p.batch_size is None:

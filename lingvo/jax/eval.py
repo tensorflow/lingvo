@@ -55,7 +55,9 @@ def evaluate(model_name: str, job_log_dir: Optional[str],
   model_config = model_utils.get_model(model_name)()
   model_p = model_config.Task()
   eval_input_p = [v for v in model_config.Datasets() if not v.is_training]
-  eval_input_p = [eval_param.input_gen_params for eval_param in eval_input_p]
+  for inp in eval_input_p:
+    inp.num_infeed_hosts = jax.process_count()
+    inp.infeed_host_index = jax.process_index()
   if model_p.device_mesh is not None:
     evaluate_spmd_model(model_p, eval_input_p, job_log_dir,
                         multi_host_checkpointing)

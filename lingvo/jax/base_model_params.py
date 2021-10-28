@@ -18,32 +18,19 @@
 import abc
 from typing import List, Type, TypeVar
 
+from lingvo.jax import base_input
 from lingvo.jax import py_utils
 
-Params = py_utils.Params
 InstantiableParams = py_utils.InstantiableParams
 _BaseModelParamsT = TypeVar('_BaseModelParamsT', bound='BaseModelParams')
 BaseModelParamsT = Type[_BaseModelParamsT]
-
-
-class DatasetParams(Params):
-  """Encapsulates the parameters for a dataset split."""
-
-  def __init__(self) -> None:
-    """Constructor."""
-    super().__init__()
-    self.Define('name', None, 'Name of this dataset.')
-    self.Define('is_training', False,
-                'Whether or not this dataset is used for model traning.')
-    self.Define('input_gen_params', None,
-                'Params for instantiating an input generator.')
 
 
 class BaseModelParams(metaclass=abc.ABCMeta):
   """Encapsulates the parameters for a model."""
 
   @abc.abstractmethod
-  def Datasets(self) -> List[DatasetParams]:
+  def Datasets(self) -> List[base_input.BaseInputParams]:
     """Returns the list of dataset parameters."""
 
   @abc.abstractmethod

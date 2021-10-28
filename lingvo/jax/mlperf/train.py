@@ -75,18 +75,16 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
 
   model_p = model_config.Task()
   for inp in model_config.Datasets():
-    inp.input_gen_params.num_infeed_hosts = jax.process_count()
-    inp.input_gen_params.infeed_host_index = jax.process_index()
+    inp.num_infeed_hosts = jax.process_count()
+    inp.infeed_host_index = jax.process_index()
   train_input_p = [v for v in model_config.Datasets() if v.is_training]
   if len(train_input_p) != 1:
     raise ValueError(
         f'Expecting exactly one training split. Got `{len(train_input_p)}`.')
-  train_input_p = train_input_p[0].input_gen_params
+  train_input_p = train_input_p[0]
   eval_input_p = None
   if eval_on_test:
-    eval_input_p = [
-        v.input_gen_params for v in model_config.Datasets() if not v.is_training
-    ]
+    eval_input_p = [v for v in model_config.Datasets() if not v.is_training]
   if 'bucket_batch_limit' in train_input_p:
     logging.info('train_input_p.bucket_batch_limit: %s',
                  train_input_p.bucket_batch_limit)
@@ -473,6 +471,13 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
             py_utils.SyncGlobalDevices(
                 f'checkpointer:saved:{checkpoint_dir}:step-{step_i}')
 
+        # Get new model inputs
+        if step_i <= 5:
+          logging.info('step=`%d`: Retrieving model inputs.', step_i)
+        logging.debug('  Retrieving inputs.')
+        model_inputs = train_input_pipeline.get_next()
+        logging.debug('  Retrieved inputs.')
+
         logging.debug('  Performing train_step().')
         (partitioned_train_state, loss, metrics, per_example_out,
          summary_tensors) = train_step(partitioned_train_state, train_key,
@@ -551,11 +556,4 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
               break
             else:
               mllogger.log_block_start(step_i)
-
-        # Get new model inputs
-        if step_i <= 5:
-          logging.info('step=`%d`: Retrieving model inputs.', step_i)
-        logging.debug('  Retrieving inputs.')
-        model_inputs = train_input_pipeline.get_next()
-        logging.debug('  Retrieved inputs.')
         logging.debug('step=`%d`: End', step_i - 1)
