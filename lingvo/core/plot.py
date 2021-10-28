@@ -456,21 +456,27 @@ def AddMultiCurveSubplot(fig,
     fig: The Matplotlib figure.
     tensors: List of tensors of shape [batch, length]
     paddings: Paddings for 'tensors' with shape [batch, length] with 0. in valid
-      positions and 1. in invalid.
+      positions and 1. in invalid. Or list of padding tensors of same length as
+      tensors.
     labels: A list of tensor names (strings) of the same length as 'tensors'.
     xlabels: A string tensor of shape [batch] with an xlabel per batch.
     **kwargs: With optional, title, xlabel, ylabel, fontsize.
   """
   data = []
   row_labels = []
-  for t, l in zip(tensors, labels):
+  if isinstance(paddings, tf.Tensor):
+    paddings = [paddings] * len(tensors)
+  batch_size = py_utils.GetShape(paddings[0])[0]
+  max_lengths = tf.zeros([batch_size], tf.int32)
+  for t, l, p in zip(tensors, labels, paddings):
+    max_lengths = tf.maximum(max_lengths, py_utils.LengthsFromPaddings(p))
     if t is not None:
-      data.append(py_utils.ApplyPadding(paddings, t))
+      data.append(py_utils.ApplyPadding(p, t))
       row_labels.append(l)
   shape = py_utils.GetShape(data[0], 2)
   data = tf.reshape(tf.concat(data, -1), [shape[0], len(data), shape[1]])
 
-  args = [data, py_utils.LengthsFromPaddings(paddings)]
+  args = [data, max_lengths]
   if xlabels is not None:
     args.append(xlabels)
   fig.AddSubplot(
