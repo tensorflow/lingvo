@@ -4057,7 +4057,7 @@ def ApplyPadding(padding, x, padded=None, use_select=True, ensure_shape=True):
   return result
 
 
-def LengthsFromPaddings(paddings):
+def LengthsFromPaddings(paddings, dtype=None):
   """Computes lengths of each sequence in a batch, ignoring trailing padding.
 
   Note the following isn't guaranteed due to leading paddings.
@@ -4065,6 +4065,7 @@ def LengthsFromPaddings(paddings):
 
   Args:
     paddings: a tensor with shape [batch, length].
+    dtype: A type to optionally cast the result to.
 
   Returns:
     lengths tensor shaped [batch] containing the unpadded length of each
@@ -4084,7 +4085,10 @@ def LengthsFromPaddings(paddings):
       1 - tf.cast(same_as_last_element, tf.int32), axis=1) + 1
   # Special case for all 0 paddings.
   all_zero_paddings = tf.equal(tf.reduce_sum(1 - paddings, axis=1), 0)
-  return tf.where(all_zero_paddings, tf.zeros_like(length), length)
+  result = tf.where(all_zero_paddings, tf.zeros_like(length), length)
+  if dtype and result.dtype != dtype:
+    result = tf.cast(result, dtype)
+  return result
 
 
 def PaddingsFromLengths(lengths, maxlen=None):
