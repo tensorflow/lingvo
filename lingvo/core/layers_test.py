@@ -2583,6 +2583,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.use_block_diagonal_matmul = True
       params.bd_num_blocks = 4
+      params.use_bd_mix = True
       params.has_bias = True
 
       layers.ProjectionLayer(params)

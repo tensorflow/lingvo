@@ -888,6 +888,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p.Define(
         'bd_num_blocks', 1, 'Number of blocks for the block diagonal matmul '
         'which should divide both input_dim and output_dim')
+    p.Define('use_bd_mix', False,
+             'If True, add a linear mixing for block diagonal '
+             'matmul.')
     # Non-default quantization behaviour for weights.
     p.qdomain.Define('weight', None, 'Quantization domain for the weights.')
 
@@ -1075,7 +1078,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                                            p.name)
       self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
 
-    if p.use_block_diagonal_matmul:
+    if p.use_block_diagonal_matmul and p.use_bd_mix:
       self.CreateVariable('mix_kernel', mix_kernel_pc)
 
     if p.has_bias:
@@ -1155,10 +1158,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           w = theta.c_matrix_tfvar
       w = self.QWeight(w)
 
-      mix_kernel = theta.mix_kernel if p.use_block_diagonal_matmul else None
       proj_kwargs = {
-          'mix_kernel': mix_kernel
-      } if p.use_block_diagonal_matmul else {}
+          'mix_kernel': theta.mix_kernel
+      } if p.use_block_diagonal_matmul and p.use_bd_mix else {}
 
       if p.affine_last:
         # Reversed computation. Does not handle folding.
@@ -1250,10 +1252,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     else:
       # Updates moments based on a trial run of the kernel (without activation
       # function).
-      mix_kernel = theta.mix_kernel if p.use_block_diagonal_matmul else None
       proj_kwargs = {
-          'mix_kernel': mix_kernel
-      } if p.use_block_diagonal_matmul else {}
+          'mix_kernel': theta.mix_kernel
+      } if p.use_block_diagonal_matmul and p.use_bd_mix else {}
       raw_output = self._ApplyProjectionKernel(
           w, b, inputs, with_activation=False, **proj_kwargs)
       mean, variance, beta, gamma = self.bn.ComputeAndUpdateMoments(
