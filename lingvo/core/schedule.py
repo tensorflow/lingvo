@@ -167,6 +167,39 @@ class LinearSchedule(PolynomialSchedule):
     return super().Params().Set(power=1)
 
 
+class LinearRampupDecaySchedule(BaseSchedule):
+  """Linear learning rate schedule with linear decay.
+
+  If x < peak, interpolates linearly between (0, 0.0) and (peak, 1.0). If
+  x >= peak, interpolates linearly between (peak, 1.0) and (end, 0.0).
+
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('peak', 1, 'Number of steps at peak learning rate.')
+    p.Define('end', 2, 'Number of steps at end of learning rate schedule.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    rampup_schedule = LinearSchedule.Params().Set(
+        start=(0, 0.0),
+        limit=(p.peak, 1.0),
+    )
+    decay_schedule = LinearSchedule.Params().Set(
+        start=(p.peak, 1.0),
+        limit=(p.end, 0.0),
+    )
+    self.CreateChild('rampup_schedule', rampup_schedule)
+    self.CreateChild('decay_schedule', decay_schedule)
+
+  def Value(self):
+    return tf.minimum(self.rampup_schedule.Value(), self.decay_schedule.Value())
+
+
 class AnnealingSchedule(BaseSchedule):
   """Annealing schedule.
 
