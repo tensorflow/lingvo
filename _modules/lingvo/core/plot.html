@@ -521,21 +521,27 @@
 <span class="sd">    fig: The Matplotlib figure.</span>
 <span class="sd">    tensors: List of tensors of shape [batch, length]</span>
 <span class="sd">    paddings: Paddings for &#39;tensors&#39; with shape [batch, length] with 0. in valid</span>
-<span class="sd">      positions and 1. in invalid.</span>
+<span class="sd">      positions and 1. in invalid. Or list of padding tensors of same length as</span>
+<span class="sd">      tensors.</span>
 <span class="sd">    labels: A list of tensor names (strings) of the same length as &#39;tensors&#39;.</span>
 <span class="sd">    xlabels: A string tensor of shape [batch] with an xlabel per batch.</span>
 <span class="sd">    **kwargs: With optional, title, xlabel, ylabel, fontsize.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="n">row_labels</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="p">[</span><span class="n">paddings</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span>
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">max_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="n">max_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_lengths</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">t</span><span class="p">))</span>
+      <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">))</span>
       <span class="n">row_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
   <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
   <span class="n">data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
 
-  <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">paddings</span><span class="p">)]</span>
+  <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">,</span> <span class="n">max_lengths</span><span class="p">]</span>
   <span class="k">if</span> <span class="n">xlabels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xlabels</span><span class="p">)</span>
   <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">(</span>
