@@ -60,18 +60,17 @@ class BaseInput:
 
     # Deterministic randomness.
     p.Define(
-        'input_random_seed', None, 'If set, implementation must '
-        'ensure that this is used to seed randomness, e.g. '
-        'when shuffling in a deterministic manner.')
+        'input_random_seed', None,
+        'If set, implementation must ensure that this is used to seed '
+        'randomness, e.g. when shuffling in a deterministic manner.')
 
     p.Define(
         'reset_for_eval', False,
-        'If set, eval will continue until OutOfRange is raised, '
-        'and reset() will called for each eval. Implementation '
-        'must ensure that all variant p.infeed_host_index '
-        'instances raise after the same number of calls to '
-        'get_next() to ensure synchronization across hosts. '
-        'If not set, get_next() must never raise.')
+        'If set, eval will continue until tf.errors.OutOfRange is raised, '
+        'and reset() will called for each eval. Implementation must ensure that'
+        ' all variant p.infeed_host_index instances raise after the same number'
+        ' of calls to get_next() to ensure synchronization across hosts. If not'
+        ' set, get_next() must never raise.')
     return p
 
   def __init__(self, p: ParamsT) -> None:
@@ -97,6 +96,11 @@ class LingvoInputAdaptor(BaseInput):
   def Params(cls) -> InstantiableParams:
     p = super().Params()
     p.Define('input', None, 'Params of a Lingvo input generator.')
+    p.Define(
+        'num_batches', None,
+        'If specified and positive, raises tf.errors.OutOfRange after this many'
+        ' batches have been produced. This forces a raise after get_next() is '
+        'called this many times, to support p.reset_for_eval=True.')
     return p
 
   def __init__(self, p):
@@ -104,21 +108,38 @@ class LingvoInputAdaptor(BaseInput):
     p.reset_for_eval = False
     super().__init__(p)
 
+    self._initialize()
+
+  def _initialize(self) -> None:
+    p = self.params
     with py_utils.InfeedContextScope(
         infeed_host_index=p.infeed_host_index,
         num_infeed_hosts=p.num_infeed_hosts):
-      self.input = p.input.Instantiate()
+      self._input = p.input.Instantiate()
+    self._get_next_fn = tf.function(self._get_batch)
+    self._num_batches_produced = 0
 
-  @tf.function
   def _get_batch(self) -> NestedMap:
     p = self.params
     with py_utils.InfeedContextScope(
         infeed_host_index=p.infeed_host_index,
         num_infeed_hosts=p.num_infeed_hosts):
-      ret = self.input.GetPreprocessedInputBatch()
+      ret = self._input.GetPreprocessedInputBatch()
     # Remove unsupported string (byte) array from input.
     return ret.Filter(lambda v: v.dtype != tf.string)
 
   def get_next(self) -> NestedJTensor:
-    ret = self._get_batch()
+    p = self.params
+    if p.num_batches is not None and p.num_batches > 0:
+      if self._num_batches_produced >= p.num_batches:
+        raise tf.errors.OutOfRangeError(
+            node_def=None,
+            op=None,
+            message=f'num_batches exceeding {self._num_batches_produced}')
+      self._num_batches_produced += 1
+    ret = self._get_next_fn()
     return tf.nest.map_structure(lambda x: x.numpy(), ret)
+
+  def reset(self) -> None:
+    # reinstantiate the input and retrace self._get_batch.
+    self._initialize()

@@ -103,6 +103,7 @@ class InputTest(test_util.JaxTestCase):
     p = base_input.LingvoInputAdaptor.Params()
     p.input = LingvoInput.Params()
     p.input.file_pattern = 'tfrecord:' + tmp
+    p.reset_for_eval = True
     inp = p.Instantiate()
     for i in range(num_batches):
       batch = inp.get_next()
@@ -111,6 +112,27 @@ class InputTest(test_util.JaxTestCase):
     with self.assertRaisesRegex(tf.errors.OutOfRangeError,
                                 'SequentialRecordYielder reached 1 repeat'):
       inp.get_next()
+    inp.reset()
+    for i in range(num_batches):
+      batch = inp.get_next()
+      self.assertArraysEqual(
+          np.array([2 * i, 2 * i + 1], dtype=np.int32), batch.num)
+    del inp
+
+    # Test that we can force a raise earlier manually.
+    smaller_num_batches = 4
+    p2 = p.Copy().Set(num_batches=smaller_num_batches)
+    inp2 = p2.Instantiate()
+    for i in range(smaller_num_batches):
+      batch = inp2.get_next()
+      self.assertArraysEqual(
+          np.array([2 * i, 2 * i + 1], dtype=np.int32), batch.num)
+    with self.assertRaisesRegex(tf.errors.OutOfRangeError,
+                                f'num_batches exceeding {smaller_num_batches}'):
+      inp2.get_next()
+    inp2.reset()
+    batch = inp2.get_next()
+    self.assertArraysEqual(np.array([0, 1], dtype=np.int32), batch.num)
 
   def test_tfdata_input(self):
     p = TestInput.Params()
