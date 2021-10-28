@@ -2170,13 +2170,16 @@ issues.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.LengthsFromPaddings">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">LengthsFromPaddings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#LengthsFromPaddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.LengthsFromPaddings" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">LengthsFromPaddings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#LengthsFromPaddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.LengthsFromPaddings" title="Permalink to this definition"></a></dt>
 <dd><p>Computes lengths of each sequence in a batch, ignoring trailing padding.</p>
 <p>Note the following isn’t guaranteed due to leading paddings.
 PaddingsFromLengths(LengthsFromPaddings(x)) == x</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>paddings</strong> – a tensor with shape [batch, length].</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paddings</strong> – a tensor with shape [batch, length].</p></li>
+<li><p><strong>dtype</strong> – A type to optionally cast the result to.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>lengths tensor shaped [batch] containing the unpadded length of each
