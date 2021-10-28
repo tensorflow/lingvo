@@ -67,6 +67,9 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
       params_file.write(model_config.Task().ToText())
 
   model_p = model_config.Task()
+  for inp in model_config.Datasets():
+    inp.input_gen_params.num_infeed_hosts = jax.process_count()
+    inp.input_gen_params.infeed_host_index = jax.process_index()
   train_input_p = [v for v in model_config.Datasets() if v.is_training]
   if len(train_input_p) != 1:
     raise ValueError(
@@ -112,16 +115,9 @@ def train_and_evaluate_pmap(
   logging.info('Using pmap for data parallelism.')
   jax_model = model_p.Instantiate()
 
-  with py_utils.InfeedContextScope(
-      infeed_host_index=jax.process_index(),
-      num_infeed_hosts=jax.process_count()):
-    train_input_pipeline = train_input_p.Instantiate()
-    get_model_inputs = functools.partial(model_utils.get_model_inputs,
-                                         train_input_pipeline)
-    if eval_input_p is not None:
-      eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
-      get_eval_model_inputs = functools.partial(model_utils.get_model_inputs,
-                                                eval_input_pipelines)
+  train_input_pipeline = train_input_p.Instantiate()
+  if eval_input_p is not None:
+    eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
 
   # TODO(shafey): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
@@ -189,9 +185,9 @@ def train_and_evaluate_pmap(
         os.path.join(summary_base_dir, f'eval_test_{split}')
         for split, _ in enumerate(eval_input_p)
     ]
-    # Only run one eval step during training.
-    # TODO(yonghui): Allow user to customize this.
-    eval_num_steps = [-1 if p.resettable else 1 for p in eval_input_p]
+    # We either run one batch or one epoch (when supported by a resettable
+    # input) per eval step during training.
+    eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
 
   with summary_writer(
       summary_train_dir) as train_summary_writer, summary_writer(
@@ -225,7 +221,8 @@ def train_and_evaluate_pmap(
       if step_i <= 5:
         logging.info('step=`%d`: Retrieving model inputs.', step_i)
       logging.debug('  Retrieving inputs.')
-      model_inputs = tf.nest.map_structure(py_utils.Reshard, get_model_inputs())
+      model_inputs = tf.nest.map_structure(py_utils.Reshard,
+                                           train_input_pipeline.get_next())
       logging.debug('  Retrieved inputs.')
       logging.debug('  Performing train_step().')
       (replicated_model_states, loss, metrics, per_example_out,
@@ -261,7 +258,7 @@ def train_and_evaluate_pmap(
       if step_i % train_p.eval_interval_steps == 0:
         logging.debug('  Starting eval_step().')
         logging.debug('  Retrieving eval model_inputs.')
-        eval_inputs = get_model_inputs()
+        eval_inputs = train_input_pipeline.get_next()
         logging.debug('  Retrieved eval model_inputs.')
         logging.debug('  Performing eval_step() runs on training split.')
         eval_step_fn = functools.partial(p_eval_step,
@@ -294,18 +291,8 @@ def train_and_evaluate_pmap(
               summary_writer,
               summary_eval_dirs,
               step_i,
-              get_eval_model_inputs,
+              eval_input_pipelines,
               reshard_inputs=True)
-          for i, _ in enumerate(eval_input_pipelines):
-            if eval_input_p[i].resettable:
-              # We re-instantiate the input to reset it.
-              with py_utils.InfeedContextScope(
-                  infeed_host_index=jax.process_index(),
-                  num_infeed_hosts=jax.process_count()):
-                eval_input_pipelines[i] = eval_input_p[i].Instantiate()
-          if any([p.resettable for p in eval_input_p]):
-            get_eval_model_inputs = functools.partial(
-                model_utils.get_model_inputs, eval_input_pipelines)
         logging.debug('  Completed eval_step() runs on test splits.')
       logging.debug('step=`%d`: End', step_i - 1)
 
@@ -331,16 +318,9 @@ def train_and_evaluate_spmd_model(
     eval_input_p: Optional list of params for the eval input pipeline.
   """
   logging.info('Using SPMD sharding for model parallelism.')
-  with py_utils.InfeedContextScope(
-      infeed_host_index=jax.process_index(),
-      num_infeed_hosts=jax.process_count()):
-    train_input_pipeline = train_input_p.Instantiate()
-    get_model_inputs = functools.partial(model_utils.get_model_inputs,
-                                         train_input_pipeline)
-    if eval_input_p is not None:
-      eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
-      get_eval_model_inputs = functools.partial(model_utils.get_model_inputs,
-                                                eval_input_pipelines)
+  train_input_pipeline = train_input_p.Instantiate()
+  if eval_input_p is not None:
+    eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
 
   # TODO(bf-jax): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
@@ -364,7 +344,7 @@ def train_and_evaluate_spmd_model(
     py_utils.SyncGlobalDevices(f'checkpointer:makedirs:{checkpoint_dir}')
 
   logging.info('step=`0`: Retrieving model inputs.')
-  model_inputs = tf.nest.map_structure(lambda x: x.numpy(), get_model_inputs())
+  model_inputs = train_input_pipeline.get_next()
 
   def get_shape_dtype(x):
     # We assume all the hosts infeed the same data.
@@ -416,7 +396,7 @@ def train_and_evaluate_spmd_model(
       # Eval batch size per replica defaults to 1 when not resettable,
       # otherwise we exhaust all eval data (num_steps=-1).
       # TODO(yonghui): Allow user to customize this.
-      eval_num_steps = [-1 if p.resettable else 1 for p in eval_input_p]
+      eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
 
     with summary_writer(
         summary_train_dir) as train_summary_writer, summary_writer(
@@ -495,7 +475,7 @@ def train_and_evaluate_spmd_model(
         if step_i % train_p.eval_interval_steps == 0:
           logging.debug('  Starting eval_step().')
           logging.debug('  Retrieving eval model_inputs.')
-          eval_inputs = get_model_inputs()
+          eval_inputs = train_input_pipeline.get_next()
           logging.debug('  Retrieved eval model_inputs.')
           logging.debug('  Performing eval_step() runs on training split.')
           eval_step_fn = functools.partial(eval_step,
@@ -529,25 +509,14 @@ def train_and_evaluate_spmd_model(
                 summary_writer,
                 summary_eval_dirs,
                 step_i,
-                get_eval_model_inputs,
+                eval_input_pipelines,
                 reshard_inputs=False)
-            for i, _ in enumerate(eval_input_pipelines):
-              if eval_input_p[i].resettable:
-                # We re-instantiate the input to reset it.
-                with py_utils.InfeedContextScope(
-                    infeed_host_index=jax.process_index(),
-                    num_infeed_hosts=jax.process_count()):
-                  eval_input_pipelines[i] = eval_input_p[i].Instantiate()
-            if any([p.resettable for p in eval_input_p]):
-              get_eval_model_inputs = functools.partial(
-                  model_utils.get_model_inputs, eval_input_pipelines)
             logging.debug('  Completed eval_step() runs on test splits.')
 
         # Get new model inputs
         if step_i <= 5:
           logging.info('step=`%d`: Retrieving model inputs.', step_i)
         logging.debug('  Retrieving inputs.')
-        model_inputs = tf.nest.map_structure(lambda x: x.numpy(),
-                                             get_model_inputs())
+        model_inputs = train_input_pipeline.get_next()
         logging.debug('  Retrieved inputs.')
         logging.debug('step=`%d`: End', step_i - 1)

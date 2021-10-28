@@ -19,6 +19,7 @@ from typing import Any, Callable, List, Optional, Union
 
 from absl import logging
 import jax
+from lingvo.jax import base_input
 from lingvo.jax import base_model_params
 from lingvo.jax import model
 from lingvo.jax import py_utils
@@ -51,44 +52,6 @@ def get_model(model_name: str) -> BaseModelParamsT:
   return model_class
 
 
-@tf.function
-def get_model_inputs(input_pipeline: InputPipeline,
-                     split: Optional[int] = None) -> NestedMap:
-  """Gets the model inputs and filters keys of type `tf.string`.
-
-  Args:
-    input_pipeline: The input pipeline from which to fetch the inputs. This can
-      be a single `InstantiableParams` object, or it may be a list of params.
-    split: Optional split index to get the input batch from, if the input
-      pipeline is a list.
-
-  Returns:
-    The input batch with preprocessing and filtering applied.
-
-  Raises:
-    ValueError if the split is not provided when the input pipeline is a list or
-    if the split requested is larger than the length of the input pipeline.
-  """
-  pipeline = input_pipeline
-  if isinstance(input_pipeline, list):
-    if split is None:
-      raise ValueError('The split index must be provided when pipeline is a'
-                       'list of params.')
-    if split > len(input_pipeline):
-      raise ValueError('The length of the input pipeline is'
-                       f'{len(input_pipeline)} but the split requested is'
-                       f'{split}.')
-    pipeline = input_pipeline[split]
-
-  with py_utils.InfeedContextScope(
-      infeed_host_index=jax.process_index(),
-      num_infeed_hosts=jax.process_count()):
-    inputs = pipeline.GetPreprocessedInputBatch()
-  # Remove unsupported string (byte) array from input.
-  inputs = inputs.Filter(lambda v: v.dtype != tf.string)
-  return inputs
-
-
 def run_eval_one_step(eval_inputs: NestedJTensor,
                       eval_step: Callable[[NestedJTensor], Any],
                       reshard_inputs: Optional[bool] = False):
@@ -104,8 +67,6 @@ def run_eval_one_step(eval_inputs: NestedJTensor,
   """
   if reshard_inputs:
     eval_inputs = tf.nest.map_structure(py_utils.Reshard, eval_inputs)
-  else:
-    eval_inputs = tf.nest.map_structure(lambda x: x.numpy(), eval_inputs)
   loss, mean_metrics, _, summary_tensors = eval_step(eval_inputs)
   return loss, mean_metrics, summary_tensors
 
@@ -116,7 +77,7 @@ def run_eval_loop_over_test_splits(
     summary_writer: SummaryWriter,
     summary_eval_dirs: List[str],
     step: int,
-    model_inputs_fn: Callable[[Optional[int]], NestedMap],
+    model_inputs: List[base_input.BaseInput],
     reshard_inputs: Optional[bool] = False) -> List[Metrics]:
   """Run evaluation in a loop over a list of test sets.
 
@@ -127,7 +88,7 @@ def run_eval_loop_over_test_splits(
     summary_eval_dirs: The list of summary directories corresponding to the
       different test sets.
     step: The step at which we are evaling the model.
-    model_inputs_fn: Function which returns the inputs on being called.
+    model_inputs: List of BaseInput instances.
     reshard_inputs: Whether to reshard inputs.
 
   Returns:
@@ -152,12 +113,15 @@ def run_eval_loop_over_test_splits(
       step_num += 1
       try:
         eval_loss, eval_metrics, eval_summary_tensors = run_eval_one_step(
-            model_inputs_fn(split), eval_step, reshard_inputs=reshard_inputs)
+            model_inputs[split].get_next(),
+            eval_step,
+            reshard_inputs=reshard_inputs)
       except tf.errors.OutOfRangeError:
         if num_split_steps > 0:
           raise
         logging.info('Exhausted eval data split=%d after %d steps', split,
                      step_num - 1)
+        model_inputs[split].reset()
         break
       if unreplicate_metrics:
         # In pmap, metrics has already been aggregated on tpu.

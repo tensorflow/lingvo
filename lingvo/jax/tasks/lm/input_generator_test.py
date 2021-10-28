@@ -19,7 +19,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from jax import test_util
 from lingvo.core import test_helper
-from lingvo.jax import py_utils
 from lingvo.jax.tasks.lm import input_generator
 import numpy as np
 import tensorflow.compat.v2 as tf
@@ -30,8 +29,7 @@ class InputTest(test_util.JaxTestCase):
   # We use first id and seq length as fingerprint to identify each shard
   # has the right elements.
   def _get_first_id_and_lengths(self, batch):
-    return batch.labels.numpy()[:, 1], np.sum(
-        batch.segment_ids.numpy(), axis=1, dtype=np.int32)
+    return batch.labels[:, 1], np.sum(batch.segment_ids, axis=1, dtype=np.int32)
 
   def test_full(self):
     p = input_generator.TFRecordBertInput.Params()
@@ -42,7 +40,7 @@ class InputTest(test_util.JaxTestCase):
     p.read_as_eval_data = True
 
     inp = p.Instantiate()
-    batch = inp.GetPreprocessedInputBatch()
+    batch = inp.get_next()
     ids, lengths = self._get_first_id_and_lengths(batch)
     expected_ids = np.array(
         [2003, 1996, 1996, 2049, 3748, 1007, 4862, 1996, 2004, 2002],
@@ -63,8 +61,8 @@ class InputTest(test_util.JaxTestCase):
     p.eval_data_size = 10 if provide_data_size else 0
     sharded_inputs = [None] * 4
     for i in range(4):
-      with py_utils.InfeedContextScope(infeed_host_index=i, num_infeed_hosts=4):
-        sharded_inputs[i] = p.Instantiate()
+      local_p = p.Copy().Set(infeed_host_index=i, num_infeed_hosts=4)
+      sharded_inputs[i] = local_p.Instantiate()
 
     # This is the same as in test_full() above.
     expected_ids = np.array(
@@ -82,21 +80,13 @@ class InputTest(test_util.JaxTestCase):
 
     for i in [1, 3, 2, 0]:
       # each shard would produce one batch, and then out of range.
-      batch = sharded_inputs[i].GetPreprocessedInputBatch()
+      batch = sharded_inputs[i].get_next()
       ids, lengths = self._get_first_id_and_lengths(batch)
       self.assertArraysEqual(ids, expected_ids[i])
       self.assertArraysEqual(lengths, expected_lengths[i])
 
       with self.assertRaisesRegex(tf.errors.OutOfRangeError, 'End of sequence'):
-        sharded_inputs[i].GetPreprocessedInputBatch()
-
-  def test_shard_helper(self):
-    dataset = tf.data.Dataset.range(16)
-    with py_utils.InfeedContextScope(infeed_host_index=1, num_infeed_hosts=4):
-      self.assertEqual(
-          list(
-              input_generator.TFRecordBertInput.ShardData(
-                  dataset).as_numpy_iterator()), [1, 5, 9, 13])
+        sharded_inputs[i].get_next()
 
 
 if __name__ == '__main__':

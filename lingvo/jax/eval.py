@@ -16,7 +16,6 @@
 """Evaluation loop for lingvo Jax model."""
 
 import functools
-import math
 import os
 import time
 from typing import List, Optional
@@ -77,8 +76,6 @@ def evaluate_pmap_model(model_p: InstantiableParams,
   logging.info('Using pmap for data parallelism.')
   jax_model = model_p.Instantiate()
   eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
-  get_model_inputs = functools.partial(model_utils.get_model_inputs,
-                                       eval_input_pipelines)
   # TODO(shafey): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
   prng_key, init_key = jax.random.split(prng_key)
@@ -120,17 +117,8 @@ def evaluate_pmap_model(model_p: InstantiableParams,
   ]
   summary_writer = summary_utils.GetSummaryWriter
 
-  # Eval batch size per replica defaults to 1.
-  batch_size = [1] * len(eval_input_p)
-  for i, input_p in enumerate(eval_input_p):
-    if 'batch_size' in input_p:
-      batch_size[i] = input_p.batch_size
-    if 'bucket_batch_limit' in input_p:
-      batch_size[i] = input_p.bucket_batch_limit[0]
-  num_steps = [
-      math.ceil(input_p.num_samples / batch_size[i])
-      for i, input_p in enumerate(eval_input_p)
-  ]
+  # TODO(zhouwk): support eval for one epoch with Lingvo input as well.
+  num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
   last_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
   while True:
     step_i = int(jax.device_get(replicated_model_states.step)[0])
@@ -143,7 +131,7 @@ def evaluate_pmap_model(model_p: InstantiableParams,
         summary_writer,
         summary_eval_dirs,
         step_i,
-        get_model_inputs,
+        eval_input_pipelines,
         reshard_inputs=True)
     # If the last check point evaluated matches max train steps, exit.
     if last_checkpoint is not None:
@@ -179,8 +167,6 @@ def evaluate_spmd_model(model_p: InstantiableParams,
   """
   logging.info('Using SPMD sharding for model parallelism.')
   eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
-  get_model_inputs = functools.partial(model_utils.get_model_inputs,
-                                       eval_input_pipelines)
   # TODO(bf-jax): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
   prng_key, init_key = jax.random.split(prng_key)
@@ -196,8 +182,7 @@ def evaluate_spmd_model(model_p: InstantiableParams,
     y = jax.ShapeDtypeStruct(x.shape, x.dtype)
     return y
 
-  model_inputs = tf.nest.map_structure(lambda x: x.numpy(),
-                                       get_model_inputs(split=0))
+  model_inputs = eval_input_pipelines[0].get_next()
   inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs)
 
   mesh_shape = model_p.device_mesh.shape
@@ -229,17 +214,8 @@ def evaluate_spmd_model(model_p: InstantiableParams,
     ]
     summary_writer = summary_utils.GetSummaryWriter
 
-    # Eval batch size per replica defaults to 1.
-    batch_size = [1] * len(eval_input_p)
-    for i, input_p in enumerate(eval_input_p):
-      if 'batch_size' in input_p:
-        batch_size[i] = input_p.batch_size
-      if 'bucket_batch_limit' in eval_input_p:
-        batch_size[i] = input_p.bucket_batch_limit
-    num_steps = [
-        math.ceil(input_p.num_samples / batch_size[i])
-        for i, input_p in enumerate(eval_input_p)
-    ]
+    # TODO(zhouwk): support eval for one epoch with Lingvo input as well.
+    num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
     last_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
     while True:
       step_i = int(jax.device_get(partitioned_train_state.step))
@@ -253,7 +229,7 @@ def evaluate_spmd_model(model_p: InstantiableParams,
           summary_writer,
           summary_eval_dirs,
           step_i,
-          get_model_inputs,
+          eval_input_pipelines,
           reshard_inputs=False)
       # If the last check point evaluated matches max train steps, exit.
       if last_checkpoint is not None:

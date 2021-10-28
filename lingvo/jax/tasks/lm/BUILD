@@ -18,6 +18,7 @@ pytype_strict_library(
         "//lingvo/core:base_input_generator",
         "//lingvo/core:layers",
         "//lingvo/core/ops",
+        "//lingvo/jax:base_input",
         "//lingvo/jax:py_utils",
         # Implicit tensorflow dependency.
     ],

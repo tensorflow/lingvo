@@ -16,9 +16,9 @@
 """Language model input generator."""
 
 from absl import logging
-from lingvo.core import base_input_generator
 from lingvo.core import layers
 from lingvo.core import ops
+from lingvo.jax import base_input
 from lingvo.jax import py_utils
 import tensorflow.compat.v2 as tf
 
@@ -26,7 +26,7 @@ InstantiableParams = py_utils.InstantiableParams
 NestedMap = py_utils.NestedMap
 
 
-class TFRecordBertInput(base_input_generator.BaseInputGenerator):
+class TFRecordBertInput(base_input.BaseInput):
   """Input generator reading TFRecords of ids for MLPerf eval."""
 
   @classmethod
@@ -60,11 +60,12 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
         'the training data.')
     p.Define('mlm_augmenter', layers.MaskedLmDataAugmenter.Params(),
              'params for masking. Only used when p.remask=True.')
+    p.Define('num_samples', -1, 'For accounting purposes only.')
     return p
 
   def __init__(self, p: InstantiableParams) -> None:
     if p.read_as_eval_data:
-      p.resettable = True
+      p.reset_for_eval = True
       p.enable_packing = False
       p.remask = False
     if isinstance(p.input_file, str):
@@ -76,12 +77,20 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
       mlm_p.dtype = tf.float32
       mlm_p.fprop_dtype = tf.float32
       logging.info('mlm_p=%s', mlm_p.ToText())
-      self.CreateChild('mlm', mlm_p)
+      self.mlm = mlm_p.Instantiate()
 
-    self._dataset = self._Dataset()
+    self._dataset = self._gen_dataset()
     self._iterator = iter(self._dataset)
 
-  def _ParseRecord(self, record) -> NestedMap:
+  def get_next(self) -> NestedMap:
+    """Returns a batch with .labels, .masked_ids, and .masked_pos."""
+    ret = self._iterator.get_next()
+    return tf.nest.map_structure(lambda x: x.numpy(), ret)
+
+  def reset(self) -> None:
+    self._iterator = iter(self._dataset)
+
+  def _parse_record(self, record) -> NestedMap:
     """Reads and parses a single record."""
     p = self.params
     name_to_features = {
@@ -118,13 +127,13 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
 
     first_eos_idx = tf.where(tf.math.equal(ret.labels, p.eos_token_id))[0][0]
 
-    def _RemoveFirstEos(x):
+    def remove_first_eos(x):
       # We remove the element at position `first_eos_idx`, and pad with 0
       # to keep length unchanged.
       zero = tf.constant(0, shape=(1,), dtype=x.dtype)
       return tf.concat([x[:first_eos_idx], x[first_eos_idx + 1:], zero], axis=0)
 
-    ret = ret.Transform(_RemoveFirstEos)
+    ret = ret.Transform(remove_first_eos)
     ret.paddings = 1.0 - ret.segment_ids
     pos = tf.cast(tf.range(p.max_sequence_length), dtype=tf.float32)
     ret.segment_pos = tf.cast(ret.segment_ids * pos, dtype=tf.int32)
@@ -136,7 +145,7 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
       ret.masked_pos = new_masked_pos
     return ret
 
-  def _AllPaddingsBatch(self) -> NestedMap:
+  def _all_paddings_batch(self) -> NestedMap:
     p = self.params
     shape = [p.batch_size, p.max_sequence_length]
     ret = py_utils.NestedMap()
@@ -148,10 +157,9 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
     ret.paddings = 1.0 - ret.segment_ids
     return ret
 
-  def _PadToEvenLength(self, dataset: tf.data.Dataset) -> tf.data.Dataset:
+  def _pad_to_even_length(self, dataset: tf.data.Dataset) -> tf.data.Dataset:
     p = self.params
-    infeed_ctx = py_utils.GetInfeedContext()
-    n = infeed_ctx.num_infeed_hosts
+    n = p.num_infeed_hosts
     if n <= 1:
       return dataset
     # pad with all paddings batch so that the total number of elements in
@@ -167,12 +175,12 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
     per_host_batches = (total_batches + n - 1) // n
     num_pad_batches = per_host_batches * n - total_batches
     pad_batches = tf.data.Dataset.from_tensors(
-        self._AllPaddingsBatch()).repeat(num_pad_batches)
+        self._all_paddings_batch()).repeat(num_pad_batches)
     return dataset.concatenate(pad_batches)
 
-  def _PadToBatchSize(self, batch: NestedMap) -> NestedMap:
+  def _pad_to_batch_size(self, batch: NestedMap) -> NestedMap:
 
-    def Pad(key, t):
+    def pad(key, t):
       constant_v = 0
       if t.dtype.is_floating and key.endswith('.paddings'):
         constant_v = 1.0
@@ -180,31 +188,18 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
       padded = tf.pad(t, [[0, need], [0, 0]], 'CONSTANT', constant_v)
       return padded
 
-    return batch.TransformWithKey(Pad)
+    return batch.TransformWithKey(pad)
 
-  def _EnsureShape(self, batch: NestedMap) -> NestedMap:
+  def _ensure_shape(self, batch: NestedMap) -> NestedMap:
     p = self.params
 
-    def _Cast(x):
+    def ensure(x):
       x = tf.ensure_shape(x, [p.batch_size, p.max_sequence_length])
-      if x.dtype.is_floating:
-        x = tf.cast(x, py_utils.FPropDtype(p))
       return x
 
-    return batch.Transform(_Cast)
+    return batch.Transform(ensure)
 
-  @classmethod
-  def ShardData(cls, dataset: tf.data.Dataset) -> tf.data.Dataset:
-    """Helper method to shard data by filtering per each infeed host."""
-    infeed_ctx = py_utils.GetInfeedContext()
-    if infeed_ctx.num_infeed_hosts > 1:
-      shard_ids = tf.data.Dataset.range(infeed_ctx.num_infeed_hosts).repeat()
-      dataset = tf.data.Dataset.zip((shard_ids, dataset))
-      dataset = dataset.filter(
-          lambda id, _: id == infeed_ctx.infeed_host_index).map(lambda _, x: x)
-    return dataset
-
-  def _Dataset(self) -> tf.data.Dataset:
+  def _gen_dataset(self) -> tf.data.Dataset:
     p = self.params
     file_patterns = list(map(py_utils.ShardedFilePatternToGlob, p.input_file))
     files = tf.data.Dataset.list_files(file_patterns, shuffle=False)
@@ -212,7 +207,8 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
       # For training data, each host will only use a non-overlapping subset
       # of the training files. The caller should make sure the files are sharded
       # evenly and divisible by the number of infeed hosts.
-      files = self.ShardData(files)
+      files = files.shard(
+          num_shards=p.num_infeed_hosts, index=p.infeed_host_index)
       logging.info('Reading input from files: %s',
                    b', '.join(list(files.as_numpy_iterator())))
 
@@ -224,38 +220,34 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
     if shuffle:
       dataset = dataset.shuffle(p.file_buffer_size)
     dataset = dataset.repeat(-1 if shuffle else 1)
-    dataset = dataset.map(self._ParseRecord)
+    dataset = dataset.map(self._parse_record)
 
     if p.enable_packing:
       dataset = dataset.batch(
           p.prepacking_batch_size,
           drop_remainder=True,
           num_parallel_calls=tf.data.AUTOTUNE).map(
-              self._Pack,
+              self._pack,
               num_parallel_calls=tf.data.AUTOTUNE).unbatch().shuffle(
                   p.file_buffer_size)
 
     dataset = dataset.batch(batch_size=p.batch_size, drop_remainder=shuffle)
     if not shuffle:
-      dataset = dataset.map(self._PadToBatchSize)
+      dataset = dataset.map(self._pad_to_batch_size)
 
     if p.read_as_eval_data:
       # For the eval data, each infeed host will only see a non-overlapping
       # shard of the data, since eval data is always read sequentially.
       # We need to ensure that all hosts see an equal number of batches.
-      dataset = self._PadToEvenLength(dataset)
-      dataset = self.ShardData(dataset)
+      dataset = self._pad_to_even_length(dataset)
+      dataset = dataset.shard(
+          num_shards=p.num_infeed_hosts, index=p.infeed_host_index)
 
-    dataset = dataset.map(self._EnsureShape)
+    dataset = dataset.map(self._ensure_shape)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset
 
-  def _InputBatch(self):
-    """Returns a batch with .labels, .masked_ids, and .masked_pos."""
-    # NOTE: tf.executing_eagerly() is False here.
-    return self._iterator.get_next()
-
-  def _Pack(self, batch_in: NestedMap) -> NestedMap:
+  def _pack(self, batch_in: NestedMap) -> NestedMap:
     """Packs a given batch, which changes the batch size."""
 
     actual_seq_len = tf.math.reduce_sum(
@@ -267,17 +259,14 @@ class TFRecordBertInput(base_input_generator.BaseInputGenerator):
         packed_src_seq_len=self.params.max_sequence_length,
         packed_tgt_seq_len=self.params.max_sequence_length)
 
-    def ApplyPacking(x):
+    def apply_packing(x):
       return ops.apply_packing(x, 0, segment_ids, indices_in_input)
 
     batch_out = batch_in.DeepCopy()
-    batch_out = batch_out.Transform(ApplyPacking)
+    batch_out = batch_out.Transform(apply_packing)
     batch_out.paddings = ops.apply_packing(batch_in.paddings, 1, segment_ids,
                                            indices_in_input)
     batch_out.segment_ids = tf.cast(segment_ids, tf.float32)
     batch_out.segment_pos = segment_pos
 
     return batch_out
-
-  def Reset(self, session=None) -> None:
-    pass

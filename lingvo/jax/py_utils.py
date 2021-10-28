@@ -25,7 +25,6 @@ from lingvo.core import cluster
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 import numpy as np
-import tensorflow.compat.v2 as tf
 
 InfeedContextScope = cluster.InfeedContextScope
 GetInfeedContext = cluster.GetInfeedContext
@@ -68,10 +67,9 @@ jax.tree_util.register_pytree_node(NestedMap,
                                    lambda keys, xs: NestedMap(zip(keys, xs)))
 
 
-def Reshard(tensor: tf.Tensor) -> np.ndarray:
+def Reshard(array: jnp.ndarray) -> np.ndarray:
   """Reshards an input tensor according to the number of local devices."""
   num_devices = jax.local_device_count()
-  array = tensor.numpy()
   batch_size = array.shape[0]
   return np.reshape(array,
                     (num_devices, batch_size // num_devices) + array.shape[1:])

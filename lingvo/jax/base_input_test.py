@@ -36,7 +36,7 @@ class TestInput(base_input.BaseInput):
     self._dataset = None
     self._iter = None
 
-  def GetNext(self) -> py_utils.NestedMap:
+  def get_next(self) -> py_utils.NestedMap:
     assert tf.compat.v1.executing_eagerly()
     if self._dataset is None:
       self._dataset = self._GetDataset()
@@ -45,7 +45,7 @@ class TestInput(base_input.BaseInput):
     ret = self._iter.get_next()
     return tf.nest.map_structure(lambda x: x.numpy(), ret)
 
-  def Reset(self):
+  def reset(self):
     if self.params.reset_for_eval:
       self._iter = iter(self._dataset)
 
@@ -105,12 +105,12 @@ class InputTest(test_util.JaxTestCase):
     p.input.file_pattern = 'tfrecord:' + tmp
     inp = p.Instantiate()
     for i in range(num_batches):
-      batch = inp.GetNext()
+      batch = inp.get_next()
       self.assertArraysEqual(
           np.array([2 * i, 2 * i + 1], dtype=np.int32), batch.num)
     with self.assertRaisesRegex(tf.errors.OutOfRangeError,
                                 'SequentialRecordYielder reached 1 repeat'):
-      inp.GetNext()
+      inp.get_next()
 
   def test_tfdata_input(self):
     p = TestInput.Params()
@@ -128,22 +128,22 @@ class InputTest(test_util.JaxTestCase):
     num_train_batches = 10
     for _ in range(num_train_batches):
       for i in range(p.num_infeed_hosts):
-        batch = train[i].GetNext()
+        batch = train[i].get_next()
         self.assertTrue(np.all(batch.data % p.num_infeed_hosts == i))
 
     num_test_batches = 2
     for _ in range(num_test_batches):
       for i in range(p.num_infeed_hosts):
-        batch = test[i].GetNext()
+        batch = test[i].get_next()
         self.assertTrue(np.all(batch.data % p.num_infeed_hosts == i))
     for i in range(p.num_infeed_hosts):
       with self.assertRaisesRegex(tf.errors.OutOfRangeError, 'End of sequence'):
-        batch = test[i].GetNext()
+        batch = test[i].get_next()
 
-    # input works again after Reset().
+    # input works again after reset().
     for i in range(p.num_infeed_hosts):
-      test[i].Reset()
-      batch = test[i].GetNext()
+      test[i].reset()
+      batch = test[i].get_next()
       self.assertEqual(batch.data[0, 0] % p.num_infeed_hosts, i)
 
 

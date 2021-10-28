@@ -185,6 +185,7 @@ pytype_strict_library(
     srcs = ["model_utils.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_input",
         ":base_model_params",
         ":model",
         ":py_utils",
@@ -236,7 +237,6 @@ pytype_strict_library(
         "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -296,6 +296,7 @@ pytype_strict_library(
     srcs = ["train.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_input",
         ":checkpoints",
         ":model_utils",
         ":partitioning",

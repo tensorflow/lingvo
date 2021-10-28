@@ -29,23 +29,23 @@ class BaseInput:
   """Base class for Jax input classes.
 
   During Lingvo Jax's train, on each host an input instance will be
-  created (input_p.Instantiate()), and then GetNext() is iteratively
+  created (input_p.Instantiate()), and then get_next() is iteratively
   called in eager mode to generate one batch of data for each step
   of train/eval/etc.
 
-  If supported, for eval, Reset() is called after each eval step.
+  If supported, for eval, reset() is called after each eval step.
   See p.reset_for_eval below.
   """
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     """Common Params for all inputs."""
     p = InstantiableParams(cls)
     p.Define('name', 'input', 'Name of this input.')
 
     p.Define(
         'batch_size', None, 'The (Jax per process) Batch size. '
-        'Each call to GetNext() returns a batch with this '
+        'Each call to get_next() returns a batch with this '
         'batch size.')
 
     # Sharding behavior.
@@ -67,11 +67,11 @@ class BaseInput:
     p.Define(
         'reset_for_eval', False,
         'If set, eval will continue until OutOfRange is raised, '
-        'and Reset() will called for each eval. Implementation '
+        'and reset() will called for each eval. Implementation '
         'must ensure that all variant p.infeed_host_index '
         'instances raise after the same number of calls to '
-        'GetNext() to ensure synchronization across hosts. '
-        'If not set, GetNext() must never raise.')
+        'get_next() to ensure synchronization across hosts. '
+        'If not set, get_next() must never raise.')
     return p
 
   def __init__(self, p: ParamsT) -> None:
@@ -83,10 +83,10 @@ class BaseInput:
   def params(self) -> ParamsT:
     return self._params
 
-  def GetNext(self) -> NestedJTensor:
+  def get_next(self) -> NestedJTensor:
     raise NotImplementedError
 
-  def Reset(self) -> None:
+  def reset(self) -> None:
     pass
 
 
@@ -110,7 +110,7 @@ class LingvoInputAdaptor(BaseInput):
       self.input = p.input.Instantiate()
 
   @tf.function
-  def _GetBatch(self) -> NestedMap:
+  def _get_batch(self) -> NestedMap:
     p = self.params
     with py_utils.InfeedContextScope(
         infeed_host_index=p.infeed_host_index,
@@ -119,6 +119,6 @@ class LingvoInputAdaptor(BaseInput):
     # Remove unsupported string (byte) array from input.
     return ret.Filter(lambda v: v.dtype != tf.string)
 
-  def GetNext(self) -> NestedJTensor:
-    ret = self._GetBatch()
+  def get_next(self) -> NestedJTensor:
+    ret = self._get_batch()
     return tf.nest.map_structure(lambda x: x.numpy(), ret)
