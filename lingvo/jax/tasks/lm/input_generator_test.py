@@ -37,7 +37,6 @@ class InputTest(test_util.JaxTestCase):
     p.input_file = test_helper.test_src_dir_path(
         'jax/tasks/lm/testdata/tfrecords')
     p.batch_size = 10
-    p.read_as_eval_data = True
 
     inp = p.Instantiate()
     batch = inp.get_next()
@@ -57,7 +56,6 @@ class InputTest(test_util.JaxTestCase):
     p.input_file = test_helper.test_src_dir_path(
         'jax/tasks/lm/testdata/tfrecords')
     p.batch_size = 4
-    p.read_as_eval_data = True
     p.eval_data_size = 10 if provide_data_size else 0
     sharded_inputs = [None] * 4
     for i in range(4):

@@ -39,13 +39,9 @@ class TFRecordBertInput(base_input.BaseInput):
     p.Define('max_predictions_per_seq', 76,
              'Maximum number of tokens that can be masked per example.')
     p.Define('eos_token_id', 102, 'id for EOS token.')
-    p.Define(
-        'read_as_eval_data', False,
-        'Whether to read the input as eval data: it disables features '
-        'like data shuffling and repeat.')
     p.Define('eval_data_size', 10000,
              'The number of examples in the eval data. Set to 0 for unknown.')
-    p.Define('file_buffer_size', 1000000,
+    p.Define('file_buffer_size', 10000,
              'How many records are buffered for random shuffling.')
     p.Define('enable_packing', False,
              'Whether to pack multiple documents on the same row.')
@@ -64,7 +60,7 @@ class TFRecordBertInput(base_input.BaseInput):
     return p
 
   def __init__(self, p: InstantiableParams) -> None:
-    if p.read_as_eval_data:
+    if not p.is_training:
       p.reset_for_eval = True
       p.enable_packing = False
       p.remask = False
@@ -203,22 +199,30 @@ class TFRecordBertInput(base_input.BaseInput):
     p = self.params
     file_patterns = list(map(py_utils.ShardedFilePatternToGlob, p.input_file))
     files = tf.data.Dataset.list_files(file_patterns, shuffle=False)
-    if not p.read_as_eval_data:
+    if p.is_training:
       # For training data, each host will only use a non-overlapping subset
-      # of the training files. The caller should make sure the files are sharded
-      # evenly and divisible by the number of infeed hosts.
+      # of the training files.
+      # This logic is specific to the mlperf training data, which has exactly
+      # 1024 shards. Other implementations might opt to shard after reading
+      # all input files, in which case one must not shuffle before sharding.
+      num_files = len(list(files.as_numpy_iterator()))
+      if num_files % p.num_infeed_hosts != 0:
+        raise ValueError(
+            'Input files sharding not supported: we require the number of files'
+            f' {num_files} to evenly divide num_infeed_hosts='
+            f'{p.num_infeed_hosts} so we can shard at file level.')
       files = files.shard(
           num_shards=p.num_infeed_hosts, index=p.infeed_host_index)
       logging.info('Reading input from files: %s',
                    b', '.join(list(files.as_numpy_iterator())))
 
-    shuffle = (not p.read_as_eval_data)
+    shuffle = p.is_training
     dataset = files.interleave(
         tf.data.TFRecordDataset,
         cycle_length=tf.data.AUTOTUNE if shuffle else 1,
         num_parallel_calls=tf.data.AUTOTUNE if shuffle else 1)
     if shuffle:
-      dataset = dataset.shuffle(p.file_buffer_size)
+      dataset = dataset.shuffle(p.file_buffer_size, seed=p.input_random_seed)
     dataset = dataset.repeat(-1 if shuffle else 1)
     dataset = dataset.map(self._parse_record)
 
@@ -229,13 +233,13 @@ class TFRecordBertInput(base_input.BaseInput):
           num_parallel_calls=tf.data.AUTOTUNE).map(
               self._pack,
               num_parallel_calls=tf.data.AUTOTUNE).unbatch().shuffle(
-                  p.file_buffer_size)
+                  p.file_buffer_size, seed=p.input_random_seed)
 
     dataset = dataset.batch(batch_size=p.batch_size, drop_remainder=shuffle)
     if not shuffle:
       dataset = dataset.map(self._pad_to_batch_size)
 
-    if p.read_as_eval_data:
+    if not p.is_training:
       # For the eval data, each infeed host will only see a non-overlapping
       # shard of the data, since eval data is always read sequentially.
       # We need to ensure that all hosts see an equal number of batches.

@@ -74,6 +74,14 @@ class BaseInput:
 
   If supported, for eval, reset() is called after each eval step.
   See p.reset_for_eval below.
+
+  A tf.data based input should inherit this class directly and implement
+  get_next() and reset(). For an example of how to handle sharding for both
+  training and eval data, please refer to the implementation of
+  TFRecordBertInput at tasks/lm/input_generator.py.
+
+  If there is already an Lingvo TF input generator that one would like to
+  use directly, please use LingvoInputAdaptor below.
   """
 
   @classmethod
@@ -98,7 +106,23 @@ class BaseInput:
 
 
 class LingvoInputAdaptor(BaseInput):
-  """Syntactic sugar for adapting a Lingvo style input for Jax."""
+  """Syntactic sugar for adapting a Lingvo style input for Jax.
+
+  This should be able to wrap any Lingvo TF input generator to be used in
+  Lingvo Jax. Remember to set `p.is_training=True` on the training dataset.
+
+  Some usage caveats below.
+
+  For eval, `p.num_samples` or other similar params like samples_per_summary are
+  completely ignored by Lingvo Jax. Caller should instead set `p.num_batches` to
+  (p.num_samples // batch_size) with `p.reset_for_eval=True` so that each eval
+  step reads (approximately) one epoch of eval data.
+
+  When multiple infeed hosts are used, one must take care to ensure that the
+  Lingvo input either already uses InfeedContextScope for proper sharding, or
+  alternatively do not use the same random seed on all hosts. In other words,
+  one must avoid the failure case where each host emits identical training data.
+  """
 
   @classmethod
   def Params(cls) -> InstantiableParams:

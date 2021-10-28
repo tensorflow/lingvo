@@ -45,7 +45,6 @@ class BertDataset(base_model_params.BaseModelParams):
     p = input_generator.TFRecordBertInput.Params()
     p.name = 'train'
     p.input_file = 'gs://mlperf_v1_1/bert/train'
-    p.read_as_eval_data = False
     p.enable_packing = True
     num_local_devices = jax.local_device_count()
     p.batch_size = self.PERCORE_BATCH_SIZE * num_local_devices
@@ -61,7 +60,6 @@ class BertDataset(base_model_params.BaseModelParams):
     p = input_generator.TFRecordBertInput.Params()
     p.name = 'test'
     p.input_file = 'gs://mlperf_v1_1/bert/eval'
-    p.read_as_eval_data = True
     p.enable_packing = False
     p.resettable = True
     num_local_devices = jax.local_device_count()

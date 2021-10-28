@@ -33,15 +33,11 @@ class TestInput(base_input.BaseInput):
 
   def __init__(self, params):
     super().__init__(params)
-    self._dataset = None
-    self._iter = None
+    self._dataset = self._get_dataset()
+    self._iter = iter(self._dataset)
 
   def get_next(self) -> py_utils.NestedMap:
     assert tf.compat.v1.executing_eagerly()
-    if self._dataset is None:
-      self._dataset = self._GetDataset()
-    if self._iter is None:
-      self._iter = iter(self._dataset)
     ret = self._iter.get_next()
     return tf.nest.map_structure(lambda x: x.numpy(), ret)
 
@@ -49,18 +45,18 @@ class TestInput(base_input.BaseInput):
     if self.params.reset_for_eval:
       self._iter = iter(self._dataset)
 
-  def _ToNestedMap(self, x) -> py_utils.NestedMap:
+  def _to_nested_map(self, x) -> py_utils.NestedMap:
     t = tf.ones(shape=[4], dtype=tf.int32) * tf.cast(x, dtype=tf.int32)
     return py_utils.NestedMap(data=t)
 
-  def _GetDataset(self):
+  def _get_dataset(self):
     p = self.params
     d = tf.data.Dataset.range(10)
     d = d.shard(p.num_infeed_hosts, p.infeed_host_index)
     d = d.shuffle(10, seed=p.input_random_seed).repeat(-1)
     if p.reset_for_eval:
       d = d.take(p.batch_size * 2)
-    d = d.map(self._ToNestedMap)
+    d = d.map(self._to_nested_map)
     d = d.batch(p.batch_size)
     return d
 
