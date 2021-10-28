@@ -28,6 +28,11 @@ pytype_strict_binary(
 )
 
 pytype_strict_library(
+    name = "asserts",
+    srcs = ["asserts.py"],
+)
+
+pytype_strict_library(
     name = "base_layer",
     srcs = ["base_layer.py"],
     srcs_version = "PY3",
@@ -335,6 +340,16 @@ pytype_strict_library(
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
         # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "asserts_test",
+    srcs = ["asserts_test.py"],
+    deps = [
+        ":asserts",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
     ],
 )
 
