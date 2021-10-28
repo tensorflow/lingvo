@@ -232,6 +232,39 @@
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">power</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="LinearRampupDecaySchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupDecaySchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupDecaySchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Linear learning rate schedule with linear decay.</span>
+
+<span class="sd">  If x &lt; peak, interpolates linearly between (0, 0.0) and (peak, 1.0). If</span>
+<span class="sd">  x &gt;= peak, interpolates linearly between (peak, 1.0) and (end, 0.0).</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LinearRampupDecaySchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupDecaySchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;peak&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of steps at peak learning rate.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of steps at end of learning rate schedule.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">rampup_schedule</span> <span class="o">=</span> <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">peak</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">decay_schedule</span> <span class="o">=</span> <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">peak</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">end</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;rampup_schedule&#39;</span><span class="p">,</span> <span class="n">rampup_schedule</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;decay_schedule&#39;</span><span class="p">,</span> <span class="n">decay_schedule</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LinearRampupDecaySchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupDecaySchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rampup_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">())</span></div></div>
+
+
 <div class="viewcode-block" id="AnnealingSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.AnnealingSchedule">[docs]</a><span class="k">class</span> <span class="nc">AnnealingSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Annealing schedule.</span>
 
