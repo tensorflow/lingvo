@@ -5110,7 +5110,7 @@ def _DefineDefun(fwd, fwd_sig, bak=None, bak_as_function=False, device=None):
     - captured_inputs: Implicit inputs captured by `fwd`.
   """
   assert fwd is not None
-  noinline = not use_xla()
+  noinline = False
 
   if fwd_sig is None:
     fwd_sig = []
