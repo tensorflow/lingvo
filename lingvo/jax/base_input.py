@@ -116,7 +116,8 @@ class LingvoInputAdaptor(BaseInput):
   For eval, `p.num_samples` or other similar params like samples_per_summary are
   completely ignored by Lingvo Jax. Caller should instead set `p.num_batches` to
   (p.num_samples // batch_size) with `p.reset_for_eval=True` so that each eval
-  step reads (approximately) one epoch of eval data.
+  step reads (approximately) one epoch of eval data. This might not be needed if
+  the input already is finite (e.g. with p.repeat_count=1).
 
   When multiple infeed hosts are used, one must take care to ensure that the
   Lingvo input either already uses InfeedContextScope for proper sharding, or
@@ -144,10 +145,12 @@ class LingvoInputAdaptor(BaseInput):
 
   def _initialize(self) -> None:
     p = self.params
+    # We make self.input public so that users can access its methods like
+    # IdsToStrings if needed.
     with py_utils.InfeedContextScope(
         infeed_host_index=p.infeed_host_index,
         num_infeed_hosts=p.num_infeed_hosts):
-      self._input = p.input.Instantiate()
+      self.input = p.input.Instantiate()
     self._get_next_fn = tf.function(self._get_batch)
     self._num_batches_produced = 0
 
@@ -156,7 +159,7 @@ class LingvoInputAdaptor(BaseInput):
     with py_utils.InfeedContextScope(
         infeed_host_index=p.infeed_host_index,
         num_infeed_hosts=p.num_infeed_hosts):
-      ret = self._input.GetPreprocessedInputBatch()
+      ret = self.input.GetPreprocessedInputBatch()
     # Remove unsupported string (byte) array from input.
     return ret.Filter(lambda v: v.dtype != tf.string)
 
