@@ -53,6 +53,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         'use_stop_fn', False, 'If True, use a stop_fn that causes the '
         'sampler to early terminate when all samples in the batch end with '
         'the target_eos_id token.')
+    p.Define('num_hyps_per_beam', 1, 'Number of samples')
     p.name = 'target_sequence_sampler'
     return p
 
@@ -93,13 +94,14 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     p = self.params
     assert p.temperature > 0
     assert p.top_k >= 0
+    assert p.num_hyps_per_beam >= 1
     if getattr(encoder_outputs, 'segment_id', 1) is None:
       # Remove None values, which are not supported by recurrent.
       del encoder_outputs['segment_id']
     # init_state_callback may modify 'encoder_outputs', e.g., by inserting
     # 'packed_src'.
-    bs_result, bs_state = init_state_callback(
-        decoder_theta, encoder_outputs, num_hyps_per_beam=1)
+    bs_result, bs_state = init_state_callback(decoder_theta, encoder_outputs,
+                                              p.num_hyps_per_beam)
     # 'recurrent_theta' represents all cross-timestep information used by the
     # recurrent loop below, including layer theta and encoder outputs.
     recurrent_theta = py_utils.NestedMap(
@@ -125,7 +127,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
             recurrent_theta.encoder_outputs,
             tf.expand_dims(state0.ids, 1),  # [batch, 1].
             state0.bs_state,
-            num_hyps_per_beam=1)
+            num_hyps_per_beam=p.num_hyps_per_beam)
         batch = tf.shape(bs_result.log_probs)[0]
         state1 = py_utils.NestedMap(timestep=state0.timestep + 1)
         state1.logits = bs_result.log_probs

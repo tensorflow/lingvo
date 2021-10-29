@@ -698,6 +698,35 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
     expected_ids = [[0, 12, 12, 13, 5], [12, 10, 15, 1, 2]]
     self.assertAllEqual(expected_ids, actual_sample.ids)
 
+  def testSampleTargetSequencesWithNumHypsPerBeam4(self, dtype=tf.float32):
+    with self.session(use_gpu=True), self.SetEval(True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      src_batch = 2
+      p = self._DecoderParams(dtype=dtype)
+      p.target_sequence_sampler.num_hyps_per_beam = 4
+      if p.cls != decoder.MTDecoderV1:
+        tf.logging.info('Skipping testSampleTargetSequences for %s', p.cls)
+        return
+      p.rnn_cell_dim = 32
+      dec = p.Instantiate()
+      encoder_outputs, _ = self._Inputs(dtype=dtype)
+      sample = dec.SampleTargetSequences(
+          dec.theta,
+          encoder_outputs,
+          random_seed=tf.constant(1, dtype=tf.int32))
+      self.evaluate(tf.global_variables_initializer())
+      actual_sample = self.evaluate(sample)
+
+    self.assertTupleEqual((src_batch * 4, p.target_seq_len),
+                          actual_sample.ids.shape)
+    self.assertTupleEqual((src_batch * 4, p.target_seq_len),
+                          actual_sample.paddings.shape)
+
+    expected_ids = [[0, 12, 12, 13, 5], [12, 10, 15, 1, 2], [0, 10, 2, 2, 2],
+                    [11, 15, 13, 11, 13], [5, 1, 8, 4, 5], [0, 0, 9, 9, 0],
+                    [15, 11, 13, 2, 2], [5, 7, 3, 13, 11]]
+    self.assertAllEqual(expected_ids, actual_sample.ids)
+
 
 class TransformerDecoderTestCaseBase(test_utils.TestCase):
 
@@ -1344,12 +1373,14 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                           expected_values,
                           dtype=tf.float32,
                           init_step_ids=False,
-                          has_task_ids=False):
+                          has_task_ids=False,
+                          num_hyps_per_beam=1):
     tf.random.set_seed(_TF_RANDOM_SEED)
     src_batch = 4
     src_time = 5
     p = self._DecoderParams(dtype=dtype, init_step_ids=init_step_ids)
-    p.beam_search.num_hyps_per_beam = 1
+    p.target_sequence_sampler.num_hyps_per_beam = num_hyps_per_beam
+    p.beam_search.num_hyps_per_beam = num_hyps_per_beam
     p.beam_search.coverage_penalty = 0.0
     p.beam_search.length_normalization = 0
     dec = p.Instantiate()
@@ -1361,12 +1392,11 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       self.evaluate(tf.global_variables_initializer())
       actual_decode = self.evaluate(decode)
 
-    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+    self.assertTupleEqual((src_batch, num_hyps_per_beam),
                           actual_decode.topk_hyps.shape)
-    self.assertTupleEqual(
-        (src_batch * p.beam_search.num_hyps_per_beam, src_time),
-        actual_decode.topk_ids.shape)
-    self.assertTupleEqual((src_batch * p.beam_search.num_hyps_per_beam,),
+    self.assertTupleEqual((src_batch * num_hyps_per_beam, src_time),
+                          actual_decode.topk_ids.shape)
+    self.assertTupleEqual((src_batch * num_hyps_per_beam,),
                           actual_decode.topk_lens.shape)
 
     self.assertAllEqual(expected_values['topk_ids'], actual_decode.topk_ids)
@@ -1387,6 +1417,33 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         dtype=dtype,
         init_step_ids=True,
         has_task_ids=False)
+
+  def testSampleSequenceDecodeWithNumHypsPerBeam4(self, dtype=tf.float32):
+    expected_values = {}
+    expected_values['topk_ids'] = [[4, 3, 12, 7, 11], [17, 3, 0, 19, 12],
+                                   [1, 5, 2, 2, 2], [17, 19, 3, 3, 7],
+                                   [17, 7, 2, 2, 2], [17, 3, 3, 7, 1],
+                                   [1, 3, 13, 11, 4], [17, 2, 2, 2, 2],
+                                   [17, 2, 2, 2, 2], [4, 19, 9, 3, 9],
+                                   [17, 19, 3, 3, 19], [9, 5, 13, 3, 5],
+                                   [17, 1, 1, 16, 4], [1, 3, 15, 4, 12],
+                                   [12, 4, 17, 17, 1], [1, 15, 13, 1, 19]]
+
+    expected_values['topk_lens'] = [
+        5, 5, 3, 5, 3, 5, 5, 2, 2, 5, 5, 5, 5, 5, 5, 5
+    ]
+    expected_values['topk_scores'] = [
+        -6.9854527, -6.9844713, -4.0615487, -6.1022224, -3.7143679, -6.1905904,
+        -6.2516303, -2.4897237, -2.8999124, -6.6332593, -6.7769165, -7.70388,
+        -8.281982, -8.747569, -8.139862, -8.613339
+    ]
+
+    self._testSampleSequence(
+        expected_values=expected_values,
+        dtype=dtype,
+        init_step_ids=True,
+        has_task_ids=False,
+        num_hyps_per_beam=4)
 
 
 class InsertionDecoderTest(TransformerDecoderTestCaseBase):
