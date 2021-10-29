@@ -672,6 +672,9 @@
       <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">gshard_builder</span><span class="o">.</span><span class="n">MoEBuilder</span><span class="p">):</span>
         <span class="c1"># TODO(rpang): make users call ConfigMoEParams directly.</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ConfigMoEParams</span><span class="p">(</span><span class="n">tpl</span><span class="o">=</span><span class="n">fflayer_tpl</span><span class="p">,</span> <span class="o">**</span><span class="n">config_kwargs</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">use_block_diagonal_matmul_pl</span><span class="p">:</span>
+        <span class="c1"># Override params other than block_diag_matmul options.</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ConfigFFLayer</span><span class="p">(</span><span class="n">tpl</span><span class="o">=</span><span class="n">fflayer_tpl</span><span class="p">,</span> <span class="o">**</span><span class="n">config_kwargs</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">fflayer_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fflayer_hidden_dim</span>
         <span class="k">assert</span> <span class="n">fflayer_activation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fflayer_activation</span>
