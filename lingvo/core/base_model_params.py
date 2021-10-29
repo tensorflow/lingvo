@@ -20,6 +20,7 @@ from lingvo import datasets
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import hyperparams
+from lingvo.core import program as program_lib
 
 
 # Define some type aliases for common types returned by SingleTaskModelParams
@@ -115,7 +116,12 @@ class SingleTaskModelParams(_BaseModelParams):
 
   def ProgramSchedule(self):
     """Returns a schedule for the Executor."""
-    raise NotImplementedError('Abstract method')
+    return program_lib.SimpleProgramScheduleForTask(
+        'Train',
+        train_steps_per_loop=self.Task().train.tpu_steps_per_loop,
+        eval_dataset_names=[],
+        eval_steps_per_loop=0,
+        decode_steps_per_loop=0)
 
 
 class MultiTaskModelParams(_BaseModelParams):
