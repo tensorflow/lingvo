@@ -243,6 +243,8 @@ class Controller(base_runner.BaseRunner):
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+    if py_utils.IsEagerMode():
+      raise RuntimeError('The controller job is not supported in eager mode.')
     self._job_name = 'controller'
     assert not self._model_task_name, 'Controller needs all tasks!'
     self._control_dir = os.path.join(self._logdir, 'control')
