@@ -23,7 +23,7 @@ _TASK_ROOT = 'lingvo.jax.tasks'
 _TASK_DIRS = ('lm', 'test')
 
 
-def ImportAllParams(require_success: bool = True) -> None:
+def import_all_params(require_success: bool = True) -> None:
   """Imports all ModelParams to add them to the global registry.
 
   Because the BUILD rule may selectively depend on a subset of task params,
@@ -40,7 +40,7 @@ def ImportAllParams(require_success: bool = True) -> None:
                      'are linked into the binary.')
 
 
-def ImportParams(model_name: str, require_success: bool = True) -> Any:
+def import_params(model_name: str, require_success: bool = True) -> Any:
   """Attempts to only import files that may contain the model."""
   return lingvo_model_imports.ImportParams(
       model_name, _TASK_ROOT, require_success=require_success)

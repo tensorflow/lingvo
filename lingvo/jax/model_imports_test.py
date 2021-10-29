@@ -19,5 +19,5 @@ from absl.testing import absltest
 from lingvo.jax import model_imports
 
 if __name__ == '__main__':
-  model_imports.ImportAllParams()
+  model_imports.import_all_params()
   absltest.main()

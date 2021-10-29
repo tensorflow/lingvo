@@ -32,13 +32,13 @@ import numpy as np
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
+weight_params = py_utils.weight_params
 InstantiableParams = py_utils.InstantiableParams
 AuxLossContext = py_utils.AuxLossContext
 JTensor = pytypes.JTensor
 
 
-def _GetLargeNegativeNumber(dtype):
+def _get_large_negative_number(dtype):
   # -0.7 is a float64 in Jax. Explicit cast output to target dtype.
   if jnp.issubdtype(dtype, jnp.inexact):
     dtype_max = jnp.finfo(dtype).max
@@ -49,7 +49,7 @@ def _GetLargeNegativeNumber(dtype):
   return jnp.asarray(-0.7 * dtype_max, dtype=dtype)
 
 
-def CausalMask(input_t: JTensor) -> JTensor:
+def causal_mask(input_t: JTensor) -> JTensor:
   """Computes and returns causal mask.
 
   Args:
@@ -61,7 +61,7 @@ def CausalMask(input_t: JTensor) -> JTensor:
   """
   assert (input_t.dtype == jnp.float32 or
           input_t.dtype == jnp.bfloat16), input_t.dtype
-  large_negative_number = _GetLargeNegativeNumber(input_t.dtype)
+  large_negative_number = _get_large_negative_number(input_t.dtype)
   t = input_t.shape[1]
   col_idx = jnp.tile(jnp.arange(t)[jnp.newaxis, :], [t, 1])
   row_idx = jnp.tile(jnp.arange(t)[:, jnp.newaxis], [1, t])
@@ -69,9 +69,9 @@ def CausalMask(input_t: JTensor) -> JTensor:
   return mask[jnp.newaxis, jnp.newaxis, :, :]
 
 
-def SegmentMask(segment_ids: JTensor,
-                source_segment_ids: Optional[JTensor] = None,
-                dtype: jnp.dtype = jnp.float32) -> JTensor:
+def segment_mask(segment_ids: JTensor,
+                 source_segment_ids: Optional[JTensor] = None,
+                 dtype: jnp.dtype = jnp.float32) -> JTensor:
   """Computes (non-causal) segment mask.
 
   Args:
@@ -94,12 +94,12 @@ def SegmentMask(segment_ids: JTensor,
   # [B, T, S].
   mask = jnp.not_equal(segment_ids_1, segment_ids_2).astype(dtype)
   mask = jnp.expand_dims(mask, 1)
-  mask *= _GetLargeNegativeNumber(dtype)
+  mask *= _get_large_negative_number(dtype)
   return mask
 
 
-def CausalSegmentMask(segment_ids: JTensor,
-                      dtype: jnp.dtype = jnp.float32) -> JTensor:
+def causal_segment_mask(segment_ids: JTensor,
+                        dtype: jnp.dtype = jnp.float32) -> JTensor:
   """Computes the masks which combines causal masking and segment masks.
 
   Args:
@@ -111,15 +111,15 @@ def CausalSegmentMask(segment_ids: JTensor,
     A JTensor of shape [B, 1, T, T].
   """
   # [B, 1, T, T]
-  segment_mask = SegmentMask(segment_ids, dtype=dtype)
+  segment_mask_t = segment_mask(segment_ids, dtype=dtype)
   # [1, 1, T, T]
   b, t = segment_ids.shape
-  causal_mask = CausalMask(jnp.zeros([b, t, 1], dtype=dtype))
-  return jnp.minimum(segment_mask, causal_mask)
+  causal_mask_t = causal_mask(jnp.zeros([b, t, 1], dtype=dtype))
+  return jnp.minimum(segment_mask_t, causal_mask_t)
 
 
-def ConvertPaddingsToMask(paddings: JTensor,
-                          dtype: jnp.dtype = jnp.float32) -> JTensor:
+def convert_paddings_to_mask(paddings: JTensor,
+                             dtype: jnp.dtype = jnp.float32) -> JTensor:
   """Converts binary paddings to a logit mask ready to add to attention matrix.
 
   Args:
@@ -130,11 +130,11 @@ def ConvertPaddingsToMask(paddings: JTensor,
     A JTensor of shape [B, 1, 1, T] ready to add to attention logits.
   """
   attention_mask = paddings[:, jnp.newaxis, jnp.newaxis, :]
-  attention_mask *= _GetLargeNegativeNumber(dtype)
+  attention_mask *= _get_large_negative_number(dtype)
   return attention_mask
 
 
-def Shift1D(inputs: JTensor, offset: int, axis: int):
+def shift_1d(inputs: JTensor, offset: int, axis: int):
   """Shift the input tensor by offset in the dimension axis.
 
     To shift right the offset is positive and the input is padded at the
@@ -174,14 +174,14 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     p.Define('dim', 0, 'Number of individual dims .')
     return p
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
-    pc = WeightParams(
+    pc = weight_params(
         shape=[p.dim], init=WeightInit.Constant(0.0), dtype=p.dtype)
-    self.CreateVariable('per_dim_scale', pc)
+    self.create_variable('per_dim_scale', pc)
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Return theta.scale * inputs / jnp.sqrt(dim)).
 
     Args:
@@ -224,26 +224,26 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     p.Define('use_bias', True, 'If to add bias in projection.')
     return p
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
     if p.device_mesh is not None:
       assert wp.wt is not None, self.path
-    pc = WeightParams(
+    pc = weight_params(
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
         init=p.params_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=wp.wt)
-    self.CreateVariable('w', pc)
+    self.create_variable('w', pc)
     if p.use_bias:
       if p.is_output_projection:
         if p.device_mesh is not None:
           bias_split_dims_mapping = [wp.wt[0]]
         else:
           bias_split_dims_mapping = None
-        pc_bias = WeightParams(
+        pc_bias = weight_params(
             shape=[p.input_dim],
             init=WeightInit.Constant(0.0),
             dtype=p.dtype,
@@ -254,15 +254,15 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
           bias_split_dims_mapping = [wp.wt[1], wp.wt[2]]
         else:
           bias_split_dims_mapping = None
-        pc_bias = WeightParams(
+        pc_bias = weight_params(
             shape=[p.num_heads, p.dim_per_head],
             init=WeightInit.Constant(0.0),
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=bias_split_dims_mapping)
-      self.CreateVariable('b', pc_bias)
+      self.create_variable('b', pc_bias)
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Computes the multi headed projection for inputs.
 
     Args:
@@ -287,7 +287,7 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     shape = inputs.shape
     rank = len(shape)
 
-    inputs = self._CastToFPropDtype(inputs)
+    inputs = self._cast_to_fprop_dtype(inputs)
 
     if p.is_output_projection:
       assert shape[-2:] == (p.num_heads, p.dim_per_head)
@@ -322,8 +322,8 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
     p.Define('use_bias', True, 'If to add bias in projection.')
     return p
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
     if p.device_mesh is not None:
@@ -337,26 +337,26 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
       weight_split_dims_mapping = None
       bias_split_dims_mapping = None
     # Combined weight for q, k, v projections.
-    pc = WeightParams(
+    pc = weight_params(
         shape=[3, p.input_dim, p.num_heads, p.dim_per_head],
         init=p.params_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=weight_split_dims_mapping)
-    self.CreateVariable('w', pc)
+    self.create_variable('w', pc)
     if p.use_bias:
       # Combined bias weight for q, k, v projections.
-      pc_bias = WeightParams(
+      pc_bias = weight_params(
           shape=[3, p.num_heads, p.dim_per_head],
           init=WeightInit.Constant(0.0),
           dtype=p.dtype,
           device_mesh=p.device_mesh,
           tensor_split_dims_mapping=bias_split_dims_mapping)
-      self.CreateVariable('b', pc_bias)
+      self.create_variable('b', pc_bias)
 
   # TODO(zhangqiaorjc): Take query, key, value as inputs to support all
   # attentions.
-  def FProp(self, theta: NestedMap,
+  def fprop(self, theta: NestedMap,
             inputs: JTensor) -> Tuple[JTensor, JTensor, JTensor]:
     """Computes the QKV projection for inputs.
 
@@ -520,7 +520,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       assert p.weight_split_dims_mapping is not None
       assert p.activation_split_dims_mapping is not None
 
-    def ProjectInput(input_dim):
+    def project_input(input_dim):
       proj_p = p.proj_tpl.Copy().Set(
           input_dim=input_dim,
           num_heads=p.num_heads,
@@ -529,7 +529,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       proj_p.weight_split_dims_mapping.wt = wp.proj
       return proj_p
 
-    def CombinedQKVProjectInput(input_dim):
+    def combined_qkv_project_input(input_dim):
       proj_p = p.combined_qkv_proj_tpl.Copy().Set(
           input_dim=input_dim,
           num_heads=p.num_heads,
@@ -552,31 +552,32 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     if p.combine_qkv:
       assert key_input_dim == value_input_dim
       assert key_input_dim == query_input_dim
-      self.CreateChild('combined_qkv', CombinedQKVProjectInput(query_input_dim))
+      self.create_child('combined_qkv',
+                        combined_qkv_project_input(query_input_dim))
     else:
-      self.CreateChild('key', ProjectInput(key_input_dim))
-      self.CreateChild('query', ProjectInput(query_input_dim))
-      self.CreateChild('value', ProjectInput(value_input_dim))
+      self.create_child('key', project_input(key_input_dim))
+      self.create_child('query', project_input(query_input_dim))
+      self.create_child('value', project_input(value_input_dim))
 
     if p.use_rotary_position_emb:
       pos_emb_p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params()
       pos_emb_p.embedding_dims = dim_per_head
-      self.CreateChild('rotary_position_emb', pos_emb_p)
+      self.create_child('rotary_position_emb', pos_emb_p)
 
     if p.dconv_qkv:
       causal_dconv_p = CausalDepthwiseConv1D.Params().Set(
           kernel_size=p.dconv_kernel_size,
           hidden_dims=[p.num_heads, dim_per_head],
       )
-      self.CreateChild('dconv_q', causal_dconv_p)
-      self.CreateChild('dconv_k', causal_dconv_p)
-      self.CreateChild('dconv_v', causal_dconv_p)
+      self.create_child('dconv_q', causal_dconv_p)
+      self.create_child('dconv_k', causal_dconv_p)
+      self.create_child('dconv_v', causal_dconv_p)
 
     if p.internal_enable_per_dim_scale:
-      self.CreateChild('per_dim_scale',
-                       PerDimScaleLayer.Params().Set(dim=dim_per_head))
-    self.CreateChild('atten_dropout',
-                     p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
+      self.create_child('per_dim_scale',
+                        PerDimScaleLayer.Params().Set(dim=dim_per_head))
+    self.create_child('atten_dropout',
+                      p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
     # Setting is_output_projection=True to set the projection direction
     # from hidden dim to input dim. Output projection follows query_input_dim.
     post_proj_p = p.proj_tpl.Copy().Set(
@@ -586,9 +587,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         is_output_projection=True,
         use_bias=p.use_bias)
     post_proj_p.weight_split_dims_mapping.wt = wp.proj
-    self.CreateChild('post', post_proj_p)
+    self.create_child('post', post_proj_p)
 
-  def _ShardLbnh(self, x: JTensor) -> JTensor:
+  def _shard_lbnh(self, x: JTensor) -> JTensor:
     """Shards tensors of shape [l, b, n, h].
 
     Transformer states cached during decoding are of shape [l, b, n, h]. Note
@@ -609,9 +610,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       return x
     assert len(ap.blnh) == 4
     lbnh = [ap.blnh[1], ap.blnh[0], ap.blnh[2], ap.blnh[3]]
-    return base_layer.MaybeShard(x, lbnh, p.mesh_axis_names)
+    return base_layer.maybe_shard(x, lbnh, p.mesh_axis_names)
 
-  def _ShardBnh(self, x: JTensor) -> JTensor:
+  def _shard_bnh(self, x: JTensor) -> JTensor:
     """Shards tensors of shape [b, n, h].
 
     Single step decoder output are of shape [b, n, h].
@@ -630,21 +631,21 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       return x
     assert len(ap.blnh) == 4
     bnh = [ap.blnh[0], ap.blnh[2], ap.blnh[3]]
-    return base_layer.MaybeShard(x, bnh, p.mesh_axis_names)
+    return base_layer.maybe_shard(x, bnh, p.mesh_axis_names)
 
-  def _ShardBlnh(self, x: JTensor) -> JTensor:
+  def _shard_blnh(self, x: JTensor) -> JTensor:
     """Adds sharding annotations to tensors of shape [b, l, n, h]."""
     p = self.params
     ap = p.activation_split_dims_mapping
-    return base_layer.MaybeShard(x, ap.blnh, p.mesh_axis_names)
+    return base_layer.maybe_shard(x, ap.blnh, p.mesh_axis_names)
 
-  def _ShardBld(self, x: JTensor) -> JTensor:
+  def _shard_bld(self, x: JTensor) -> JTensor:
     """Adds sharding annotations to tensors of shape [b, l, d]."""
     p = self.params
     ap = p.activation_split_dims_mapping
-    return base_layer.MaybeShard(x, ap.bld, p.mesh_axis_names)
+    return base_layer.maybe_shard(x, ap.bld, p.mesh_axis_names)
 
-  def _ShardBd(self, x: JTensor) -> JTensor:
+  def _shard_bd(self, x: JTensor) -> JTensor:
     """Adds sharding annotations to tensors of shape [b, d]."""
     p = self.params
     ap = p.activation_split_dims_mapping
@@ -654,9 +655,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       return x
     assert len(ap.bld) == 3
     bd = [ap.bld[0], ap.bld[2]]
-    return base_layer.MaybeShard(x, bd, p.mesh_axis_names)
+    return base_layer.maybe_shard(x, bd, p.mesh_axis_names)
 
-  def _CapLogits(self, logits: JTensor) -> JTensor:
+  def _cap_logits(self, logits: JTensor) -> JTensor:
     """When enabled, caps the logits by p.atten_logit_cap with tanh."""
     p = self.params
     if not p.atten_logit_cap or p.atten_logit_cap <= 0.:
@@ -668,8 +669,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     logits = cap * jnp.tanh(logits / cap)
     return logits
 
-  def _DotAtten(self, theta: NestedMap, query: JTensor, key: JTensor,
-                value: JTensor, atten_mask: JTensor) -> Tuple[JTensor, JTensor]:
+  def _dot_atten(self, theta: NestedMap, query: JTensor, key: JTensor,
+                 value: JTensor,
+                 atten_mask: JTensor) -> Tuple[JTensor, JTensor]:
     """Main attention function.
 
     Args:
@@ -690,42 +692,42 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     """
     # Add key sharding annotations.
     p = self.params
-    query = self._ShardBlnh(query)
-    key = self._ShardBlnh(key)
-    value = self._ShardBlnh(value)
+    query = self._shard_blnh(query)
+    key = self._shard_blnh(key)
+    value = self._shard_blnh(value)
 
     b, s, n, h = key.shape
-    base_layer.AssertHasShape(value, [b, s, n, h])
-    base_layer.AssertHasShape(query, [b, -1, n, h])
+    base_layer.assert_has_shape(value, [b, s, n, h])
+    base_layer.assert_has_shape(query, [b, -1, n, h])
     t = query.shape[1]
     # If only padding bias is supplied, then atten_mask can be [B, 1, 1, S]
     # since each target token is prohibited from attending to the same set of
     # source tokens. In this case tiling is inefficient and unnecessary.
     # If there is no padding mask, and only causal mask then the shape can be
     # [1, 1, T, S]
-    base_layer.AssertHasShape(atten_mask, [-1, 1, -1, s])
+    base_layer.assert_has_shape(atten_mask, [-1, 1, -1, s])
     assert atten_mask.shape[2] in [1, t]
     assert atten_mask.shape[0] in [1, b]
     if p.internal_enable_per_dim_scale:
-      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
+      query = self.per_dim_scale.fprop(theta.per_dim_scale, query)
     logits = jnp.einsum('BTNH,BSNH->BNTS', query, key)
     logits = checkpoint_name(logits, 'logits')
-    logits = self._CapLogits(logits)
+    logits = self._cap_logits(logits)
     # Attention softmax is always carried out in fp32.
     logits = logits.astype(jnp.float32)
     # Apply attention masking
     padded_logits = logits + atten_mask.astype(jnp.float32)
     probs = jax.nn.softmax(padded_logits, axis=-1).astype(key.dtype)
     # Apply attention dropout.
-    probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
+    probs = self.atten_dropout.fprop(theta.atten_dropout, probs)
     # Compute the attention context.
     encoded = jnp.einsum('BNTS,BSNH->BTNH', probs, value)
     encoded = checkpoint_name(encoded, 'context')
-    encoded = self._ShardBlnh(encoded)
+    encoded = self._shard_blnh(encoded)
     return encoded, probs
 
-  def _DotAttenOneStep(self, theta: NestedMap, query: JTensor, key: JTensor,
-                       value: JTensor, atten_mask: JTensor) -> JTensor:
+  def _dot_atten_one_step(self, theta: NestedMap, query: JTensor, key: JTensor,
+                          value: JTensor, atten_mask: JTensor) -> JTensor:
     """Dot attention function for queries with 1 time step.
 
     Args:
@@ -746,20 +748,20 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
     # TODO(yonghui): switch the cached states to batch major.
     p = self.params
-    key = self._ShardLbnh(key)
-    value = self._ShardLbnh(value)
+    key = self._shard_lbnh(key)
+    value = self._shard_lbnh(value)
     # query is 3d.
-    query = self._ShardBnh(query)
+    query = self._shard_bnh(query)
 
     s, b, n, h = key.shape
-    base_layer.AssertHasShape(value, [s, b, n, h])
-    base_layer.AssertHasShape(query, [b, n, h])
-    base_layer.AssertHasShape(atten_mask, [-1, 1, s])
+    base_layer.assert_has_shape(value, [s, b, n, h])
+    base_layer.assert_has_shape(query, [b, n, h])
+    base_layer.assert_has_shape(atten_mask, [-1, 1, s])
     assert atten_mask.shape[0] in [1, b]
     if p.internal_enable_per_dim_scale:
-      query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
+      query = self.per_dim_scale.fprop(theta.per_dim_scale, query)
     logits = jnp.einsum('BNH,SBNH->BNS', query, key)
-    logits = self._CapLogits(logits)
+    logits = self._cap_logits(logits)
     # Attention softmax is always carried out in fp32.
     logits = logits.astype(jnp.float32)
     # Apply attention masking
@@ -768,10 +770,10 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     probs = jax.nn.softmax(padded_logits, axis=-1).astype(key.dtype)
     # Compute the attention context.
     encoded = jnp.einsum('BNS,SBNH->BNH', probs, value)
-    encoded = self._ShardBnh(encoded)
+    encoded = self._shard_bnh(encoded)
     return encoded, probs
 
-  def FProp(self, theta: NestedMap, query_vec: JTensor, key_vec: JTensor,
+  def fprop(self, theta: NestedMap, query_vec: JTensor, key_vec: JTensor,
             value_vec: JTensor, atten_mask: JTensor) -> Tuple[JTensor, JTensor]:
     """Computes the value vector given the current query output.
 
@@ -798,39 +800,39 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       assert query_vec is value_vec
       # Project inputs to key, value and query using a combined weight for
       # faster performance on TPU.
-      query_proj, key_proj, value_proj = self.combined_qkv.FProp(
+      query_proj, key_proj, value_proj = self.combined_qkv.fprop(
           theta.combined_qkv, query_vec)
     else:
       # Project inputs to key, value and query, respectively has shape
       # [B, S, N, H], [B, S, N, H], and [B, T, N, H].
-      query_proj = self.query.FProp(theta.query, query_vec)
-      key_proj = self.key.FProp(theta.key, key_vec)
-      value_proj = self.value.FProp(theta.value, value_vec)
+      query_proj = self.query.fprop(theta.query, query_vec)
+      key_proj = self.key.fprop(theta.key, key_vec)
+      value_proj = self.value.fprop(theta.value, value_vec)
 
     # Apply position embeddings if present.
     if p.use_rotary_position_emb:
-      query_proj = self.rotary_position_emb.FProp(theta.rotary_position_emb,
+      query_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
                                                   query_proj)
-      key_proj = self.rotary_position_emb.FProp(theta.rotary_position_emb,
+      key_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
                                                 key_proj)
 
     if p.dconv_qkv:
-      query_proj = self.dconv_q.FProp(theta.dconv_q, query_proj, axis=1)
-      key_proj = self.dconv_k.FProp(theta.dconv_k, key_proj, axis=1)
-      value_proj = self.dconv_v.FProp(theta.dconv_v, value_proj, axis=1)
+      query_proj = self.dconv_q.fprop(theta.dconv_q, query_proj, axis=1)
+      key_proj = self.dconv_k.fprop(theta.dconv_k, key_proj, axis=1)
+      value_proj = self.dconv_v.fprop(theta.dconv_v, value_proj, axis=1)
 
-    encoded, atten_probs = self._DotAtten(theta, query_proj, key_proj,
-                                          value_proj, atten_mask)
+    encoded, atten_probs = self._dot_atten(theta, query_proj, key_proj,
+                                           value_proj, atten_mask)
 
     # Post projection
-    encoded = self.post.FProp(theta.post, encoded)
-    encoded = self._ShardBld(encoded)
+    encoded = self.post.fprop(theta.post, encoded)
+    encoded = self._shard_bld(encoded)
     encoded = checkpoint_name(encoded, 'out_proj')
 
     return encoded, atten_probs
 
-  def InitStates(self, theta: NestedMap, target_batch_size: int,
-                 target_max_length: int) -> NestedMap:
+  def init_states(self, theta: NestedMap, target_batch_size: int,
+                  target_max_length: int) -> NestedMap:
     """Initializes cache for autoregressive cached decoding."""
     p = self.params
     num_heads = p.num_heads
@@ -844,13 +846,13 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     value = jnp.zeros(
         shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
         dtype=dtype)
-    key = self._ShardLbnh(key)
-    value = self._ShardLbnh(value)
+    key = self._shard_lbnh(key)
+    value = self._shard_lbnh(value)
     return NestedMap(key=key, value=value)
 
-  def ExtendStep(self, theta: NestedMap, cached_states: NestedMap,
-                 query_vec: JTensor, *, atten_mask: JTensor,
-                 time_step: JTensor) -> Tuple[JTensor, NestedMap]:
+  def extend_step(self, theta: NestedMap, cached_states: NestedMap,
+                  query_vec: JTensor, *, atten_mask: JTensor,
+                  time_step: JTensor) -> Tuple[JTensor, NestedMap]:
     """Computes the value vector given the query of the current step.
 
     This function is used by autoregressive decoding.
@@ -881,21 +883,21 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     if p.combine_qkv:
       # Project inputs to key, value and query using a combined weight for
       # faster performance on TPU.
-      query_proj, new_key_proj, new_value_proj = self.combined_qkv.FProp(
+      query_proj, new_key_proj, new_value_proj = self.combined_qkv.fprop(
           theta.combined_qkv, query_vec)
     else:
       # Project inputs to key, value and query. Each has shape [B, N, H].
       # If the query has a prefix, e.g., in decoding with depth-wise convolution
       # then each tensor has shape [B, P, N, H].
-      new_key_proj = self.key.FProp(theta.key, query_vec)
-      new_value_proj = self.value.FProp(theta.value, query_vec)
-      query_proj = self.query.FProp(theta.query, query_vec)
+      new_key_proj = self.key.fprop(theta.key, query_vec)
+      new_value_proj = self.value.fprop(theta.value, query_vec)
+      query_proj = self.query.fprop(theta.query, query_vec)
 
     # Apply position embeddings if present.
     if p.use_rotary_position_emb:
-      query_proj = self.rotary_position_emb.ExtendStep(
+      query_proj = self.rotary_position_emb.extend_step(
           theta.rotary_position_emb, query_proj, time_step)
-      new_key_proj = self.rotary_position_emb.ExtendStep(
+      new_key_proj = self.rotary_position_emb.extend_step(
           theta.rotary_position_emb, new_key_proj, time_step)
 
     if p.dconv_qkv:
@@ -907,27 +909,28 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       # convolution window and the current position being decoded is always the
       # last one (due to causal window).
       step = window_size - 1
-      new_key_proj = self.dconv_k.ExtendStep(
+      new_key_proj = self.dconv_k.extend_step(
           theta.dconv_k, new_key_proj, axis=1, step=step)
-      new_value_proj = self.dconv_v.ExtendStep(
+      new_value_proj = self.dconv_v.extend_step(
           theta.dconv_v, new_value_proj, axis=1, step=step)
-      query_proj = self.dconv_q.ExtendStep(
+      query_proj = self.dconv_q.extend_step(
           theta.dconv_q, query_proj, axis=1, step=step)
 
     extended_key = cached_states.key.at[time_step].set(new_key_proj)
     extended_value = cached_states.value.at[time_step].set(new_value_proj)
 
-    extended_key = self._ShardLbnh(extended_key)
-    extended_value = self._ShardLbnh(extended_value)
+    extended_key = self._shard_lbnh(extended_key)
+    extended_value = self._shard_lbnh(extended_value)
     updated_state = NestedMap(key=extended_key, value=extended_value)
 
-    encoded, atten_prob = self._DotAttenOneStep(theta, query_proj, extended_key,
-                                                extended_value, atten_mask)
+    encoded, atten_prob = self._dot_atten_one_step(theta, query_proj,
+                                                   extended_key, extended_value,
+                                                   atten_mask)
     # TODO(yonghui): return atten_probs back to the caller.
     del atten_prob
     # Post projection.
-    encoded = self.post.FProp(theta.post, encoded)
-    encoded = self._ShardBd(encoded)
+    encoded = self.post.fprop(theta.post, encoded)
+    encoded = self._shard_bd(encoded)
     return updated_state, encoded
 
 
@@ -959,8 +962,8 @@ class CausalDepthwiseConv1D(base_layer.BaseLayer):
     else:
       assert p.hidden_dims > 0
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
     for i in range(p.kernel_size):
@@ -972,16 +975,16 @@ class CausalDepthwiseConv1D(base_layer.BaseLayer):
         shape = p.hidden_dims
       else:
         shape = [p.hidden_dims]
-      self.CreateVariable(
+      self.create_variable(
           f'dconv_{i}',
-          WeightParams(
+          weight_params(
               shape=shape,
               init=p.params_init,
               dtype=p.dtype,
               device_mesh=p.device_mesh,
               tensor_split_dims_mapping=wp.wt))
 
-  def FProp(self, theta: NestedMap, inputs: JTensor, axis: int) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor, axis: int) -> JTensor:
     """FProp applying depth-wise convolution on 1D sequence.
 
     Args:
@@ -998,13 +1001,13 @@ class CausalDepthwiseConv1D(base_layer.BaseLayer):
     p = self.params
     outputs = inputs * theta.dconv_0
     for i in range(1, p.kernel_size):
-      inputs = Shift1D(inputs, offset=1, axis=axis)
+      inputs = shift_1d(inputs, offset=1, axis=axis)
       outputs += inputs * getattr(theta, f'dconv_{i}')
     return outputs
 
-  def ExtendStep(self, theta: NestedMap, inputs: JTensor, axis: int,
-                 step: Union[int, JTensor]) -> JTensor:
-    """ExtendStep applying depth-wise convolution on 1D sequence at a step.
+  def extend_step(self, theta: NestedMap, inputs: JTensor, axis: int,
+                  step: Union[int, JTensor]) -> JTensor:
+    """extend_step applying depth-wise convolution on 1D sequence at a step.
 
     Args:
       theta: NestedMap containing the filter weights to apply the depth-wise

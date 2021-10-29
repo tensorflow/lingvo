@@ -27,7 +27,7 @@ from lingvo.jax.layers import linears
 import numpy as np
 
 NestedMap = py_utils.NestedMap
-WeightParams = py_utils.WeightParams
+weight_params = py_utils.weight_params
 
 InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
@@ -45,7 +45,7 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
              'Style of lookup, one of index or matmul.')
     p.Define(
         'scale_sqrt_depth', False, 'If set True, activations are scaled'
-        ' with sqrt(embedding_dim) in EmbLookup.')
+        ' with sqrt(embedding_dim) in emb_lookup.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -54,20 +54,20 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
     assert p.vocab_size > 0
     assert p.embedding_dims > 0
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
-    self.CreateVariable(
+    self.create_variable(
         'emb_var',
-        WeightParams(
+        weight_params(
             shape=[p.vocab_size, p.embedding_dims],
             init=p.params_init,
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp.wt))
 
-  def FProp(self, theta: NestedMap, ids: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, ids: JTensor) -> JTensor:
     p = self.params
     if p.lookup_style == 'index':
       embs = jnp.asarray(theta.emb_var)[(ids,)]
@@ -106,9 +106,9 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
         activation='NONE',
         weight_split_dims_mapping=wp.Copy(),
         activation_split_dims_mapping=ap.Copy())
-    self.CreateChild('logits_ffn', ff_p)
+    self.create_child('logits_ffn', ff_p)
 
-  def GetLogits(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def get_logits(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Returns logits given the inputs with an option to soft cap it.
 
     Args:
@@ -121,14 +121,14 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
     """
     p = self.params
     # Compute logits
-    logits = self.logits_ffn.FProp(theta.logits_ffn, inputs)
+    logits = self.logits_ffn.fprop(theta.logits_ffn, inputs)
 
     # Soft cap logits if applicable
     if p.soft_cap_logits:
       logits = p.soft_cap_logits * jnp.tanh(logits / p.soft_cap_logits)
     return logits
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
             class_weights: JTensor,
@@ -167,7 +167,7 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
 
     # Compute logits
     inputs_dtype = inputs.dtype
-    logits = self.GetLogits(theta, inputs)
+    logits = self.get_logits(theta, inputs)
     # We perform softmax in float32 to improve stability.
     logits = logits.astype(jnp.float32)
     log_probs = jax.nn.log_softmax(logits)
@@ -206,12 +206,12 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
              'Style of lookup, one of index or matmul.')
     p.Define(
         'scale_sqrt_depth', False, 'If set True, activations are scaled'
-        'with sqrt(embedding_dim) in EmbLookup.')
+        'with sqrt(embedding_dim) in emb_lookup.')
     ap = p.activation_split_dims_mapping
     ap.Define('emb_out_split_dims_mapping', None, 'Sharding of the emb output.')
     return p
 
-  def EmbLookup(self, theta: NestedMap, ids: JTensor) -> JTensor:
+  def emb_lookup(self, theta: NestedMap, ids: JTensor) -> JTensor:
     p = self.params
     ap = p.activation_split_dims_mapping
     emb_var = jnp.transpose(theta.logits_ffn.linear.w)
@@ -220,15 +220,15 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
     elif p.lookup_style == 'matmul':
       # Explicit casting to fprop_dtype needed for bf16.
       one_hot_ids = jax.nn.one_hot(ids, p.num_classes, dtype=self.fprop_dtype)
-      embs = linears.ProjectLastDim(one_hot_ids, emb_var)
+      embs = linears.project_last_dim(one_hot_ids, emb_var)
     else:
       raise ValueError('Unknown lookup style.')
     # Scale with sqrt(embedding dims)
     if p.scale_sqrt_depth:
       embs *= p.input_dims**0.5
 
-    embs = base_layer.MaybeShard(embs, ap.emb_out_split_dims_mapping,
-                                 p.mesh_axis_names)
+    embs = base_layer.maybe_shard(embs, ap.emb_out_split_dims_mapping,
+                                  p.mesh_axis_names)
     return embs
 
 
@@ -247,7 +247,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     p.Define('embedding_dims', 0, 'Dimension of the embedding to be generated.')
     return p
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             seq_length: Optional[int] = None,
             position: Optional[JTensor] = None) -> JTensor:
@@ -295,7 +295,7 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
   The Rotary position embedding is described in https://arxiv.org/abs/2104.09864
   """
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
             position: Optional[JTensor] = None) -> JTensor:
@@ -341,10 +341,10 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
     second_part = second_half * cos + first_half * sin
     return jnp.concatenate([first_part, second_part], axis=-1)
 
-  def ExtendStep(self,
-                 theta: NestedMap,
-                 inputs: JTensor,
-                 time_step: Optional[Union[int, JTensor]] = None) -> JTensor:
+  def extend_step(self,
+                  theta: NestedMap,
+                  inputs: JTensor,
+                  time_step: Optional[Union[int, JTensor]] = None) -> JTensor:
     """Generates a JTensor of sinusoids with different frequencies for a step.
 
     Args:
@@ -370,7 +370,7 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
     # Adjust the position with the time step.
     position = jnp.arange(time_step - seq_length + 1, time_step + 1)
     position = jnp.asarray([max(x, 0) for x in position])
-    output = self.FProp(theta, inputs, position=position[jnp.newaxis, :])
+    output = self.fprop(theta, inputs, position=position[jnp.newaxis, :])
     if len(inputs_shape) == 3:
       output = jnp.squeeze(output, axis=1)
     return output

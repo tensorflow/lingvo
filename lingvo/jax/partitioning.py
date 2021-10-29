@@ -26,11 +26,11 @@ _TPU_V4 = 'TPU v4'
 
 
 # TODO(zhangqiaorjc): Generalize to other topologies.
-def CreateDeviceMesh(mesh_shape: Tuple[int, int, int]) -> np.ndarray:
+def create_device_mesh(mesh_shape: Tuple[int, int, int]) -> np.ndarray:
   """Creates a device mesh."""
 
-  def MaybeReorderMesh(mesh_shape: Tuple[int, int, int],
-                       device_mesh: np.ndarray) -> np.ndarray:
+  def maybe_reorder_mesh(mesh_shape: Tuple[int, int, int],
+                         device_mesh: np.ndarray) -> np.ndarray:
     """Possibly re-orders device mesh for better performance."""
     device_kind = jax.devices()[0].device_kind
     logging.info('device_kind: "%s", mesh_shape: %s', device_kind, mesh_shape)
@@ -61,4 +61,4 @@ def CreateDeviceMesh(mesh_shape: Tuple[int, int, int]) -> np.ndarray:
     return device_mesh
 
   device_mesh = np.asarray(jax.devices()).reshape(mesh_shape)
-  return MaybeReorderMesh(mesh_shape, device_mesh)
+  return maybe_reorder_mesh(mesh_shape, device_mesh)

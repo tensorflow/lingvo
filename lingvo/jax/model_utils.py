@@ -45,8 +45,8 @@ SummaryWriter = tf.summary.SummaryWriter
 
 def get_model(model_name: str) -> BaseModelParamsT:
   """Retrieves a model config from the global registry."""
-  model_imports.ImportParams(model_name)
-  model_class = model_registry.GetModel(model_name)
+  model_imports.import_params(model_name)
+  model_class = model_registry.get_model(model_name)
   if model_class is None:
     raise ValueError(f'Could not find model `{model_name}`.')
   return model_class
@@ -66,7 +66,7 @@ def run_eval_one_step(eval_inputs: NestedJTensor,
     Tuple of eval loss, mean metrics and eval summaries.
   """
   if reshard_inputs:
-    eval_inputs = tf.nest.map_structure(py_utils.Reshard, eval_inputs)
+    eval_inputs = tf.nest.map_structure(py_utils.reshard, eval_inputs)
   loss, mean_metrics, _, summary_tensors = eval_step(eval_inputs)
   return loss, mean_metrics, summary_tensors
 
@@ -157,7 +157,7 @@ def run_eval_loop_over_test_splits(
                    sum_metric_weights.item())
 
     with summary_writer(summary_eval_dirs[split]) as eval_test_summary_writer:
-      summary_utils.WriteSummaryEntry(
+      summary_utils.write_summary_entry(
           eval_test_summary_writer,
           step,
           loss,

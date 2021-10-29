@@ -23,7 +23,7 @@ from lingvo.jax.layers import activations
 from lingvo.jax.layers import normalizations
 
 NestedMap = py_utils.NestedMap
-WeightParams = py_utils.WeightParams
+weight_params = py_utils.weight_params
 
 InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
@@ -63,20 +63,20 @@ class Conv2D(base_layer.BaseLayer):
     assert len(p.dilations) == 2
     assert all(x > 0 for x in p.filter_stride)
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
-    self.CreateVariable(
+    self.create_variable(
         'w',
-        WeightParams(
+        weight_params(
             shape=p.filter_shape,
             init=p.params_init,
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp.wt))
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """FProp that supports strided, dilated convolution, depthwise convolution.
 
     Args:
@@ -155,11 +155,11 @@ class ConvBNAct(Conv2D):
           dim=p.filter_shape[3],
           decay=p.bn_decay,
           use_moving_avg_in_training=p.bn_use_moving_avg_in_training)
-      self.CreateChild('bn', bn)
+      self.create_child('bn', bn)
     act_p = activations.ActivationLayer.Params().Set(activation=p.activation)
-    self.CreateChild('activation', act_p)
+    self.create_child('activation', act_p)
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Forward prop which applies conv-bn-activation.
 
     Args:
@@ -177,8 +177,8 @@ class ConvBNAct(Conv2D):
       then H' = H and W' = W.
     """
     p = self.params
-    outputs = super().FProp(theta, inputs)
+    outputs = super().fprop(theta, inputs)
     if p.batch_norm:
-      outputs = self.bn.FProp(theta.bn, outputs)
-    outputs = self.activation.FProp(theta.activation, outputs)
+      outputs = self.bn.fprop(theta.bn, outputs)
+    outputs = self.activation.fprop(theta.activation, outputs)
     return outputs

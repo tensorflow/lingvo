@@ -55,7 +55,6 @@ class ShardedGradientTransformation:
   init_partition_spec: TransformInitPartitionSpecFn
 
 
-# pylint: disable=invalid-name
 def count_init_fn(_):
   """Common init_fn that initializes a count for global step."""
   return NestedMap(count=jnp.zeros([], jnp.int32))
@@ -69,7 +68,7 @@ def count_init_partition_spec_fn(var_params):
   assert isinstance(first_var, py_utils.Params)
   device_mesh = first_var.device_mesh
   return NestedMap(
-      count=py_utils.WeightParams(
+      count=py_utils.weight_params(
           shape=[],
           init=None,
           dtype=jnp.int32,
@@ -129,7 +128,8 @@ class _AdamOptState:
 class _ShardedAdamOptimizerHelper:
   """A helper class facilitates the creation of sharded_adam_optimizer."""
 
-  def OptStateShardingSpec(self, var_params: py_utils.Params) -> _AdamOptState:
+  def opt_state_sharding_spec(self,
+                              var_params: py_utils.Params) -> _AdamOptState:
     """Returns optimizer sharding spec for one particular variable."""
     m_var_params = var_params.Copy()
     m_var_params.init = None
@@ -138,17 +138,17 @@ class _ShardedAdamOptimizerHelper:
     # m and v simply share the same sharding.
     return _AdamOptState(m=m_var_params, v=v_var_params)
 
-  def InitOptState(self, var_params: py_utils.Params) -> _AdamOptState:
+  def init_opt_state(self, var_params: py_utils.Params) -> _AdamOptState:
     """Returns optimizer state for one particular variable."""
     return _AdamOptState(
         m=jnp.zeros_like(var_params), v=jnp.zeros_like(var_params))
 
-  def SanitizeValues(self, array: JTensor, replacement: float = 0.0):
+  def sanitize_values(self, array: JTensor, replacement: float = 0.0):
     """Sanitizes NaN and Infinity values."""
     return jnp.nan_to_num(
         array, nan=replacement, posinf=replacement, neginf=replacement)
 
-  def BiasCorrectedDecay(self, step: JTensor, decay: float) -> JTensor:
+  def bias_corrected_decay(self, step: JTensor, decay: float) -> JTensor:
     """Incorporates bias correction into decay.
 
     Please see section 7.1 in https://arxiv.org/pdf/1804.04235.pdf for the
@@ -171,18 +171,18 @@ class _ShardedAdamOptimizerHelper:
     t = step.astype(jnp.float32) + 1.
     return decay * (1. - jnp.power(decay, t - 1.)) / (1. - jnp.power(decay, t))
 
-  def UpdateMoments(self, step: JTensor, update: JTensor,
-                    moments: _AdamOptState, beta1: float,
-                    beta2: float) -> _AdamOptState:
+  def update_moments(self, step: JTensor, update: JTensor,
+                     moments: _AdamOptState, beta1: float,
+                     beta2: float) -> _AdamOptState:
     """Updates momentum values."""
-    beta1_decay = self.BiasCorrectedDecay(step, beta1)
-    beta2_decay = self.BiasCorrectedDecay(step, beta2)
+    beta1_decay = self.bias_corrected_decay(step, beta1)
+    beta2_decay = self.bias_corrected_decay(step, beta2)
     m = (1.0 - beta1_decay) * update + beta1_decay * moments.m
     v = (1.0 - beta2_decay) * (update**2) + beta2_decay * moments.v
     return _AdamOptState(m=m, v=v)
 
-  def ClipUpdate(self, update: JTensor, clip_threshold: float) -> JTensor:
-    mean_update = self.SanitizeValues(ReduceRms(update), 1.0)
+  def clip_update(self, update: JTensor, clip_threshold: float) -> JTensor:
+    mean_update = self.sanitize_values(reduce_rms(update), 1.0)
     clip_threshold = jnp.array(clip_threshold, dtype=update.dtype)
     denom = jnp.maximum(1.0, mean_update / clip_threshold)
     return update / denom
@@ -333,7 +333,7 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
   helper = _ShardedAdamOptimizerHelper()
 
   def init_fn(mdl_vars):
-    slot_vars = jax.tree_map(helper.InitOptState, mdl_vars)
+    slot_vars = jax.tree_map(helper.init_opt_state, mdl_vars)
     count = jnp.array(0, dtype=jnp.int32)
     return NestedMap(
         count=count,
@@ -341,8 +341,8 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
         v=jax.tree_map(lambda x: x.v, slot_vars))
 
   def init_partition_spec_fn(mdl_params):
-    slot_vars = jax.tree_map(helper.OptStateShardingSpec, mdl_params)
-    count = py_utils.WeightParams(
+    slot_vars = jax.tree_map(helper.opt_state_sharding_spec, mdl_params)
+    count = py_utils.weight_params(
         shape=[], init=None, dtype=jnp.int32, collections=None)
 
     return NestedMap(
@@ -354,14 +354,14 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
     # Sanitize updates just in case.
     if weight_decay > 0:
       assert params is not None
-    updates = jax.tree_multimap(helper.SanitizeValues, updates)
+    updates = jax.tree_multimap(helper.sanitize_values, updates)
     count = state.count
 
-    def _UpdateMomentum(g, m, v):
-      return helper.UpdateMoments(count, g, _AdamOptState(m=m, v=v), beta1,
-                                  beta2)
+    def _update_momentum(g, m, v):
+      return helper.update_moments(count, g, _AdamOptState(m=m, v=v), beta1,
+                                   beta2)
 
-    updated_moments = jax.tree_multimap(_UpdateMomentum, updates, state.m,
+    updated_moments = jax.tree_multimap(_update_momentum, updates, state.m,
                                         state.v)
 
     m = jax.tree_map(lambda x: x.m, updated_moments)
@@ -371,7 +371,7 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
         lambda m, v: m / (jnp.sqrt(v + epsilon_root) + epsilon), m, v)
 
     if update_capping > 0:
-      updates = jax.tree_map(lambda x: helper.ClipUpdate(x, update_capping),
+      updates = jax.tree_map(lambda x: helper.clip_update(x, update_capping),
                              updates)
 
     if weight_decay > 0:
@@ -391,12 +391,11 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
       init_partition_spec=init_partition_spec_fn)
 
 
-# pylint: enable=invalid-name
 class BaseOptimizer:
   """Base class for all optimizers."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     """Defines hyper-params for all optimizers."""
     p = InstantiableParams(cls)
     p.Define(
@@ -434,11 +433,11 @@ class BaseOptimizer:
   def params(self) -> InstantiableParams:
     return self._params
 
-  def GetLearningRate(self, step_count: JTensor) -> JTensor:
+  def get_learning_rate(self, step_count: JTensor) -> JTensor:
     """Get the learning rate of this optimizer at a particular step."""
-    return self._lr_schedule.Value(step_count) * self.params.learning_rate
+    return self._lr_schedule.value(step_count) * self.params.learning_rate
 
-  def GetGradTransformation(
+  def get_grad_transformation(
       self
   ) -> Union[optax.GradientTransformation, ShardedGradientTransformation]:
     """Get the grad transformation corresponds to this optimizer config.
@@ -452,15 +451,15 @@ class BaseOptimizer:
     # TODO(yonghui): respect gradient clipping, etc transformations.
     p = self.params
     return sharded_chain(
-        self._GetRawGradTransformation(self.GetLearningRate),
+        self._get_raw_grad_transformation(self.get_learning_rate),
         apply_l1_weight_decay(
-            self.GetLearningRate,
+            self.get_learning_rate,
             l1_regularizer_weight=p.l1_regularizer_weight),
         apply_l2_weight_decay(
-            self.GetLearningRate,
+            self.get_learning_rate,
             l2_regularizer_weight=p.l2_regularizer_weight))
 
-  def _GetRawGradTransformation(
+  def _get_raw_grad_transformation(
       self, lr: optax.Schedule
   ) -> Union[optax.GradientTransformation, ShardedGradientTransformation]:
     """Get the raw optimizer transformation without taking into other ...
@@ -480,7 +479,7 @@ class SgdOptimizer(BaseOptimizer):
   """Canonical SGD optimizer."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     p = super().Params()
     p.Define(
         'momentum', None,
@@ -489,7 +488,7 @@ class SgdOptimizer(BaseOptimizer):
     p.Define('nesterov', False, 'Whether Nesterov momentum is used or not.')
     return p
 
-  def _GetRawGradTransformation(
+  def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
     p = self._params
     return optax.sgd(learning_rate=lr, momentum=p.momentum, nesterov=p.nesterov)
@@ -499,7 +498,7 @@ class ShardedSgdOptimizer(BaseOptimizer):
   """Sharded SGD optimizer."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     p = super().Params()
     p.Define(
         'momentum', None,
@@ -508,7 +507,7 @@ class ShardedSgdOptimizer(BaseOptimizer):
     p.Define('nesterov', False, 'Whether Nesterov momentum is used or not.')
     return p
 
-  def _GetRawGradTransformation(
+  def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> ShardedGradientTransformation:
     p = self._params
     return sharded_sgd(
@@ -519,7 +518,7 @@ class AdamOptimizer(BaseOptimizer):
   """Adam optimizer."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     p = super().Params()
     p.Define(
         'beta1', 0.9,
@@ -544,16 +543,16 @@ class AdamOptimizer(BaseOptimizer):
     return p
 
   @classmethod
-  def ParamsA(cls) -> InstantiableParams:
+  def ParamsA(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     """Convenient method for a commonly used Adam config."""
     return cls.Params().Set(beta1=0.9, beta2=0.997, epsilon=1e-9)
 
   @classmethod
-  def ParamsB(cls) -> InstantiableParams:
+  def ParamsB(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     """Convenient method for another commonly used Adam config."""
     return cls.Params().Set(beta1=0.9, beta2=0.98, epsilon=1e-9)
 
-  def _GetRawGradTransformation(
+  def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
     p = self._params
     if p.sharded_adam:
@@ -580,7 +579,7 @@ class AdafactorOptimizer(BaseOptimizer):
   """Adafactor optimizer from Optax."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     p = super().Params()
     p.Define(
         'min_dim_size_to_factor', 128,
@@ -611,7 +610,7 @@ class AdafactorOptimizer(BaseOptimizer):
              'Whether to use factored second-moment estimates.')
     return p
 
-  def _GetRawGradTransformation(
+  def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
     p = self._params
     return optax.adafactor(
@@ -628,8 +627,8 @@ class AdafactorOptimizer(BaseOptimizer):
         factored=p.factored)
 
 
-def ToQuantized(fvalue: JTensor,
-                quantized_dtype: jnp.dtype) -> Tuple[JTensor, JTensor]:
+def to_quantized(fvalue: JTensor,
+                 quantized_dtype: jnp.dtype) -> Tuple[JTensor, JTensor]:
   """Converts floating point values `fvalues` to quantized values.
 
   We use a very simple quantization scheme where the range is symmetric around
@@ -642,9 +641,9 @@ def ToQuantized(fvalue: JTensor,
          and so on so forth.
 
   Some properties:
-    a1, a2 = ToQuantized(x, quantized_dtype)
-    b1 = ToFloat(a1, a2)
-    c1, c2 = ToQuantized(b1, quantized_dtype)
+    a1, a2 = to_quantized(x, quantized_dtype)
+    b1 = to_float(a1, a2)
+    c1, c2 = to_quantized(b1, quantized_dtype)
 
     then a1 == c1, a2 == c2
 
@@ -687,7 +686,7 @@ def ToQuantized(fvalue: JTensor,
   return quantized.astype(quantized_dtype), bucket_size
 
 
-def ToFloat(quantized: JTensor, bucket_size: JTensor) -> JTensor:
+def to_float(quantized: JTensor, bucket_size: JTensor) -> JTensor:
   """Converts quantized values to float values.
 
   Args:
@@ -704,7 +703,7 @@ def ToFloat(quantized: JTensor, bucket_size: JTensor) -> JTensor:
   return quantized.astype(float_dtype) * bucket_size
 
 
-def AdafactorDecayRateAdam(beta2: float, step_counter: JTensor) -> JTensor:
+def adafactor_decay_rate_adam(beta2: float, step_counter: JTensor) -> JTensor:
   """Second-moment decay rate like Adam, subsuming the correction factor.
 
   Args:
@@ -721,7 +720,7 @@ def AdafactorDecayRateAdam(beta2: float, step_counter: JTensor) -> JTensor:
   return beta2 * (1. - jnp.power(beta2, t - 1.)) / (1. - jnp.power(beta2, t))
 
 
-def AdafactorDecayRatePow(exponent: float, step_counter: JTensor) -> JTensor:
+def adafactor_decay_rate_pow(exponent: float, step_counter: JTensor) -> JTensor:
   """Second moment decay rate where memory-length grows as step_num^exponent.
 
   Args:
@@ -737,7 +736,7 @@ def AdafactorDecayRatePow(exponent: float, step_counter: JTensor) -> JTensor:
   return 1. - jnp.power((step + 1.), -exponent)
 
 
-def ReduceMean(array: JTensor) -> JTensor:
+def reduce_mean(array: JTensor) -> JTensor:
   """Computes the mean of `array` in a more numerically stable way.
 
   Args:
@@ -759,7 +758,7 @@ def ReduceMean(array: JTensor) -> JTensor:
     return jnp.mean(array)
 
 
-def ReduceRms(array: JTensor) -> JTensor:
+def reduce_rms(array: JTensor) -> JTensor:
   """Computes the RMS of `array` (in a numerically stable way).
 
   Args:
@@ -769,7 +768,7 @@ def ReduceRms(array: JTensor) -> JTensor:
     The root mean square of the input array as a scalar array.
   """
   sq = jnp.square(array)
-  sq_mean = ReduceMean(sq)
+  sq_mean = reduce_mean(sq)
   return jnp.sqrt(sq_mean)
 
 
@@ -827,7 +826,7 @@ class ShardedAdafactorHelper:
     self._quantized_dtype = quantized_dtype
     self._respect_skip_lp_regularization = respect_skip_lp_regularization
 
-  def ShouldUseFactoredSecondMomentEstimate(self, shape):
+  def should_use_factored_second_moment_estimate(self, shape):
     """Should we use a factored second moment estimator.
 
     Based on the shape of the variable.
@@ -840,7 +839,7 @@ class ShardedAdafactorHelper:
     """
     return self._factored and len(shape) >= 2
 
-  def ShouldStoreMomentumInQint(self, shape):
+  def should_store_momentum_in_qint(self, shape):
     """Should we store momentum as quantized integers.
 
     Based on the shape of the variable.
@@ -853,7 +852,7 @@ class ShardedAdafactorHelper:
     """
     return len(shape) >= 1
 
-  def ToState(self, count, result_tree):
+  def to_state(self, count, result_tree):
     """Maps from a tree of (factored) values to separate trees of values."""
     return ShardedAdafactorState(
         count=count,
@@ -863,7 +862,7 @@ class ShardedAdafactorHelper:
         vc=jax.tree_map(lambda o: o.vc, result_tree),
         v=jax.tree_map(lambda o: o.v, result_tree))
 
-  def Init(self, param):
+  def init(self, param):
     """Initializes the optimizer state for a given param."""
     # The actually value that will be added to a variable for updating it.
     output_update = jnp.zeros((1,))
@@ -876,13 +875,13 @@ class ShardedAdafactorHelper:
     if self._beta1:
       if self._quantized_dtype == jnp.bfloat16:
         output_m = jnp.zeros(shape, dtype=jnp.bfloat16)
-      elif self.ShouldStoreMomentumInQint(shape):
+      elif self.should_store_momentum_in_qint(shape):
         output_m = jnp.zeros(shape, dtype=self._quantized_dtype)
         scale_shape = shape[1:]
         output_m_scale = jnp.zeros(scale_shape, dtype=jnp.float32)
       else:
         output_m = jnp.zeros(shape, dtype=jnp.float32)
-    if self.ShouldUseFactoredSecondMomentEstimate(shape):
+    if self.should_use_factored_second_moment_estimate(shape):
       output_vr = jnp.zeros(shape[:-1], dtype=jnp.float32)
       output_vc = jnp.zeros(shape[:-2] + shape[-1:], dtype=jnp.float32)
     else:
@@ -895,14 +894,14 @@ class ShardedAdafactorHelper:
         vc=output_vc,
         v=output_v)
 
-  def InitPartitionSpec(self, var_param):
+  def init_partition_spec(self, var_param):
     """Initializes the partition spec for a given param."""
-    output_update = py_utils.WeightParams((1,))
-    output_m = py_utils.WeightParams((1,))
-    output_m_scale = py_utils.WeightParams((1,))
-    output_vr = py_utils.WeightParams((1,))
-    output_vc = py_utils.WeightParams((1,))
-    output_v = py_utils.WeightParams((1,))
+    output_update = py_utils.weight_params((1,))
+    output_m = py_utils.weight_params((1,))
+    output_m_scale = py_utils.weight_params((1,))
+    output_vr = py_utils.weight_params((1,))
+    output_vc = py_utils.weight_params((1,))
+    output_v = py_utils.weight_params((1,))
     shape = var_param.shape
     tensor_split_dims_mapping = var_param.tensor_split_dims_mapping
 
@@ -927,15 +926,15 @@ class ShardedAdafactorHelper:
     # axis, not always on the first two.
     if self._beta1:
       if self._quantized_dtype == jnp.bfloat16:
-        output_m = py_utils.WeightParams(
+        output_m = py_utils.weight_params(
             shape=shape,
             init=None,
             dtype=jnp.bfloat16,
             collections=None,
             device_mesh=var_param.device_mesh,
             tensor_split_dims_mapping=tensor_split_dims_mapping)
-      elif self.ShouldStoreMomentumInQint(shape):
-        output_m = py_utils.WeightParams(
+      elif self.should_store_momentum_in_qint(shape):
+        output_m = py_utils.weight_params(
             shape=shape,
             init=None,
             dtype=self._quantized_dtype,
@@ -946,9 +945,9 @@ class ShardedAdafactorHelper:
         m_scale_split_dims_mapping = tensor_split_dims_mapping
         # TODO(shafey): Fix logic for updating sharding annotations.
         if sharding_specified:
-          m_scale_split_dims_mapping = gshard_utils.RemoveDim(
+          m_scale_split_dims_mapping = gshard_utils.remove_dim(
               0, tensor_split_dims_mapping)
-        output_m_scale = py_utils.WeightParams(
+        output_m_scale = py_utils.weight_params(
             shape=scale_shape,
             init=None,
             dtype=jnp.float32,
@@ -956,31 +955,31 @@ class ShardedAdafactorHelper:
             device_mesh=var_param.device_mesh,
             tensor_split_dims_mapping=m_scale_split_dims_mapping)
       else:
-        output_m = py_utils.WeightParams(
+        output_m = py_utils.weight_params(
             shape=shape,
             init=None,
             dtype=jnp.float32,
             collections=None,
             device_mesh=var_param.device_mesh,
             tensor_split_dims_mapping=tensor_split_dims_mapping)
-    if self.ShouldUseFactoredSecondMomentEstimate(shape):
+    if self.should_use_factored_second_moment_estimate(shape):
       # TODO(shafey): Fix logic for updating sharding annotations.
       if sharding_specified:
-        vr_split_dims_mapping = gshard_utils.RemoveDim(
+        vr_split_dims_mapping = gshard_utils.remove_dim(
             -1, tensor_split_dims_mapping)
-        vc_split_dims_mapping = gshard_utils.RemoveDim(
+        vc_split_dims_mapping = gshard_utils.remove_dim(
             -2, tensor_split_dims_mapping)
       else:
         vr_split_dims_mapping = tensor_split_dims_mapping
         vc_split_dims_mapping = tensor_split_dims_mapping
-      output_vr = py_utils.WeightParams(
+      output_vr = py_utils.weight_params(
           shape[:-1],
           init=None,
           dtype=jnp.float32,
           collections=None,
           device_mesh=var_param.device_mesh,
           tensor_split_dims_mapping=vr_split_dims_mapping)
-      output_vc = py_utils.WeightParams(
+      output_vc = py_utils.weight_params(
           shape[:-2] + shape[-1:],
           init=None,
           dtype=jnp.float32,
@@ -988,7 +987,7 @@ class ShardedAdafactorHelper:
           device_mesh=var_param.device_mesh,
           tensor_split_dims_mapping=vc_split_dims_mapping)
     else:
-      output_v = py_utils.WeightParams(
+      output_v = py_utils.weight_params(
           shape=shape,
           init=None,
           dtype=var_param.dtype,
@@ -1003,25 +1002,26 @@ class ShardedAdafactorHelper:
         vc=output_vc,
         v=output_v)
 
-  def SanitizeValues(self, array, replacement=0.):
+  def sanitize_values(self, array, replacement=0.):
     """Sanitizes NaN and Infinity values."""
     return jnp.nan_to_num(
         array, nan=replacement, posinf=replacement, neginf=replacement)
 
-  def ComputeVarAndSlotUpdate(self, count, grad, m, m_scale, vr, vc, v, param):
+  def compute_var_and_slot_update(self, count, grad, m, m_scale, vr, vc, v,
+                                  param):
     """Computes the var and optimizer slots updates for a single variable."""
     # We can probably skip this step
-    grad = self.SanitizeValues(grad)
+    grad = self.sanitize_values(grad)
     grad = grad.astype(jnp.float32)
     # Add epsilon1 as per Algorithm 4 of https://arxiv.org/pdf/1804.04235.pdf
     grad_squared = jnp.square(grad) + self._epsilon1
-    grad_squared_mean = self.SanitizeValues(ReduceMean(grad_squared))
+    grad_squared_mean = self.sanitize_values(reduce_mean(grad_squared))
     if self._decay_method == 'adam':
       assert self._decay_adam > 0
-      decay_rate = AdafactorDecayRateAdam(self._decay_adam, count)
+      decay_rate = adafactor_decay_rate_adam(self._decay_adam, count)
     elif self._decay_method == 'pow':
       assert self._decay_pow > 0
-      decay_rate = AdafactorDecayRatePow(self._decay_pow, count)
+      decay_rate = adafactor_decay_rate_pow(self._decay_pow, count)
     else:
       raise ValueError(f'decay_method {self._decay_method} not supported.')
 
@@ -1046,12 +1046,12 @@ class ShardedAdafactorHelper:
     output_vc = jnp.zeros((1,))
     output_v = jnp.zeros((1,))
 
-    if self.ShouldUseFactoredSecondMomentEstimate(shape):
+    if self.should_use_factored_second_moment_estimate(shape):
       # Q(shafey): Should we use the more numerically stable version
-      # ReduceMean().
-      grad_squared_row_mean = self.SanitizeValues(
+      # reduce_mean().
+      grad_squared_row_mean = self.sanitize_values(
           jnp.mean(grad_squared, axis=-1))
-      grad_squared_col_mean = self.SanitizeValues(
+      grad_squared_col_mean = self.sanitize_values(
           jnp.mean(grad_squared, axis=-2))
       new_vr = decay_rate * vr + mixing_rate * grad_squared_row_mean
       new_vc = decay_rate * vc + mixing_rate * grad_squared_col_mean
@@ -1067,24 +1067,24 @@ class ShardedAdafactorHelper:
       output_v = new_v
       x = grad / jnp.sqrt(new_v)
     if self._clipping_threshold is not None:
-      clipping_denom = jnp.maximum(1., ReduceRms(x) / self._clipping_threshold)
-      clipping_denom = self.SanitizeValues(clipping_denom, replacement=1.)
+      clipping_denom = jnp.maximum(1., reduce_rms(x) / self._clipping_threshold)
+      clipping_denom = self.sanitize_values(clipping_denom, replacement=1.)
       x /= clipping_denom
     subtrahend = update_scale * x
     if self._beta1:
       if self._quantized_dtype == jnp.bfloat16:
         m = m.astype(jnp.float32)
-      elif self.ShouldStoreMomentumInQint(shape):
+      elif self.should_store_momentum_in_qint(shape):
         m_init_dtype = m.dtype
-        m = ToFloat(m, m_scale)
+        m = to_float(m, m_scale)
       subtrahend = self._beta1 * m + (1. - self._beta1) * subtrahend
-      subtrahend = self.SanitizeValues(subtrahend)
+      subtrahend = self.sanitize_values(subtrahend)
       if self._quantized_dtype == jnp.bfloat16:
         new_m = subtrahend.astype(jnp.bfloat16)
         output_m = new_m
-      elif self.ShouldStoreMomentumInQint(shape):
+      elif self.should_store_momentum_in_qint(shape):
         # Update the momentum values.
-        new_m_val, new_m_scale = ToQuantized(subtrahend, m_init_dtype)
+        new_m_val, new_m_scale = to_quantized(subtrahend, m_init_dtype)
         output_m = new_m_val
         output_m_scale = new_m_scale
       else:
@@ -1107,7 +1107,7 @@ class ShardedAdafactorHelper:
         v=output_v)
 
 
-def ShardedAdafactor(
+def sharded_adafactor(
     learning_rate_fn: optax.Schedule,
     weight_decay: Optional[float] = None,
     layerwise_adaptation: bool = False,
@@ -1193,43 +1193,43 @@ def ShardedAdafactor(
       quantized_dtype=quantized_dtype,
       respect_skip_lp_regularization=respect_skip_lp_regularization)
 
-  def init_fn(params):  # pylint: disable=invalid-name
+  def init_fn(params):
     """Initializes the optimizer's state."""
-    return sharded_adafactor_helper.ToState(
+    return sharded_adafactor_helper.to_state(
         jnp.zeros([], jnp.int32),
-        jax.tree_map(sharded_adafactor_helper.Init, params))
+        jax.tree_map(sharded_adafactor_helper.init, params))
 
-  def init_partition_spec_fn(var_params):  # pylint: disable=invalid-name
+  def init_partition_spec_fn(var_params):
     var_spec_flattened, _ = jax.tree_flatten(var_params)
     assert var_spec_flattened
     first_var = var_spec_flattened[0]
     assert isinstance(first_var, py_utils.Params)
     device_mesh = first_var.device_mesh
-    count = py_utils.WeightParams(
+    count = py_utils.weight_params(
         shape=[],
         init=None,
         dtype=jnp.int32,
         collections=None,
         device_mesh=device_mesh,
         tensor_split_dims_mapping=[])
-    return sharded_adafactor_helper.ToState(
+    return sharded_adafactor_helper.to_state(
         count,
-        jax.tree_map(sharded_adafactor_helper.InitPartitionSpec, var_params))
+        jax.tree_map(sharded_adafactor_helper.init_partition_spec, var_params))
 
-  def update_fn(updates, state, params=None):  # pylint: disable=invalid-name
+  def update_fn(updates, state, params=None):
     if params is None:
       raise ValueError(
           'You are using a transformation that requires the current value of '
           'parameters, but you are not passing `params` when calling `update`.')
 
     compute_var_and_slot_update_fn = functools.partial(
-        sharded_adafactor_helper.ComputeVarAndSlotUpdate, state.count)
+        sharded_adafactor_helper.compute_var_and_slot_update, state.count)
     output = jax.tree_multimap(compute_var_and_slot_update_fn, updates, state.m,
                                state.m_scale, state.vr, state.vc, state.v,
                                params)
     updates = jax.tree_map(lambda o: o.update, output)
     count_plus_one = state.count + jnp.array(1, jnp.int32)
-    updated_states = sharded_adafactor_helper.ToState(count_plus_one, output)
+    updated_states = sharded_adafactor_helper.to_state(count_plus_one, output)
     return updates, updated_states
 
   return ShardedGradientTransformation(
@@ -1242,7 +1242,7 @@ class ShardedAdafactorOptimizer(BaseOptimizer):
   """Sharded AdaFactor optimizer."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     p = super().Params()
     p.Define('weight_decay', None,
              'An optional float tensor as decoupled weight decay value.')
@@ -1275,10 +1275,10 @@ class ShardedAdafactorOptimizer(BaseOptimizer):
         'collection that skips decoupled weight decay.')
     return p
 
-  def _GetRawGradTransformation(
+  def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> ShardedGradientTransformation:
     p = self._params
-    return ShardedAdafactor(
+    return sharded_adafactor(
         learning_rate_fn=lr,
         weight_decay=p.weight_decay,
         layerwise_adaptation=p.layerwise_adaptation,

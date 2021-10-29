@@ -25,16 +25,16 @@ from lingvo.jax import pytypes
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
+weight_params = py_utils.weight_params
 
 InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-def ComputeMoments(inputs: JTensor,
-                   padding: JTensor,
-                   reduce_over_dims: List[int],
-                   keepdims=False) -> Tuple[JTensor, JTensor]:
+def compute_moments(inputs: JTensor,
+                    padding: JTensor,
+                    reduce_over_dims: List[int],
+                    keepdims=False) -> Tuple[JTensor, JTensor]:
   """Computes mean and variance over the valid data points in inputs."""
   assert inputs.ndim == padding.ndim
   rank = inputs.ndim
@@ -80,47 +80,47 @@ class BatchNormLayer(base_layer.BaseLayer):
     self._epsilon = 0.001
     self._decay = p.decay
 
-  def _GetWeightShape(self) -> JTensor:
+  def _get_weight_shape(self) -> JTensor:
     return [self.params.dim]
 
-  def CreateLayerVariables(self) -> None:
+  def create_layer_variables(self) -> None:
     p = self.params
 
-    beta_pc = WeightParams(
-        shape=self._GetWeightShape(),
+    beta_pc = weight_params(
+        shape=self._get_weight_shape(),
         init=WeightInit.Constant(0.0),
         dtype=p.dtype)
-    self.CreateVariable('beta', beta_pc)
+    self.create_variable('beta', beta_pc)
 
     # gamma = theta.gamma + 1.0
-    gamma_pc = WeightParams(
-        shape=self._GetWeightShape(),
+    gamma_pc = weight_params(
+        shape=self._get_weight_shape(),
         init=WeightInit.Constant(0.0),
         dtype=p.dtype)
-    self.CreateVariable('gamma', gamma_pc)
+    self.create_variable('gamma', gamma_pc)
 
-    mva = WeightParams(
+    mva = weight_params(
         shape=[p.dim],
         init=WeightInit.Constant(0.0),
         dtype=p.dtype,
         collections=[base_layer.REQUIRES_MEAN_SYNC])
-    self.CreateVariable('moving_mean', mva, trainable=False)
+    self.create_variable('moving_mean', mva, trainable=False)
 
-    mvv = WeightParams(
+    mvv = weight_params(
         shape=[p.dim],
         init=WeightInit.Constant(1.0),
         dtype=p.dtype,
         collections=[base_layer.REQUIRES_MEAN_SYNC])
-    self.CreateVariable('moving_variance', mvv, trainable=False)
+    self.create_variable('moving_variance', mvv, trainable=False)
 
-  def _GetDefaultPaddings(self, inputs: JTensor) -> JTensor:
+  def _get_default_paddings(self, inputs: JTensor) -> JTensor:
     """Gets the default paddings for an input."""
     in_shape = list(inputs.shape)
     assert len(in_shape) > 1
     in_shape[-1] = 1
     return jnp.zeros(in_shape, dtype=inputs.dtype)
 
-  def _GetBetaGamma(self, theta: NestedMap) -> Tuple[JTensor, JTensor]:
+  def _get_beta_gamma(self, theta: NestedMap) -> Tuple[JTensor, JTensor]:
     p = self.params
     if p.use_moving_avg_in_training:
       beta = 0.0
@@ -130,7 +130,7 @@ class BatchNormLayer(base_layer.BaseLayer):
       gamma = theta.gamma + 1.0
     return beta, gamma
 
-  def ComputeAndUpdateMoments(
+  def compute_and_update_moments(
       self, theta: NestedMap, inputs: JTensor,
       paddings: JTensor) -> Tuple[JTensor, JTensor, JTensor, JTensor]:
     """Computes moments and updates state.
@@ -149,25 +149,25 @@ class BatchNormLayer(base_layer.BaseLayer):
     if self.do_eval:
       # The mean and variance used for normalization.
       norm_mean, norm_variance = theta.moving_mean, theta.moving_variance
-      base_layer.AddSummary('moving_mean', theta.moving_mean)
-      base_layer.AddSummary('moving_variance', theta.moving_variance)
+      base_layer.add_summary('moving_mean', theta.moving_mean)
+      base_layer.add_summary('moving_variance', theta.moving_variance)
     else:
       rank = inputs.ndim
       reduce_over_dims = list(range(0, rank - 1))
-      mean, variance = ComputeMoments(
+      mean, variance = compute_moments(
           inputs, paddings, reduce_over_dims, keepdims=True)
 
       new_moving_mean = theta.moving_mean * p.decay + mean * (1.0 - p.decay)
-      self.ForwardUpdateVar('moving_mean', new_moving_mean)
+      self.forward_update_var('moving_mean', new_moving_mean)
       new_moving_variance = (
           theta.moving_variance * p.decay + variance * (1.0 - p.decay))
-      self.ForwardUpdateVar('moving_variance', new_moving_variance)
+      self.forward_update_var('moving_variance', new_moving_variance)
 
       # Add some summaries for visualization.
-      base_layer.AddSummary('mean', mean)
-      base_layer.AddSummary('variance', variance)
-      base_layer.AddSummary('moving_mean', theta.moving_mean)
-      base_layer.AddSummary('moving_variance', theta.moving_variance)
+      base_layer.add_summary('mean', mean)
+      base_layer.add_summary('variance', variance)
+      base_layer.add_summary('moving_mean', theta.moving_mean)
+      base_layer.add_summary('moving_variance', theta.moving_variance)
       if p.use_moving_avg_in_training:
         # Use the global statistics for normalization.
         norm_mean = theta.moving_mean
@@ -177,10 +177,10 @@ class BatchNormLayer(base_layer.BaseLayer):
         norm_mean = mean
         norm_variance = variance
 
-    beta, gamma = self._GetBetaGamma(theta)
+    beta, gamma = self._get_beta_gamma(theta)
     return norm_mean, norm_variance, beta, gamma
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
@@ -197,14 +197,14 @@ class BatchNormLayer(base_layer.BaseLayer):
         'inputs'.
     """
     p = self.params
-    inputs, paddings = self._CastToFPropDtype((inputs, paddings))
+    inputs, paddings = self._cast_to_fprop_dtype((inputs, paddings))
     if paddings is None:
-      paddings = self._GetDefaultPaddings(inputs)
+      paddings = self._get_default_paddings(inputs)
 
     assert inputs.ndim == paddings.ndim
     assert paddings.shape[-1] == 1
 
-    norm_mean, norm_variance, beta, gamma = self.ComputeAndUpdateMoments(
+    norm_mean, norm_variance, beta, gamma = self.compute_and_update_moments(
         theta, inputs, paddings)
 
     inv = gamma / jnp.sqrt(norm_variance + self._epsilon)
@@ -228,8 +228,8 @@ class LayerNorm(base_layer.BaseLayer):
     p.Define('bias', True, 'Whether to use bias.')
     return p
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
     wp_scale = wp.wt
@@ -237,9 +237,9 @@ class LayerNorm(base_layer.BaseLayer):
       # Simply replicate the weights.
       wp_scale = [-1]
     if p.scale:
-      self.CreateVariable(
+      self.create_variable(
           'scale',
-          WeightParams(
+          weight_params(
               shape=[p.input_dims],
               init=WeightInit.Constant(0.0),
               dtype=p.dtype,
@@ -247,16 +247,16 @@ class LayerNorm(base_layer.BaseLayer):
               tensor_split_dims_mapping=wp_scale))
     if p.bias:
       wp_bias = wp_scale  # bias should use the same sharding as scale.
-      self.CreateVariable(
+      self.create_variable(
           'bias',
-          WeightParams(
+          weight_params(
               shape=[p.input_dims],
               init=WeightInit.Constant(0.0),
               dtype=p.dtype,
               device_mesh=p.device_mesh,
               tensor_split_dims_mapping=wp_bias))
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Apply layer norm to inputs.
 
     Args:

@@ -25,7 +25,7 @@ from lingvo.jax import test_utils
 from lingvo.jax.layers import augmentations
 import numpy as np
 
-ToNp = test_utils.ToNp
+to_np = test_utils.to_np
 
 
 class AugmentationsTest(test_util.JaxTestCase):
@@ -39,27 +39,27 @@ class AugmentationsTest(test_util.JaxTestCase):
         name='mlm', vocab_size=32000, mask_token_id=0)
     layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    with base_layer.JaxContext.NewContext(prng_key=prng_key, global_step=1):
+    with base_layer.JaxContext.new_context(prng_key=prng_key, global_step=1):
       inputs = jnp.arange(10, dtype=jnp.int32)
       paddings = jnp.array([0, 0, 0, 0, 0, 0, 0, 0, 1.0, 1.0],
                            dtype=jnp.float32)
-      augmented_ids, augmented_pos = layer.FProp(None, inputs, paddings)
+      augmented_ids, augmented_pos = layer.fprop(None, inputs, paddings)
       logging.info('augmented_ids: %s', augmented_ids)
       logging.info('augmented_pos: %s', augmented_pos)
       expected_ids = np.array([0, 1, 2, 0, 0, 5, 6, 7, 8, 9])
       expected_pos = np.array([0., 0., 0., 1., 1., 0., 0., 0., 0., 0.])
-      self.assertAllClose(ToNp(expected_ids), ToNp(augmented_ids))
-      self.assertAllClose(ToNp(expected_pos), ToNp(augmented_pos))
+      self.assertAllClose(to_np(expected_ids), to_np(augmented_ids))
+      self.assertAllClose(to_np(expected_pos), to_np(augmented_pos))
 
   def testMaskedLmDataAugmenterLarge(self):
     p = augmentations.MaskedLmDataAugmenter.Params().Set(
         name='mlm', vocab_size=32000, mask_token_id=0)
     layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    with base_layer.JaxContext.NewContext(prng_key=prng_key, global_step=1):
+    with base_layer.JaxContext.new_context(prng_key=prng_key, global_step=1):
       inputs = jnp.arange(100, dtype=jnp.int32)
       paddings = jnp.zeros_like(inputs).astype(jnp.float32)
-      augmented_ids, augmented_pos = layer.FProp(None, inputs, paddings)
+      augmented_ids, augmented_pos = layer.fprop(None, inputs, paddings)
       logging.info('augmented_ids: %s', np.array_repr(augmented_ids))
       logging.info('augmented_pos: %s', np.array_repr(augmented_pos))
       expected_ids = np.array([
@@ -78,8 +78,8 @@ class AugmentationsTest(test_util.JaxTestCase):
           0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 1., 0., 1., 0., 0., 0.,
           0., 0., 1., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0.
       ])
-      self.assertAllClose(ToNp(expected_ids), ToNp(augmented_ids))
-      self.assertAllClose(ToNp(expected_pos), ToNp(augmented_pos))
+      self.assertAllClose(to_np(expected_ids), to_np(augmented_ids))
+      self.assertAllClose(to_np(expected_pos), to_np(augmented_pos))
 
 
 if __name__ == '__main__':

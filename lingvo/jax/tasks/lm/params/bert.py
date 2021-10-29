@@ -40,7 +40,7 @@ class BertDataset(base_model_params.BaseModelParams):
   MLPERF_REMASK = True
   RANDOM_BUFFER_SIZE = 100_000
 
-  def _DatasetTrain(self) -> InstantiableParams:
+  def _datasetTrain(self) -> InstantiableParams:
     """Parameters for using the original ML Perf training data."""
     p = input_generator.TFRecordBertInput.Params()
     p.name = 'train'
@@ -55,7 +55,7 @@ class BertDataset(base_model_params.BaseModelParams):
     p.is_training = True
     return p
 
-  def _DatasetTest(self) -> InstantiableParams:
+  def _datasetTest(self) -> InstantiableParams:
     """Parameters for using the original ML Perf eval data."""
     p = input_generator.TFRecordBertInput.Params()
     p.name = 'test'
@@ -68,15 +68,15 @@ class BertDataset(base_model_params.BaseModelParams):
     p.is_training = False
     return p
 
-  def Datasets(self) -> List[InstantiableParams]:
+  def datasets(self) -> List[InstantiableParams]:
     """Returns a list of dataset parameters."""
-    return [self._DatasetTrain(), self._DatasetTest()]
+    return [self._datasetTrain(), self._datasetTest()]
 
-  def Task(self) -> InstantiableParams:
+  def task(self) -> InstantiableParams:
     raise NotImplementedError()
 
 
-@model_registry.RegisterModel
+@model_registry.register_model
 class BertAdamL4H128(BertDataset):
   r"""4-layer Transformer LM using Adam on JF 2x2.
 
@@ -99,7 +99,7 @@ class BertAdamL4H128(BertDataset):
 
   ENABLE_BFLOAT16 = True
 
-  def Task(self) -> InstantiableParams:
+  def task(self) -> InstantiableParams:
     """Returns the task parameters."""
     vocab_size = self.VOCAB_SIZE
     num_layers = self.NUM_LAYERS
@@ -187,7 +187,7 @@ class BertSpmd(BertDataset):
   CHECKPOINT_EVERY_N_STEPS = 500
   CHECKPOINT_SAVE_MAX_TO_KEEP = 10
 
-  def Task(self) -> InstantiableParams:
+  def task(self) -> InstantiableParams:
     """Returns the task parameters."""
     vocab_size = self.VOCAB_SIZE
     num_layers = self.NUM_LAYERS
@@ -271,7 +271,7 @@ class BertSpmd(BertDataset):
     )
     model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
     model_p.mesh_axis_names = mesh_axis_names
-    model_p.lm = model_p.lm.cls.SetShardingParamsV1(
+    model_p.lm = model_p.lm.cls.set_sharding_params_v1(
         model_p.lm,
         replica_axis=replica_axis,
         data_axis=data_axis,
@@ -281,7 +281,7 @@ class BertSpmd(BertDataset):
     return model_p
 
 
-@model_registry.RegisterModel
+@model_registry.register_model
 class BertSpmdL4H128(BertSpmd):
   """SPMD model on JF 2x2."""
   PERCORE_BATCH_SIZE = 4
@@ -305,7 +305,7 @@ class BertSpmdL4H128(BertSpmd):
   CHECKPOINT_EVERY_N_STEPS = 5000
 
 
-@model_registry.RegisterModel
+@model_registry.register_model
 class BertSpmdL33H12kBiggerBatch(BertSpmd):
   """100B model using 2k global batch size and 512 chips.
 
@@ -335,15 +335,15 @@ class BertSpmdL33H12kBiggerBatch(BertSpmd):
   # Save a checkpoint every n steps.
   CHECKPOINT_EVERY_N_STEPS = 1000
 
-  def Task(self) -> InstantiableParams:
+  def task(self) -> InstantiableParams:
     """Returns the task parameters."""
-    model_p = super().Task()
+    model_p = super().task()
     # Enable label smoothing.
     model_p.label_smoothing_prob = 0.1
     return model_p
 
 
-@model_registry.RegisterModel
+@model_registry.register_model
 class BertSpmdL33H12kBiggerBatch8x8x16(BertSpmdL33H12kBiggerBatch):
   """100B model using 4k global batch size and 1024 chips.
 
@@ -357,7 +357,7 @@ class BertSpmdL33H12kBiggerBatch8x8x16(BertSpmdL33H12kBiggerBatch):
   CHECKPOINT_EVERY_N_STEPS = 500
 
 
-@model_registry.RegisterModel
+@model_registry.register_model
 class BertSpmdL66H12kBiggerBatch8x8x16(BertSpmdL33H12kBiggerBatch):
   """200B model using 4k global batch size and 1024 chips.
 

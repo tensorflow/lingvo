@@ -36,18 +36,18 @@ from lingvo.jax.layers import stochastics
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-CreateLayerVariablesStatus = base_layer.CreateLayerVariablesStatus
+CreateLayerVariableStatus = base_layer.CreateLayerVariableStatus
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
+weight_params = py_utils.weight_params
 
 InstantiableParams = py_utils.InstantiableParams
 AuxLossContext = py_utils.AuxLossContext
 JTensor = pytypes.JTensor
 
 
-def ComputeAttentionMasksForFProp(
+def compute_attention_masks_for_fprop(
     inputs: JTensor,
     paddings: Optional[JTensor] = None,
     causal_attention: Optional[bool] = False,
@@ -91,7 +91,7 @@ def ComputeAttentionMasksForFProp(
     # Paddings must be provided to create the attention mask
     assert paddings is not None
     # Get paddings mask to [B, 1, 1, T]
-    attention_mask = attentions.ConvertPaddingsToMask(paddings, inputs.dtype)
+    attention_mask = attentions.convert_paddings_to_mask(paddings, inputs.dtype)
 
     # Additional segment_mask may also be provided in this case
     if segment_mask is not None:
@@ -99,7 +99,7 @@ def ComputeAttentionMasksForFProp(
 
   # Causal mask of shape [1, 1, T, T]
   if causal_attention:
-    causal_mask = attentions.CausalMask(inputs)
+    causal_mask = attentions.causal_mask(inputs)
     attention_mask = jnp.minimum(attention_mask, causal_mask)
 
   # Compute cross attention mask if applicable
@@ -108,7 +108,7 @@ def ComputeAttentionMasksForFProp(
     assert cross_paddings is not None
 
     # Compute paddings
-    cross_attention_mask = attentions.ConvertPaddingsToMask(
+    cross_attention_mask = attentions.convert_paddings_to_mask(
         cross_paddings, dtype=cross_inputs.dtype)
 
     # Packed inputs
@@ -118,7 +118,7 @@ def ComputeAttentionMasksForFProp(
   return attention_mask, cross_attention_mask
 
 
-def ComputeAttentionMasksForExtendStep(
+def compute_attention_masks_for_extend_step(
     time_step: JTensor,
     seq_len: int,
     segment_mask: Optional[JTensor] = None,
@@ -126,7 +126,7 @@ def ComputeAttentionMasksForExtendStep(
     cross_paddings: Optional[JTensor] = None,
     cross_segment_mask: Optional[JTensor] = None
 ) -> Tuple[JTensor, Union[JTensor, None]]:
-  """Computes attention mask from paddings, segment masks etc for ExtendStep.
+  """Computes attention mask from paddings, segment masks etc for extend_step.
 
   Args:
     time_step: Time step for which to generate causal mask.
@@ -156,7 +156,7 @@ def ComputeAttentionMasksForExtendStep(
 
   # Create attention mask from padding of shape [1/B, 1, T]
   attention_mask = jnp.squeeze(
-      attentions.ConvertPaddingsToMask(causal_padding), axis=1)
+      attentions.convert_paddings_to_mask(causal_padding), axis=1)
 
   # Include segment mask, has shape [B, 1, T]
   if segment_mask is not None:
@@ -168,7 +168,7 @@ def ComputeAttentionMasksForExtendStep(
     assert cross_paddings is not None
 
     # Compute paddings mask [B, 1, 1, S]
-    cross_attention_mask = attentions.ConvertPaddingsToMask(
+    cross_attention_mask = attentions.convert_paddings_to_mask(
         cross_paddings, dtype=cross_inputs.dtype)
 
     # Cross segment mask may be overloaded
@@ -231,7 +231,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     ln_p = p.ln_tpl.Copy()
     ln_p.name = 'fflayer_ln'
     ln_p.input_dims = p.input_dims
-    self.CreateChild('layer_norm', ln_p)
+    self.create_child('layer_norm', ln_p)
 
     if p.activation.startswith('GATED_'):
       activation = 'NONE'
@@ -250,7 +250,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     ffn1_p.output_dims = p.hidden_dims
     ffn1_p.weight_split_dims_mapping.wt = wp.ffn0
     ffn1_p.activation_split_dims_mapping.out = ap.ffn0
-    self.CreateChild('ffn_layer1', ffn1_p)
+    self.create_child('ffn_layer1', ffn1_p)
 
     if self._is_ffn1_gated:
       # This is a gated ffw network.
@@ -261,12 +261,12 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       gate_p.output_dims = p.hidden_dims
       gate_p.weight_split_dims_mapping.wt = wp.ffn0
       gate_p.activation_split_dims_mapping.out = ap.ffn0
-      self.CreateChild('ffn_layer1_gate', gate_p)
+      self.create_child('ffn_layer1_gate', gate_p)
 
     # Create RELU dropout layer
     relu_dropout_p = p.relu_dropout_tpl.Copy()
     relu_dropout_p.keep_prob = 1.0 - p.relu_dropout_prob
-    self.CreateChild('relu_dropout', relu_dropout_p)
+    self.create_child('relu_dropout', relu_dropout_p)
 
     # Create the second Feedforward layer mapping to input dims
     ffn2_p = p.fflayer_tpl.Copy()
@@ -276,20 +276,20 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     ffn2_p.output_dims = p.input_dims
     ffn2_p.weight_split_dims_mapping.wt = wp.ffn1
     ffn2_p.activation_split_dims_mapping.out = ap.ffn1
-    self.CreateChild('ffn_layer2', ffn2_p)
+    self.create_child('ffn_layer2', ffn2_p)
 
     # Create residual dropout layer
     residual_dropout_p = p.residual_dropout_tpl.Copy()
     residual_dropout_p.keep_prob = 1.0 - p.residual_dropout_prob
-    self.CreateChild('residual_dropout', residual_dropout_p)
+    self.create_child('residual_dropout', residual_dropout_p)
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
     p = self.params
     if p.pre_layer_norm:
-      inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
     else:
       inputs_normalized = inputs
 
@@ -299,12 +299,12 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
 
     # Apply first FFN layer
     if self._is_ffn1_gated:
-      gate_value = self.ffn_layer1_gate.FProp(theta.ffn_layer1_gate,
+      gate_value = self.ffn_layer1_gate.fprop(theta.ffn_layer1_gate,
                                               inputs_normalized)
-      projected_inputs = gate_value * self.ffn_layer1.FProp(
+      projected_inputs = gate_value * self.ffn_layer1.fprop(
           theta.ffn_layer1, inputs_normalized)
     else:
-      projected_inputs = self.ffn_layer1.FProp(theta.ffn_layer1,
+      projected_inputs = self.ffn_layer1.fprop(theta.ffn_layer1,
                                                inputs_normalized)
       projected_inputs = checkpoint_name(projected_inputs, 'ffn1')
 
@@ -313,11 +313,11 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       projected_inputs *= (1.0 - paddings)
 
     # Apply RELU dropout
-    projected_inputs = self.relu_dropout.FProp(theta.relu_dropout,
+    projected_inputs = self.relu_dropout.fprop(theta.relu_dropout,
                                                projected_inputs)
 
     # Apply second FFN layer
-    projected_inputs = self.ffn_layer2.FProp(theta.ffn_layer2, projected_inputs)
+    projected_inputs = self.ffn_layer2.fprop(theta.ffn_layer2, projected_inputs)
     projected_inputs = checkpoint_name(projected_inputs, 'ffn2')
 
     # Apply paddings if not None
@@ -325,7 +325,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       projected_inputs *= (1.0 - paddings)
 
     # Apply residual dropout
-    projected_inputs = self.residual_dropout.FProp(theta.residual_dropout,
+    projected_inputs = self.residual_dropout.fprop(theta.residual_dropout,
                                                    projected_inputs)
 
     # Apply skip connection
@@ -334,7 +334,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
 
     # Apply Layer norm if not applied
     if not p.pre_layer_norm:
-      projected_inputs = self.layer_norm.FProp(theta.layer_norm,
+      projected_inputs = self.layer_norm.fprop(theta.layer_norm,
                                                projected_inputs)
     return projected_inputs
 
@@ -456,29 +456,29 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     params = p.ln_tpl.Copy()
     params.name = 'layer_norm'
     params.input_dims = p.input_dims
-    self.CreateChild('layer_norm', params)
+    self.create_child('layer_norm', params)
 
     dropout_tpl = p.residual_dropout_tpl.Copy()
     dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
-    self.CreateChild('residual_dropout', dropout_tpl)
+    self.create_child('residual_dropout', dropout_tpl)
 
     dropout_tpl = p.relu_dropout_tpl.Copy()
     dropout_tpl.keep_prob = (1.0 - p.relu_dropout_prob)
-    self.CreateChild('relu_dropout', dropout_tpl)
+    self.create_child('relu_dropout', dropout_tpl)
 
     if p.residual_droppath_prob > 0:
       assert p.add_skip_connection
       droppath_p = stochastics.StochasticResidualLayer.Params().Set(
           name='residual_droppath',
           survival_prob=1.0 - p.residual_droppath_prob)
-      self.CreateChild('residual_droppath', droppath_p)
+      self.create_child('residual_droppath', droppath_p)
 
     act_p = activations_lib.ActivationLayer.Params().Set(
         activation=p.activation)
-    self.CreateChild('activation', act_p)
+    self.create_child('activation', act_p)
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     # Assume output_dims == input_dims
     output_dims = p.input_dims
@@ -487,13 +487,13 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     wp = p.weight_split_dims_mapping
     stddev = (1.0 / p.input_dims)**0.5
     gate_scale = stddev * 3.0**0.5
-    gate_pc = WeightParams(
+    gate_pc = weight_params(
         shape=[p.input_dims, p.num_experts],
         init=WeightInit.Uniform(gate_scale),
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=wp.me)
-    self.CreateVariable('gate', gate_pc)
+    self.create_variable('gate', gate_pc)
 
     # Next create the expert network.
     # Params initialization follows gshard_builder.py.
@@ -504,7 +504,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     ]
     stddev = (1.0 / p.input_dims)**0.5
     wi_init_scale = stddev * 3.0**0.5
-    wi_pc = WeightParams(
+    wi_pc = weight_params(
         shape=emh_shape,
         init=WeightInit.Uniform(wi_init_scale),
         dtype=p.dtype,
@@ -512,7 +512,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         tensor_split_dims_mapping=wp.emh)
 
     for ii in range(p.expert_weight_shards):
-      self.CreateVariable('wi_%d' % ii, wi_pc)
+      self.create_variable('wi_%d' % ii, wi_pc)
 
     # EHM Tensor (output transformation after RELU)
     # ehm tensor typically shard on the first dim and the second dim. Here we
@@ -522,7 +522,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     ]
     stddev = (1.0 / p.hidden_dims)**0.5
     wo_init_scale = stddev * 3.0**0.5
-    wo_pc = WeightParams(
+    wo_pc = weight_params(
         shape=ehm_shape,
         init=WeightInit.Uniform(wo_init_scale),
         dtype=p.dtype,
@@ -530,12 +530,12 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         tensor_split_dims_mapping=wp.ehm)
 
     for ii in range(p.expert_weight_shards):
-      self.CreateVariable('wo_%d' % ii, wo_pc)
+      self.create_variable('wo_%d' % ii, wo_pc)
 
     # TODO(zhangqiaorjc): Possibly add bias variable.
 
   # TODO(zhangqiaorjc): Allow paddings to be optional?
-  def FProp(self, theta: NestedMap, inputs: JTensor,
+  def fprop(self, theta: NestedMap, inputs: JTensor,
             paddings: JTensor) -> JTensor:
     """Layer-norm, route, feed-forward, combine, residual.
 
@@ -554,7 +554,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
     # TODO(zhangqiaorjc): Handle input of shape [batch, seq_len, g, model/g]?
     if p.pre_layer_norm:
-      inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
     else:
       inputs_normalized = inputs
 
@@ -577,13 +577,13 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     # Sharding annotation.
     ap = p.activation_split_dims_mapping
 
-    def Split(t_in, sharding):
-      return base_layer.MaybeShard(t_in, sharding, p.mesh_axis_names)
+    def split(t_in, sharding):
+      return base_layer.maybe_shard(t_in, sharding, p.mesh_axis_names)
 
-    reshaped_inputs = Split(reshaped_inputs, ap.gsm)
-    reshaped_paddings = Split(reshaped_paddings, ap.gs)
+    reshaped_inputs = split(reshaped_inputs, ap.gsm)
+    reshaped_paddings = split(reshaped_paddings, ap.gs)
 
-    fprop_dtype = py_utils.FPropDtype(p)
+    fprop_dtype = py_utils.fprop_dtype(p)
     logits = jnp.einsum('gsm,me->gse', reshaped_inputs, theta.gate)
 
     # Here and below, we assume num devices equals num groups.
@@ -591,14 +591,14 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     # NOTE(yonghui): The following code might break during beam search decode
     # due to much smaller group size.
     # TODO(yonghui): Avoid explicitly casting everything to fp32 once
-    # Top2GatingOnLogits is stable in low-precision mode.
-    aux_loss, combine_tensor, dispatch_tensor = gshard_utils.Top2GatingOnLogits(
+    # top2_gating_on_logits is stable in low-precision mode.
+    aux_loss, combine_tensor, dispatch_tensor = gshard_utils.top2_gating_on_logits(
         paddings=reshaped_paddings.astype(np.float32),
         logits=logits.astype(np.float32),
         experts_dim=p.num_experts,
         expert_capacity_dim=0,  # automatically decided.
         fprop_dtype=np.float32,
-        prng_key=base_layer.NextPrngKey(),
+        prng_key=base_layer.next_prng_key(),
         second_expert_policy=p.second_expert_policy,
         second_expert_threshold=0.0,
         # legacy_mtf_behavior=True doesn't normalize gates when one expert is
@@ -614,8 +614,8 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       dispatch_tensor = dispatch_tensor.astype(fprop_dtype)
 
     # both tensors have shape [g, s, e, c]
-    combine_tensor = Split(combine_tensor, ap.gsec)
-    dispatch_tensor = Split(dispatch_tensor, ap.gsec)
+    combine_tensor = split(combine_tensor, ap.gsec)
+    dispatch_tensor = split(dispatch_tensor, ap.gsec)
 
     theta_wis = []
     theta_wos = []
@@ -642,40 +642,40 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
     expert_inputs = jnp.einsum('gsec,gsm->egcm', dispatch_tensor,
                                reshaped_inputs)
-    expert_inputs = Split(expert_inputs, ap.egcm)
+    expert_inputs = split(expert_inputs, ap.egcm)
 
     hidden = jnp.einsum('egcm,emh->egch', expert_inputs, theta_wi)
-    hidden = Split(hidden, ap.egch)
+    hidden = split(hidden, ap.egch)
 
     # Activation function.
-    hidden = self.activation.FProp(theta.activation, hidden)
+    hidden = self.activation.fprop(theta.activation, hidden)
     # Dropout.
-    hidden = self.relu_dropout.FProp(theta.relu_dropout, hidden)
+    hidden = self.relu_dropout.fprop(theta.relu_dropout, hidden)
     # Output.
     expert_output = jnp.einsum('egch,ehm->egcm', hidden, theta_wo)
-    expert_output = Split(expert_output, ap.egcm)
+    expert_output = split(expert_output, ap.egcm)
     # Now transpose and reshard.
     transposed_expert_output = jnp.einsum('egcm->gecm', expert_output)
-    transposed_expert_output = Split(transposed_expert_output, ap.gecm)
+    transposed_expert_output = split(transposed_expert_output, ap.gecm)
     combined_output = jnp.einsum('gecm,gsec->gsm', transposed_expert_output,
                                  combine_tensor)
-    combined_output = Split(combined_output, ap.gsm)
+    combined_output = split(combined_output, ap.gsm)
 
     combined_output = combined_output.reshape((bs, s_len, output_dims))
     # Apply padding.
     combined_output *= (1.0 - jnp.expand_dims(paddings, -1)).astype(fprop_dtype)
     # Residual dropout.
-    after_residual = self.residual_dropout.FProp(theta.residual_dropout,
+    after_residual = self.residual_dropout.fprop(theta.residual_dropout,
                                                  combined_output)
     if p.add_skip_connection:
       if p.residual_droppath_prob:
-        out = self.residual_droppath.FProp(theta.residual_droppath, inputs,
+        out = self.residual_droppath.fprop(theta.residual_droppath, inputs,
                                            after_residual)
       else:
         out = inputs + after_residual * p.residual_weight
 
     if not p.pre_layer_norm:
-      out = self.layer_norm.FProp(theta.layer_norm, out)
+      out = self.layer_norm.fprop(theta.layer_norm, out)
 
     # Add loss to a global collection. We don't return the loss to the caller
     # to avoid the change of the api here.
@@ -728,7 +728,7 @@ class TransformerLayer(base_layer.BaseLayer):
     params = p.ln_tpl.Copy()
     params.name = 'layer_norm'
     params.input_dims = p.input_dims
-    self.CreateChild('layer_norm', params)
+    self.create_child('layer_norm', params)
 
     # Initialize multi-headed self-attention
     params = p.tr_atten_tpl.Copy()
@@ -737,19 +737,19 @@ class TransformerLayer(base_layer.BaseLayer):
     params.hidden_dim = p.input_dims
     params.num_heads = p.num_heads
     params.atten_dropout_prob = p.atten_dropout_prob
-    self.CreateChild('self_attention', params)
+    self.create_child('self_attention', params)
 
     # Initialize residual dropout.
     params = p.dropout_tpl.Copy()
     params.keep_prob = (1.0 - p.residual_dropout_prob)
-    self.CreateChild('residual_dropout', params)
+    self.create_child('residual_dropout', params)
 
     # Initialize multi-headed cross-attention and layer norm.
     if p.cross_attention:
       params = p.ln_tpl.Copy()
       params.name = 'cross_layer_norm'
       params.input_dims = p.input_dims
-      self.CreateChild('cross_layer_norm', params)
+      self.create_child('cross_layer_norm', params)
 
       params = p.tr_atten_tpl.Copy()
       params.name = 'multihead_self_atten'
@@ -759,7 +759,7 @@ class TransformerLayer(base_layer.BaseLayer):
       params.atten_dropout_prob = p.atten_dropout_prob
       # Note that cross attention should not use any position embeddings.
       params.use_rotary_position_emb = False
-      self.CreateChild('cross_attention', params)
+      self.create_child('cross_attention', params)
 
     # Initialize feed-forward layer
     params = p.tr_fflayer_tpl.Copy()
@@ -768,14 +768,14 @@ class TransformerLayer(base_layer.BaseLayer):
     params.hidden_dims = p.hidden_dims
     params.relu_dropout_prob = p.relu_dropout_prob
     params.residual_dropout_prob = p.residual_dropout_prob
-    self.CreateChild('ff_layer', params)
+    self.create_child('ff_layer', params)
 
-  def InitStates(self, theta: NestedMap, target_batch_size: int,
-                 target_max_length: int) -> NestedMap:
-    return self.self_attention.InitStates(theta.self_attention,
-                                          target_batch_size, target_max_length)
+  def init_states(self, theta: NestedMap, target_batch_size: int,
+                  target_max_length: int) -> NestedMap:
+    return self.self_attention.init_states(theta.self_attention,
+                                           target_batch_size, target_max_length)
 
-  def FProp(
+  def fprop(
       self,
       theta: NestedMap,
       inputs: JTensor,
@@ -807,10 +807,10 @@ class TransformerLayer(base_layer.BaseLayer):
       atten_probs: A NestedMap with keys `self_atten` <float>[B, N, T, T].
     """
     # Layer normalize input
-    inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+    inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
 
     # Compute self-attention, key/value vectors are the input itself
-    atten_output, self_atten_probs = self.self_attention.FProp(
+    atten_output, self_atten_probs = self.self_attention.fprop(
         theta.self_attention,
         inputs_normalized,
         inputs_normalized,
@@ -818,7 +818,7 @@ class TransformerLayer(base_layer.BaseLayer):
         atten_mask=attention_mask)
     atten_probs = NestedMap(self_atten=self_atten_probs)
     # Residual dropout and connection
-    atten_output = self.residual_dropout.FProp(theta.residual_dropout,
+    atten_output = self.residual_dropout.fprop(theta.residual_dropout,
                                                atten_output)
     atten_output += inputs
 
@@ -827,25 +827,25 @@ class TransformerLayer(base_layer.BaseLayer):
       assert cross_inputs is not None
       assert cross_attention_mask is not None
 
-      cross_atten_output, cross_atten_probs = self.cross_attention.FProp(
+      cross_atten_output, cross_atten_probs = self.cross_attention.fprop(
           theta.cross_attention,
-          self.cross_layer_norm.FProp(theta.cross_layer_norm, atten_output),
+          self.cross_layer_norm.fprop(theta.cross_layer_norm, atten_output),
           cross_inputs,
           cross_inputs,
           atten_mask=cross_attention_mask)
       atten_probs.cross_atten = cross_atten_probs
 
       # Residual dropout and connection
-      cross_atten_output = self.residual_dropout.FProp(theta.residual_dropout,
+      cross_atten_output = self.residual_dropout.fprop(theta.residual_dropout,
                                                        cross_atten_output)
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    output = self.ff_layer.FProp(
+    output = self.ff_layer.fprop(
         theta.ff_layer, atten_output, paddings=paddings)
     return output, atten_probs
 
-  def ExtendStep(
+  def extend_step(
       self,
       theta: NestedMap,
       cached_states: NestedMap,
@@ -882,13 +882,13 @@ class TransformerLayer(base_layer.BaseLayer):
       value - [T, B, N, H].
     """
     if not self.params.mask_self_attention:
-      raise ValueError('ExtendStep should only be called with causal masking.')
+      raise ValueError('extend_step should only be called with causal masking.')
 
     # Layer normalize input
-    inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+    inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
 
     # Self-attention layer.
-    updated_states, atten_output = self.self_attention.ExtendStep(
+    updated_states, atten_output = self.self_attention.extend_step(
         theta.self_attention,
         cached_states,
         inputs_normalized,
@@ -896,7 +896,7 @@ class TransformerLayer(base_layer.BaseLayer):
         time_step=time_step)
 
     # Residual dropout and connection
-    atten_output = self.residual_dropout.FProp(theta.residual_dropout,
+    atten_output = self.residual_dropout.fprop(theta.residual_dropout,
                                                atten_output)
     atten_output += inputs
 
@@ -905,9 +905,9 @@ class TransformerLayer(base_layer.BaseLayer):
       assert cross_inputs is not None
       assert cross_attention_mask is not None
 
-      atten_output_normalized = self.cross_layer_norm.FProp(
+      atten_output_normalized = self.cross_layer_norm.fprop(
           theta.cross_layer_norm, jnp.expand_dims(atten_output, axis=1))
-      cross_atten_output, _ = self.cross_attention.FProp(
+      cross_atten_output, _ = self.cross_attention.fprop(
           theta.cross_attention,
           atten_output_normalized,
           cross_inputs,
@@ -915,14 +915,14 @@ class TransformerLayer(base_layer.BaseLayer):
           atten_mask=cross_attention_mask)
 
       # Residual dropout and connection
-      cross_atten_output = self.residual_dropout.FProp(theta.residual_dropout,
+      cross_atten_output = self.residual_dropout.fprop(theta.residual_dropout,
                                                        cross_atten_output)
       # Squeeze sequence dim
       cross_atten_output = jnp.squeeze(cross_atten_output, axis=1)
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    output = self.ff_layer.FProp(theta.ff_layer, atten_output)
+    output = self.ff_layer.fprop(theta.ff_layer, atten_output)
     return updated_states, output
 
 
@@ -989,14 +989,14 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     assert p.num_heads > 0
     assert 0.0 <= p.dropout_prob < 1.0
 
-    def _MoeLayerParams(ff_p):
+    def _moe_layer_params(ff_p):
       """Convert a TransformerFeedforwardLayer to a MoE Layer."""
       assert issubclass(ff_p.cls, TransformerFeedForwardLayer)
       p = self.params
       assert p.num_experts > 0
       moe_p = p.moe_layer_tpl.Copy()
       # Copy over the base params.
-      base_layer.BaseLayer.CopyBaseParams(ff_p, moe_p)
+      base_layer.BaseLayer.copy_base_params(ff_p, moe_p)
       # Copy over othe params.
       moe_p.name = ff_p.name
       moe_p.input_dims = ff_p.input_dims
@@ -1014,7 +1014,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       moe_p.min_group_size = p.min_group_size
       return moe_p
 
-    def _LayerParams(i):
+    def _layer_params(i):
       """Construct i-th layer params."""
       p_i = p.transformer_layer_params_tpl.Copy()
       p_i.name = f'layer_{i}'
@@ -1028,21 +1028,21 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       p_i.relu_dropout_prob = p.dropout_prob
       p_i.hidden_dims = p.hidden_dims
       if i in p.moe_layers:
-        moe_p = _MoeLayerParams(p_i.tr_fflayer_tpl)
+        moe_p = _moe_layer_params(p_i.tr_fflayer_tpl)
         p_i.tr_fflayer_tpl = moe_p
       return p_i
 
-    layer_params = [_LayerParams(i) for i in range(p.num_layers)]
-    self.CreateChildren('x_layers', layer_params)
+    layer_params = [_layer_params(i) for i in range(p.num_layers)]
+    self.create_children('x_layers', layer_params)
 
-  def InitStates(self, theta: NestedMap, *args: Any,
-                 **kwargs: Any) -> NestedMap:
+  def init_states(self, theta: NestedMap, *args: Any,
+                  **kwargs: Any) -> NestedMap:
     return NestedMap(x_layers=[
-        layer.InitStates(layer_theta, *args, **kwargs)
+        layer.init_states(layer_theta, *args, **kwargs)
         for layer, layer_theta in zip(self.x_layers, theta.x_layers)
     ])
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
             paddings: JTensor,
@@ -1079,7 +1079,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       if p.packed_input:
         assert cross_segment_mask is not None
 
-    attention_mask, cross_attention_mask = ComputeAttentionMasksForFProp(
+    attention_mask, cross_attention_mask = compute_attention_masks_for_fprop(
         inputs,
         paddings,
         p.mask_self_attention,
@@ -1091,30 +1091,30 @@ class StackedTransformerLayers(base_layer.BaseLayer):
 
     if p.enable_while_loop:
 
-      def _StackVars(*args):
+      def _stack_vars(*args):
         args = [x[jnp.newaxis, :] for x in args]
         return jnp.vstack(args)
 
-      stacked_vars = tf.nest.map_structure(_StackVars, *theta.x_layers)
+      stacked_vars = tf.nest.map_structure(_stack_vars, *theta.x_layers)
       carry = py_utils.NestedMap(x_in=x_out)
 
-      def _ScanFn(carry, layer_vars):
+      def _scan_fn(carry, layer_vars):
         # TODO(b/199950567): Sharding propagation does not seem to handle scan
         # boundary well. We need to annotate all parameters from within the scan
         # body even though we already pass them to pjit invocation outside the
         # scan at the top level once. Consider removing after bug fix.
-        def AnnotateVarShardingConstraint(x, weight_param):
-          partition_spec = base_layer.VarPartitionSpecs(
+        def annotate_var_sharding_constraint(x, weight_param):
+          partition_spec = base_layer.var_partition_specs(
               weight_param,
               device_mesh=p.device_mesh,
               device_axis_names=p.mesh_axis_names)
-          return base_layer.WithShardingConstraint(x, partition_spec)
+          return base_layer.with_sharding_constraint(x, partition_spec)
 
         if p.device_mesh is not None:
           assert p.mesh_axis_names is not None
-          layer_vars = tf.nest.map_structure(AnnotateVarShardingConstraint,
+          layer_vars = tf.nest.map_structure(annotate_var_sharding_constraint,
                                              layer_vars, self.x_layers[0].vars)
-        x_out, _ = self.x_layers[0].FProp(layer_vars, carry.x_in, paddings,
+        x_out, _ = self.x_layers[0].fprop(layer_vars, carry.x_in, paddings,
                                           attention_mask, cross_inputs,
                                           cross_attention_mask)
         return py_utils.NestedMap(x_in=x_out), py_utils.NestedMap()
@@ -1122,19 +1122,19 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       carry_final, _ = recurrent.scan(
           carry,
           stacked_vars,
-          _ScanFn,
+          _scan_fn,
           root_layer=self,
           checkpoint_policy=p.checkpoint_policy)
       x_out = carry_final.x_in
     else:
       for i in range(p.num_layers):
         x_in = x_out
-        x_out, _ = self.x_layers[i].FProp(theta.x_layers[i], x_in, paddings,
+        x_out, _ = self.x_layers[i].fprop(theta.x_layers[i], x_in, paddings,
                                           attention_mask, cross_inputs,
                                           cross_attention_mask)
     return x_out
 
-  def ExtendStep(
+  def extend_step(
       self,
       theta: NestedMap,
       cached_states: NestedMap,
@@ -1176,19 +1176,19 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     """
     p = self.params
     if not self.params.mask_self_attention:
-      raise ValueError('ExtendStep should only be used with masked attention')
+      raise ValueError('extend_step should only be used with masked attention')
 
     if 'key' in cached_states.x_layers[0]:
       key = cached_states.x_layers[0].key
       max_t = key.shape[0]
     else:
-      raise ValueError('Must call InitStates before ExtendStep')
+      raise ValueError('Must call init_states before extend_step')
 
     if p.cross_attention:
       assert cross_inputs is not None
       assert cross_paddings is not None
 
-    attention_mask, cross_attention_mask = ComputeAttentionMasksForExtendStep(
+    attention_mask, cross_attention_mask = compute_attention_masks_for_extend_step(
         time_step, max_t, segment_mask, cross_inputs, cross_paddings,
         cross_segment_mask)
 
@@ -1196,7 +1196,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     decoder_input = inputs
     for layer, layer_theta, layer_states in zip(self.x_layers, theta.x_layers,
                                                 cached_states.x_layers):
-      updated_layer_states, decoder_output = layer.ExtendStep(
+      updated_layer_states, decoder_output = layer.extend_step(
           layer_theta,
           layer_states,
           decoder_input,
@@ -1229,7 +1229,7 @@ class StackedTransformerLayersRepeated(base_layer.BaseLayer):
     assert p.num_heads > 0
     assert 0.0 <= p.dropout_prob < 1.0
 
-    def _SubParams():
+    def _sub_params():
       """Construct i-th layer params."""
       sub_p = p.transformer_layer_params_tpl.Copy()
       sub_p.name = 'sub'
@@ -1245,11 +1245,11 @@ class StackedTransformerLayersRepeated(base_layer.BaseLayer):
       return sub_p
 
     repeat_l_params = repeats.RepeatLayer.Params().Set(
-        sub=_SubParams(), x_times=p.num_layers)
+        sub=_sub_params(), x_times=p.num_layers)
 
-    self.CreateChild('repeat', repeat_l_params)
+    self.create_child('repeat', repeat_l_params)
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
             paddings: JTensor,
@@ -1286,7 +1286,7 @@ class StackedTransformerLayersRepeated(base_layer.BaseLayer):
       if p.packed_input:
         assert cross_segment_mask is not None
 
-    attention_mask, cross_attention_mask = ComputeAttentionMasksForFProp(
+    attention_mask, cross_attention_mask = compute_attention_masks_for_fprop(
         inputs,
         paddings,
         p.mask_self_attention,
@@ -1296,15 +1296,15 @@ class StackedTransformerLayersRepeated(base_layer.BaseLayer):
         cross_segment_mask,
         fold_padding_with_segment_mask=p.fold_padding_with_segment_mask)
 
-    x_out = self.repeat.FProp(theta.repeat, inputs, paddings, attention_mask,
+    x_out = self.repeat.fprop(theta.repeat, inputs, paddings, attention_mask,
                               cross_inputs, cross_attention_mask)
     return x_out
 
-  def InitStates(self, theta: NestedMap, *args: Any,
-                 **kwargs: Any) -> NestedMap:
-    return self.repeat.InitStates(theta.repeat, *args, **kwargs)
+  def init_states(self, theta: NestedMap, *args: Any,
+                  **kwargs: Any) -> NestedMap:
+    return self.repeat.init_states(theta.repeat, *args, **kwargs)
 
-  def ExtendStep(
+  def extend_step(
       self,
       theta: NestedMap,
       cached_states: NestedMap,
@@ -1346,24 +1346,24 @@ class StackedTransformerLayersRepeated(base_layer.BaseLayer):
     """
     p = self.params
     if not self.params.mask_self_attention:
-      raise ValueError('ExtendStep should only be used with masked attention')
+      raise ValueError('extend_step should only be used with masked attention')
 
     if 'key' in cached_states:
       key = cached_states.key
       # key is of shape [num_layers, max_seq_length, batch_size, ...].
       max_t = key.shape[1]
     else:
-      raise ValueError('Must call InitStates before ExtendStep')
+      raise ValueError('Must call init_states before extend_step')
 
     if p.cross_attention:
       assert cross_inputs is not None
       assert cross_paddings is not None
 
-    attention_mask, cross_attention_mask = ComputeAttentionMasksForExtendStep(
+    attention_mask, cross_attention_mask = compute_attention_masks_for_extend_step(
         time_step, max_t, segment_mask, cross_inputs, cross_paddings,
         cross_segment_mask)
 
-    updated_states, dec_out = self.repeat.ExtendStep(
+    updated_states, dec_out = self.repeat.extend_step(
         theta.repeat,
         cached_states,
         inputs,
@@ -1408,15 +1408,15 @@ class TransformerLm(base_layer.BaseLayer):
     return p
 
   @classmethod
-  def SetShardingParamsV1(cls,
-                          lm_p,
-                          *,
-                          replica_axis,
-                          data_axis,
-                          mdl_axis,
-                          device_ids_mesh,
-                          mesh_axis_names,
-                          mode='train'):
+  def set_sharding_params_v1(cls,
+                             lm_p,
+                             *,
+                             replica_axis,
+                             data_axis,
+                             mdl_axis,
+                             device_ids_mesh,
+                             mesh_axis_names,
+                             mode='train'):
     """Set Canonical sharding params.
 
     Args:
@@ -1506,7 +1506,7 @@ class TransformerLm(base_layer.BaseLayer):
     if p.position_emb_tpl is not None:
       params = p.position_emb_tpl.Copy()
       params.embedding_dims = p.model_dims
-      self.CreateChild('position_emb', params)
+      self.create_child('position_emb', params)
 
     # Transformer layers
     params = p.stacked_transformer_tpl.Copy()
@@ -1520,29 +1520,29 @@ class TransformerLm(base_layer.BaseLayer):
       params.mask_self_attention = True
     params.packed_input = p.packed_input
     params.fold_padding_with_segment_mask = True
-    self.CreateChild('transformer', params)
+    self.create_child('transformer', params)
 
     # Final layer norm
     params = normalizations.LayerNorm.Params().Set(input_dims=p.model_dims)
-    self.CreateChild('final_ln', params)
+    self.create_child('final_ln', params)
 
     # Final softmax
     params = p.softmax_tpl.Copy()
     params.input_dims = p.model_dims
     params.num_classes = p.vocab_size
-    self.CreateChild('softmax', params)
+    self.create_child('softmax', params)
 
-  def InitStates(self, theta: NestedMap, *args: Any,
-                 **kwargs: Any) -> NestedMap:
+  def init_states(self, theta: NestedMap, *args: Any,
+                  **kwargs: Any) -> NestedMap:
     return NestedMap(
         step=jnp.array(0, dtype=jnp.uint32),
-        transformer=self.transformer.InitStates(theta.transformer, *args,
-                                                **kwargs))
+        transformer=self.transformer.init_states(theta.transformer, *args,
+                                                 **kwargs))
 
-  def ComputeLoss(self,
-                  theta: NestedMap,
-                  activations: JTensor,
-                  labels: Optional[NestedMap] = None) -> NestedMap:
+  def compute_loss(self,
+                   theta: NestedMap,
+                   activations: JTensor,
+                   labels: Optional[NestedMap] = None) -> NestedMap:
     """Computes cross entropy loss.
 
     Args:
@@ -1561,7 +1561,7 @@ class TransformerLm(base_layer.BaseLayer):
       equal to the sum of xent loss for tokens in a sequence.
     """
     if labels is None:
-      logits = self.softmax.GetLogits(theta=theta.softmax, inputs=activations)
+      logits = self.softmax.get_logits(theta=theta.softmax, inputs=activations)
       xent_output = NestedMap(logits=logits)
       xent_output.log_probs = jax.nn.log_softmax(logits)
       xent_output.probs = jax.nn.softmax(xent_output.logits)
@@ -1573,7 +1573,7 @@ class TransformerLm(base_layer.BaseLayer):
       if 'class_probabilities' in labels:
         class_probabilities = labels.class_probabilities
       class_weights = labels.class_weights[:, :, jnp.newaxis]
-      xent_output = self.softmax.FProp(
+      xent_output = self.softmax.fprop(
           theta.softmax,
           activations,
           class_weights,
@@ -1600,7 +1600,7 @@ class TransformerLm(base_layer.BaseLayer):
       xent_output.total_loss = xent_output.avg_xent + xent_output.aux_loss
     return xent_output
 
-  def FProp(self,
+  def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
             paddings: JTensor,
@@ -1633,7 +1633,7 @@ class TransformerLm(base_layer.BaseLayer):
     p = self.params
     with py_utils.AuxLossContext() as aux_loss_ctx:
       assert aux_loss_ctx is not None
-      input_emb = self.softmax.EmbLookup(theta.softmax, inputs)
+      input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
       batch, seq_length = inputs.shape
 
       if segment_ids is None:
@@ -1644,27 +1644,27 @@ class TransformerLm(base_layer.BaseLayer):
             jnp.arange(seq_length, dtype=jnp.int32)[None, :], [batch, 1])
 
       if p.position_emb_tpl is not None:
-        position_emb = self.position_emb.FProp(
+        position_emb = self.position_emb.fprop(
             theta.position_emb, seq_length=seq_length, position=segment_pos)
         inputs = input_emb + position_emb
       else:
         inputs = input_emb
 
       if p.masked_lm:
-        segment_mask = attentions.SegmentMask(segment_ids, segment_ids,
-                                              inputs.dtype)
+        segment_mask = attentions.segment_mask(segment_ids, segment_ids,
+                                               inputs.dtype)
       else:
-        segment_mask = attentions.CausalSegmentMask(segment_ids, inputs.dtype)
+        segment_mask = attentions.causal_segment_mask(segment_ids, inputs.dtype)
 
-      output = self.transformer.FProp(
+      output = self.transformer.fprop(
           theta.transformer, inputs, paddings, segment_mask=segment_mask)
 
       # Final layer norm
-      output = self.final_ln.FProp(theta.final_ln, output)
+      output = self.final_ln.fprop(theta.final_ln, output)
 
-      return self.ComputeLoss(theta, output, labels)
+      return self.compute_loss(theta, output, labels)
 
-  def ExtendStep(
+  def extend_step(
       self,
       theta: NestedMap,
       cached_states: NestedMap,
@@ -1691,20 +1691,20 @@ class TransformerLm(base_layer.BaseLayer):
         xent_output: A `.NestedMap` object containing the log probabilities and
         probabilities.
     """
-    input_emb = self.softmax.EmbLookup(theta.softmax, inputs[:, jnp.newaxis])
+    input_emb = self.softmax.emb_lookup(theta.softmax, inputs[:, jnp.newaxis])
     # During autoregressive decoding inputs are not packed
     time_step = cached_states.step
     segment_pos = jnp.zeros((inputs.shape[0], 1)) + time_step
-    position_emb = self.position_emb.FProp(
+    position_emb = self.position_emb.fprop(
         theta.position_emb, seq_length=1, position=segment_pos)
     inputs = input_emb + position_emb
-    updated_cache, outputs = self.transformer.ExtendStep(
+    updated_cache, outputs = self.transformer.extend_step(
         theta.transformer,
         cached_states.transformer,
         inputs[:, 0, :],
         time_step=time_step)
     cached_states.transformer = updated_cache
     cached_states.step += 1
-    outputs = self.final_ln.FProp(theta.final_ln, outputs)
-    xent_output = self.ComputeLoss(theta, outputs)
+    outputs = self.final_ln.fprop(theta.final_ln, outputs)
+    xent_output = self.compute_loss(theta, outputs)
     return cached_states, xent_output

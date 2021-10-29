@@ -67,24 +67,24 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
     if not tf.io.gfile.exists(job_log_dir):
       tf.io.gfile.makedirs(job_log_dir)
     with tf.io.gfile.GFile(params_fpath, 'w') as params_file:
-      datasets = model_config.Datasets()
+      datasets = model_config.datasets()
       for dataset in datasets:
         params_file.write(dataset.ToText())
         params_file.write('\n\n')
-      params_file.write(model_config.Task().ToText())
+      params_file.write(model_config.task().ToText())
 
-  model_p = model_config.Task()
-  for inp in model_config.Datasets():
+  model_p = model_config.task()
+  for inp in model_config.datasets():
     inp.num_infeed_hosts = jax.process_count()
     inp.infeed_host_index = jax.process_index()
-  train_input_p = [v for v in model_config.Datasets() if v.is_training]
+  train_input_p = [v for v in model_config.datasets() if v.is_training]
   if len(train_input_p) != 1:
     raise ValueError(
         f'Expecting exactly one training split. Got `{len(train_input_p)}`.')
   train_input_p = train_input_p[0]
   eval_input_p = None
   if eval_on_test:
-    eval_input_p = [v for v in model_config.Datasets() if not v.is_training]
+    eval_input_p = [v for v in model_config.datasets() if not v.is_training]
   if 'bucket_batch_limit' in train_input_p:
     logging.info('train_input_p.bucket_batch_limit: %s',
                  train_input_p.bucket_batch_limit)
@@ -137,11 +137,11 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
   restore_checkpoint_dir = restore_checkpoint_dir or checkpoint_dir
-  model_states = trainer_lib.InitializesModelState(jax_model, init_key)
-  model_states = checkpoints.RestoreCheckpoint(
+  model_states = trainer_lib.initialize_model_state(jax_model, init_key)
+  model_states = checkpoints.restore_checkpoint(
       model_states, restore_checkpoint_dir, step=restore_checkpoint_step)
   total_num_params = jax_model.total_num_vars
-  replicated_model_states = trainer_lib.ReplicateModelState(model_states)
+  replicated_model_states = trainer_lib.replicate_model_state(model_states)
   # Unreplicated model states are not needed anymore at that point.
   del model_states
 
@@ -157,7 +157,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
   fprop_dtype = model_p.fprop_dtype
 
   def train_step(states, prng_key, inputs):
-    return trainer_lib.TrainStepSingleLearner(
+    return trainer_lib.train_step_single_learner(
         jax_model,
         states,
         prng_key,
@@ -166,7 +166,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
         fprop_dtype=fprop_dtype)
 
   def eval_step(mdl_vars, prng_key, global_step, inputs):
-    return trainer_lib.EvalStepSingleLearner(
+    return trainer_lib.eval_step_single_learner(
         jax_model,
         mdl_vars,
         prng_key,
@@ -191,7 +191,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
   summary_base_dir = os.path.join(job_log_dir, 'summaries')
   summary_train_dir = os.path.join(summary_base_dir, 'train')
   summary_eval_dir = os.path.join(summary_base_dir, 'eval_train')
-  summary_writer = summary_utils.GetSummaryWriter
+  summary_writer = summary_utils.get_summary_writer
   if eval_input_p is not None:
     summary_eval_dirs = [
         os.path.join(summary_base_dir, f'eval_test_{split}')
@@ -203,9 +203,9 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
       summary_train_dir) as train_summary_writer, summary_writer(
           summary_eval_dir) as eval_summary_writer:
 
-    summary_utils.WriteModelStructure(
+    summary_utils.write_model_structure(
         train_summary_writer, replicated_model_states, is_vars_replicated=True)
-    summary_utils.WriteTotalNumParams(train_summary_writer, total_num_params)
+    summary_utils.write_total_num_params(train_summary_writer, total_num_params)
 
     summary_last_time = time.time()
     summary_last_step = None
@@ -228,7 +228,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
 
       if (jax.process_index() == 0 and
           step_i % train_p.save_interval_steps == 0):
-        checkpoints.SaveCheckpoint(
+        checkpoints.save_checkpoint(
             replicated_model_states,
             checkpoint_dir,
             max_checkpoints=train_p.save_max_to_keep)
@@ -236,7 +236,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
       if step_i <= 5:
         logging.info('step=`%d`: Retrieving model inputs.', step_i)
       logging.debug('  Retrieving inputs.')
-      model_inputs = tf.nest.map_structure(py_utils.Reshard,
+      model_inputs = tf.nest.map_structure(py_utils.reshard,
                                            train_input_pipeline.get_next())
       logging.debug('  Retrieved inputs.')
       logging.debug('  Performing train_step().')
@@ -246,7 +246,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
       logging.debug('  Completed train_step().')
 
       logging.debug('  Writing summaries (attempt).')
-      if summary_utils.WriteSummaryEveryNSteps(
+      if summary_utils.write_summary_every_n_steps(
           replicated_model_states,
           train_summary_writer,
           step_i,
@@ -289,7 +289,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
         logging.info('  summary_tensors: %s', summary_tensors)
         if step_i % train_p.summary_interval_steps == 0:
           logging.debug('  Writing eval summaries.')
-          summary_utils.WriteSummaryEntry(
+          summary_utils.write_summary_entry(
               eval_summary_writer,
               step_i,
               loss,
@@ -367,7 +367,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
     tf.io.gfile.makedirs(checkpoint_dir)
   if multi_host_checkpointing:
     # Block all hosts until directory is ready.
-    py_utils.SyncGlobalDevices(f'checkpointer:makedirs:{checkpoint_dir}')
+    py_utils.sync_global_devices(f'checkpointer:makedirs:{checkpoint_dir}')
 
   logging.info('step=`0`: Retrieving model inputs.')
   model_inputs = train_input_pipeline.get_next()
@@ -383,21 +383,21 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
   inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs)
 
   mesh_shape = model_p.device_mesh.shape
-  device_mesh = partitioning.CreateDeviceMesh(mesh_shape)
+  device_mesh = partitioning.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     (partitioned_train_state, _, train_step, eval_step, _, _,
-     total_num_params) = trainer_lib.PartitionSpmdModel(model_p, init_key,
-                                                        inputs_shape)
+     total_num_params) = trainer_lib.partition_spmd_model(
+         model_p, init_key, inputs_shape)
 
-    partitioned_train_state = checkpoints.RestoreCheckpoint(
+    partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
         restore_checkpoint_task_dir,
         step=restore_checkpoint_step)
     logging.info('partitioned_train_state shapes: %s',
                  jax.tree_map(lambda x: x.shape, partitioned_train_state))
     if multi_host_checkpointing:
-      py_utils.SyncGlobalDevices(f'checkpointer:restored:{checkpoint_dir}')
+      py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
 
     # We do not fold in jax.process_index in contrast to the pmap version and
     # use a single global key instead to rely on pjit to split for different
@@ -413,7 +413,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
     summary_base_dir = os.path.join(job_log_dir, 'summaries')
     summary_train_dir = os.path.join(summary_base_dir, 'train')
     summary_eval_dir = os.path.join(summary_base_dir, 'eval_train')
-    summary_writer = summary_utils.GetSummaryWriter
+    summary_writer = summary_utils.get_summary_writer
     if eval_input_p is not None:
       summary_eval_dirs = [
           os.path.join(summary_base_dir, f'eval_test_{split}')
@@ -428,11 +428,12 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
             summary_eval_dir) as eval_summary_writer:
 
       # This only prints the view from the first host machine.
-      summary_utils.WriteModelStructure(
+      summary_utils.write_model_structure(
           train_summary_writer,
           partitioned_train_state,
           is_vars_replicated=False)
-      summary_utils.WriteTotalNumParams(train_summary_writer, total_num_params)
+      summary_utils.write_total_num_params(train_summary_writer,
+                                           total_num_params)
 
       summary_last_time = time.time()
       summary_last_step = None
@@ -444,7 +445,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
       mllogger.log_block_start(step_i)
 
       # Start the train loop. Make sure all at the same step.
-      py_utils.SyncGlobalDevices(f'Start training loop from step: {step_i}')
+      py_utils.sync_global_devices(f'Start training loop from step: {step_i}')
       while True:
         logging.debug('step=`%d`: Beginning', step_i)
         if step_i >= train_p.num_train_steps:
@@ -459,16 +460,16 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
         if step_i % train_p.save_interval_steps == 0:
           logging.info('Saving a ckpt at step: %d', step_i)
           if multi_host_checkpointing:
-            py_utils.SyncGlobalDevices(
+            py_utils.sync_global_devices(
                 f'checkpointer:saving:{checkpoint_dir}:step-{step_i}')
           if multi_host_checkpointing or jax.process_index() == 0:
-            checkpoints.SaveCheckpoint(
+            checkpoints.save_checkpoint(
                 partitioned_train_state,
                 checkpoint_task_dir,
                 max_checkpoints=train_p.save_max_to_keep,
                 unreplicate=False)
           if multi_host_checkpointing:
-            py_utils.SyncGlobalDevices(
+            py_utils.sync_global_devices(
                 f'checkpointer:saved:{checkpoint_dir}:step-{step_i}')
 
         # Get new model inputs
@@ -485,7 +486,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
         logging.debug('  Completed train_step().')
 
         logging.debug('  Writing summaries (attempt).')
-        if summary_utils.WriteSummaryEveryNSteps(
+        if summary_utils.write_summary_every_n_steps(
             partitioned_train_state,
             train_summary_writer,
             step_i,
@@ -528,7 +529,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
           logging.info('  summary_tensors: %s', summary_tensors)
           if step_i % train_p.summary_interval_steps == 0:
             logging.debug('  Writing eval summaries.')
-            summary_utils.WriteSummaryEntry(
+            summary_utils.write_summary_entry(
                 eval_summary_writer,
                 step_i,
                 loss,

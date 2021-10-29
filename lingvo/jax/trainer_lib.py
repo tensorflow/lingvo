@@ -48,38 +48,38 @@ ExtendFn = Callable[[NestedJTensor, NestedMap, JTensor, JTensor, NestedMap],
                     Tuple[NestedJTensor, NestedJTensor]]
 
 
-def InitializesModelState(jax_model: model.BaseTask,
-                          prng_key: PRNGKey) -> TrainState:
+def initialize_model_state(jax_model: model.BaseTask,
+                           prng_key: PRNGKey) -> TrainState:
   """Initializes the model states."""
   logging.info('init_var prng_seed: %s', prng_key)
-  initial_vars = jax_model.InstantiateVariables(prng_key)
+  initial_vars = jax_model.instantiate_variables(prng_key)
   logging.debug('initial_vars: %s', initial_vars)
   learnable_vars = tf.nest.map_structure(
-      lambda v: not base_layer.VarNotTrainable(v), jax_model.vars)
+      lambda v: not base_layer.var_not_trainable(v), jax_model.vars)
   tf.nest.assert_same_structure(initial_vars, learnable_vars)
-  return jax_model.CreateTrainState(initial_vars, jax_model.vars)
+  return jax_model.create_train_state(initial_vars, jax_model.vars)
 
 
-def ReplicateModelState(model_states: TrainState) -> TrainState:
+def replicate_model_state(model_states: TrainState) -> TrainState:
   """Replicates the model states."""
   return jax.device_put_replicated(model_states, jax.local_devices())
 
 
-def InitializeReplicateModelState(jax_model: model.BaseTask,
-                                  prng_key: PRNGKey) -> TrainState:
+def initialize_replicate_model_state(jax_model: model.BaseTask,
+                                     prng_key: PRNGKey) -> TrainState:
   """Initializes and replicates the model states."""
-  model_states = InitializesModelState(jax_model, prng_key)
-  return ReplicateModelState(model_states)
+  model_states = initialize_model_state(jax_model, prng_key)
+  return replicate_model_state(model_states)
 
 
-def _MaybeToBFloat16(x: JTensor) -> JTensor:
+def _maybe_to_bfloat16(x: JTensor) -> JTensor:
   if x.dtype == jnp.float32:
     return x.astype(jnp.bfloat16)
   else:
     return x
 
 
-def TrainStepSingleLearner(
+def train_step_single_learner(
     mdl: Model,
     states: TrainState,
     prng_key: JTensor,
@@ -102,7 +102,7 @@ def TrainStepSingleLearner(
     mdl: An instance of model.BaseTask.
     states: An instance of model.TrainState.
     prng_key: A PRNGKey, of shape [2], of type np.uint32.
-    inputs: Inputs to the mdl.FProp() function.
+    inputs: Inputs to the mdl.fprop() function.
     data_parallel_axis_name: a string, the device axis to aggregate gradients
       over.
     fprop_dtype: fprop datatype, can be either jnp.float32 or jnp.bfloat16.
@@ -110,10 +110,10 @@ def TrainStepSingleLearner(
   Returns:
     A tuple of the following elements.
     updated_states - updated states.
-    loss - loss as computed by mdl.FProp.
+    loss - loss as computed by mdl.fprop.
     mean_metrics - a dict of metrics. Each element of the dict is a pair
     (metric, weight).
-    per_example_out - auxilillary per-example output as computed in mdl.FProp.
+    per_example_out - auxilillary per-example output as computed in mdl.fprop.
     summary_tensors - A dict or nested map of summary tensors computed in
       forward as well as backward.
   """
@@ -132,25 +132,25 @@ def TrainStepSingleLearner(
 
   prng_key, subkey = jax.random.split(prng_key)
 
-  def _LossFn(
+  def _loss_fn(
       mdl_vars: NestedJTensor, inputs: NestedMap
   ) -> Tuple[JTensor, Tuple[Any, NestedMap, SummaryDict, SummaryDict]]:
     """Computes loss as well as other auxiliary outputs."""
     if fprop_dtype == jnp.float32:
       pass
     elif fprop_dtype == jnp.bfloat16:
-      mdl_vars = jax.tree_map(_MaybeToBFloat16, mdl_vars)
-      inputs = jax.tree_map(_MaybeToBFloat16, inputs)
+      mdl_vars = jax.tree_map(_maybe_to_bfloat16, mdl_vars)
+      inputs = jax.tree_map(_maybe_to_bfloat16, inputs)
     else:
       assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
 
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         params=context_p, prng_key=subkey, global_step=states.step):
       # Prepares mdl for fprop. This clears all forward-updated vars that kept
       # locally in mdl.
-      mdl.PrepareFProp()
+      mdl.prepare_fprop()
 
-      metrics, per_example_output = mdl.FProp(mdl_vars, inputs)
+      metrics, per_example_output = mdl.fprop(mdl_vars, inputs)
       loss_name = learner.loss_name
       assert loss_name in metrics
       loss, loss_weight = metrics[loss_name]
@@ -171,13 +171,13 @@ def TrainStepSingleLearner(
       # misc stats, etc.
       forward_updated_vars = mdl.forward_updated_vars
       # Finally, fetch all the summary tensors.
-      summary_tensors = base_layer.AllSummaries()
+      summary_tensors = base_layer.all_summaries()
     if fprop_dtype == jnp.bfloat16 and weighted_loss.dtype == fprop_dtype:
       weighted_loss = weighted_loss.astype(jnp.float32)
     return weighted_loss, (metrics, forward_updated_vars, summary_tensors,
                            per_example_output)
 
-  grad_fn = jax.value_and_grad(_LossFn, has_aux=True)
+  grad_fn = jax.value_and_grad(_loss_fn, has_aux=True)
 
   (weighted_loss, (metrics, fwd_updated_vars, fwd_summary_tensors,
                    per_example_out)), grads = grad_fn(states.mdl_vars, inputs)
@@ -208,17 +208,17 @@ def TrainStepSingleLearner(
   tf.nest.assert_same_structure(states.mdl_vars, grads)
   tf.nest.assert_same_structure(states.mdl_vars, fwd_updated_vars)
   var_is_learnable = tf.nest.map_structure(
-      lambda x: not base_layer.VarNotTrainable(x), var_weight_params)
+      lambda x: not base_layer.var_not_trainable(x), var_weight_params)
   tf.nest.assert_same_structure(states.mdl_vars, var_is_learnable)
 
-  def _MaybeZeroOutGradFn(var_grad, var, var_learnable):
+  def _maybe_zero_out_grad_fn(var_grad, var, var_learnable):
     if var_learnable:
       return var_grad
     else:
       return jnp.zeros_like(var)
 
   # Zero-out gradient for non-learnable vars.
-  grads = tf.nest.map_structure(_MaybeZeroOutGradFn, grads, states.mdl_vars,
+  grads = tf.nest.map_structure(_maybe_zero_out_grad_fn, grads, states.mdl_vars,
                                 var_is_learnable)
 
   if in_pmap:
@@ -230,31 +230,31 @@ def TrainStepSingleLearner(
 
   # Carry out backward computation under a JaxContext.
   prng_key, subkey = jax.random.split(prng_key)
-  with base_layer.JaxContext.NewContext(
+  with base_layer.JaxContext.new_context(
       params=context_p, prng_key=subkey, global_step=states.step):
 
     # Add a summary for learning rate
-    learning_rate = learner.optimizer.GetLearningRate(states.step)
-    base_layer.AddSummary('learning_rate', learning_rate)
+    learning_rate = learner.optimizer.get_learning_rate(states.step)
+    base_layer.add_summary('learning_rate', learning_rate)
 
     # Apply gradient transformations.
-    transformed_grads, new_opt_states = learner.UpdateStates(
+    transformed_grads, new_opt_states = learner.update_states(
         grads, states.opt_states[0], states.mdl_vars)
 
     # Gradient descent on learnable vars.
-    mdl_vars = learner.ApplyGradient(states.mdl_vars, transformed_grads,
-                                     var_is_learnable)
+    mdl_vars = learner.apply_gradient(states.mdl_vars, transformed_grads,
+                                      var_is_learnable)
 
-    def _SynchronizeVarsUsingMean(new_var: NestedMap,
-                                  old_var: NestedMap) -> NestedMap:
+    def _synchronize_vars_using_mean(new_var: NestedMap,
+                                     old_var: NestedMap) -> NestedMap:
       """Synchronize variables across a replica by averaging."""
       delta = new_var - old_var
       delta_mean = jax.lax.pmean(delta, axis_name=data_parallel_axis_name)
       updated_var = old_var + delta_mean
       return updated_var
 
-    def _UpdateNonLearnableVar(old_var: NestedMap, new_var: NestedMap,
-                               var_params: ParamsT) -> NestedMap:
+    def _update_non_learnable_var(old_var: NestedMap, new_var: NestedMap,
+                                  var_params: ParamsT) -> NestedMap:
       """Update non-trainable variables, using cross-replica synchronization.
 
       Args:
@@ -270,28 +270,29 @@ def TrainStepSingleLearner(
         ValueError if no synchronization method is provided for non-trainable
         variables.
       """
-      if not base_layer.VarNotTrainable(var_params):
+      if not base_layer.var_not_trainable(var_params):
         assert new_var is None
         return old_var
       elif not in_pmap:
         # No aggregation is needed.
         assert new_var is not None
         return new_var
-      elif base_layer.VarRequiresMeanSync(var_params):
+      elif base_layer.var_requires_mean_sync(var_params):
         assert new_var is not None
-        return _SynchronizeVarsUsingMean(new_var, old_var)
+        return _synchronize_vars_using_mean(new_var, old_var)
       else:
         raise ValueError('Non-trainable variables must have a cross-replica '
                          'synchronization method specified.')
 
     var_weight_params = mdl.vars
     tf.nest.assert_same_structure(mdl_vars, var_weight_params)
-    mdl_vars = tf.nest.map_structure(_UpdateNonLearnableVar, mdl_vars,
+    mdl_vars = tf.nest.map_structure(_update_non_learnable_var, mdl_vars,
                                      fwd_updated_vars, var_weight_params)
 
-    new_states = states.NewState(mdl_vars=mdl_vars, opt_states=[new_opt_states])
+    new_states = states.new_state(
+        mdl_vars=mdl_vars, opt_states=[new_opt_states])
     # Finally fetch all backward summary tensors.
-    bwd_summary_tensors = base_layer.AllSummaries()
+    bwd_summary_tensors = base_layer.all_summaries()
 
   summary_tensors = NestedMap(
       fwd_summary_tensors=fwd_summary_tensors,
@@ -301,7 +302,7 @@ def TrainStepSingleLearner(
           summary_tensors)
 
 
-def EvalStepSingleLearner(
+def eval_step_single_learner(
     mdl: Model,
     mdl_vars: NestedJTensor,
     prng_key: JTensor,
@@ -319,17 +320,17 @@ def EvalStepSingleLearner(
     prng_key: A prng seed, of shape [2], of type np.uint32.
     global_step: A global step tensor indicating how many steps a model has been
       trained.
-    inputs: Inputs to the mdl.FProp() function.
+    inputs: Inputs to the mdl.fprop() function.
     data_parallel_axis_name: a string, the device axis to aggregate gradients
       over.
     fprop_dtype: fprop datatype, can be either jnp.float32 or jnp.bfloat16.
 
   Returns:
     A tuple of the following elements.
-    loss - loss as computed by mdl.FProp.
+    loss - loss as computed by mdl.fprop.
     mean_metrics - a dict of metrics. Each element of the dict is a pair
     (metric, weight).
-    per_example_out - auxilillary per-example output as computed in mdl.FProp.
+    per_example_out - auxilillary per-example output as computed in mdl.fprop.
     summary_tensors - A nested map or dict of summary tensors computed in
       forward as well as backward pass.
   """
@@ -341,22 +342,22 @@ def EvalStepSingleLearner(
   if fprop_dtype == jnp.float32:
     pass
   elif fprop_dtype == jnp.bfloat16:
-    mdl_vars = jax.tree_map(_MaybeToBFloat16, mdl_vars)
-    inputs = jax.tree_map(_MaybeToBFloat16, inputs)
+    mdl_vars = jax.tree_map(_maybe_to_bfloat16, mdl_vars)
+    inputs = jax.tree_map(_maybe_to_bfloat16, inputs)
   else:
     assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
 
-  with base_layer.JaxContext.NewContext(
+  with base_layer.JaxContext.new_context(
       params=context_p, prng_key=prng_key, global_step=global_step):
     # Prepares mdl for fprop. This clears all forward-updated vars that kept
     # locally in mdl.
-    mdl.PrepareFProp()
+    mdl.prepare_fprop()
 
     # Support multiple learners.
     assert len(mdl.learners) == 1
     learner = mdl.learners[0]
 
-    metrics, per_example_out = mdl.FProp(mdl_vars, inputs)
+    metrics, per_example_out = mdl.fprop(mdl_vars, inputs)
     loss_name = learner.loss_name
     assert loss_name in metrics
     loss, loss_weight = metrics[loss_name]
@@ -386,9 +387,9 @@ def EvalStepSingleLearner(
       mean_metrics = metrics
       mean_loss = loss
 
-    summary_tensors = base_layer.AllSummaries()
+    summary_tensors = base_layer.all_summaries()
 
-  def _MaybeToFloat32(x):
+  def _maybe_to_float32(x):
     if x.dtype == jnp.bfloat16:
       return x.astype(jnp.float32)
     else:
@@ -396,13 +397,13 @@ def EvalStepSingleLearner(
 
   if fprop_dtype == jnp.bfloat16:
     mean_loss, mean_metrics, per_example_out, summary_tensors = jax.tree_map(
-        _MaybeToFloat32,
+        _maybe_to_float32,
         (mean_loss, mean_metrics, per_example_out, summary_tensors))
 
   return mean_loss, mean_metrics, per_example_out, summary_tensors
 
 
-def InitializePartitionedModelStates(
+def initialize_partitioned_model_states(
     mdl: model.BaseTask,
     prng_key: PRNGKey,
 ) -> Tuple[TrainState, NestedShape, TrainState]:
@@ -419,13 +420,14 @@ def InitializePartitionedModelStates(
     The partitioned specs, the shapes of the partitioned vars, and the
     partitioned vars themselves.
   """
-  mdl.InstantiateVariableConfigs()
+  mdl.instantiate_variable_configs()
   # At this point, variable specs are already known.
   var_specs = mdl.vars
-  train_state_partition_specs = mdl.CreateTrainStatePartitionSpecs(var_specs)
+  train_state_partition_specs = mdl.create_train_state_partition_specs(
+      var_specs)
   assert train_state_partition_specs is not None
 
-  init_model_from_seed = functools.partial(InitializesModelState, mdl)
+  init_model_from_seed = functools.partial(initialize_model_state, mdl)
 
   in_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   out_shape = jax.eval_shape(init_model_from_seed, in_shape)
@@ -440,7 +442,7 @@ def InitializePartitionedModelStates(
       in_axis_resources=(None,),
       out_axis_resources=train_state_partition_specs)
 
-  assert base_layer.GlobalMeshDefined(), 'must be inside maps.mesh scope'
+  assert base_layer.global_mesh_defined(), 'must be inside maps.mesh scope'
   partitioned_vars = init_fn(prng_key)
 
   # Make sure output is of the expected structure.
@@ -449,10 +451,10 @@ def InitializePartitionedModelStates(
   return train_state_partition_specs, out_shape, partitioned_vars
 
 
-def InitDecoderState(mdl: Model, mdl_vars: NestedJTensor, prng_key: JTensor,
-                     global_step: JTensor, target_batch_size: int,
-                     target_max_length: int,
-                     fprop_dtype: jnp.dtype) -> NestedJTensor:
+def init_decoder_state(mdl: Model, mdl_vars: NestedJTensor, prng_key: JTensor,
+                       global_step: JTensor, target_batch_size: int,
+                       target_max_length: int,
+                       fprop_dtype: jnp.dtype) -> NestedJTensor:
   """Initializes the decoder states.
 
   Args:
@@ -470,7 +472,7 @@ def InitDecoderState(mdl: Model, mdl_vars: NestedJTensor, prng_key: JTensor,
   if fprop_dtype == jnp.float32:
     pass
   elif fprop_dtype == jnp.bfloat16:
-    mdl_vars = jax.tree_map(_MaybeToBFloat16, mdl_vars)
+    mdl_vars = jax.tree_map(_maybe_to_bfloat16, mdl_vars)
   else:
     assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
 
@@ -478,13 +480,13 @@ def InitDecoderState(mdl: Model, mdl_vars: NestedJTensor, prng_key: JTensor,
   # Fold in global_step as part of the random seed key, so that random
   # numbers depends on global step.
   prng_key = jax.random.fold_in(prng_key, global_step)
-  with base_layer.JaxContext.NewContext(
+  with base_layer.JaxContext.new_context(
       params=context_p, prng_key=prng_key, global_step=global_step):
     # Prepares mdl for fprop. This clears all forward-updated vars that kept
     # locally in mdl.
-    mdl.PrepareFProp()
+    mdl.prepare_fprop()
 
-    initial_decoder_state = mdl.lm.InitStates(
+    initial_decoder_state = mdl.lm.init_states(
         mdl_vars.lm,
         target_batch_size=target_batch_size,
         target_max_length=target_max_length)
@@ -492,8 +494,8 @@ def InitDecoderState(mdl: Model, mdl_vars: NestedJTensor, prng_key: JTensor,
   return initial_decoder_state
 
 
-def ShardOnBatchDimPartitionSpec(mesh_names: Sequence[str],
-                                 x: jax.ShapeDtypeStruct) -> pjit.PartitionSpec:
+def shard_on_batch_dim_partition_spec(
+    mesh_names: Sequence[str], x: jax.ShapeDtypeStruct) -> pjit.PartitionSpec:
   """Fully shards x on the batch dimension."""
   x_dim = len(x.shape)
   assert x_dim >= 1
@@ -501,10 +503,10 @@ def ShardOnBatchDimPartitionSpec(mesh_names: Sequence[str],
   # Assume the first dim is batch, and fully shard the batch dim over the entire
   # mesh.
   sharding[0] = tuple(mesh_names)
-  return base_layer.ToPartitionSpec(sharding, mesh_names)
+  return base_layer.to_partition_spec(sharding, mesh_names)
 
 
-def ReshardInputBasedOnRankFn(
+def reshard_input_based_on_rank_fn(
     mapping_dict: Dict[str, base_layer.SplitDimsMapping],
     mesh_names: Sequence[str],
     x: JTensor,
@@ -527,12 +529,12 @@ def ReshardInputBasedOnRankFn(
                      f'in the form of key map_{len(x.shape)} in'
                      f'{mapping_dict}.')
   if mapping_dict[key] is not None:
-    return base_layer.MaybeShard(x, mapping_dict[key], mesh_names)
+    return base_layer.maybe_shard(x, mapping_dict[key], mesh_names)
   else:
     return x
 
 
-def InferPartitionSpecBasedOnRankFn(
+def infer_partition_spec_based_on_rank_fn(
     mapping_dict: Dict[str, base_layer.SplitDimsMapping],
     mesh_names: Sequence[str],
     x: JTensor,
@@ -555,10 +557,10 @@ def InferPartitionSpecBasedOnRankFn(
                      f'in the form of key map_{len(x.shape)} in'
                      f'{mapping_dict}.')
   if mapping_dict[key] is not None:
-    return base_layer.ToPartitionSpec(mapping_dict[key], mesh_names)
+    return base_layer.to_partition_spec(mapping_dict[key], mesh_names)
 
 
-def ExtendDecoderState(
+def extend_decoder_state(
     mdl: Model, mdl_vars: NestedJTensor, decoder_state: NestedJTensor,
     prng_key: JTensor, global_step: JTensor, step_input: NestedJTensor,
     fprop_dtype: jnp.dtype) -> Tuple[NestedJTensor, NestedJTensor]:
@@ -580,8 +582,8 @@ def ExtendDecoderState(
   if fprop_dtype == jnp.float32:
     pass
   elif fprop_dtype == jnp.bfloat16:
-    mdl_vars = jax.tree_map(_MaybeToBFloat16, mdl_vars)
-    step_input = jax.tree_map(_MaybeToBFloat16, step_input)
+    mdl_vars = jax.tree_map(_maybe_to_bfloat16, mdl_vars)
+    step_input = jax.tree_map(_maybe_to_bfloat16, step_input)
   else:
     assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
 
@@ -589,20 +591,20 @@ def ExtendDecoderState(
   # Fold in decoder step as part of the random seed key, so that random
   # numbers depends on current decoding step.
   prng_key = jax.random.fold_in(prng_key, global_step)
-  with base_layer.JaxContext.NewContext(
+  with base_layer.JaxContext.new_context(
       params=context_p, prng_key=prng_key, global_step=global_step):
     # Prepares mdl for fprop. This clears all forward-updated vars that kept
     # locally in mdl.
-    mdl.PrepareFProp()
+    mdl.prepare_fprop()
 
-    # TODO(yonghui): Fix me. ExtendDecoderState shouldn't try to access specific
-    # member of the input arg (like mdl_vars.lm here).
-    cached_state, xent_output = mdl.lm.ExtendStep(
+    # TODO(yonghui): Fix me. extend_decoder_state shouldn't try to access
+    # specific member of the input arg (like mdl_vars.lm here).
+    cached_state, xent_output = mdl.lm.extend_step(
         mdl_vars.lm, decoder_state, inputs=step_input)
   return cached_state, xent_output
 
 
-def PartitionSpmdModel(
+def partition_spmd_model(
     mdl_params: InstantiableParams,
     init_key: PRNGKey,
     inputs_shape: NestedShapeDtypeStruct,
@@ -647,9 +649,9 @@ def PartitionSpmdModel(
   mdl = mdl_params.Instantiate()
 
   # Compute inputs PartitionSpec from inputs_shape
-  inputs_partition_spec_fn = functools.partial(ShardOnBatchDimPartitionSpec,
-                                               mdl_params.mesh_axis_names)
-  reshard_inputs_fn = functools.partial(ReshardInputBasedOnRankFn,
+  inputs_partition_spec_fn = functools.partial(
+      shard_on_batch_dim_partition_spec, mdl_params.mesh_axis_names)
+  reshard_inputs_fn = functools.partial(reshard_input_based_on_rank_fn,
                                         mdl_params.train.inputs_split_mapping,
                                         mdl_params.mesh_axis_names)
 
@@ -658,17 +660,17 @@ def PartitionSpmdModel(
 
   # Initialize the partitioned vars.
   train_state_partition_specs, var_shapes, partitioned_train_state = (
-      InitializePartitionedModelStates(mdl, init_key))
+      initialize_partitioned_model_states(mdl, init_key))
   total_num_params = mdl.total_num_vars
 
   prng_key_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   # TODO(bf-jax): prng_key is replicated. Would this be a problem?
-  prng_key_partition_spec = base_layer.ToPartitionSpec((None,), mesh_names)
+  prng_key_partition_spec = base_layer.to_partition_spec((None,), mesh_names)
 
-  def _TrainStep(state, prng_key, inputs):
+  def _train_step(state, prng_key, inputs):
     # Reshard inputs.
     inputs = jax.tree_map(reshard_inputs_fn, inputs)
-    return TrainStepSingleLearner(
+    return train_step_single_learner(
         mdl,
         state,
         prng_key,
@@ -676,10 +678,10 @@ def PartitionSpmdModel(
         data_parallel_axis_name=None,
         fprop_dtype=mdl_params.fprop_dtype)
 
-  def _EvalStep(mdl_vars, prng_key, global_step, inputs):
+  def _eval_step(mdl_vars, prng_key, global_step, inputs):
     # Reshard inputs.
     inputs = jax.tree_map(reshard_inputs_fn, inputs)
-    return EvalStepSingleLearner(
+    return eval_step_single_learner(
         mdl,
         mdl_vars,
         prng_key,
@@ -688,23 +690,23 @@ def PartitionSpmdModel(
         data_parallel_axis_name=None,
         fprop_dtype=mdl_params.fprop_dtype)
 
-  train_out_shapes = jax.eval_shape(_TrainStep, var_shapes, prng_key_shape,
+  train_out_shapes = jax.eval_shape(_train_step, var_shapes, prng_key_shape,
                                     inputs_shape)
 
-  eval_out_shapes = jax.eval_shape(_EvalStep, var_shapes.mdl_vars,
+  eval_out_shapes = jax.eval_shape(_eval_step, var_shapes.mdl_vars,
                                    prng_key_shape, var_shapes.step,
                                    inputs_shape)
 
-  def _PartitionSpecFromShape(x_shape):
+  def _partition_spec_from_shape(x_shape):
     # Currently, all the outputs are fully replicated.
-    # TODO(yonghui): Somehow fetch the output sharding spec from _EvalStep fn.
+    # TODO(yonghui): Somehow fetch the output sharding spec from _eval_step fn.
     del x_shape
     return None
 
   train_fn_in_partition_specs = (train_state_partition_specs,
                                  prng_key_partition_spec, inputs_partition_spec)
-  train_fn_out_replicated_specs = tf.nest.map_structure(_PartitionSpecFromShape,
-                                                        train_out_shapes)
+  train_fn_out_replicated_specs = tf.nest.map_structure(
+      _partition_spec_from_shape, train_out_shapes)
   # Here we assume the first output is the train-state.
   # Expcept for the first train_state output, others outputs are explicitly
   # replicated.
@@ -718,19 +720,19 @@ def PartitionSpmdModel(
                                 prng_key_partition_spec,
                                 train_state_partition_specs.step,
                                 inputs_partition_spec)
-  eval_fn_out_partition_specs = tf.nest.map_structure(_PartitionSpecFromShape,
-                                                      eval_out_shapes)
+  eval_fn_out_partition_specs = tf.nest.map_structure(
+      _partition_spec_from_shape, eval_out_shapes)
 
   # pjit-ed train step function.
   train_step = pjit.pjit(
-      _TrainStep,
+      _train_step,
       in_axis_resources=train_fn_in_partition_specs,
       out_axis_resources=train_fn_out_partition_specs,
       donate_argnums=(0,))
 
   # pjit-ed eval step function.
   eval_step = pjit.pjit(
-      _EvalStep,
+      _eval_step,
       in_axis_resources=eval_fn_in_partition_specs,
       out_axis_resources=eval_fn_out_partition_specs)
 
@@ -743,10 +745,10 @@ def PartitionSpmdModel(
     decode_mdl = decoder_mdl_params.Instantiate()
 
     # Initializes all the meta data.
-    decode_mdl.InstantiateVariableConfigs()
+    decode_mdl.instantiate_variable_configs()
 
-    def _InitDecoderState(mdl_vars, prng_key, global_step):
-      return InitDecoderState(
+    def _init_decoder_state(mdl_vars, prng_key, global_step):
+      return init_decoder_state(
           decode_mdl,
           mdl_vars,
           prng_key,
@@ -756,33 +758,33 @@ def PartitionSpmdModel(
           fprop_dtype=decoder_mdl_params.fprop_dtype)
 
     reshard_decoder_inputs_fn = functools.partial(
-        ReshardInputBasedOnRankFn,
+        reshard_input_based_on_rank_fn,
         decoder_mdl_params.train.decoder_inputs_split_mapping,
         decoder_mdl_params.mesh_axis_names)
 
-    def _ExtendDecoderState(mdl_vars, decoder_state, prng_key, global_step,
-                            step_input):
+    def _extend_decoder_state(mdl_vars, decoder_state, prng_key, global_step,
+                              step_input):
       # Reshard the decoder inputs.
       step_input = jax.tree_map(reshard_decoder_inputs_fn, step_input)
-      return ExtendDecoderState(decode_mdl, mdl_vars, decoder_state, prng_key,
-                                global_step, step_input,
-                                decoder_mdl_params.fprop_dtype)
+      return extend_decoder_state(decode_mdl, mdl_vars, decoder_state, prng_key,
+                                  global_step, step_input,
+                                  decoder_mdl_params.fprop_dtype)
 
-    init_decoder_state_fn = _InitDecoderState
-    extend_decoder_state_fn = _ExtendDecoderState
+    init_decoder_state_fn = _init_decoder_state
+    extend_decoder_state_fn = _extend_decoder_state
 
-    decoder_state_shapes = jax.eval_shape(_InitDecoderState,
+    decoder_state_shapes = jax.eval_shape(_init_decoder_state,
                                           var_shapes.mdl_vars, prng_key_shape,
                                           var_shapes.step)
 
     decoder_inputs_partition_spec_fn = functools.partial(
-        ShardOnBatchDimPartitionSpec, decoder_mdl_params.mesh_axis_names)
+        shard_on_batch_dim_partition_spec, decoder_mdl_params.mesh_axis_names)
     decoder_inputs_partition_spec = tf.nest.map_structure(
         decoder_inputs_partition_spec_fn, decoder_inputs_shape)
 
     # Compute the Decoder state partition specs from decoder state shapes.
     decoder_state_partition_spec_fn = functools.partial(
-        InferPartitionSpecBasedOnRankFn,
+        infer_partition_spec_based_on_rank_fn,
         decoder_mdl_params.train.decoder_states_split_mapping,
         decoder_mdl_params.mesh_axis_names)
     decoder_state_partition_specs = tf.nest.map_structure(

@@ -135,7 +135,7 @@ class TFRecordBertInput(base_input.BaseInput):
     ret.segment_pos = tf.cast(ret.segment_ids * pos, dtype=tf.int32)
 
     if p.remask:
-      new_masked_ids, new_masked_pos = self.mlm.FProp(None, ret.labels,
+      new_masked_ids, new_masked_pos = self.mlm.fprop(None, ret.labels,
                                                       ret.paddings)
       ret.masked_ids = new_masked_ids
       ret.masked_pos = new_masked_pos
@@ -197,7 +197,8 @@ class TFRecordBertInput(base_input.BaseInput):
 
   def _gen_dataset(self) -> tf.data.Dataset:
     p = self.params
-    file_patterns = list(map(py_utils.ShardedFilePatternToGlob, p.input_file))
+    file_patterns = list(
+        map(py_utils.sharded_file_pattern_to_glob, p.input_file))
     files = tf.data.Dataset.list_files(file_patterns, shuffle=False)
     if p.is_training:
       # For training data, each host will only use a non-overlapping subset

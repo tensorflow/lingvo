@@ -21,10 +21,7 @@ import jax
 from jax import numpy as jnp
 from jax import test_util
 from lingvo.jax import base_layer
-from lingvo.jax import test_utils
 from lingvo.jax.layers import stochastics
-
-ToNp = test_utils.ToNp
 
 
 class StochaticsTest(test_util.JaxTestCase):
@@ -36,7 +33,7 @@ class StochaticsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=12346)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = jnp.ones([10, 1000], dtype=jnp.bfloat16)
@@ -44,11 +41,11 @@ class StochaticsTest(test_util.JaxTestCase):
     global_step = jnp.array(0, dtype=jnp.uint64)
 
     def Comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.NewContext():
+      with base_layer.JaxContext.new_context():
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.ResetPrngKey(per_step_prng_key, global_step)
-        output1 = layer.FProp(theta, inputs)
-        output2 = layer.FProp(theta, inputs)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        output1 = layer.fprop(theta, inputs)
+        output2 = layer.fprop(theta, inputs)
         return output1, output2
 
     output1, output2 = Comp(initial_vars, compute_key, global_step, inputs)
@@ -78,7 +75,7 @@ class StochaticsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=12346)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = jnp.ones([2, 10, 6, 8], dtype=jnp.bfloat16)
@@ -86,11 +83,11 @@ class StochaticsTest(test_util.JaxTestCase):
     global_step = jnp.array(0, dtype=jnp.uint64)
 
     def Comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.NewContext():
+      with base_layer.JaxContext.new_context():
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.ResetPrngKey(per_step_prng_key, global_step)
-        layer.PrepareFProp()
-        output1 = layer.FProp(theta, inputs)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        layer.prepare_fprop()
+        output1 = layer.fprop(theta, inputs)
         return output1
 
     output1 = Comp(initial_vars, compute_key, global_step, inputs)

@@ -38,7 +38,7 @@ class ActivationLayer(base_layer.BaseLayer):
         'GELU, SILU, NONE.')
     return p
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     del theta  # not used
     p = self.params
     if p.activation == 'RELU':

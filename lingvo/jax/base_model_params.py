@@ -30,9 +30,9 @@ class BaseModelParams(metaclass=abc.ABCMeta):
   """Encapsulates the parameters for a model."""
 
   @abc.abstractmethod
-  def Datasets(self) -> List[base_input.BaseInputParams]:
+  def datasets(self) -> List[base_input.BaseInputParams]:
     """Returns the list of dataset parameters."""
 
   @abc.abstractmethod
-  def Task(self) -> InstantiableParams:
+  def task(self) -> InstantiableParams:
     """Returns the task parameters."""

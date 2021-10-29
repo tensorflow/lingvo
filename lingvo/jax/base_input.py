@@ -147,7 +147,7 @@ class LingvoInputAdaptor(BaseInput):
     p = self.params
     # We make self.input public so that users can access its methods like
     # IdsToStrings if needed.
-    with py_utils.InfeedContextScope(
+    with py_utils.infeed_context_scope(
         infeed_host_index=p.infeed_host_index,
         num_infeed_hosts=p.num_infeed_hosts):
       self.input = p.input.Instantiate()
@@ -156,7 +156,7 @@ class LingvoInputAdaptor(BaseInput):
 
   def _get_batch(self) -> NestedMap:
     p = self.params
-    with py_utils.InfeedContextScope(
+    with py_utils.infeed_context_scope(
         infeed_host_index=p.infeed_host_index,
         num_infeed_hosts=p.num_infeed_hosts):
       ret = self.input.GetPreprocessedInputBatch()

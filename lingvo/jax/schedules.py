@@ -31,7 +31,7 @@ class BaseSchedule:
   """Base class for all schedules."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = InstantiableParams(cls)
     return p
 
@@ -42,7 +42,7 @@ class BaseSchedule:
   def params(self) -> InstantiableParams:
     return self._params
 
-  def Value(self, count: JTensor) -> JTensor:
+  def value(self, count: JTensor) -> JTensor:  # pylint:disable=invalid-name
     """Returns the value of schedule at step 'count'.
 
     Args:
@@ -58,12 +58,12 @@ class ConstantSchedule(BaseSchedule):
   """A schedule whose value is a constant."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define('value', 1., 'The constant value.')
     return p
 
-  def Value(self, count: JTensor) -> JTensor:
+  def value(self, count: JTensor) -> JTensor:
     del count
     return jnp.array(self.params.value, dtype=jnp.float32)
 
@@ -76,7 +76,7 @@ class PolynomialSchedule(BaseSchedule):
   """
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define('power', 1, 'Polynomial power.')
     p.Define('start', (0, 1.), '(x0, y0)')
@@ -99,7 +99,7 @@ class PolynomialSchedule(BaseSchedule):
     if p.origin not in {'start', 'limit'}:
       raise ValueError('Invalid parameter origin: %s' % p.origin)
 
-  def Value(self, count: JTensor) -> JTensor:
+  def value(self, count: JTensor) -> JTensor:
     p = self.params
     x = jnp.array(count).astype(jnp.float32)
     x0, y0 = p.start
@@ -121,7 +121,7 @@ class LinearSchedule(PolynomialSchedule):
   """
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     return super().Params().Set(power=1)
 
 
@@ -129,7 +129,7 @@ class ExponentialSchedule(BaseSchedule):
   """Exponential learning rate schedule."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define('start', (0, 1.), '(x0, y0)')
     p.Define('limit', (1, 0.5), '(x1, y1)')
@@ -146,15 +146,15 @@ class ExponentialSchedule(BaseSchedule):
     self.linear = LinearSchedule.Params().Set(
         start=(x0, math.log(y0)), limit=(x1, math.log(y1))).Instantiate()
 
-  def Value(self, count: JTensor) -> JTensor:
-    return jnp.exp(self.linear.Value(count))
+  def value(self, count: JTensor) -> JTensor:
+    return jnp.exp(self.linear.value(count))
 
 
 class PiecewiseConstantSchedule(BaseSchedule):
   """A schedule with piecewise constants rate decay."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define('boundaries', None, 'Boundaries at which learning rate drops.')
     p.Define(
@@ -176,7 +176,7 @@ class PiecewiseConstantSchedule(BaseSchedule):
     if sorted(p.boundaries) != list(p.boundaries):
       raise ValueError(f'The boundaries ({p.boundaries}) must be sorted.')
 
-  def Value(self, count: JTensor) -> JTensor:
+  def value(self, count: JTensor) -> JTensor:
     p = self.params
     # Map the step/boundaries to jnp.float32.
     boundaries = [jnp.array(v, dtype=jnp.float32) for v in p.boundaries]
@@ -199,7 +199,7 @@ class TransformerSchedule(BaseSchedule):
   """Inverse-decay learning rate until warmup_steps, then decay."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define(
         'warmup_steps', 4000,
@@ -214,7 +214,7 @@ class TransformerSchedule(BaseSchedule):
              'Ends the learning rate decay at decay_end-th step.')
     return p
 
-  def Value(self, count: JTensor) -> JTensor:
+  def value(self, count: JTensor) -> JTensor:
     """Returns the current learning rate decay."""
     p = self.params
     current_step = count.astype(jnp.float32)
@@ -233,7 +233,7 @@ class SqrtDecaySchedule(BaseSchedule):
   """Square root decay learning rate after warmup_steps."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define(
         'warmup_steps', 10000, 'Increase the learning rate linearly for '
@@ -242,7 +242,7 @@ class SqrtDecaySchedule(BaseSchedule):
     p.Define('offset', 0., 'Offset.')
     return p
 
-  def Value(self, count: JTensor) -> JTensor:
+  def value(self, count: JTensor) -> JTensor:
     """Returns the current learning rate decay."""
     p = self.params
     current_step = count.astype(jnp.float32)
@@ -257,7 +257,7 @@ class LinearRampupExponentialDecay(BaseSchedule):
   """Learning rate that first linearly ramps up to max and exponentially decays."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define(
         'warmup', 0,
@@ -299,9 +299,9 @@ class LinearRampupExponentialDecay(BaseSchedule):
         start=(0, p.max),
         limit=(p.decay_end - p.decay_start, p.max * p.min_ratio)).Instantiate())
 
-  def Value(self, value: JTensor) -> JTensor:
+  def value(self, value: JTensor) -> JTensor:
     return jnp.array(
-        optax.join_schedules([s.Value for s in self._schedules],
+        optax.join_schedules([s.value for s in self._schedules],
                              self._boundaries)(value), jnp.float32)
 
 
@@ -316,7 +316,7 @@ class LinearRampupPiecewiseConstantSchedule(BaseSchedule):
   """
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     p = super().Params()
     p.Define('boundaries', [], 'Boundaries at which learning rate changes.')
     p.Define(
@@ -340,8 +340,8 @@ class LinearRampupPiecewiseConstantSchedule(BaseSchedule):
     self.p1 = PiecewiseConstantSchedule.Params().Set(
         boundaries=boundaries_pc, values=p.values).Instantiate()
 
-  def Value(self, value: JTensor) -> JTensor:
+  def value(self, value: JTensor) -> JTensor:
     p = self.params
     return jnp.array(
-        optax.join_schedules([self.p0.Value, self.p1.Value],
+        optax.join_schedules([self.p0.value, self.p1.value],
                              p.boundaries[:1])(value), jnp.float32)

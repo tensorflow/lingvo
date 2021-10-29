@@ -37,8 +37,8 @@ class TrainState(flax_struct.PyTreeNode):
   mdl_vars: NestedJTensorOrPartitionSpec
   opt_states: List[NestedJTensorOrPartitionSpec]
 
-  def NewState(self, mdl_vars: NestedJTensor,
-               opt_states: List[optax.OptState]) -> 'TrainState':
+  def new_state(self, mdl_vars: NestedJTensor,
+                opt_states: List[optax.OptState]) -> 'TrainState':
     """Returns a new TrainState with updated mdl_vars and opt_states."""
     mdl_vars = tf.nest.map_structure(lambda x: x, mdl_vars)
     opt_states = tf.nest.map_structure(lambda x: x, opt_states)

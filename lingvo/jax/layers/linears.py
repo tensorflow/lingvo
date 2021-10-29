@@ -23,13 +23,13 @@ from lingvo.jax.layers import activations
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
+weight_params = py_utils.weight_params
 
 InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-def ProjectLastDim(inputs: JTensor, weight: JTensor) -> JTensor:
+def project_last_dim(inputs: JTensor, weight: JTensor) -> JTensor:
   """Linear projection on the last dim of the input JTensor.
 
   This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
@@ -69,20 +69,20 @@ class LinearLayer(base_layer.BaseLayer):
     p.Define('output_dims', 0, 'Depth of the output.')
     return p
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
-    self.CreateVariable(
+    self.create_variable(
         'w',
-        WeightParams(
+        weight_params(
             shape=[p.input_dims, p.output_dims],
             init=p.params_init,
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp.wt))
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Apply projection to inputs.
 
     Args:
@@ -95,8 +95,8 @@ class LinearLayer(base_layer.BaseLayer):
     """
     p = self.params
     ap = p.activation_split_dims_mapping
-    out = ProjectLastDim(inputs, theta.w)
-    out = base_layer.MaybeShard(out, ap.out, p.mesh_axis_names)
+    out = project_last_dim(inputs, theta.w)
+    out = base_layer.maybe_shard(out, ap.out, p.mesh_axis_names)
     return out
 
 
@@ -109,20 +109,20 @@ class BiasLayer(base_layer.BaseLayer):
     p.Define('dims', 0, 'Depth of the input.')
     return p
 
-  def CreateLayerVariables(self) -> None:
-    super().CreateLayerVariables()
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
     p = self.params
     wp = p.weight_split_dims_mapping
-    self.CreateVariable(
+    self.create_variable(
         'b',
-        WeightParams(
+        weight_params(
             shape=[p.dims],
             init=WeightInit.Constant(0.0),
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp.wt))
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Adds bias to inputs.
 
     Args:
@@ -159,18 +159,18 @@ class FeedForwardLayer(base_layer.BaseLayer):
         output_dims=p.output_dims,
         weight_split_dims_mapping=wp.Copy(),
         activation_split_dims_mapping=ap.Copy())
-    self.CreateChild('linear', linear_layer_p)
+    self.create_child('linear', linear_layer_p)
     bias_layer_p = BiasLayer.Params().Set(dims=p.output_dims)
     if p.device_mesh is not None and wp.wt is not None:
       assert len(wp.wt) == 2
       wp_bias = [wp.wt[1]]
       bias_layer_p.weight_split_dims_mapping.wt = wp_bias
-    self.CreateChild('bias', bias_layer_p)
+    self.create_child('bias', bias_layer_p)
     act_p = activations.ActivationLayer.Params().Set(activation=p.activation)
-    self.CreateChild('activation', act_p)
+    self.create_child('activation', act_p)
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    projected_inputs = self.bias.FProp(theta.bias,
-                                       self.linear.FProp(theta.linear, inputs))
-    output = self.activation.FProp(theta.activation, projected_inputs)
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+    projected_inputs = self.bias.fprop(theta.bias,
+                                       self.linear.fprop(theta.linear, inputs))
+    output = self.activation.fprop(theta.activation, projected_inputs)
     return output

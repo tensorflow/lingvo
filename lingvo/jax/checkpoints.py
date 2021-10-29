@@ -32,13 +32,13 @@ class CheckpointType(str, enum.Enum):
   PERSISTENCE = 'persistence'
 
 
-def SaveCheckpoint(train_state: train_states.TrainState,
-                   checkpoint_dir: str,
-                   overwrite: bool = False,
-                   unreplicate: bool = True,
-                   checkpoint_type: CheckpointType = CheckpointType.FLAX,
-                   state_specs: Optional[train_states.TrainState] = None,
-                   max_checkpoints: int = 10) -> None:
+def save_checkpoint(train_state: train_states.TrainState,
+                    checkpoint_dir: str,
+                    overwrite: bool = False,
+                    unreplicate: bool = True,
+                    checkpoint_type: CheckpointType = CheckpointType.FLAX,
+                    state_specs: Optional[train_states.TrainState] = None,
+                    max_checkpoints: int = 10) -> None:
   """Saves a checkpoint into the provided base directory.
 
   This is typically called on a replicated TrainState instance.
@@ -70,13 +70,13 @@ def SaveCheckpoint(train_state: train_states.TrainState,
     )
 
   if checkpoint_type == CheckpointType.FLAX:
-    _SaveCheckpointFlax(train_state, checkpoint_dir, overwrite, unreplicate,
-                        max_checkpoints, step)
+    _save_checkpoint_flax(train_state, checkpoint_dir, overwrite, unreplicate,
+                          max_checkpoints, step)
   else:
     raise ValueError(f'Unexpected checkpoint_type `{checkpoint_type}`.')
 
 
-def LatestCheckpoint(checkpoint_dir: str) -> Optional[str]:
+def latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
   """Gets the path to the latest checkpoint.
 
   Args:
@@ -88,11 +88,11 @@ def LatestCheckpoint(checkpoint_dir: str) -> Optional[str]:
   return checkpoints.latest_checkpoint(checkpoint_dir)
 
 
-def RestoreCheckpoint(train_state: train_states.TrainState,
-                      checkpoint_dir: str,
-                      checkpoint_type: CheckpointType = CheckpointType.FLAX,
-                      state_specs: Optional[train_states.TrainState] = None,
-                      step: Optional[int] = None) -> train_states.TrainState:
+def restore_checkpoint(train_state: train_states.TrainState,
+                       checkpoint_dir: str,
+                       checkpoint_type: CheckpointType = CheckpointType.FLAX,
+                       state_specs: Optional[train_states.TrainState] = None,
+                       step: Optional[int] = None) -> train_states.TrainState:
   """Restores a checkpoint from the provided base directory.
 
   This is typically called on an unreplicated TrainState instance.
@@ -119,17 +119,18 @@ def RestoreCheckpoint(train_state: train_states.TrainState,
                      f'`{train_state.step.ndim}`).')
 
   if checkpoint_type == CheckpointType.FLAX:
-    return _RestoreCheckpointFlax(train_state, checkpoint_dir, step)
+    return _restore_checkpoint_flax(train_state, checkpoint_dir, step)
   else:
     raise ValueError(f'Unexpected checkpoint_type `{checkpoint_type}`.')
 
 
-def _SaveCheckpointFlax(train_state: train_states.TrainState,
-                        checkpoint_dir: str, overwrite: bool, unreplicate: bool,
-                        max_checkpoints: int, step: int) -> None:
+def _save_checkpoint_flax(train_state: train_states.TrainState,
+                          checkpoint_dir: str, overwrite: bool,
+                          unreplicate: bool, max_checkpoints: int,
+                          step: int) -> None:
   """Saves a checkpoint using Flax serialization mechanism."""
   if not overwrite:
-    previous_filename = LatestCheckpoint(checkpoint_dir)
+    previous_filename = latest_checkpoint(checkpoint_dir)
     if previous_filename:
       previous_step = int(previous_filename.rsplit('_', 1)[-1])
       if previous_step >= step:
@@ -141,7 +142,7 @@ def _SaveCheckpointFlax(train_state: train_states.TrainState,
 
   # Assume data parallel-only model for now and retrieve train states
   # from the first replica only.
-  def _MaybeUnreplicate(data):
+  def maybe_unreplicate(data):
     if unreplicate:
       return jax.device_get(jax_utils.unreplicate(data))
     else:
@@ -150,7 +151,7 @@ def _SaveCheckpointFlax(train_state: train_states.TrainState,
   # Extract/flatten data structure to store to disk. Flax requires a flattened
   # data structure to be passed to the checkpointer.
   flattened_state, pytree_state = jax.tree_flatten(
-      _MaybeUnreplicate(train_state))
+      maybe_unreplicate(train_state))
   checkpoint_target = {
       'flattened_state': flattened_state,
       # Saves a serialized version of the pytree structure to detect potential
@@ -165,12 +166,12 @@ def _SaveCheckpointFlax(train_state: train_states.TrainState,
       overwrite=overwrite)
 
 
-def _RestoreCheckpointFlax(
+def _restore_checkpoint_flax(
     train_state: train_states.TrainState,
     checkpoint_dir: str,
     step: Optional[int] = None) -> train_states.TrainState:
   """Restores a checkpoint using Flax serialization mechanism."""
-  # Input the same data structure as in SaveCheckpoint().
+  # Input the same data structure as in save_checkpoint().
   flattened_state, pytree_state = jax.tree_flatten(train_state)
   str_pytree_state = str(pytree_state)
   input_target = {

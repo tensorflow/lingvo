@@ -74,18 +74,18 @@ flags.DEFINE_bool(
 # Flags --jax_backend_target and --jax_xla_backend are available through JAX.
 
 
-def GloballyUseRbgPRNGKey():
+def globally_use_rbg_prng_key():
   logging.info('Globally use RngBitGenerator-based RNG: '
                'Deterministic at the same compiler version and sharding;'
                'Non-deterministic when compiler versions change')
 
-  def RbgKey(seed: int):
+  def rbg_key(seed: int):
     return prng.seed_with_impl(prng.rbg_prng_impl, seed)
 
-  jax.random.PRNGKey = RbgKey
+  jax.random.PRNGKey = rbg_key
 
 
-def WaitWithRandomJitter(min_secs, max_secs):
+def wait_with_random_jitter(min_secs, max_secs):
   """Sleep for a random short interval to avoid thundering herd RPC calls."""
   time.sleep(random.randint(min_secs, max_secs))
 
@@ -98,7 +98,7 @@ def main(argv):
   tf.config.experimental.set_visible_devices([], 'GPU')
   if FLAGS.globally_use_hardware_rng:
     jax.config.update('jax_enable_custom_prng', True)
-    GloballyUseRbgPRNGKey()
+    globally_use_rbg_prng_key()
 
   if FLAGS.jax_backend_target:
     logging.info('Using JAX backend target %s', FLAGS.jax_backend_target)
@@ -117,7 +117,7 @@ def main(argv):
   # Add a note so that we can tell which Borg task is which JAX host.
   # (Borg task 0 is not guaranteed to be host 0)
   if jax.process_count() > 128:
-    WaitWithRandomJitter(min_secs=0, max_secs=60)
+    wait_with_random_jitter(min_secs=0, max_secs=60)
   work_unit = platform.work_unit()
   work_unit.set_task_status(f'process_index: {jax.process_index()}, '
                             f'process_count: {jax.process_count()}')

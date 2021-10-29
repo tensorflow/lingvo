@@ -28,12 +28,12 @@ JTensor = jnp.ndarray
 NestedMap = py_utils.NestedMap
 
 
-def ToNp(x: JTensor) -> np.ndarray:
+def to_np(x: JTensor) -> np.ndarray:
   """Converts TF/JAX tensors to numpy."""
   return np.asarray(x, dtype=np.float32)
 
 
-def UnshardInputNmap(x_nmap: NestedMap) -> NestedMap:
+def unshard_input_nmap(x_nmap: NestedMap) -> NestedMap:
   """Unshards input sequences.
 
   Args:
@@ -43,19 +43,19 @@ def UnshardInputNmap(x_nmap: NestedMap) -> NestedMap:
     NestedMap with tensors reshaped to [num_devices * batch, seq_len].
   """
 
-  def Unshard(x: JTensor) -> JTensor:
+  def unshard(x: JTensor) -> JTensor:
     num_devices = x.shape[0]
     batch_size = x.shape[1]
     new_shape = [num_devices * batch_size] + x.shape[2:]
     return tf.reshape(x, new_shape)
 
-  return tf.nest.map_structure(Unshard, x_nmap)
+  return tf.nest.map_structure(unshard, x_nmap)
 
 
-def ToTfNmap(x_nmap: NestedMap) -> NestedMap:
+def to_tf_nmap(x_nmap: NestedMap) -> NestedMap:
   """Converts numpy dtypes to TF dtypes in a variable collection."""
 
-  def ToTf(x: Any) -> JTensor:
+  def to_tf(x: Any) -> JTensor:
     if not isinstance(x, np.ndarray):
       x = np.array(x)
     if x.dtype == np.float32:
@@ -71,10 +71,10 @@ def ToTfNmap(x_nmap: NestedMap) -> NestedMap:
     else:
       assert 'dtype not supported yet'
 
-  return tf.nest.map_structure(ToTf, x_nmap)
+  return tf.nest.map_structure(to_tf, x_nmap)
 
 
-def ReplaceJaxAttentionVarsToTf(
+def replace_jax_attention_vars_to_tf(
     jax_initial_vars: NestedMap,
     cross_attention: Optional[bool] = False) -> NestedMap:
   """Replaces JAX attention vars to TF compatible vars.
@@ -120,7 +120,7 @@ def ReplaceJaxAttentionVarsToTf(
   return tf_initial_vars
 
 
-def ReplaceJaxSingleShardFullSoftmaxVarsToTf(
+def replace_jax_single_shard_full_softmax_vars_to_tf(
     jax_initial_vars: NestedMap) -> NestedMap:
   """Replaces JAX Single Shard Full Softmax vars to TF compatible vars.
 
@@ -139,7 +139,7 @@ def ReplaceJaxSingleShardFullSoftmaxVarsToTf(
   return tf_initial_vars
 
 
-def ReplaceJaxSimpleFullSoftmaxVarsToTf(
+def replace_jax_simple_full_softmax_vars_to_tf(
     jax_initial_vars: NestedMap) -> NestedMap:
   """Replaces JAX Simple Full Softmax vars to TF compatible vars.
 
@@ -156,7 +156,7 @@ def ReplaceJaxSimpleFullSoftmaxVarsToTf(
   return tf_initial_vars
 
 
-def ReplaceJaxConvBNActVarsToTf(jax_initial_vars: NestedMap) -> NestedMap:
+def replace_jax_conv_bnact_vars_to_tf(jax_initial_vars: NestedMap) -> NestedMap:
   """Replaces JAX ConvBNAct variables to TF compatible variables.
 
   Args:
@@ -172,7 +172,8 @@ def ReplaceJaxConvBNActVarsToTf(jax_initial_vars: NestedMap) -> NestedMap:
   return tf_initial_vars
 
 
-def ReplaceJaxResNetBlockVarsToTf(jax_initial_vars: NestedMap) -> NestedMap:
+def replace_jax_res_net_block_vars_to_tf(
+    jax_initial_vars: NestedMap) -> NestedMap:
   """Replaces the JAX ResNetBlock vars to TF compatible vars.
 
   Args:
@@ -183,15 +184,15 @@ def ReplaceJaxResNetBlockVarsToTf(jax_initial_vars: NestedMap) -> NestedMap:
   """
   tf_initial_vars = jax_initial_vars.copy()
   tf_initial_vars.body = [
-      ReplaceJaxConvBNActVarsToTf(var) for var in tf_initial_vars.body
+      replace_jax_conv_bnact_vars_to_tf(var) for var in tf_initial_vars.body
   ]
   if 'shortcut' in tf_initial_vars:
-    tf_initial_vars.shortcut = ReplaceJaxConvBNActVarsToTf(
+    tf_initial_vars.shortcut = replace_jax_conv_bnact_vars_to_tf(
         tf_initial_vars.shortcut)
   return tf_initial_vars
 
 
-def ReplaceJaxResNetVarsToTf(jax_initial_vars: NestedMap) -> NestedMap:
+def replace_jax_res_net_vars_to_tf(jax_initial_vars: NestedMap) -> NestedMap:
   """Replaces the JAX ResNet vars to TF compatible vars.
 
   Args:
@@ -201,14 +202,14 @@ def ReplaceJaxResNetVarsToTf(jax_initial_vars: NestedMap) -> NestedMap:
     tf_initial_vars which is TF compatible with ResNet.
   """
   tf_initial_vars = jax_initial_vars.copy()
-  tf_initial_vars.entryflow_conv = ReplaceJaxConvBNActVarsToTf(
+  tf_initial_vars.entryflow_conv = replace_jax_conv_bnact_vars_to_tf(
       tf_initial_vars.entryflow_conv)
   stage_id = 0
   block_id = 0
   block = f'stage_{stage_id}_block_{block_id}'
   while block in tf_initial_vars:
     while block in tf_initial_vars:
-      tf_initial_vars[block] = ReplaceJaxResNetBlockVarsToTf(
+      tf_initial_vars[block] = replace_jax_res_net_block_vars_to_tf(
           tf_initial_vars[block])
       block_id += 1
       block = f'stage_{stage_id}_block_{block_id}'

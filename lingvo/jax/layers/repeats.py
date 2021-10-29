@@ -30,7 +30,6 @@ import tensorflow.compat.v2 as tf
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
 InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 NestedJTensor = pytypes.NestedJTensor
@@ -80,14 +79,14 @@ class RepeatLayer(base_layer.BaseLayer):
     sub_params.repeat_prefix_split_dims_mapping = (
         repeat_prefix_split_dims_mapping)
 
-    self.CreateChild('sub', sub_params)
+    self.create_child('sub', sub_params)
 
-  def FProp(self, theta: NestedMap, inputs: NestedJTensor, *args: Any,
+  def fprop(self, theta: NestedMap, inputs: NestedJTensor, *args: Any,
             **kwargs: Any) -> Any:
     """FProp inputs through the sub layer stack.
 
-    sub.FProp is expected to be of the following signature:
-    outputs, extra = sub.FProp(theta, inputs, *args, **kwargs)
+    sub.fprop is expected to be of the following signature:
+    outputs, extra = sub.fprop(theta, inputs, *args, **kwargs)
 
     outputs are expected to be of the same structure as inputs. extra can be any
     structure.
@@ -95,8 +94,8 @@ class RepeatLayer(base_layer.BaseLayer):
     Args:
       theta: The combined layer params for all layers.
       inputs: A NestedMap of inputs that goes through the sub layer stack.
-      *args: Positional args to be passed to sub.FProp method.
-      **kwargs: Keyward args to be passed to sub.FProp method.
+      *args: Positional args to be passed to sub.fprop method.
+      **kwargs: Keyward args to be passed to sub.fprop method.
 
     Returns:
       Output from the last sub layer.
@@ -106,8 +105,8 @@ class RepeatLayer(base_layer.BaseLayer):
     # be a NestedMap, which is required by the recurrent.scan interface.
     inputs_mp = NestedMap(carry=inputs)
 
-    def _ScanFn(layer_in, layer_vars):
-      layer_out, extra = self.sub.FProp(layer_vars, layer_in.carry, *args,
+    def _scan_fn(layer_in, layer_vars):
+      layer_out, extra = self.sub.fprop(layer_vars, layer_in.carry, *args,
                                         **kwargs)
       # TODO(yonghui): Maybe return stacked extra.
       del extra
@@ -115,21 +114,21 @@ class RepeatLayer(base_layer.BaseLayer):
       return NestedMap(carry=layer_out), py_utils.NestedMap()
 
     out_final, _ = recurrent.scan(
-        inputs_mp, theta.sub, _ScanFn, root_layer=self)
+        inputs_mp, theta.sub, _scan_fn, root_layer=self)
 
     return out_final.carry
 
-  def InitStates(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
+  def init_states(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
     """Inits decoder states for all sub layers.
 
-    sub.InitStates() should be of signature
+    sub.init_states() should be of signature
 
-    init_states = sub.InitStates(theta, *args, **kwargs)
+    init_states = sub.init_states(theta, *args, **kwargs)
 
     Args:
       theta: The combined layer params for all layers.
-      *args: Positional args to pass to the sub.InitStates() method.
-      **kwargs: Keyward args to pass to the sub.InitStates() method.
+      *args: Positional args to pass to the sub.init_states() method.
+      **kwargs: Keyward args to pass to the sub.init_states() method.
 
     Returns:
       Initial decoder states.
@@ -137,24 +136,24 @@ class RepeatLayer(base_layer.BaseLayer):
     p = self.params
     # TODO(yonghui): Fix me. We should pass in theta for one sub, instead of all
     # the subs.
-    init_states = self.sub.InitStates(theta.sub, *args, **kwargs)
+    init_states = self.sub.init_states(theta.sub, *args, **kwargs)
 
-    def TileX(x):
+    def tile_x(x):
       a = jnp.expand_dims(x, 0)
       return jnp.tile(a, [p.x_times] + [1] * len(x.shape))
 
-    init_states = jax.tree_map(TileX, init_states)
+    init_states = jax.tree_map(tile_x, init_states)
 
     # TODO(yonghui): Configure for spmd.
     return init_states
 
-  def ExtendStep(self, theta: NestedMap, cached_states: NestedMap,
-                 step_inputs: NestedJTensor, *args: Any, **kwargs: Any) -> Any:
+  def extend_step(self, theta: NestedMap, cached_states: NestedMap,
+                  step_inputs: NestedJTensor, *args: Any, **kwargs: Any) -> Any:
     """Extends decoder states by one step.
 
-    sub.ExtendStep() should have the following signature.
+    sub.extend_step() should have the following signature.
 
-    extended_states, step_out = sub.ExtendStep(theta, states, step_input,
+    extended_states, step_out = sub.extend_step(theta, states, step_input,
                                               *args, **kwargs)
     extended_states should have the same structure as states
     step_out should have the same structure as step_input
@@ -173,12 +172,13 @@ class RepeatLayer(base_layer.BaseLayer):
     # Wrap inputs in a NestedMap to conform to recurrent.scan interface.
     step_inputs_mp = NestedMap(carry=step_inputs)
 
-    def _ScanFn(layer_in, vars_and_states):
+    def _scan_fn(layer_in, vars_and_states):
       layer_vars = vars_and_states.layer_vars
       layer_states = vars_and_states.layer_states
-      extended_states, layer_out = self.sub.ExtendStep(layer_vars, layer_states,
-                                                       layer_in.carry, *args,
-                                                       **kwargs)
+      extended_states, layer_out = self.sub.extend_step(layer_vars,
+                                                        layer_states,
+                                                        layer_in.carry, *args,
+                                                        **kwargs)
       tf.nest.assert_same_structure(layer_in.carry, layer_out)
       tf.nest.assert_same_structure(extended_states, layer_states)
       return NestedMap(carry=layer_out), extended_states
@@ -187,5 +187,5 @@ class RepeatLayer(base_layer.BaseLayer):
         layer_vars=theta.sub, layer_states=cached_states)
 
     final_out, new_states = recurrent.scan(
-        step_inputs_mp, vars_and_states, _ScanFn, root_layer=self)
+        step_inputs_mp, vars_and_states, _scan_fn, root_layer=self)
     return new_states, final_out.carry

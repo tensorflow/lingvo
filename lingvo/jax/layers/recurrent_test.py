@@ -50,7 +50,7 @@ class RecurrentTest(test_util.JaxTestCase):
       return NestedMap(y=y)
 
     def comp01(theta, state0, inputs):
-      with base_layer.JaxContext.NewContext(
+      with base_layer.JaxContext.new_context(
           prng_key=prng_key, global_step=global_step):
         final_state, cum_states = recurrent.recurrent_func(
             theta, state0, inputs, cell_fn)
@@ -58,7 +58,7 @@ class RecurrentTest(test_util.JaxTestCase):
         return loss
 
     def comp02(theta, state0, inputs):
-      with base_layer.JaxContext.NewContext(
+      with base_layer.JaxContext.new_context(
           prng_key=prng_key, global_step=global_step):
         final_state, cum_states = recurrent.recurrent_static(
             theta, state0, inputs, cell_fn)
@@ -116,7 +116,7 @@ class RecurrentTest(test_util.JaxTestCase):
     def same_value(x, y):
       self.assertAllClose(to_np(x), to_np(y))
 
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=prng_key, global_step=global_step):
       final_states_01, cum_states_01 = comp01(theta, state0, inputs)
       logging.info('final_states_01: %s', final_states_01)
@@ -139,7 +139,7 @@ class RecurrentTest(test_util.JaxTestCase):
         name='dropout01', keep_prob=0.5)
     layer = dropout_l.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    dropout_layer_vars = layer.InstantiateVariables(prng_key)
+    dropout_layer_vars = layer.instantiate_variables(prng_key)
     logging.info('dropout_layer_vars: %s', dropout_layer_vars)
 
     inputs = NestedMap(x=np.ones([5, 3, 4]))
@@ -151,7 +151,7 @@ class RecurrentTest(test_util.JaxTestCase):
 
     def cell_fn(theta, state0, inputs_t):
       increment = theta.delta + inputs_t.x
-      increment = layer.FProp(theta.dropout, increment)
+      increment = layer.fprop(theta.dropout, increment)
       y = state0.y + increment
       return NestedMap(y=y)
 
@@ -166,7 +166,7 @@ class RecurrentTest(test_util.JaxTestCase):
 
     grad_fn = jax.grad(comp_loss)
 
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=prng_key, global_step=global_step):
       final_state, cum_states = comp(theta, state0, inputs)
       logging.info('final_state: %s', final_state)
@@ -206,7 +206,7 @@ class RecurrentTest(test_util.JaxTestCase):
 
     grad_fn = jax.grad(comp_loss)
 
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=prng_key, global_step=global_step):
       final_state, cum_states = comp(theta, state0, inputs)
       logging.info('final_state: %s', final_state)
@@ -254,7 +254,7 @@ class RecurrentTest(test_util.JaxTestCase):
     prng_key = jax.random.PRNGKey(21230)
     global_step = jnp.array(0, dtype=jnp.uint32)
 
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=prng_key, global_step=global_step):
       loss, (carry_final, ys) = comp01(theta, carry_initial, xs)
       logging.info('loss: %s', loss)

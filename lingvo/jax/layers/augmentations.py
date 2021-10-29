@@ -49,7 +49,7 @@ class MaskedLmDataAugmenter(base_layer.BaseLayer):
     p.Define('mask_token_id', -1, 'Id of the special <MASK> token.')
     return p
 
-  def FProp(self, theta: NestedMap, inputs: JTensor,
+  def fprop(self, theta: NestedMap, inputs: JTensor,
             paddings: JTensor) -> Tuple[JTensor, JTensor]:
     """Applies data augmentation by randomly masking/replacing tokens in inputs.
 
@@ -75,7 +75,7 @@ class MaskedLmDataAugmenter(base_layer.BaseLayer):
     fprop_dtype = self.fprop_dtype
 
     def _UniformSample(sample_p: float) -> JTensor:
-      prng_key = base_layer.NextPrngKey()
+      prng_key = base_layer.next_prng_key()
       rnd_sample = jax.random.uniform(prng_key, inputs.shape)
       return (rnd_sample < sample_p).astype(fprop_dtype)
 
@@ -104,7 +104,7 @@ class MaskedLmDataAugmenter(base_layer.BaseLayer):
     # Lastly, token positions to be replaced by self.
     self_pos = remaining_pos - random_pos
 
-    random_tokens = jax.random.randint(base_layer.NextPrngKey(), inputs.shape,
+    random_tokens = jax.random.randint(base_layer.next_prng_key(), inputs.shape,
                                        0, p.vocab_size, inputs.dtype)
     mask_tokens = jnp.zeros_like(inputs) + p.mask_token_id
 

@@ -17,13 +17,13 @@
 
 from lingvo.jax.layers.activations import ActivationLayer
 
-from lingvo.jax.layers.attentions import CausalMask
-from lingvo.jax.layers.attentions import CausalSegmentMask
-from lingvo.jax.layers.attentions import ConvertPaddingsToMask
+from lingvo.jax.layers.attentions import causal_mask
+from lingvo.jax.layers.attentions import causal_segment_mask
+from lingvo.jax.layers.attentions import convert_paddings_to_mask
 from lingvo.jax.layers.attentions import MultiHeadedAttention
 from lingvo.jax.layers.attentions import MultiHeadedProjectionLayer
 from lingvo.jax.layers.attentions import PerDimScaleLayer
-from lingvo.jax.layers.attentions import SegmentMask
+from lingvo.jax.layers.attentions import segment_mask
 
 from lingvo.jax.layers.augmentations import MaskedLmDataAugmenter
 
@@ -40,10 +40,10 @@ from lingvo.jax.layers.flax_wrapper import FlaxModuleLayer
 from lingvo.jax.layers.linears import BiasLayer
 from lingvo.jax.layers.linears import FeedForwardLayer
 from lingvo.jax.layers.linears import LinearLayer
-from lingvo.jax.layers.linears import ProjectLastDim
+from lingvo.jax.layers.linears import project_last_dim
 
 from lingvo.jax.layers.normalizations import BatchNormLayer
-from lingvo.jax.layers.normalizations import ComputeMoments
+from lingvo.jax.layers.normalizations import compute_moments
 from lingvo.jax.layers.normalizations import LayerNorm
 
 from lingvo.jax.layers.poolings import GlobalPoolingLayer
@@ -62,8 +62,8 @@ from lingvo.jax.layers.resnets import ResNetBlock
 from lingvo.jax.layers.stochastics import DropoutLayer
 from lingvo.jax.layers.stochastics import StochasticResidualLayer
 
-from lingvo.jax.layers.transformers import ComputeAttentionMasksForExtendStep
-from lingvo.jax.layers.transformers import ComputeAttentionMasksForFProp
+from lingvo.jax.layers.transformers import compute_attention_masks_for_extend_step
+from lingvo.jax.layers.transformers import compute_attention_masks_for_fprop
 from lingvo.jax.layers.transformers import StackedTransformerLayers
 from lingvo.jax.layers.transformers import StackedTransformerLayersRepeated
 from lingvo.jax.layers.transformers import TransformerFeedForwardLayer

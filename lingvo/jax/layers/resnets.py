@@ -74,7 +74,7 @@ class ResNetBlock(base_layer.BaseLayer):
         filter_shape=(1, 1, p.output_dim // 4, p.output_dim),
         filter_stride=(1, 1),
         activation='NONE'))
-    self.CreateChildren('body', body)
+    self.create_children('body', body)
 
     # projection with 1x1 if input dim and output dim are not the same
     if not self._in_out_same_shape:
@@ -83,19 +83,19 @@ class ResNetBlock(base_layer.BaseLayer):
           filter_shape=(1, 1, p.input_dim, p.output_dim),
           filter_stride=(p.stride, p.stride),
           activation='NONE')
-      self.CreateChild('shortcut', shortcut)
+      self.create_child('shortcut', shortcut)
 
     # Initialize droppath layer
     if p.residual_droppath_prob > 0:
       droppath_p = stochastics.StochasticResidualLayer.Params().Set(
           survival_prob=1.0 - p.residual_droppath_prob)
-      self.CreateChild('residual_droppath', droppath_p)
+      self.create_child('residual_droppath', droppath_p)
 
     post_activation = activations.ActivationLayer.Params().Set(
         name='post_activation', activation=p.activation)
-    self.CreateChild('postact', post_activation)
+    self.create_child('postact', post_activation)
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Forward propagation of a ResNetBlock.
 
     Args:
@@ -111,15 +111,15 @@ class ResNetBlock(base_layer.BaseLayer):
 
     # body
     for i in range(len(self.body)):
-      outputs = self.body[i].FProp(theta.body[i], outputs)
+      outputs = self.body[i].fprop(theta.body[i], outputs)
 
     # projection
     if not self._in_out_same_shape:
-      inputs = self.shortcut.FProp(theta.shortcut, inputs)
+      inputs = self.shortcut.fprop(theta.shortcut, inputs)
 
     # residual
     if p.residual_droppath_prob:
-      outputs = self.residual_droppath.FProp(
+      outputs = self.residual_droppath.fprop(
           theta.residual_droppath,
           inputs,
           outputs,
@@ -128,7 +128,7 @@ class ResNetBlock(base_layer.BaseLayer):
       outputs += inputs
 
     # post activation
-    outputs = self.postact.FProp(theta.postact, outputs)
+    outputs = self.postact.fprop(theta.postact, outputs)
     return outputs
 
 
@@ -228,7 +228,7 @@ class ResNet(base_layer.BaseLayer):
                                           p.entryflow_conv_kernel[1], 3,
                                           input_dim)
     entryflow_conv_params.filter_stride = p.entryflow_conv_stride
-    self.CreateChild('entryflow_conv', entryflow_conv_params)
+    self.create_child('entryflow_conv', entryflow_conv_params)
 
     # Create the entryflow max pooling layer.
     maxpool_params = poolings.PoolingLayer.Params().Set(
@@ -236,7 +236,7 @@ class ResNet(base_layer.BaseLayer):
         window_shape=(3, 3),
         window_stride=(2, 2),
         pooling_type='MAX')
-    self.CreateChild('entryflow_maxpool', maxpool_params)
+    self.create_child('entryflow_maxpool', maxpool_params)
 
     # Create the chain of ResNet blocks.
     for stage_id, (channel, num_blocks, kernel, stride) in enumerate(
@@ -251,15 +251,15 @@ class ResNet(base_layer.BaseLayer):
             output_dim=output_dim,
             stride=1 if block_id != 0 else stride,
         )
-        self.CreateChild(name, block_p)
+        self.create_child(name, block_p)
         input_dim = output_dim
 
     # Add optional spatial global pooling.
     if p.output_spatial_pooling_params is not None:
-      self.CreateChild('output_spatial_pooling',
-                       p.output_spatial_pooling_params)
+      self.create_child('output_spatial_pooling',
+                        p.output_spatial_pooling_params)
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Applies the ResNet model to the inputs.
 
     Args:
@@ -276,19 +276,19 @@ class ResNet(base_layer.BaseLayer):
     p = self.params
 
     # Apply the entryflow conv.
-    outputs = self.entryflow_conv.FProp(theta.entryflow_conv, inputs)
+    outputs = self.entryflow_conv.fprop(theta.entryflow_conv, inputs)
 
     # Apply the entryflow maxpooling layer.
-    outputs, _ = self.entryflow_maxpool.FProp(theta.entryflow_maxpool, outputs)
+    outputs, _ = self.entryflow_maxpool.fprop(theta.entryflow_maxpool, outputs)
 
     # Apply the ResNet blocks.
     for stage_id, num_blocks in enumerate(p.blocks):
       for block_id in range(num_blocks):
         block_name = f'stage_{stage_id}_block_{block_id}'
-        outputs = getattr(self, block_name).FProp(theta[block_name], outputs)
+        outputs = getattr(self, block_name).fprop(theta[block_name], outputs)
 
     # Apply optional spatial global pooling.
     if p.output_spatial_pooling_params is not None:
-      outputs = self.output_spatial_pooling.FProp(theta.output_spatial_pooling,
+      outputs = self.output_spatial_pooling.fprop(theta.output_spatial_pooling,
                                                   outputs)
     return outputs

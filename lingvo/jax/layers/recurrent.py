@@ -52,7 +52,6 @@ import tensorflow.compat.v2 as tf
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
 
 ParamsT = pytypes.ParamsT
 JTensor = pytypes.JTensor
@@ -101,8 +100,8 @@ def recurrent_func(theta: NestedMap, states_0: NestedMap, inputs: NestedMap,
 
   cumulative_states = states_0.Transform(new_cum_state)
 
-  prng_key = base_layer.NextPrngKey()
-  global_step = base_layer.CurGlobalStep()
+  prng_key = base_layer.next_prng_key()
+  global_step = base_layer.cur_global_step()
 
   start_time = jnp.array(0, dtype=jnp.uint32)
   fwd_initial_loop_vars = NestedMap(
@@ -127,7 +126,7 @@ def recurrent_func(theta: NestedMap, states_0: NestedMap, inputs: NestedMap,
     theta = fn_in.theta
     states_0 = fn_in.states_0
     inputs_t = fn_in.inputs_t
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=jax.random.fold_in(prng_key, t), global_step=global_step):
       states_1 = cell_fn(theta, states_0, inputs_t)
 
@@ -308,8 +307,8 @@ def recurrent_static(theta: NestedMap,
   states_0 = tf.nest.map_structure(lambda x: x, states_0)
   states_0.time_step = time_step
 
-  prng_key = base_layer.NextPrngKey()
-  global_step = base_layer.CurGlobalStep()
+  prng_key = base_layer.next_prng_key()
+  global_step = base_layer.cur_global_step()
 
   # TODO(zhangqiaorjc): Switch to ad_checkpoint.checkpoint after mattjj bug fix.
   @jax.checkpoint
@@ -319,7 +318,7 @@ def recurrent_static(theta: NestedMap,
       forward_updated_vars_before = tf.nest.map_structure(
           lambda x: x, root_layer.forward_updated_vars)
     prng_key_t = jax.random.fold_in(prng_key, states_0.time_step)
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=prng_key_t, global_step=global_step):
       # Whether or not we should skip this time step.
       if 'padding' in inputs_t:
@@ -432,7 +431,7 @@ def scan(carry_init: NestedMap,
           lambda x: x, root_layer.forward_updated_vars)
     # Start a new prng_key branch that also depends on the time step.
     prng_key_t = jax.random.fold_in(carry.prng_key, carry.time_step)
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=prng_key_t, global_step=carry.global_step):
 
       carry_new, ys_t = fn(carry, xs_t)
@@ -459,8 +458,8 @@ def scan(carry_init: NestedMap,
 
   # The initial time step.
   time_step = jnp.array(0, dtype=jnp.uint32)
-  prng_key = base_layer.NextPrngKey()
-  global_step = base_layer.CurGlobalStep()
+  prng_key = base_layer.next_prng_key()
+  global_step = base_layer.cur_global_step()
   carry_init.time_step = time_step
   carry_init.prng_key = prng_key
   carry_init.global_step = global_step

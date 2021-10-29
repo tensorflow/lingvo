@@ -53,8 +53,8 @@ def evaluate(model_name: str, job_log_dir: Optional[str],
     multi_host_checkpointing: Whether to use multi-host checkpointing.
   """
   model_config = model_utils.get_model(model_name)()
-  model_p = model_config.Task()
-  eval_input_p = [v for v in model_config.Datasets() if not v.is_training]
+  model_p = model_config.task()
+  eval_input_p = [v for v in model_config.datasets() if not v.is_training]
   for inp in eval_input_p:
     inp.num_infeed_hosts = jax.process_count()
     inp.infeed_host_index = jax.process_index()
@@ -83,9 +83,9 @@ def evaluate_pmap_model(model_p: InstantiableParams,
   prng_key, init_key = jax.random.split(prng_key)
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
-  model_states = trainer_lib.InitializesModelState(jax_model, init_key)
-  model_states = checkpoints.RestoreCheckpoint(model_states, checkpoint_dir)
-  replicated_model_states = trainer_lib.ReplicateModelState(model_states)
+  model_states = trainer_lib.initialize_model_state(jax_model, init_key)
+  model_states = checkpoints.restore_checkpoint(model_states, checkpoint_dir)
+  replicated_model_states = trainer_lib.replicate_model_state(model_states)
   logging.info('replicated_model_states: %s',
                jax.tree_map(lambda x: x.shape, replicated_model_states))
   # From now on, different replicas should use different random seeds.
@@ -96,7 +96,7 @@ def evaluate_pmap_model(model_p: InstantiableParams,
   logging.info('root prng_key: %s', prng_key)
 
   def eval_step(mdl_vars, prng_key, global_step, inputs):
-    return trainer_lib.EvalStepSingleLearner(
+    return trainer_lib.eval_step_single_learner(
         jax_model,
         mdl_vars,
         prng_key,
@@ -117,11 +117,11 @@ def evaluate_pmap_model(model_p: InstantiableParams,
       os.path.join(summary_base_dir, f'eval_test_{split}')
       for split, _ in enumerate(eval_input_p)
   ]
-  summary_writer = summary_utils.GetSummaryWriter
+  summary_writer = summary_utils.get_summary_writer
 
   # TODO(zhouwk): support eval for one epoch with Lingvo input as well.
   num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
-  last_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
+  last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
   while True:
     step_i = int(jax.device_get(replicated_model_states.step)[0])
     eval_step = functools.partial(p_eval_step, replicated_model_states.mdl_vars,
@@ -143,15 +143,15 @@ def evaluate_pmap_model(model_p: InstantiableParams,
         break
     # Release replicated_model_states.
     del replicated_model_states
-    new_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
+    new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
     while new_checkpoint == last_checkpoint:
       # Sleep for a minute.
       time.sleep(60)
-      new_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
+      new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
     # There must be a new checkpoint here.
     logging.info('Found new checkpoint: %s', new_checkpoint)
-    model_states = checkpoints.RestoreCheckpoint(model_states, checkpoint_dir)
-    replicated_model_states = trainer_lib.ReplicateModelState(model_states)
+    model_states = checkpoints.restore_checkpoint(model_states, checkpoint_dir)
+    replicated_model_states = trainer_lib.replicate_model_state(model_states)
     last_checkpoint = new_checkpoint
 
 
@@ -188,18 +188,17 @@ def evaluate_spmd_model(model_p: InstantiableParams,
   inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs)
 
   mesh_shape = model_p.device_mesh.shape
-  device_mesh = partitioning.CreateDeviceMesh(mesh_shape)
+  device_mesh = partitioning.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     partitioned_train_state, _, _, eval_step, _, _, _ = (
-        trainer_lib.PartitionSpmdModel(model_p, init_key,
-                                       inputs_shape))
-    partitioned_train_state = checkpoints.RestoreCheckpoint(
+        trainer_lib.partition_spmd_model(model_p, init_key, inputs_shape))
+    partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state, checkpoint_task_dir)
     logging.info('partitioned_train_state: %s',
                  jax.tree_map(lambda x: x.shape, partitioned_train_state))
     if multi_host_checkpointing:
-      py_utils.SyncGlobalDevices(f'checkpointer:restored:{checkpoint_dir}')
+      py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
 
     # We do not fold in jax.process_index in contrast to the pmap version and
     # use a single global key instead to rely on pjit to split for different
@@ -214,11 +213,11 @@ def evaluate_spmd_model(model_p: InstantiableParams,
         os.path.join(summary_base_dir, f'eval_{split}')
         for split, _ in enumerate(eval_input_p)
     ]
-    summary_writer = summary_utils.GetSummaryWriter
+    summary_writer = summary_utils.get_summary_writer
 
     # TODO(zhouwk): support eval for one epoch with Lingvo input as well.
     num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
-    last_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
+    last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
     while True:
       step_i = int(jax.device_get(partitioned_train_state.step))
       eval_step_fn = functools.partial(eval_step,
@@ -239,15 +238,15 @@ def evaluate_spmd_model(model_p: InstantiableParams,
         exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
         if exceeded_ckpt >= model_p.train.num_train_steps:
           break
-      new_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
+      new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
       while new_checkpoint == last_checkpoint:
         # Sleep for a minute.
         time.sleep(60)
-        new_checkpoint = checkpoints.LatestCheckpoint(checkpoint_dir)
+        new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
       # There must be a new checkpoint here.
       logging.info('Found new checkpoint: %s', new_checkpoint)
-      partitioned_train_state = checkpoints.RestoreCheckpoint(
+      partitioned_train_state = checkpoints.restore_checkpoint(
           partitioned_train_state, checkpoint_task_dir)
       if multi_host_checkpointing:
-        py_utils.SyncGlobalDevices(f'checkpointer:restored:{checkpoint_dir}')
+        py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
       last_checkpoint = new_checkpoint

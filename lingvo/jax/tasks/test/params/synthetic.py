@@ -20,13 +20,13 @@ from lingvo.jax import layers
 from lingvo.jax import model_registry
 
 
-@model_registry.RegisterModel
+@model_registry.register_model
 class SyntheticClassifier(base_model_params.BaseModelParams):
   # TODO(shafey): Implement a real test model.
 
-  def Datasets(self):
+  def datasets(self):
     return []
 
-  def Task(self):
+  def task(self):
     act_p = layers.ActivationLayer.Params()
     return act_p

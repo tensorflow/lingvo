@@ -22,13 +22,13 @@ from lingvo.jax import model_registry
 from lingvo.jax.tasks.test.params import synthetic  # pylint: disable=unused-import
 
 
-@model_registry.RegisterModel
+@model_registry.register_model
 class DummyModel(base_model_params.BaseModelParams):
 
-  def Datasets(self):
+  def datasets(self):
     return []
 
-  def Task(self):
+  def task(self):
     act_p = layers.ActivationLayer.Params()
     return act_p
 
@@ -37,18 +37,18 @@ class ModelRegistryTest(absltest.TestCase):
 
   def test_get_model(self):
     # Module name is `__main__` when registering locally like here.
-    dummy_model_cls = model_registry.GetModel('__main__.DummyModel')
+    dummy_model_cls = model_registry.get_model('__main__.DummyModel')
     dummy_model = dummy_model_cls()
-    self.assertEmpty(dummy_model.Datasets())
-    self.assertIsNotNone(dummy_model.Task())
+    self.assertEmpty(dummy_model.datasets())
+    self.assertIsNotNone(dummy_model.task())
 
   def test_get_lingvo_model(self):
     # Module name is `__main__` when registering locally like here.
-    dummy_model_cls = model_registry.GetModel(
+    dummy_model_cls = model_registry.get_model(
         'test.synthetic.SyntheticClassifier')
     dummy_model = dummy_model_cls()
-    self.assertEmpty(dummy_model.Datasets())
-    self.assertIsNotNone(dummy_model.Task())
+    self.assertEmpty(dummy_model.datasets())
+    self.assertIsNotNone(dummy_model.task())
 
 
 if __name__ == '__main__':

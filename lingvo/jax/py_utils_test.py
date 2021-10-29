@@ -27,14 +27,15 @@ class PyUtilsTest(test_util.JaxTestCase):
   def test_reshard_empty_array(self):
     batch_size = 128
     empty_inputs = tf.ones(shape=(batch_size, 0))
-    sharded_inputs = py_utils.Reshard(empty_inputs)
+    sharded_inputs = py_utils.reshard(empty_inputs)
     # Check the shape of returned inputs.
     num_devices = jax.local_device_count()
     self.assertEqual(sharded_inputs.shape,
                      (num_devices, batch_size // num_devices, 0))
 
   def test_sync_global_devices(self):
-    py_utils.SyncGlobalDevices('sync')
+    py_utils.sync_global_devices('sync')
+
 
 if __name__ == '__main__':
   absltest.main()

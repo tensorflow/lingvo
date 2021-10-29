@@ -76,7 +76,7 @@ class Learner(base_layer.BaseLayer):
     assert p.optimizer is not None
     assert p.loss_name is not None
     self._optimizer = p.optimizer.Instantiate()
-    self._grad_tx = self._optimizer.GetGradTransformation()
+    self._grad_tx = self._optimizer.get_grad_transformation()
 
   @property
   def optimizer(self) -> optimizers.BaseOptimizer:
@@ -87,7 +87,7 @@ class Learner(base_layer.BaseLayer):
   def grad_tx(self) -> optax.GradientTransformation:
     return self._grad_tx
 
-  def ScaleGradients(self, grads: NestedMap) -> NestedMap:
+  def scale_gradients(self, grads: NestedMap) -> NestedMap:
     """Scales the gradient.
 
     Args:
@@ -103,7 +103,7 @@ class Learner(base_layer.BaseLayer):
     grad_squared = jnp.concatenate([x[jnp.newaxis] for x in grad_squared])
     grad_norm = jnp.sqrt(jnp.sum(grad_squared))
     learner_name = self.params.name
-    base_layer.AddSummary(f'{learner_name}/grad_norm', grad_norm)
+    base_layer.add_summary(f'{learner_name}/grad_norm', grad_norm)
     if p.optimizer.clip_gradient_norm_to_value:
       assert p.optimizer.clip_gradient_single_norm_to_value == 0.
       grad_scale = jnp.minimum(
@@ -124,8 +124,9 @@ class Learner(base_layer.BaseLayer):
       grads = jax.tree_map(ScaleGradient, grads, grad_single_norm)
     return grads
 
-  def UpdateStates(self, grads: NestedMap, states: optax.OptState,
-                   old_vars: NestedJTensor) -> Tuple[NestedMap, optax.OptState]:
+  def update_states(
+      self, grads: NestedMap, states: optax.OptState,
+      old_vars: NestedJTensor) -> Tuple[NestedMap, optax.OptState]:
     """Applies gradient transformation, updates optimizer states.
 
     Args:
@@ -136,10 +137,10 @@ class Learner(base_layer.BaseLayer):
     Returns:
       transformed_grad, new_states pair.
     """
-    grads = self.ScaleGradients(grads)
+    grads = self.scale_gradients(grads)
     return self._grad_tx.update(grads, states, old_vars)
 
-  def ApplyGradient(
+  def apply_gradient(
       self,
       old_vars: NestedJTensor,
       transformed_grads: NestedJTensor,
@@ -251,13 +252,13 @@ class BaseTask(base_layer.BaseLayer):
     # TODO(yonghui): implement multiple learners.
     assert not isinstance(p.train.learner, (tuple, list))
     learner_params = [p.train.learner]
-    self.CreateChildren('learner', learner_params)
+    self.create_children('learner', learner_params)
 
   @property
   def learners(self):
     return self.learner
 
-  def ComputePredictions(
+  def compute_predictions(
       self, theta: NestedMap,
       input_batch: NestedMap) -> Union[JTensor, NestedMap, Dict[str, Any]]:
     """Computes predictions for `input_batch`.
@@ -280,14 +281,14 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def ComputeLoss(self, theta: NestedMap, predictions: Union[JTensor,
-                                                             NestedMap],
-                  input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
+  def compute_loss(self, theta: NestedMap, predictions: Union[JTensor,
+                                                              NestedMap],
+                   input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
-      predictions: The output of `ComputePredictions`.
+      predictions: The output of `compute_predictions`.
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
@@ -299,7 +300,7 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def FProp(self, theta: NestedMap,
+  def fprop(self, theta: NestedMap,
             input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Forward propagation through one tower of the model.
 
@@ -317,10 +318,10 @@ class BaseTask(base_layer.BaseLayer):
         training example, where the first dimension of each tensor is the batch
         index.
     """
-    predictions = self.ComputePredictions(theta, input_batch)
-    return self.ComputeLoss(theta, predictions, input_batch)
+    predictions = self.compute_predictions(theta, input_batch)
+    return self.compute_loss(theta, predictions, input_batch)
 
-  def Decode(self, theta: NestedMap, input_batch: NestedMap) -> NestedMap:
+  def decode(self, theta: NestedMap, input_batch: NestedMap) -> NestedMap:
     """Decodes input_batch with model weights 'theta'.
 
     Args:
@@ -333,8 +334,8 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def CreateTrainStatePartitionSpecs(self,
-                                     var_weight_params) -> Optional[TrainState]:
+  def create_train_state_partition_specs(
+      self, var_weight_params) -> Optional[TrainState]:
     """Creates partition specs for all variables used in training.
 
     Args:
@@ -357,11 +358,11 @@ class BaseTask(base_layer.BaseLayer):
       opt_var_weight_params = [
           x.init_partition_spec(var_weight_params) for x in grad_txs
       ]
-      var_partition_specs = base_layer.VarPartitionSpecs(
+      var_partition_specs = base_layer.var_partition_specs(
           var_weight_params,
           device_mesh=device_mesh,
           device_axis_names=p.mesh_axis_names)
-      opt_var_partition_specs = base_layer.VarPartitionSpecs(
+      opt_var_partition_specs = base_layer.var_partition_specs(
           opt_var_weight_params,
           device_mesh=device_mesh,
           device_axis_names=p.mesh_axis_names)
@@ -371,8 +372,8 @@ class BaseTask(base_layer.BaseLayer):
           mdl_vars=var_partition_specs,
           opt_states=opt_var_partition_specs)
 
-  def CreateTrainState(self, mdl_vars: NestedJTensor,
-                       var_weight_params: NestedJTensor) -> TrainState:
+  def create_train_state(self, mdl_vars: NestedJTensor,
+                         var_weight_params: NestedJTensor) -> TrainState:
     """Creates train states that holds all the forward/backward variables.
 
     Args:
@@ -420,10 +421,10 @@ class LanguageModel(BaseTask):
 
     # Construct the model.
     lm_p = p.lm.Copy()
-    self.CreateChild('lm', lm_p)
+    self.create_child('lm', lm_p)
 
-  def ComputePredictions(self, theta: NestedMap,
-                         input_batch: NestedMap) -> Predictions:
+  def compute_predictions(self, theta: NestedMap,
+                          input_batch: NestedMap) -> Predictions:
     """Computes predictions for `input_batch`."""
     p = self.params
     inputs = input_batch.ids
@@ -437,20 +438,20 @@ class LanguageModel(BaseTask):
       }
     else:
       packed_input_kwargs = {}
-    return self.lm.FProp(
+    return self.lm.fprop(
         theta=theta.lm,
         inputs=inputs,
         paddings=paddings,
         labels=labels,
         **packed_input_kwargs)
 
-  def ComputeLoss(self, theta: NestedMap, predictions: NestedMap,
-                  input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
+  def compute_loss(self, theta: NestedMap, predictions: NestedMap,
+                   input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
-      predictions: The output of `ComputePredictions`.
+      predictions: The output of `compute_predictions`.
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
@@ -503,13 +504,13 @@ class ClassificationTask(BaseTask):
     p = self.params
 
     # Construct the classifier model.
-    self.CreateChild('network', p.classifier_params)
+    self.create_child('network', p.classifier_params)
 
     # Construct the softmax layer.
-    self.CreateChild('softmax', p.softmax_params)
+    self.create_child('softmax', p.softmax_params)
 
-  def ComputePredictions(self, theta: NestedMap,
-                         input_batch: NestedMap) -> Predictions:
+  def compute_predictions(self, theta: NestedMap,
+                          input_batch: NestedMap) -> Predictions:
     """Computes predictions for `input_batch`.
 
     Args:
@@ -522,7 +523,7 @@ class ClassificationTask(BaseTask):
     """
     p = self.params
     inputs = input_batch.Get(p.input_field)
-    features = self.network.FProp(theta.network, inputs)
+    features = self.network.fprop(theta.network, inputs)
     batch_size = inputs.shape[0]
     example_weights = jnp.ones([batch_size])
     if 'weight' in input_batch:
@@ -532,7 +533,7 @@ class ClassificationTask(BaseTask):
             f'Shape of example weights should be ({batch_size},), but instead'
             f'is {example_weights.shape}')
     # Softmax expects weights to be of shape [..., 1].
-    softmax_output = self.softmax.FProp(
+    softmax_output = self.softmax.fprop(
         theta=theta.softmax,
         inputs=features,
         class_weights=example_weights[:, jnp.newaxis],
@@ -542,13 +543,13 @@ class ClassificationTask(BaseTask):
         softmax_output=softmax_output,
         example_weights=example_weights)
 
-  def ComputeLoss(self, theta: NestedMap, predictions: NestedMap,
-                  input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
+  def compute_loss(self, theta: NestedMap, predictions: NestedMap,
+                   input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
-      predictions: The output of `ComputePredictions`.
+      predictions: The output of `compute_predictions`.
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
@@ -581,8 +582,8 @@ class ClassificationTask(BaseTask):
           error=(1.0 - acc1, predictions.softmax_output.total_weight),
           error5=(1.0 - acc5, predictions.softmax_output.total_weight))
       # Add top-1 and top-5 accuracies to summaries.
-      base_layer.AddSummary('acc1', acc1)
-      base_layer.AddSummary('acc5', acc5)
+      base_layer.add_summary('acc1', acc1)
+      base_layer.add_summary('acc5', acc5)
     return metrics, {}
 
 
@@ -607,15 +608,15 @@ class BertModel(BaseTask):
     assert p.lm.masked_lm
     assert p.lm.packed_input
 
-    self.CreateChild('lm', p.lm)
+    self.create_child('lm', p.lm)
 
     mlm_augment_p = layers.MaskedLmDataAugmenter.Params()
     mlm_augment_p.vocab_size = p.lm.vocab_size
     mlm_augment_p.mask_token_id = p.mask_token_id
-    self.CreateChild('mlm_augmenter', mlm_augment_p)
+    self.create_child('mlm_augmenter', mlm_augment_p)
 
-  def ComputePredictions(self, theta: NestedMap,
-                         input_batch: NestedMap) -> Predictions:
+  def compute_predictions(self, theta: NestedMap,
+                          input_batch: NestedMap) -> Predictions:
     """Computes predictions for `input_batch`."""
     p = self.params
     assert p.lm.packed_input
@@ -629,7 +630,7 @@ class BertModel(BaseTask):
       augmented_labels = input_batch.masked_ids
       augmented_pos = input_batch.masked_pos
     else:
-      augmented_labels, augmented_pos = self.mlm_augmenter.FProp(
+      augmented_labels, augmented_pos = self.mlm_augmenter.fprop(
           theta.mlm_augmenter, labels, paddings)
 
     if p.label_smoothing_prob > 0.0:
@@ -646,7 +647,7 @@ class BertModel(BaseTask):
       # Only compute loss on masked pos.
       labels = NestedMap(class_ids=labels, class_weights=augmented_pos)
 
-    lm_out = self.lm.FProp(
+    lm_out = self.lm.fprop(
         theta=theta.lm,
         inputs=augmented_labels,
         paddings=paddings,
@@ -657,13 +658,13 @@ class BertModel(BaseTask):
     lm_out.augmented_pos = augmented_pos
     return lm_out
 
-  def ComputeLoss(self, theta: NestedMap, predictions: NestedMap,
-                  input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
+  def compute_loss(self, theta: NestedMap, predictions: NestedMap,
+                   input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
-      predictions: The output of `ComputePredictions`.
+      predictions: The output of `compute_predictions`.
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:

@@ -57,7 +57,7 @@ class DropoutLayer(base_layer.BaseLayer):
     p = self.params
     if noise_shape is None:
       noise_shape = inputs.shape
-    prng_seed = base_layer.NextPrngKey()
+    prng_seed = base_layer.next_prng_key()
     keep_prob = p.keep_prob
     assert keep_prob > 0.0
     random_nums = keep_prob + jax.random.uniform(
@@ -65,7 +65,7 @@ class DropoutLayer(base_layer.BaseLayer):
     binary_mask = jnp.floor(random_nums)
     return inputs * binary_mask / keep_prob
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Applies dropout to inputs.
 
     Args:
@@ -121,7 +121,7 @@ class StochasticResidualLayer(base_layer.BaseLayer):
       return inputs
 
     # Compute tensor.
-    prng_key = base_layer.NextPrngKey()
+    prng_key = base_layer.next_prng_key()
     batch_size = inputs.shape[0]
     shape = [batch_size] + [1] * (len(inputs.shape) - 1)
     random_tensor = self.params.survival_prob + jax.random.uniform(
@@ -133,7 +133,7 @@ class StochasticResidualLayer(base_layer.BaseLayer):
     output = inputs / self.params.survival_prob * binary_tensor
     return output
 
-  def FProp(self, theta: NestedMap, inputs: JTensor,
+  def fprop(self, theta: NestedMap, inputs: JTensor,
             residual: JTensor) -> JTensor:
     """Returns inputs + residual with stochastic dropout.
 

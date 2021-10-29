@@ -32,7 +32,7 @@ class SchedulesTest(test_util.JaxTestCase):
     lr_value = 5.
     p = schedules.ConstantSchedule.Params().Set(value=lr_value)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     with self.subTest(name='reference_values'):
       self.assertAllClose(jit_value(count), lr_value)
@@ -53,7 +53,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.PiecewiseConstantSchedule.Params().Set(
         boundaries=boundaries, values=values)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     with self.subTest(name='reference_values'):
       self.assertAllClose(jit_value(jnp.array(count)), expected_value)
@@ -75,7 +75,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.PolynomialSchedule.Params().Set(
         start=(7, 0.9), limit=(370, 1.3), power=power)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     tf_p = tf_schedule.PolynomialSchedule.Params().Set(
         start=(7, 0.9), limit=(370, 1.3), power=power)
@@ -95,7 +95,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     with self.subTest(name='reference_values'):
       self.assertAllClose(jit_value(count), expected_value)
@@ -113,7 +113,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     # Tests that the schedule peaks at 4000 steps.
     v_3990 = jit_value(jnp.array(3990))
@@ -137,7 +137,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     # Tests that the schedule increases linearly before 4000 steps.
     with self.subTest(name='reference_values'):
@@ -166,7 +166,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512, decay_end=5000)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     with self.subTest(name='reference_values'):
       self.assertAllClose(jit_value(jnp.array(count)), expected_value)
@@ -184,7 +184,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512, decay_end=5000)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     with self.subTest(name='reference_values'):
       # Tests that the schedule peaks at 4000 steps.
@@ -208,7 +208,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512, decay_end=5000)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     # Tests that the schedule increases linearly before 4000 steps.
     with self.subTest(name='reference_values'):
@@ -232,10 +232,10 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512, decay_end=5000)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     # Tests that the schedule is fixed after decay end steps.
-    v_decay_end = lr_schedule.Value(jnp.array(p.decay_end))
+    v_decay_end = lr_schedule.value(jnp.array(p.decay_end))
     with self.subTest(name='reference_values'):
       self.assertGreater(jit_value(jnp.array(p.decay_end - 1)), v_decay_end)
       self.assertAllClose(jit_value(jnp.array(p.decay_end + 1)), v_decay_end)
@@ -256,7 +256,7 @@ class SchedulesTest(test_util.JaxTestCase):
   def test_sqrt_decay_schedule_values(self, count):
     p = schedules.SqrtDecaySchedule.Params().Set(warmup_steps=4000)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     tf_p = tf_schedule.SqrtDecay.Params().Set(warmup_steps=4000)
     tf_lr_schedule = tf_p.Instantiate()
@@ -269,7 +269,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.LinearSchedule.Params().Set(
         start=(100, 0.1), limit=(200, 1.0))
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     xs = [0, 10, 20, 100, 120, 150, 200, 250]
     expected_values = [0.1, 0.1, 0.1, 0.1, 0.28, 0.55, 1.0, 1.0]
@@ -291,7 +291,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.ExponentialSchedule.Params().Set(
         start=(100, 1.0), limit=(200, 0.1))
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     xs = [0, 10, 20, 100, 120, 150, 200, 250]
     expected_values = [1.0, 1.0, 1.0, 1.0, 0.6309573, 0.3162277, 0.1, 0.1]
@@ -313,7 +313,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.LinearRampupExponentialDecay.Params().Set(
         warmup=100, decay_start=200, decay_end=300, max=1.0, min_ratio=0.01)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     xs = [0, 10, 20, 100, 120, 150, 200, 250, 300, 350]
     expected_values = [0.0, 0.1, 0.2, 1.0, 1.0, 1.0, 1.0, 0.1, 0.01, 0.01]
@@ -335,7 +335,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.LinearRampupExponentialDecay.Params().Set(
         warmup=150, decay_start=150, decay_end=250, max=1.0, min_ratio=0.01)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     xs = [0, 15, 30, 150, 200, 250, 300, 350]
     expected_values = [0., 0.1, 0.2, 1.0, 0.1, 0.01, 0.01, 0.01]
@@ -361,7 +361,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.LinearRampupExponentialDecay.Params().Set(
         warmup=0, decay_start=0, decay_end=100, max=1.0, min_ratio=0.01)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     xs = [0, 50, 100, 150, 200]
     expected_values = [1., 0.1, 0.01, 0.01, 0.01]
@@ -389,7 +389,7 @@ class SchedulesTest(test_util.JaxTestCase):
     p = schedules.LinearRampupPiecewiseConstantSchedule.Params().Set(
         boundaries=boundaries, values=values)
     lr_schedule = p.Instantiate()
-    jit_value = jax.jit(lr_schedule.Value)
+    jit_value = jax.jit(lr_schedule.value)
 
     tf_p = tf_schedule.LinearRampupPiecewiseConstantSchedule.Params().Set(
         boundaries=boundaries, lrs=values, num_splits=1)

@@ -65,7 +65,7 @@ class PoolingLayer(base_layer.BaseLayer):
     if p.padding not in ['SAME', 'VALID']:
       raise ValueError('padding must be one of SAME or VALID.')
 
-  def FProp(
+  def fprop(
       self,
       theta: NestedMap,
       inputs: JTensor,
@@ -201,7 +201,7 @@ class GlobalPoolingLayer(base_layer.BaseLayer):
       if not all([p_dims >= 0 for p_dims in p.pooling_dims]):
         raise ValueError('pooling_dims must be non-negative integers.')
 
-  def FProp(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Applies global spatial pooling to inputs.
 
     Args:

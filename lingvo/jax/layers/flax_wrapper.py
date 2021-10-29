@@ -24,7 +24,7 @@ from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 import tensorflow.compat.v2 as tf
 
-CreateLayerVariablesStatus = base_layer.CreateLayerVariablesStatus
+CreateLayerVariableStatus = base_layer.CreateLayerVariableStatus
 NestedMap = py_utils.NestedMap
 JTensor = pytypes.JTensor
 
@@ -34,9 +34,9 @@ class FlaxModuleLayer(base_layer.BaseLayer):
 
   def __init__(self, params: base_layer.BaseLayerParamsT) -> None:
     super().__init__(params)
-    self._module = self._CreateFlaxModule()
+    self._module = self._create_flax_module()
 
-  def _CreateFlaxModule(self) -> flax_nn.Module:
+  def _create_flax_module(self) -> flax_nn.Module:
     """Creates and returns a Flax module.
 
     This function is expected to be called within the __init__ function. A
@@ -44,7 +44,7 @@ class FlaxModuleLayer(base_layer.BaseLayer):
     """
     raise NotImplementedError()
 
-  def _InitModuleStates(self, prng_key: JTensor) -> Dict[str, JTensor]:
+  def _init_module_states(self, prng_key: JTensor) -> Dict[str, JTensor]:
     """Initializes and returns module variables.
 
     A sub-class must implement this function.
@@ -64,18 +64,18 @@ class FlaxModuleLayer(base_layer.BaseLayer):
     """
     raise NotImplementedError()
 
-  def InstantiateVariableConfigs(self) -> None:
+  def instantiate_variable_configs(self) -> None:
     assert (
-        self._create_variables_status == CreateLayerVariablesStatus.NOT_ENABLED)
-    self._create_variables_status = CreateLayerVariablesStatus.ENABLED
+        self._create_variables_status == CreateLayerVariableStatus.NOT_ENABLED)
+    self._create_variables_status = CreateLayerVariableStatus.ENABLED
     # Note: it is not very efficient that we have to actually create the
     # variable in order to know their meta information.
     dummy_prng_key = jnp.array([0, 0], dtype=jnp.uint32)
-    initial_vars = self._InitModuleStates(dummy_prng_key)
+    initial_vars = self._init_module_states(dummy_prng_key)
     initial_vars = NestedMap.FromNestedDict(initial_vars)
 
     def _GetWeightParams(init_var):
-      wp = base_layer.WeightParams(
+      wp = base_layer.weight_params(
           init=None,
           dtype=init_var.dtype,
           shape=init_var.shape,
@@ -85,16 +85,16 @@ class FlaxModuleLayer(base_layer.BaseLayer):
       return wp
 
     self._private_vars = tf.nest.map_structure(_GetWeightParams, initial_vars)
-    self._create_variables_status = CreateLayerVariablesStatus.COMPLETED
+    self._create_variables_status = CreateLayerVariableStatus.COMPLETED
 
-  def InstantiateVariables(self, prng_key: JTensor) -> NestedMap:
+  def instantiate_variables(self, prng_key: JTensor) -> NestedMap:
     """Initiates module states (params and other states)."""
     # NOTE(yonghui): Here we create variables twice.
     # TODO(yonghui): Optimize to reduce to creating variables only once.
-    if self._create_variables_status != CreateLayerVariablesStatus.COMPLETED:
-      self.InstantiateVariableConfigs()
+    if self._create_variables_status != CreateLayerVariableStatus.COMPLETED:
+      self.instantiate_variable_configs()
 
-    initial_vars = self._InitModuleStates(prng_key)
+    initial_vars = self._init_module_states(prng_key)
     initial_vars = NestedMap.FromNestedDict(initial_vars)
     return initial_vars
 
@@ -106,15 +106,15 @@ class FlaxModuleLayer(base_layer.BaseLayer):
   def forward_updated_vars(self):
     return tf.nest.map_structure(lambda x: x, self._forward_updated_vars.dict)
 
-  def FProp(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
+  def fprop(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
     """Applies self._module to the inputs.
 
     A sub-class must implement this function.
 
     A typical implementation simply does the following:
 
-      prng_key1 = base_layer.NextPrngKey()
-      prng_key2 = base_layer.NextPrngKey()
+      prng_key1 = base_layer.next_prng_key()
+      prng_key2 = base_layer.next_prng_key()
       out = self._module.apply(
           theta,
           *args,

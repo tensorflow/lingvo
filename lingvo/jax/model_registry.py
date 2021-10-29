@@ -28,11 +28,11 @@ BaseModelParamsT = base_model_params.BaseModelParamsT
 _MODEL_PREFIX = 'lingvo'
 
 
-def _ModelClassKey(model_class: BaseModelParamsT) -> str:
+def _model_class_key(model_class: BaseModelParamsT) -> str:
   """Retrieves a model key from the model class."""
   path = model_class.__module__ + '.' + model_class.__name__
   # Removes model_registry from `...lingvo.jax.model_registry.`.
-  prefix = _ModelClassKey.__module__.replace('.model_registry', '.')
+  prefix = _model_class_key.__module__.replace('.model_registry', '.')
   return path.replace(prefix, '').replace('tasks.', '').replace('params.', '')
 
 
@@ -43,14 +43,14 @@ class _ModelRegistryHelper:
   _registry = {}
 
   @classmethod
-  def _ClassPathPrefix(cls):
+  def _class_path_prefix(cls):
     """Prefixes for model names registered by this module."""
     return _MODEL_PREFIX
 
   @classmethod
-  def RegisterModel(cls, model_class: BaseModelParamsT) -> BaseModelParamsT:
+  def register_model(cls, model_class: BaseModelParamsT) -> BaseModelParamsT:
     """Registers a model class in the global registry."""
-    key = cls._ClassPathPrefix() + '.' + _ModelClassKey(model_class)
+    key = cls._class_path_prefix() + '.' + _model_class_key(model_class)
     if key in cls._registry:
       raise ValueError(f'Model `{key}` already registed.')
     logging.info('Registering model %s as %s', model_class, key)
@@ -58,14 +58,14 @@ class _ModelRegistryHelper:
     return model_class
 
   @classmethod
-  def GetModel(cls, key: str) -> Optional[BaseModelParamsT]:
+  def get_model(cls, key: str) -> Optional[BaseModelParamsT]:
     """Retrieves a model from the global registry from the input key."""
-    key = cls._ClassPathPrefix() + '.' + key
+    key = cls._class_path_prefix() + '.' + key
     if key not in cls._registry:
       for k in cls._registry:
         logging.info('Known model: %s', k)
     return cls._registry.get(key)
 
 
-RegisterModel = _ModelRegistryHelper.RegisterModel
-GetModel = _ModelRegistryHelper.GetModel
+register_model = _ModelRegistryHelper.register_model
+get_model = _ModelRegistryHelper.get_model

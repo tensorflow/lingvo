@@ -39,9 +39,9 @@ FLAGS = flags.FLAGS
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
-IsDefaultParamInit = py_utils.IsDefaultParamInit
-DefaultParamInit = py_utils.DefaultParamInit
+weight_params = py_utils.weight_params
+is_default_param_init = py_utils.is_default_param_init
+default_param_init = py_utils.default_param_init
 
 ParamsT = pytypes.ParamsT
 InstantiableParams = py_utils.InstantiableParams
@@ -78,18 +78,18 @@ FLAX_VARIABLE = '_flax_variable'
 REQUIRES_MEAN_SYNC = '_requires_mean_sync'
 
 
-def VarNotTrainable(var_params: ParamsT) -> bool:
+def var_not_trainable(var_params: ParamsT) -> bool:
   """Returns True if var_params is not a trainable variable."""
   return NON_TRAINABLE in var_params.collections
 
 
-def VarRequiresMeanSync(var_params: ParamsT) -> bool:
+def var_requires_mean_sync(var_params: ParamsT) -> bool:
   """Returns True if var_params requires synchronization across replicas."""
   return REQUIRES_MEAN_SYNC in var_params.collections
 
 
-def ToPartitionSpec(split_dims_mapping: SplitDimsMapping,
-                    mesh_axis_names: Sequence[str]) -> pjit.PartitionSpec:
+def to_partition_spec(split_dims_mapping: SplitDimsMapping,
+                      mesh_axis_names: Sequence[str]) -> pjit.PartitionSpec:
   """Converts split_dims_mapping to pjit.PartitionSpec.
 
   Args:
@@ -110,7 +110,7 @@ def ToPartitionSpec(split_dims_mapping: SplitDimsMapping,
     A pjit.PartitionSpec.
   """
 
-  def _ParseSplitDims(dims_mapping):
+  def _parse_split_dims(dims_mapping):
     split_dims = []
 
     for s_i in dims_mapping:
@@ -124,25 +124,25 @@ def ToPartitionSpec(split_dims_mapping: SplitDimsMapping,
         assert s_i in mesh_axis_names
         split_dims.append(s_i)
       elif isinstance(s_i, (tuple, list)):
-        split_dims.append(_ParseSplitDims(s_i))
+        split_dims.append(_parse_split_dims(s_i))
       else:
         assert s_i is None
         split_dims.append(None)
 
     return tuple(split_dims)
 
-  partition_spec = _ParseSplitDims(split_dims_mapping)
+  partition_spec = _parse_split_dims(split_dims_mapping)
   return pjit.PartitionSpec(*partition_spec)
 
 
-def VarPartitionSpecs(
+def var_partition_specs(
     var_specs: NestedParams, device_mesh: NpTensor,
     device_axis_names: List[str]) -> NestedJTensorOrPartitionSpec:
   """Given variable specs (WeightParams), returns pjit partition specs.
 
   Args:
     var_specs: A nested structure of variable weight params (created via
-      py_utils.WeightParams).
+      py_utils.weight_params).
     device_mesh: A numpy array of device mesh.
     device_axis_names: Axis name for each mesh axis.
 
@@ -152,7 +152,7 @@ def VarPartitionSpecs(
 
   assert len(device_axis_names) == len(device_mesh.shape)
 
-  def _GetSpec(var_p):
+  def _get_spec(var_p):
     v_shape = var_p.shape
     # v_split_dim_mapping may contain a mixture of -1, integers, str, or None.
     # -1 and None both indicates that the corresponding dim is not partitioned.
@@ -173,12 +173,12 @@ def VarPartitionSpecs(
       v_split_dim_mapping = (
           list(prefix_split_dims_mapping) + list(v_split_dim_mapping))
 
-    return ToPartitionSpec(v_split_dim_mapping, device_axis_names)
+    return to_partition_spec(v_split_dim_mapping, device_axis_names)
 
-  return jax.tree_map(_GetSpec, var_specs)
+  return jax.tree_map(_get_spec, var_specs)
 
 
-def GlobalMeshDefined() -> bool:
+def global_mesh_defined() -> bool:
   """Checks if global xmap/pjit mesh resource environment is defined."""
   maps_env = jax.experimental.maps.thread_resources.env
   return maps_env.physical_mesh.devices.shape != ()  # pylint: disable=g-explicit-bool-comparison
@@ -186,18 +186,18 @@ def GlobalMeshDefined() -> bool:
 
 # This wrapped with_sharding_constraint will not throw error for eval_shape
 # outside pjit. It is also used in p5x.
-def WithShardingConstraint(
+def with_sharding_constraint(
     x: JTensor, axis_resources: Optional[pjit.PartitionSpec]) -> JTensor:
   """Wrapper for pjit with_sharding_constraint, no-op on cpu or outside pjit."""
-  if jax.devices()[0].platform == 'cpu' or not GlobalMeshDefined():
+  if jax.devices()[0].platform == 'cpu' or not global_mesh_defined():
     return x
   else:
     return pjit.with_sharding_constraint(x, axis_resources)
 
 
-def MaybeShard(x: JTensor,
-               split_dims_mapping: Optional[SplitDimsMapping] = None,
-               mesh_axis_names: Optional[Sequence[str]] = None) -> JTensor:
+def maybe_shard(x: JTensor,
+                split_dims_mapping: Optional[SplitDimsMapping] = None,
+                mesh_axis_names: Optional[Sequence[str]] = None) -> JTensor:
   """Adds explicit xla sharding constraints.
 
   This is a wrap around jax.with_sharding_constraint to allow for adding
@@ -231,11 +231,11 @@ def MaybeShard(x: JTensor,
       f'Invalid split_dims_mapping. Expected len(split_dims_mapping) '
       f'is {len(x.shape)}, while it is {len(split_dims_mapping)}. '
       f'x.shape = {x.shape} and split_dims_mapping = {split_dims_mapping}')
-  partition_spec = ToPartitionSpec(split_dims_mapping, mesh_axis_names)
-  return WithShardingConstraint(x, partition_spec)
+  partition_spec = to_partition_spec(split_dims_mapping, mesh_axis_names)
+  return with_sharding_constraint(x, partition_spec)
 
 
-def GenerateSeedFromName(name: str) -> np.int64:
+def generate_seed_from_name(name: str) -> np.int64:
   """Generates a random seed from a name string.
 
   Args:
@@ -249,7 +249,8 @@ def GenerateSeedFromName(name: str) -> np.int64:
   return np.int64(int(md5.hexdigest(), 16) % (2**31 - 1))
 
 
-def GetFanInFanOut(shape: Sequence[int]) -> Tuple[Optional[int], Optional[int]]:
+def get_fan_in_fan_out(
+    shape: Sequence[int]) -> Tuple[Optional[int], Optional[int]]:
   """Returns (fan_in, fan_out) of a weight variable of the given shape."""
   if not shape:
     return None, None
@@ -267,7 +268,7 @@ def GetFanInFanOut(shape: Sequence[int]) -> Tuple[Optional[int], Optional[int]]:
     return fan_in, fan_out
 
 
-def InitVar(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
+def init_var(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
   """Creates an initial value of a var."""
   method = var_p.init.method
   scale = var_p.init.scale
@@ -287,7 +288,7 @@ def InitVar(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
   else:
     dim0 = 1
 
-  if IsDefaultParamInit(var_p.init):
+  if is_default_param_init(var_p.init):
     logging.warning(
         'WARNING!!! var %s is using the default xavier initializer.'
         ' Make sure this is intended.', var_full_name)
@@ -303,19 +304,19 @@ def InitVar(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
           'Make sure that it is intended.', var_full_name, shape, method, dim0)
     scale *= 1.0 / math.sqrt(dim0)
   if method in ['gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanin']:
-    fan_in, _ = GetFanInFanOut(shape)
+    fan_in, _ = get_fan_in_fan_out(shape)
     if fan_in is not None:
       scale *= 1.0 / math.sqrt(fan_in)
   if method in ['gaussian_sqrt_fanout', 'truncated_gaussian_sqrt_fanout']:
-    _, fan_out = GetFanInFanOut(shape)
+    _, fan_out = get_fan_in_fan_out(shape)
     if fan_out is not None:
       scale *= 1.0 / math.sqrt(fan_out)
   if method in ['gaussian_sqrt_fanavg']:
-    fan_in, fan_out = GetFanInFanOut(shape)
+    fan_in, fan_out = get_fan_in_fan_out(shape)
     if fan_in is not None and fan_out is not None:
       scale *= math.sqrt(2.0 / (fan_in + fan_out))
 
-  name_hash = GenerateSeedFromName(var_full_name)
+  name_hash = generate_seed_from_name(var_full_name)
   prng_key = jax.random.fold_in(prng_key, name_hash)
 
   if method in [
@@ -335,7 +336,7 @@ def InitVar(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
   elif method in ['constant']:
     return scale + jnp.zeros(shape=final_shape, dtype=init_dtype)
   elif method in ['xavier']:
-    fan_in, fan_out = GetFanInFanOut(shape)
+    fan_in, fan_out = get_fan_in_fan_out(shape)
     limit = scale * math.sqrt(6. / (fan_in + fan_out))
     return limit * jrandom.uniform(
         prng_key, final_shape, init_dtype, minval=-1.0, maxval=1.0)
@@ -350,11 +351,11 @@ class _PrngKey:
     self._prng_key: JTensor = None
     self._global_step: JTensor = None
 
-  def ResetKey(self, prng_key: JTensor, global_step: JTensor) -> None:
+  def reset_key(self, prng_key: JTensor, global_step: JTensor) -> None:
     self._prng_key = prng_key
     self._global_step = global_step
 
-  def ClearKey(self) -> None:
+  def clear_key(self) -> None:
     self._prng_key = None
     self._global_step = None
 
@@ -363,7 +364,7 @@ class _PrngKey:
     assert self._global_step is not None
     return self._global_step
 
-  def NextKey(self) -> JTensor:
+  def next_key(self) -> JTensor:
     assert self._prng_key is not None
     self._prng_key, next_key = jrandom.split(self._prng_key)
     return next_key
@@ -375,7 +376,7 @@ class _SummaryDict:
   def __init__(self) -> None:
     self.dict = {}
 
-  def AddSummary(self, name: str, tensor: JTensor) -> None:
+  def add_summary(self, name: str, tensor: JTensor) -> None:
     """Adds named summary to the thread local dict."""
     prefix = '/'.join(_NAMESPACE_STACK.stack)
     summary_name = prefix + '/' + name
@@ -386,7 +387,7 @@ class _SummaryDict:
       full_name = summary_name + str(next_iter)
     self.dict[full_name] = tensor
 
-  def Clear(self) -> None:
+  def clear(self) -> None:
     """Clears all summaries."""
     self.dict = {}
 
@@ -395,7 +396,7 @@ class JaxContext:
   """Global context under which jax computations are carried out."""
 
   @classmethod
-  def Params(cls) -> InstantiableParams:
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     """Params for `JaxContent`."""
     p = InstantiableParams(cls)
     p.Define('do_eval', None, 'Whether to do eval.')
@@ -441,14 +442,14 @@ class JaxContext:
     _JaxContextStack.stack.pop()
 
   @staticmethod
-  def Top() -> Optional['JaxContext']:
+  def top() -> Optional['JaxContext']:
     return _JaxContextStack.stack[-1] if _JaxContextStack.stack else None
 
   @staticmethod
-  def NewContext(*,
-                 params: Optional[ParamsT] = None,
-                 prng_key: Optional[JTensor] = None,
-                 global_step: Optional[JTensor] = None) -> 'JaxContext':
+  def new_context(*,
+                  params: Optional[ParamsT] = None,
+                  prng_key: Optional[JTensor] = None,
+                  global_step: Optional[JTensor] = None) -> 'JaxContext':
     """Returns a new empty JaxContext.
 
     Args:
@@ -463,7 +464,7 @@ class JaxContext:
       A new JaxContext.
     """
     if params is None:
-      current = JaxContext.Top()
+      current = JaxContext.top()
       if current is None:
         new_params = JaxContext.Params()
       else:
@@ -473,43 +474,43 @@ class JaxContext:
     context = JaxContext(new_params)
     if prng_key is not None:
       assert global_step is not None
-      context.prng_key.ResetKey(prng_key, global_step)
+      context.prng_key.reset_key(prng_key, global_step)
     return context
 
 
-def CurJaxContext() -> JaxContext:
-  current = JaxContext.Top()
+def cur_jax_context() -> JaxContext:
+  current = JaxContext.top()
   assert current is not None
   return current
 
 
-def AddSummary(name: str, tensor: JTensor) -> None:
-  context = CurJaxContext()
-  context.summary_dict.AddSummary(name, tensor)
+def add_summary(name: str, tensor: JTensor) -> None:
+  context = cur_jax_context()
+  context.summary_dict.add_summary(name, tensor)
 
 
-def ClearSummary() -> None:
-  context = CurJaxContext()
-  context.summary_dict.Clear()
+def clear_summary() -> None:
+  context = cur_jax_context()
+  context.summary_dict.clear()
 
 
-def AllSummaries() -> SummaryDict:
-  context = CurJaxContext()
+def all_summaries() -> SummaryDict:
+  context = cur_jax_context()
   return context.summary_dict.dict
 
 
-def NextPrngKey() -> JTensor:
-  context = CurJaxContext()
-  return context.prng_key.NextKey()
+def next_prng_key() -> JTensor:
+  context = cur_jax_context()
+  return context.prng_key.next_key()
 
 
-def ResetPrngKey(prng_key: JTensor, global_step: JTensor) -> None:
-  context = CurJaxContext()
-  context.prng_key.ResetKey(prng_key, global_step)
+def reset_prng_key(prng_key: JTensor, global_step: JTensor) -> None:
+  context = cur_jax_context()
+  context.prng_key.reset_key(prng_key, global_step)
 
 
-def CurGlobalStep() -> JTensor:
-  context = CurJaxContext()
+def cur_global_step() -> JTensor:
+  context = cur_jax_context()
   return context.prng_key.global_step
 
 
@@ -517,7 +518,7 @@ _NAMESPACE_STACK = py_utils.ThreadLocalStack()
 
 
 @contextlib.contextmanager
-def NameSpace(name: str):
+def namespace(name: str):
   NestedMap.CheckKey(name)
   _NAMESPACE_STACK.stack.append(name)
   try:
@@ -526,7 +527,7 @@ def NameSpace(name: str):
     _NAMESPACE_STACK.stack.pop()
 
 
-def _BaseLayerInitWrapper(func):
+def _base_layer_init_wrapper(func):
   """A decorator for layer's __init__.
 
   Args:
@@ -538,7 +539,7 @@ def _BaseLayerInitWrapper(func):
     __init__() for classes on the class hierarchy.
   """
 
-  def Wrapper(self, *args: Any, **kwargs: Any) -> None:
+  def wrapper(self, *args: Any, **kwargs: Any) -> None:
     """Decorator wrapper fn."""
     stack = _LAYER_STACK.stack
     if stack and stack[-1] is self:
@@ -554,17 +555,17 @@ def _BaseLayerInitWrapper(func):
       func(self, *args, **kwargs)
       if len(stack) > 1:
         # Records the fact stack[-2] just created a sub-layer self.
-        stack[-2]._AutoAddChild(self)  # pylint: disable=protected-access
+        stack[-2]._auto_add_child(self)  # pylint: disable=protected-access
     finally:
       # Pop out self (the current layer).
       assert stack[-1] is self
       stack.pop()
       assert len(stack) == stack_size
 
-  return Wrapper
+  return wrapper
 
 
-def _BaseLayerFuncWrapper(func, fname: str):
+def _base_layer_func_wrapper(func, fname: str):
   """A decorator for layer's func.
 
   Args:
@@ -575,20 +576,20 @@ def _BaseLayerFuncWrapper(func, fname: str):
     A decorator wrapper for the method.
   """
 
-  def Wrapper(self, *args, **kwargs):
+  def wrapper(self, *args, **kwargs):
     """Decorator wrapper fn."""
     assert isinstance(self, BaseLayer)
     lname = self.params.name
-    with NameSpace(f'{lname}.{fname}'):
+    with namespace(f'{lname}.{fname}'):
       return func(self, *args, **kwargs)
 
-  return Wrapper
+  return wrapper
 
 
-class CreateLayerVariablesStatus(enum.Enum):
+class CreateLayerVariableStatus(enum.Enum):
   # Variable creation is not enabled, e.g. during layer initialization.
   NOT_ENABLED = 0
-  # Variable creation is enabled, only during the InstantiateVariableConfigs()
+  # Variable creation is enabled, only during the instantiate_variable_configs()
   # call.
   ENABLED = 1
   # Variable creation has completed, no more variables can be created.
@@ -603,19 +604,19 @@ class BaseLayerMeta(type):
     cls = super(BaseLayerMeta, mcs).__new__(mcs, name, bases, dct)
     if '__init__' not in dct:
 
-      def TrivialInit(self, params):
+      def trivial_init(self, params):
         super(cls, self).__init__(params)  # pylint: disable=bad-super-call
 
-      cls.__init__ = TrivialInit
+      cls.__init__ = trivial_init
 
-    cls.__init__ = _BaseLayerInitWrapper(cls.__init__)
+    cls.__init__ = _base_layer_init_wrapper(cls.__init__)
 
-    if 'FProp' in dct:
-      cls.FProp = _BaseLayerFuncWrapper(cls.FProp, 'FProp')
-    if 'InitStates' in dct:
-      cls.InitStates = _BaseLayerFuncWrapper(cls.InitStates, 'InitStates')
-    if 'ExtendStep' in dct:
-      cls.ExtendStep = _BaseLayerFuncWrapper(cls.ExtendStep, 'ExtendStep')
+    if 'fprop' in dct:
+      cls.fprop = _base_layer_func_wrapper(cls.fprop, 'fprop')
+    if 'init_states' in dct:
+      cls.init_states = _base_layer_func_wrapper(cls.init_states, 'init_states')
+    if 'extend_step' in dct:
+      cls.extend_step = _base_layer_func_wrapper(cls.extend_step, 'extend_step')
 
     return cls
 
@@ -626,7 +627,7 @@ class BaseLayerMeta(type):
     # This happens after self.__init__()
     # pylint: disable=protected-access
     self._disable_create_child = True
-    self._VerifyChildren()
+    self._verify_children()
     # pylint: enable=protected-access
     return self
 
@@ -638,15 +639,15 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
   Params(): Returns a configuration Params for this layer.
   __init__: Initializes this layer and its sub-layers.
-  CreateLayerVariables(): Register variables to be created.
-  FProp(): The main method that carries out ML computation.
+  create_layer_variables(): Register variables to be created.
+  fprop(): The main method that carries out ML computation.
 
   Optionally, if a sub-class would like to update some params in the forward
   pass (e.g.  update batch norm moving avg and variance), one can do so by
-  calling ForwardUpdateVar() to record the variable being updated and the new
+  calling forward_update_var() to record the variable being updated and the new
   param value. User of this layer (e.g. the trainer loop) is responsible for
   fetching those updated vars. A sub-class can also record summaries via
-  AddSummary() method.
+  add_summary() method.
 
   Users of this class are expected to call the following functions in sequence.
   The following is part of a train loop.
@@ -658,9 +659,9 @@ class BaseLayer(metaclass=BaseLayerMeta):
   # Instantiate all layer variables.
   prng_key = jrandom.PRNGKey(seed=xxx)
   prng_key, init_keys = jrandom.split(prng_key)
-  initial_variables = layer.InstantiateVariables(init_key)
+  initial_variables = layer.instantiate_variables(init_key)
 
-  # Set up random number generation key for FProp
+  # Set up random number generation key for fprop
   prng_key, fprop_key = jrandom.split(prng_key)
   global_step = jnp.array(0, dtype=jnp.unint64)
 
@@ -669,13 +670,13 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
   # The main compute loop. This is a pure function without side effect.
   def Compute(theta, prng_key, global_step, inputs):
-    with jax_base_layer.JaxContext.NewContext():
+    with jax_base_layer.JaxContext.new_context():
       # Mix in global seed so that rng_seed are different for different steps.
       per_step_prng_key = jrandom.fold_in(prng_key, global_step)
-      jax_base_layer.ResetPrngKey(per_step_prng_key, global_step)
-      # Prepare the layer and all its sub-layers for the FProp call.
-      layer.PrepareFProp()
-      output = layer.FProp(theta, inputs)
+      jax_base_layer.reset_prng_key(per_step_prng_key, global_step)
+      # Prepare the layer and all its sub-layers for the fprop call.
+      layer.prepare_fprop()
+      output = layer.fprop(theta, inputs)
       # fetch params that possibly being updated during forward pass.
       forward_updated_theta = layer.forward_updated_vars
 
@@ -689,7 +690,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
       new_theta = tf.nest.map_structure(get_new_param, theta,
                                         forward_updated_theta)
       # Fetch summaries.
-      summaries = jax_base_layer.AllSummaries()
+      summaries = jax_base_layer.all_summaries()
       # Finally, reset the prng key.
       jax_base_layer.ClearPrngKey()
       global_step += 1
@@ -706,16 +707,16 @@ class BaseLayer(metaclass=BaseLayerMeta):
   """
 
   @classmethod
-  def Params(cls: Type[BaseLayerT]) -> BaseLayerParamsT:
+  def Params(cls: Type[BaseLayerT]) -> BaseLayerParamsT:  # pylint:disable=invalid-name
     """Returns the layer params."""
     p = InstantiableParams(cls)
     p.Define('name', '',
              'Name of this layer object, must be a valid identifier.')
     p.Define('dtype', jnp.float32, 'Default dtype for all variables.')
-    # None value will make FProp use dtype instead of fprop_dtype.
+    # None value will make fprop use dtype instead of fprop_dtype.
     p.Define('fprop_dtype', None, 'Activations datatype to use.')
     p.Define(
-        'params_init', DefaultParamInit(),
+        'params_init', default_param_init(),
         'How model weights should be initialized. Not to be confused with '
         'hyperparams.')
 
@@ -774,8 +775,8 @@ class BaseLayer(metaclass=BaseLayerMeta):
     return p
 
   @staticmethod
-  def CopyBaseParams(from_params: InstantiableParams[BaseLayerS],
-                     to_params: BaseLayerParamsT) -> BaseLayerParamsT:
+  def copy_base_params(from_params: InstantiableParams[BaseLayerS],
+                       to_params: BaseLayerParamsT) -> BaseLayerParamsT:
     """Copies BaseLayer params from `from_params` to `to_params`."""
     assert issubclass(from_params.cls, BaseLayer)
     assert issubclass(to_params.cls, BaseLayer)
@@ -795,7 +796,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
       to_params.device_mesh = copy.deepcopy(from_params.device_mesh)
     if to_params.mesh_axis_names is None:
       to_params.mesh_axis_names = copy.deepcopy(from_params.mesh_axis_names)
-    if IsDefaultParamInit(to_params.params_init):
+    if is_default_param_init(to_params.params_init):
       # Copy over params_init as well.
       to_params.params_init = from_params.params_init.Copy()
     return to_params
@@ -820,22 +821,22 @@ class BaseLayer(metaclass=BaseLayerMeta):
     self._params = params.Copy()
     logging.debug('Creating layer %s with params: \n %s \n',
                   self.__class__.__name__, str(params))
-    # Vars created by this layer. Frozen after the InstantiateVariables() call.
+    # Vars created by this layer. Frozen after the instantiate_variables() call.
     self._private_vars = NestedMap()
-    # Child layers created by this layer through CreateChild/CreateChildren.
+    # Child layers created by this layer through create_child/create_children.
     # Frozen afte __init__() call.
     self._private_children = NestedMap()
     # Child layers created by this layer. A well-formed layer should
     # have self._private_children equals to self._children_list. I.e.,
-    # all child layers are created using CreateChild/CreateChildren.
+    # all child layers are created using create_child/create_children.
     self._children_list = []
     # Keep track of vars/params that are being updated during the forward pass.
-    # This is a temporary storage that gets cleared and updated for each FProp()
+    # This is a temporary storage that gets cleared and updated for each fprop()
     # call.
     self._forward_updated_vars = py_utils.ThreadLocalDict()
 
     # Variable status.
-    self._create_variables_status = CreateLayerVariablesStatus.NOT_ENABLED
+    self._create_variables_status = CreateLayerVariableStatus.NOT_ENABLED
 
     # Some sanity checks.
     # weight_split_dims_mapping and activation_split_dims_mapping specifies how
@@ -845,26 +846,26 @@ class BaseLayer(metaclass=BaseLayerMeta):
     assert isinstance(self._params.activation_split_dims_mapping,
                       py_utils.Params)
 
-  def PrepareFProp(self) -> None:
-    """Prepares this layer for FProp()."""
+  def prepare_fprop(self) -> None:
+    """Prepares this layer for fprop()."""
     assert (
-        self._create_variables_status == CreateLayerVariablesStatus.COMPLETED)
-    tf.nest.map_structure(lambda x: x.PrepareFProp(), self._private_children)
+        self._create_variables_status == CreateLayerVariableStatus.COMPLETED)
+    tf.nest.map_structure(lambda x: x.prepare_fprop(), self._private_children)
     forward_updated_vars = tf.nest.map_structure(lambda v: None,
                                                  self._private_vars)
     self._forward_updated_vars.dict = forward_updated_vars
 
-  def ForwardUpdateVar(self, name: str, new_val: JTensor) -> None:
+  def forward_update_var(self, name: str, new_val: JTensor) -> None:
     """Update var 'name' in the forward pass."""
     assert name in self._private_vars
     # TODO(yonghui): Maybe lift the constraint below.
     # A param can only be updated once.
     assert self._forward_updated_vars.dict[name] is None
     # Only non-trainable variables can be updated in the forward pass.
-    assert VarNotTrainable(self.vars[name])
+    assert var_not_trainable(self.vars[name])
     self._forward_updated_vars.dict[name] = new_val
 
-  def FProp(self, theta: Any, *args: Any, **kwargs: Any) -> Any:
+  def fprop(self, theta: Any, *args: Any, **kwargs: Any) -> Any:
     """Forward propagation.
 
     Note, this function is almost pure, except for the following elements:
@@ -875,26 +876,26 @@ class BaseLayer(metaclass=BaseLayerMeta):
     - summaries: they are stored in a global thread local dict.
 
     The central interface that subclasses should implement. The caller
-    calls `FProp` with a `theta` dictionary. E.g.::
+    calls `fprop` with a `theta` dictionary. E.g.::
 
         foo = InstanceOfASubClassOfFoo(params)
-        y = foo.FProp(foo.theta, x)
+        y = foo.fprop(foo.theta, x)
 
-    The implementation of `FProp()` computes a function given
+    The implementation of `fprop()` computes a function given
     the theta and the inputs. E.g.::
 
         subs = self.children
         inputs = args[0]
-        a0 = subs.linear.FProp(theta.linear, inputs)
-        a1 = subs.softmax.FProp(theta.softmax, a0)
+        a0 = subs.linear.fprop(theta.linear, inputs)
+        a1 = subs.softmax.fprop(theta.softmax, a0)
         # The same layer applied twice.
-        a2 = subs.linear.FProp(theta.linear, a1)
+        a2 = subs.linear.fprop(theta.linear, a1)
         return a2
 
     All the params needed by this layer and its sublayers are accessed through
     theta, with the exception of pseudo random number generator keys and a
-    global step, which are accessed through global NextPrngKey() and
-    CurGlobalStep().
+    global step, which are accessed through global next_prng_key() and
+    cur_global_step().
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
@@ -914,7 +915,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
   @property
   def jax_context(self) -> JaxContext:
-    return CurJaxContext()
+    return cur_jax_context()
 
   @property
   def do_eval(self) -> bool:
@@ -961,11 +962,11 @@ class BaseLayer(metaclass=BaseLayerMeta):
     else:
       raise AttributeError('%s is not a sub-layer of %s.' % (name, self))
 
-  def GetDescendant(self, path: str) -> BaseLayerT:
+  def get_descendant(self, path: str) -> BaseLayerT:
     """Returns a descendant layer given the path.
 
-    NOTE(yonghui): This GetDescendant is not complete. It is not able to descent
-    into list/tuple substructures.
+    NOTE(yonghui): This get_descendant is not complete. It is not able to
+    descent into list/tuple substructures.
 
     Args:
       path: a comma separated string denoting a descendant of this layer.
@@ -987,7 +988,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
   @property
   def vars(self) -> NestedMap:
     """Returns variables of this layer and its children in a `.NestedMap`."""
-    if self._create_variables_status != CreateLayerVariablesStatus.COMPLETED:
+    if self._create_variables_status != CreateLayerVariableStatus.COMPLETED:
       raise ValueError(
           'Cannot access vars for layer %s before they have been created.' %
           self.params.cls)
@@ -999,7 +1000,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
   @property
   def total_num_vars(self) -> int:
     """Returns the total number of variables of this layer."""
-    var_specs = py_utils.Flatten(self.vars)
+    var_specs = py_utils.flatten(self.vars)
     count = 0
     for v in var_specs:
       v_shape = list(v.shape)
@@ -1018,7 +1019,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
       ret[k] = self._forward_updated_vars.dict[k]
     return ret
 
-  def _CheckName(self, name: str) -> None:
+  def _check_name(self, name: str) -> None:
     """Asserts name's validity."""
     NestedMap.CheckKey(name)
     assert name not in self._private_vars, (
@@ -1027,17 +1028,17 @@ class BaseLayer(metaclass=BaseLayerMeta):
         '%s exists in children, %s' %
         (name, list(self._private_children.keys())))
 
-  def CreateVariable(self,
-                     name: str,
-                     var_params: ParamsT,
-                     trainable: bool = True) -> None:
+  def create_variable(self,
+                      name: str,
+                      var_params: ParamsT,
+                      trainable: bool = True) -> None:
     """Create a variable of this layer according to the parameter `var_params`.
 
     E.g.::
 
-        def CreateLayerVariables(self):
-          self.CreateVariable(
-              'weight', WeightParams(shape=[100, 100]))
+        def create_layer_variables(self):
+          self.create_variable(
+              'weight', weight_params(shape=[100, 100]))
 
     Args:
       name: Variable name which is used as the key into vars/theta.
@@ -1061,16 +1062,16 @@ class BaseLayer(metaclass=BaseLayerMeta):
       if var_params.repeat_prefix_split_dims_mapping is not None:
         assert len(var_params.repeat_prefix) == len(
             var_params.repeat_prefix_split_dims_mapping)
-    if self._create_variables_status == CreateLayerVariablesStatus.NOT_ENABLED:
+    if self._create_variables_status == CreateLayerVariableStatus.NOT_ENABLED:
       raise ValueError(
-          'CreateVariable call is not enabled yet.'
-          'CreateVariable should be called in CreateLayerVariables.')
-    if self._create_variables_status == CreateLayerVariablesStatus.COMPLETED:
+          'create_variable call is not enabled yet.'
+          'create_variable should be called in create_layer_variables.')
+    if self._create_variables_status == CreateLayerVariableStatus.COMPLETED:
       raise ValueError(
-          'CreateVariable call after variable creation has completed! '
-          'CreateVariable should be called in CreateLayerVariables.')
+          'create_variable call after variable creation has completed! '
+          'create_variable should be called in create_layer_variables.')
 
-    self._CheckName(name)
+    self._check_name(name)
 
     if var_params.collections is None:
       var_params.collections = []
@@ -1085,7 +1086,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
     # Only keep a record of variables to be created for now.
     self._private_vars[name] = var_params
 
-  def InstantiateVariableConfigs(self) -> None:
+  def instantiate_variable_configs(self) -> None:
     """Instantiates variable configs for this layer and all its sub-layers.
 
     A variable config is a Params object containing all the meta information
@@ -1097,27 +1098,27 @@ class BaseLayer(metaclass=BaseLayerMeta):
     constraint that model variables are known apriori, before any training data
     is fed to the network.
 
-    InstantiateVariableConfigs can only be called once. Configs for all
+    instantiate_variable_configs can only be called once. Configs for all
     variables for this layer and its sub-layers are instantiated during this
     function call.
 
-    InstantiateVariableConfigs doesn't create the variables themselves.
-    Variables are created during the InstantiateVariables() function call, and
+    instantiate_variable_configs doesn't create the variables themselves.
+    Variables are created during the instantiate_variables() function call, and
     can be done 0 times, or multiple times.
 
-    DO NOT OVERRIDE. Override self.CreateLayerVariables instead.
+    DO NOT OVERRIDE. Override self.create_layer_variables instead.
     """
     assert (
-        self._create_variables_status == CreateLayerVariablesStatus.NOT_ENABLED)
-    self._create_variables_status = CreateLayerVariablesStatus.ENABLED
+        self._create_variables_status == CreateLayerVariableStatus.NOT_ENABLED)
+    self._create_variables_status = CreateLayerVariableStatus.ENABLED
     flattened_children = self._private_children.Flatten()
     for child in flattened_children:
       assert isinstance(child, BaseLayer)
-      child.InstantiateVariableConfigs()
-    self.CreateLayerVariables()
-    self._create_variables_status = CreateLayerVariablesStatus.COMPLETED
+      child.instantiate_variable_configs()
+    self.create_layer_variables()
+    self._create_variables_status = CreateLayerVariableStatus.COMPLETED
 
-  def InstantiateVariables(self, prng_key: PRNGKey) -> NestedMap:
+  def instantiate_variables(self, prng_key: PRNGKey) -> NestedMap:
     """Creates variables for this layer and its children layers.
 
     Note: this function can be called multple times. With the same prng_key as
@@ -1129,17 +1130,17 @@ class BaseLayer(metaclass=BaseLayerMeta):
     Returns:
       A NestedMap of Variables for this layer and its sub-layers.
 
-    DO NOT OVERRIDE. Override self.CreateLayerVariables instead.
+    DO NOT OVERRIDE. Override self.create_layer_variables instead.
     """
-    if self._create_variables_status != CreateLayerVariablesStatus.COMPLETED:
-      self.InstantiateVariableConfigs()
+    if self._create_variables_status != CreateLayerVariableStatus.COMPLETED:
+      self.instantiate_variable_configs()
 
     flattened_children = self._private_children.Flatten()
     children_vars = []
     prng_key, *subkeys = jax.random.split(prng_key, len(flattened_children) + 1)
     for child, subkey in zip(flattened_children, subkeys):
       assert isinstance(child, BaseLayer)
-      children_vars.append(child.InstantiateVariables(subkey))
+      children_vars.append(child.instantiate_variables(subkey))
     children_vars_map = self._private_children.Pack(children_vars)
     assert isinstance(children_vars_map, NestedMap)
 
@@ -1147,27 +1148,27 @@ class BaseLayer(metaclass=BaseLayerMeta):
     prng_key, *subkeys = jax.random.split(prng_key, len(self._private_vars) + 1)
     for (v_k, v_p), subkey in zip(self._private_vars.items(), subkeys):
       var_full_name = self_path + '.' + v_k
-      children_vars_map[v_k] = InitVar(var_full_name, v_p, subkey)
+      children_vars_map[v_k] = init_var(var_full_name, v_p, subkey)
 
     return children_vars_map
 
-  def CreateLayerVariables(self) -> None:
+  def create_layer_variables(self) -> None:
     """Creates layer variables for this layer.
 
     Subclasses should override this function.
 
     This function merely records variables to be created. Variable are actually
-    being created in the InstantiateVariables() function.
+    being created in the instantiate_variables() function.
     """
     pass
 
-  def CreateChild(self, name: str, params: BaseLayerParamsT) -> None:
+  def create_child(self, name: str, params: BaseLayerParamsT) -> None:
     """Creates a sub layer.
 
     The created sub layer can be accessed by `name`. E.g.::
 
-        self.CreateChild('foo', foo_params)
-        self.foo.FProp...
+        self.create_child('foo', foo_params)
+        self.foo.fprop...
 
     or:
 
@@ -1182,15 +1183,15 @@ class BaseLayer(metaclass=BaseLayerMeta):
       params: `Hyperparams` object to instantiate a layer.
     """
     if hasattr(self, '_disable_create_child') and self._disable_create_child:
-      raise ValueError('Attempting to call CreateChild outside of __init__.')
-    self._CheckName(name)
-    p = self.CopyBaseParams(self.params, params.Copy())
+      raise ValueError('Attempting to call create_child outside of __init__.')
+    self._check_name(name)
+    p = self.copy_base_params(self.params, params.Copy())
     if not p.name:
       p.name = name
     child = p.Instantiate()
     self._private_children[name] = child
 
-  def CreateChildren(
+  def create_children(
       self, name: str, params: Union[Sequence[BaseLayerParamsT],
                                      Mapping[str, BaseLayerParamsT]]
   ) -> None:
@@ -1198,8 +1199,8 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
     The created sub layer list can be accessed by `name`. E.g.::
 
-        self.CreateChildren('foo', ...)
-        self.foo[10].FProp...
+        self.create_children('foo', ...)
+        self.foo[10].fprop...
 
     or::
 
@@ -1212,22 +1213,23 @@ class BaseLayer(metaclass=BaseLayerMeta):
       params: a list or dict of `Hyperparams` objects to create.
     """
     if hasattr(self, '_disable_create_child') and self._disable_create_child:
-      raise ValueError('Attempting to call CreateChildren outside of __init__.')
-    self._CheckName(name)
+      raise ValueError(
+          'Attempting to call create_children outside of __init__.')
+    self._check_name(name)
     params = NestedMap.FromNestedDict(params)
 
     uid = itertools.count()
 
-    def Instantiate(p: InstantiableParams) -> BaseLayerT:
-      p = self.CopyBaseParams(self.params, p.Copy())
+    def instantiate(p: InstantiableParams) -> BaseLayerT:
+      p = self.copy_base_params(self.params, p.Copy())
       if not p.name:
         p.name = '%s_%d' % (name, next(uid))
       return p.Instantiate()
 
     self._private_children[name] = NestedMap(
-        sub=params).Transform(Instantiate).sub
+        sub=params).Transform(instantiate).sub
 
-  def _AutoAddChild(self, child: BaseLayerT) -> None:
+  def _auto_add_child(self, child: BaseLayerT) -> None:
     """Records that a layer `child` is instantiated by this layer.
 
     This method should only be called internally by BaseLayerMeta.
@@ -1237,8 +1239,8 @@ class BaseLayer(metaclass=BaseLayerMeta):
     """
     self._children_list.append(child)
 
-  def _VerifyChildren(self) -> None:
-    """Verify all children created by this layer are via `CreateChild(ren)`."""
+  def _verify_children(self) -> None:
+    """Verify all children created by this layer are via `create_child(ren)`."""
     created_children = self._private_children.Flatten()
     for v in self._children_list:
       if v not in created_children:
@@ -1246,13 +1248,13 @@ class BaseLayer(metaclass=BaseLayerMeta):
             (child.params.name, type(child)) for child in created_children
         ])
         raise ValueError(
-            '%s is not created by BaseLayer.CreateChild(ren) in %r.' %
+            '%s is not created by BaseLayer.create_child(ren) in %r.' %
             (v.params.name, self))
 
-  def _CastToFPropDtype(self, value: Any) -> Any:
+  def _cast_to_fprop_dtype(self, value: Any) -> Any:
     """Casts values to the desired dtype."""
 
-    def _Cast(x):
+    def _cast(x):
       if x is None:
         return None
       if self.fprop_dtype != x.dtype:
@@ -1260,10 +1262,10 @@ class BaseLayer(metaclass=BaseLayerMeta):
           return x.astype(self.fprop_dtype)
       return x
 
-    return tf.nest.map_structure(_Cast, value)
+    return tf.nest.map_structure(_cast, value)
 
 
-def AssertHasShape(t: JTensor, shape: Sequence[int]) -> None:
+def assert_has_shape(t: JTensor, shape: Sequence[int]) -> None:
   assert t.ndim == len(shape)
   for i in range(t.ndim):
     assert t.shape[i] == shape[i] or shape[i] == -1

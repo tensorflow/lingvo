@@ -26,21 +26,20 @@ from lingvo.core import hyperparams
 from lingvo.core import py_utils
 import numpy as np
 
-InfeedContextScope = cluster.InfeedContextScope
-GetInfeedContext = cluster.GetInfeedContext
+infeed_context_scope = cluster.InfeedContextScope
 # No more symbols from lingvo cluster should be accessed by JAX library.
 
 WeightInit = py_utils.WeightInit
-WeightParams = py_utils.WeightParams
-IsDefaultParamInit = py_utils.IsDefaultParamInit
-DefaultParamInit = py_utils.DefaultParamInit
-Flatten = py_utils.Flatten
+weight_params = py_utils.WeightParams
+is_default_param_init = py_utils.IsDefaultParamInit
+default_param_init = py_utils.DefaultParamInit
+flatten = py_utils.Flatten
 NestedMap = py_utils.NestedMap
 ThreadLocalDict = py_utils.ThreadLocalDict
 ThreadLocalStack = py_utils.ThreadLocalStack
 AuxLossContext = py_utils.AuxLossContext
-FPropDtype = py_utils.FPropDtype
-ShardedFilePatternToGlob = py_utils.ShardedFilePatternToGlob
+fprop_dtype = py_utils.FPropDtype
+sharded_file_pattern_to_glob = py_utils.ShardedFilePatternToGlob
 # No more symbols from lingvo py_utils should be accessed by JAX library.
 del py_utils
 
@@ -53,7 +52,7 @@ del hyperparams
 
 
 # A utility function to flatten copied from third_party/py/jax/_src/util.py
-def Unzip2(xys):
+def _unzip2(xys):
   xs = []
   ys = []
   for x, y in xys:
@@ -63,11 +62,11 @@ def Unzip2(xys):
 
 
 jax.tree_util.register_pytree_node(NestedMap,
-                                   lambda xs: Unzip2(sorted(xs.items()))[::-1],
+                                   lambda xs: _unzip2(sorted(xs.items()))[::-1],
                                    lambda keys, xs: NestedMap(zip(keys, xs)))
 
 
-def Reshard(array: jnp.ndarray) -> np.ndarray:
+def reshard(array: jnp.ndarray) -> np.ndarray:
   """Reshards an input tensor according to the number of local devices."""
   num_devices = jax.local_device_count()
   batch_size = array.shape[0]
@@ -75,7 +74,7 @@ def Reshard(array: jnp.ndarray) -> np.ndarray:
                     (num_devices, batch_size // num_devices) + array.shape[1:])
 
 
-def ExtractPrefixedKeysFromNestedMap(node: Any, prefix: str = '') -> Any:
+def extract_prefixed_keys_from_nested_map(node: Any, prefix: str = '') -> Any:
   """Extracts a NestedMap with the nested prefix keys from its NestedMap node."""
   if isinstance(node, dict):  # NestedMap inherits from dict.
     result = {}
@@ -84,23 +83,24 @@ def ExtractPrefixedKeysFromNestedMap(node: Any, prefix: str = '') -> Any:
         path = f'{prefix}/{key}'
       else:
         path = key
-      result[key] = ExtractPrefixedKeysFromNestedMap(value, path)
+      result[key] = extract_prefixed_keys_from_nested_map(value, path)
     # Convert back to dict or NestedMap.
     return type(node)(result)
   elif isinstance(node, (list, tuple)):
     # Convert back to list or tuple.
-    return type(node)(ExtractPrefixedKeysFromNestedMap(v, f'{prefix}[{i}]')
-                      for i, v in enumerate(node))
+    return type(node)(
+        extract_prefixed_keys_from_nested_map(v, f'{prefix}[{i}]')
+        for i, v in enumerate(node))
   if not prefix:
     return None
   return prefix
 
 
-def SyncGlobalDevices(name: str) -> None:
+def sync_global_devices(name: str) -> None:
   """Sync across all hosts/devices."""
   local_device_count = jax.local_device_count()
   global_device_count = jax.device_count()
-  logging.info('SyncGlobalDevices %s across %s devices globally', name,
+  logging.info('sync_global_devices %s across %s devices globally', name,
                global_device_count)
   h = np.int32(zlib.crc32(name.encode()))
   # Round-down h to multiples of global_device_count.
@@ -111,5 +111,5 @@ def SyncGlobalDevices(name: str) -> None:
   actual = jax.device_get(jax.pmap(lambda x: jax.lax.psum(x, 'i'), 'i')(x))
   if actual[0] != expected:
     raise ValueError(f'Sync point {name} expected: {expected}; got: {actual}')
-  logging.info('Finished SyncGlobalDevices %s across %s devices globally', name,
-               global_device_count)
+  logging.info('Finished sync_global_devices %s across %s devices globally',
+               name, global_device_count)

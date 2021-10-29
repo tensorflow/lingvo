@@ -26,7 +26,7 @@ from lingvo.jax.layers import poolings
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-ToNp = test_utils.ToNp
+to_np = test_utils.to_np
 
 
 class PoolingsTest(test_util.JaxTestCase):
@@ -57,7 +57,7 @@ class PoolingsTest(test_util.JaxTestCase):
         padding=padding)
     pooling_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = pooling_layer.InstantiateVariables(prng_key)
+    initial_vars = pooling_layer.instantiate_variables(prng_key)
     if int_inputs:
       npy_inputs = np.random.randint(0, 100, input_shape).astype('int32')
     else:
@@ -65,7 +65,7 @@ class PoolingsTest(test_util.JaxTestCase):
     inputs = jnp.asarray(npy_inputs)
     paddings = None
     tf_paddings = None
-    output, _ = pooling_layer.FProp(initial_vars, inputs, paddings)
+    output, _ = pooling_layer.fprop(initial_vars, inputs, paddings)
     # Test whether tf Pooling layer returns the same output.
     # Modify initial_vars to use TF compatible params.
     tf_initial_vars = initial_vars
@@ -79,8 +79,8 @@ class PoolingsTest(test_util.JaxTestCase):
     tf_input = tf.constant(npy_inputs, dtype=tf.float32)
     tf_output = tf_pooling_layer.FProp(tf_initial_vars, tf_input, tf_paddings)
     # Check the actual output.
-    np_output = ToNp(output)
-    tf_np_output = ToNp(tf_output)
+    np_output = to_np(output)
+    tf_np_output = to_np(tf_output)
     self.assertAllClose(tf_np_output, np_output)
 
   @parameterized.parameters(
@@ -106,7 +106,7 @@ class PoolingsTest(test_util.JaxTestCase):
         padding=padding)
     pooling_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
-    initial_vars = pooling_layer.InstantiateVariables(prng_key)
+    initial_vars = pooling_layer.instantiate_variables(prng_key)
     if int_inputs:
       npy_inputs = np.random.randint(0, 100, input_shape).astype('int32')
     else:
@@ -122,7 +122,7 @@ class PoolingsTest(test_util.JaxTestCase):
           0, 2, [input_shape[0], input_shape[1]]).astype(npy_inputs.dtype)
     paddings = jnp.asarray(npy_paddings)
     tf_paddings = tf.constant(npy_paddings, dtype=tf.float32)
-    output, out_paddings = pooling_layer.FProp(initial_vars, inputs, paddings)
+    output, out_paddings = pooling_layer.fprop(initial_vars, inputs, paddings)
     # Test whether tf Pooling layer returns the same output.
     # Modify initial_vars to use TF compatible params.
     tf_initial_vars = initial_vars
@@ -136,10 +136,10 @@ class PoolingsTest(test_util.JaxTestCase):
     tf_input = tf.constant(npy_inputs, dtype=tf.float32)
     tf_output = tf_pooling_layer.FProp(tf_initial_vars, tf_input, tf_paddings)
     # Check the actual output.
-    np_output = ToNp(output)
-    tf_np_output = ToNp(tf_output[0])
-    np_paddings = ToNp(out_paddings)
-    tf_np_paddings = ToNp(tf_output[1])
+    np_output = to_np(output)
+    tf_np_output = to_np(tf_output[0])
+    np_paddings = to_np(out_paddings)
+    tf_np_paddings = to_np(tf_output[1])
     # Check the paddings.
     self.assertAllClose(np_paddings, tf_np_paddings)
     self.assertAllClose(tf_np_output, np_output)

@@ -38,36 +38,37 @@ SummaryWriter = tf.summary.SummaryWriter
 
 
 # Copied from flax.core.FrozenDict and customized for lists.
-def PrettyRepr(values: NestedJTensor, num_spaces: int = 4) -> str:
+def pretty_repr(values: NestedJTensor, num_spaces: int = 4) -> str:
   """Returns an indented representation of the nested dictionary."""
 
-  def Indent(txt: str) -> str:
+  def indent(txt: str) -> str:
     return textwrap.indent(txt, ' ' * num_spaces)
 
   if isinstance(values, dict):
     rep = []
     for key, val in values.items():
-      rep.append(f'{key}: {PrettyRepr(val)},\n')
+      rep.append(f'{key}: {pretty_repr(val)},\n')
     if rep:
-      return '{\n' + Indent(''.join(rep)) + '}'
+      return '{\n' + indent(''.join(rep)) + '}'
     else:
       return '{}'
   elif isinstance(values, (list, tuple)):
     rep = []
     for v in values:
-      rep.append(f'{PrettyRepr(v)},\n')
+      rep.append(f'{pretty_repr(v)},\n')
     if rep:
-      return '[\n' + Indent(''.join(rep)) + ']'
+      return '[\n' + indent(''.join(rep)) + ']'
     else:
       return '[]'
   else:
     return repr(values)
 
 
-def PrettyReprShapes(replicated_vars: NestedJTensor, is_vars_replicated) -> str:
+def pretty_repr_shapes(replicated_vars: NestedJTensor,
+                       is_vars_replicated) -> str:
   """Returns a pretty representation of the variable shapes."""
 
-  def Pps(x: JTensor) -> str:
+  def pps(x: JTensor) -> str:
     """Remove leading dim from replicated model vars."""
     if is_vars_replicated:
       return 'x'.join(str(e) for e in x.shape[1:])
@@ -75,14 +76,14 @@ def PrettyReprShapes(replicated_vars: NestedJTensor, is_vars_replicated) -> str:
       # If var is not replicated, no need to remove the first dim.
       return 'x'.join(str(e) for e in x.shape)
 
-  out = jax.tree_map(Pps, replicated_vars)
-  out = PrettyRepr(out)
+  out = jax.tree_map(pps, replicated_vars)
+  out = pretty_repr(out)
   for c in '{}(),[]':
     out = out.replace(c, '')
   return '\n'.join(l for l in out.splitlines() if (l and not l.isspace()))
 
 
-def _YieldSubtrees(
+def _yield_subtrees(
     root: NestedJTensor,
     max_level: int,
     level: int = 0,
@@ -92,14 +93,14 @@ def _YieldSubtrees(
   if level < max_level:
     if isinstance(root, dict):
       for key in root:
-        for out in _YieldSubtrees(root[key], max_level, level + 1,
-                                  name + (key,)):
+        for out in _yield_subtrees(root[key], max_level, level + 1,
+                                   name + (key,)):
           yield out
     elif isinstance(root, (list, tuple)):
       list_len = len(root)
       for ii in range(list_len):
-        for out in _YieldSubtrees(root[ii], max_level, level + 1,
-                                  name + (str(ii),)):
+        for out in _yield_subtrees(root[ii], max_level, level + 1,
+                                   name + (str(ii),)):
           yield out
     else:
       # TODO(yonghui): Support other common composite types.
@@ -109,18 +110,18 @@ def _YieldSubtrees(
       yield (name, root)
 
 
-def L2Norms(tree: NestedJTensor,
-            prefix: str = '',
-            max_level: int = 4,
-            sep: str = '/') -> Dict[str, jnp.float32]:
+def l2_norms(tree: NestedJTensor,
+             prefix: str = '',
+             max_level: int = 4,
+             sep: str = '/') -> Dict[str, jnp.float32]:
   """L2 Norms over pytree."""
   squares = jax.tree_map(lambda x: jnp.array([x.size, jnp.sum(x**2)]), tree)
-  names, squares = zip(*_YieldSubtrees(squares, max_level=max_level))
+  names, squares = zip(*_yield_subtrees(squares, max_level=max_level))
   names = [sep.join(name) for name in names]
   if prefix:
     names = [prefix + sep + n for n in names]
 
-  def NormFn(tree: NestedJTensor) -> jnp.float32:
+  def norm_fn(tree: NestedJTensor) -> jnp.float32:
     out = jax.tree_util.tree_reduce(operator.add, tree)
     # NOTE(yonghui): Here we normalize out[1] by out[0], instead of sqrt(out[1])
     # by out[0] so that l2_norm is more semantically meaningful: it means the
@@ -129,12 +130,12 @@ def L2Norms(tree: NestedJTensor,
     # TODO(yonghui): In the future, compute mean and std instead.
     return jnp.sqrt(out[1] / out[0])
 
-  norms = [NormFn(tree) for tree in squares]
+  norms = [norm_fn(tree) for tree in squares]
   return dict(zip(names, norms))
 
 
 @contextlib.contextmanager
-def GetSummaryWriter(summary_dir: str) -> SummaryWriter:
+def get_summary_writer(summary_dir: str) -> SummaryWriter:
   """Context manager around Tensorflow's SummaryWriter."""
   if jax.process_index() == 0:
     logging.info('Opening SummaryWriter `%s`...', summary_dir)
@@ -155,8 +156,8 @@ def GetSummaryWriter(summary_dir: str) -> SummaryWriter:
       logging.info('Closed a mock-like SummaryWriter.')
 
 
-def FlattenSummaryDict(summary_dict: Dict[str, JTensor],
-                       parent_key: Optional[str] = None) -> List[Any]:
+def flatten_summary_dict(summary_dict: Dict[str, JTensor],
+                         parent_key: Optional[str] = None) -> List[Any]:
   """Flattens a summary dictionary."""
   separator = '@'
   outputs = []
@@ -164,19 +165,19 @@ def FlattenSummaryDict(summary_dict: Dict[str, JTensor],
     if parent_key is not None:
       key = f'{parent_key}{separator}{key}'
     if isinstance(value, collections.MutableMapping):
-      outputs.extend(FlattenSummaryDict(value, key))
+      outputs.extend(flatten_summary_dict(value, key))
     else:
       outputs.append((key, value))
   return outputs
 
 
-def WriteSummaryEntry(summary_writer: SummaryWriter,
-                      step_i: int,
-                      loss: JTensor,
-                      metrics: Dict[str, JTensor],
-                      summary_tensors: NestedJTensor,
-                      unreplicate_metrics: bool,
-                      steps_per_sec: Optional[float] = None) -> None:
+def write_summary_entry(summary_writer: SummaryWriter,
+                        step_i: int,
+                        loss: JTensor,
+                        metrics: Dict[str, JTensor],
+                        summary_tensors: NestedJTensor,
+                        unreplicate_metrics: bool,
+                        steps_per_sec: Optional[float] = None) -> None:
   """Writes a summary entry into the provided SummaryWriter."""
   # Scalar values must be plain Python types rather than e.g. np.int / np.float.
   if unreplicate_metrics:
@@ -206,7 +207,7 @@ def WriteSummaryEntry(summary_writer: SummaryWriter,
       tf_summary.scalar(f'Metrics/{key}', weighted_average.item(), step_i)
       tf_summary.scalar(f'Metrics/{key}-weight', sum_metric_weights.item(),
                         step_i)
-    summaries = FlattenSummaryDict(summary_tensors)
+    summaries = flatten_summary_dict(summary_tensors)
     # TODO(shafey): Add support for non-scalar summaries.
     for key, tensor in summaries:
       mean_tensor = np.mean(tensor).item()
@@ -217,17 +218,17 @@ def WriteSummaryEntry(summary_writer: SummaryWriter,
                mean_loss)
 
 
-def WriteModelStructure(train_summary_writer: SummaryWriter,
-                        train_state: TrainState, is_vars_replicated):
+def write_model_structure(train_summary_writer: SummaryWriter,
+                          train_state: TrainState, is_vars_replicated):
   """Writes the Model Param structure to TB."""
   with train_summary_writer.as_default():
-    out = PrettyReprShapes(train_state.mdl_vars, is_vars_replicated)
+    out = pretty_repr_shapes(train_state.mdl_vars, is_vars_replicated)
     tf_summary.text('Model', out, step=0)
   train_summary_writer.flush()
 
 
-def WriteTotalNumParams(train_summary_writer: SummaryWriter,
-                        total_num_params: int):
+def write_total_num_params(train_summary_writer: SummaryWriter,
+                           total_num_params: int):
   """Writes the total number of parameters to TB."""
   with train_summary_writer.as_default():
     # Add whitespace every 3 digit for readability.
@@ -236,17 +237,17 @@ def WriteTotalNumParams(train_summary_writer: SummaryWriter,
   train_summary_writer.flush()
 
 
-def WriteSummaryEveryNSteps(train_state: TrainState,
-                            train_summary_writer: SummaryWriter, step_i: int,
-                            summary_every_n_steps: int, loss: JTensor,
-                            metrics: NestedJTensor,
-                            per_example_out: NestedJTensor,
-                            summary_tensors: NestedJTensor,
-                            norm_summary_every_step: int,
-                            summary_last_time: Optional[float],
-                            summary_last_step: Optional[int],
-                            unreplicate_mdl_vars: bool,
-                            unreplicate_metrics: bool) -> bool:
+def write_summary_every_n_steps(train_state: TrainState,
+                                train_summary_writer: SummaryWriter,
+                                step_i: int, summary_every_n_steps: int,
+                                loss: JTensor, metrics: NestedJTensor,
+                                per_example_out: NestedJTensor,
+                                summary_tensors: NestedJTensor,
+                                norm_summary_every_step: int,
+                                summary_last_time: Optional[float],
+                                summary_last_step: Optional[int],
+                                unreplicate_mdl_vars: bool,
+                                unreplicate_metrics: bool) -> bool:
   """Writes summaries at regular intervals."""
   result = False
 
@@ -261,8 +262,8 @@ def WriteSummaryEveryNSteps(train_state: TrainState,
     steps_per_sec = num_steps / duration_sec
     logging.info('steps/sec: %f', steps_per_sec)
 
-    WriteSummaryEntry(train_summary_writer, step_i, loss, metrics,
-                      summary_tensors, unreplicate_metrics, steps_per_sec)
+    write_summary_entry(train_summary_writer, step_i, loss, metrics,
+                        summary_tensors, unreplicate_metrics, steps_per_sec)
     result = True
 
   # Write detailed Var norms to TB.
@@ -274,7 +275,7 @@ def WriteSummaryEveryNSteps(train_state: TrainState,
     else:
       # This is an SPMD model, mdl_vars can be sharded, not replicated.
       mdl_vars = train_state.mdl_vars
-    norms = L2Norms(mdl_vars, prefix='Vars', max_level=10)
+    norms = l2_norms(mdl_vars, prefix='Vars', max_level=10)
     with train_summary_writer.as_default():
       for name in norms:
         tf_summary.scalar(name, norms[name], step_i)

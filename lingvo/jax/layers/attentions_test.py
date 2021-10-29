@@ -29,18 +29,18 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 
 
-def VarStats(x):
+def var_stats(x):
   return np.mean(x), np.std(x)
 
 
-def AssertVarStatsClose(map01, map02, test_case):
+def assert_var_stats_close(map01, map02, test_case):
 
   map01_items = map01.FlattenItems()
   map02_items = map02.FlattenItems()
 
-  def SimilarStats(x, y):
-    mean1, std1 = VarStats(test_utils.ToNp(x))
-    mean2, std2 = VarStats(test_utils.ToNp(y))
+  def have_similar_stats(x, y):
+    mean1, std1 = var_stats(test_utils.to_np(x))
+    mean2, std2 = var_stats(test_utils.to_np(y))
     delta_mean = np.abs(mean1 - mean2)
     delta_std = np.abs(std1 - std2)
     logging.info('mean1: %s, mean2: %s', mean1, mean2)
@@ -50,7 +50,7 @@ def AssertVarStatsClose(map01, map02, test_case):
 
   for x, y in zip(map01_items, map02_items):
     assert x[0] == y[0]
-    SimilarStats(x[1], y[1])
+    have_similar_stats(x[1], y[1])
 
 
 class AttentionsTest(test_util.JaxTestCase):
@@ -62,7 +62,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
   @parameterized.parameters(jnp.int32, jnp.float32, jnp.int64, jnp.float64)
   def test_get_large_negative_number(self, dtype):
-    jax_number = attentions._GetLargeNegativeNumber(dtype)
+    jax_number = attentions._get_large_negative_number(dtype)
     self.assertDtypesMatch(jax_number, dtype)
 
   def test_per_dim_scale(self):
@@ -71,7 +71,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
     initial_vars.per_dim_scale = jnp.array([-0.5, 0.5, 1.0, 0.0],
                                            dtype=jnp.float32)
     logging.info('initial_vars: %s', initial_vars)
@@ -82,16 +82,16 @@ class AttentionsTest(test_util.JaxTestCase):
 
     # comp function is fully functional.
     @jax.jit
-    def Comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.NewContext(
+    def comp(theta, prng_key, global_step, inputs):
+      with base_layer.JaxContext.new_context(
           prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.ResetPrngKey(per_step_prng_key, global_step)
-        layer.PrepareFProp()
-        output = layer.FProp(theta, inputs)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        layer.prepare_fprop()
+        output = layer.fprop(theta, inputs)
         return output
 
-    jax_out = Comp(initial_vars, compute_key, global_step, inputs)
+    jax_out = comp(initial_vars, compute_key, global_step, inputs)
     logging.info('jax_output: %s', jax_out)
 
     # Now run TF based computation.
@@ -102,7 +102,7 @@ class AttentionsTest(test_util.JaxTestCase):
     logging.info('tf_output1: %s', tf_output1)
     tf_output2 = tf_layer.FProp(initial_vars, inputs)
     logging.info('tf_output2: %s', tf_output2)
-    self.assertAllClose(test_utils.ToNp(jax_out), test_utils.ToNp(tf_output2))
+    self.assertAllClose(test_utils.to_np(jax_out), test_utils.to_np(tf_output2))
 
   def test_mhd_projection_01(self):
     test_layer_p = attentions.MultiHeadedProjectionLayer.Params().Set(
@@ -115,7 +115,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [5, 16]).astype(np.float32)
@@ -124,16 +124,16 @@ class AttentionsTest(test_util.JaxTestCase):
 
     # comp function is fully functional.
     @jax.jit
-    def Comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.NewContext(
+    def comp(theta, prng_key, global_step, inputs):
+      with base_layer.JaxContext.new_context(
           prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.ResetPrngKey(per_step_prng_key, global_step)
-        layer.PrepareFProp()
-        output = layer.FProp(theta, inputs)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        layer.prepare_fprop()
+        output = layer.fprop(theta, inputs)
         return output
 
-    jax_out = Comp(initial_vars, compute_key, global_step, inputs)
+    jax_out = comp(initial_vars, compute_key, global_step, inputs)
     logging.info('jax_output: %s', jax_out)
 
     # Now run TF based computation.
@@ -150,9 +150,9 @@ class AttentionsTest(test_util.JaxTestCase):
     logging.info('tf_output2: %s', tf_output2)
     self.assertGreater(
         np.sum(
-            np.abs(test_utils.ToNp(tf_output1) - test_utils.ToNp(tf_output2))),
-        0.1)
-    self.assertAllClose(test_utils.ToNp(jax_out), test_utils.ToNp(tf_output2))
+            np.abs(test_utils.to_np(tf_output1) -
+                   test_utils.to_np(tf_output2))), 0.1)
+    self.assertAllClose(test_utils.to_np(jax_out), test_utils.to_np(tf_output2))
 
   def test_mhd_projection_02(self):
     test_layer_p = attentions.MultiHeadedProjectionLayer.Params().Set(
@@ -165,7 +165,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [5, 2, 5]).astype(np.float32)
@@ -174,16 +174,16 @@ class AttentionsTest(test_util.JaxTestCase):
 
     # comp function is fully functional.
     @jax.jit
-    def Comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.NewContext(
+    def comp(theta, prng_key, global_step, inputs):
+      with base_layer.JaxContext.new_context(
           prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.ResetPrngKey(per_step_prng_key, global_step)
-        layer.PrepareFProp()
-        output = layer.FProp(theta, inputs)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        layer.prepare_fprop()
+        output = layer.fprop(theta, inputs)
         return output
 
-    jax_out = Comp(initial_vars, compute_key, global_step, inputs)
+    jax_out = comp(initial_vars, compute_key, global_step, inputs)
     logging.info('jax_output: %s', jax_out)
 
     # Now run TF based computation.
@@ -200,9 +200,9 @@ class AttentionsTest(test_util.JaxTestCase):
     logging.info('tf_output2: %s', tf_output2)
     self.assertGreater(
         np.sum(
-            np.abs(test_utils.ToNp(tf_output1) - test_utils.ToNp(tf_output2))),
-        0.1)
-    self.assertAllClose(test_utils.ToNp(jax_out), test_utils.ToNp(tf_output2))
+            np.abs(test_utils.to_np(tf_output1) -
+                   test_utils.to_np(tf_output2))), 0.1)
+    self.assertAllClose(test_utils.to_np(jax_out), test_utils.to_np(tf_output2))
 
   def test_mhd_projection_var_stats(self):
     test_layer_p = attentions.MultiHeadedProjectionLayer.Params().Set(
@@ -215,7 +215,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
 
     # Now run TF based computation.
     tf_layer_p = batch_major_attention.MultiHeadedProjectionLayer.Params().Set(
@@ -227,13 +227,13 @@ class AttentionsTest(test_util.JaxTestCase):
     tf_layer = tf_layer_p.Instantiate()
 
     tf_initial_vars = tf.nest.map_structure(lambda x: x.numpy(), tf_layer.theta)
-    AssertVarStatsClose(initial_vars, tf_initial_vars, self)
+    assert_var_stats_close(initial_vars, tf_initial_vars, self)
 
   def test_mask(self):
     a = np.random.random_integers(0, 5, size=[2, 50])
-    jax_mask = attentions.CausalSegmentMask(a, jnp.float32)
+    jax_mask = attentions.causal_segment_mask(a, jnp.float32)
     tf_mask = batch_major_attention.CausalSegmentMask(a, tf.float32)
-    self.assertAllClose(test_utils.ToNp(jax_mask), test_utils.ToNp(tf_mask))
+    self.assertAllClose(test_utils.to_np(jax_mask), test_utils.to_np(tf_mask))
 
   @parameterized.parameters([(False, True, 3, True), (True, True, 3, True),
                              (False, True, 4, False), (True, True, 4, True),
@@ -257,25 +257,25 @@ class AttentionsTest(test_util.JaxTestCase):
     layer = test_layer_p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
     logging.info('initial_vars: %s', initial_vars)
     target_batch_size = 3
     source_max_length = 16
     target_max_length = 16
-    initial_states = layer.InitStates(initial_vars, target_batch_size,
-                                      target_max_length)
+    initial_states = layer.init_states(initial_vars, target_batch_size,
+                                       target_max_length)
     query_vec = np.random.normal(
         size=[target_batch_size, source_max_length, mdl_dim]).astype(np.float32)
     key_vec = query_vec
     value_vec = query_vec
-    atten_mask = attentions.CausalMask(query_vec)
+    atten_mask = attentions.causal_mask(query_vec)
 
     prng_key, compute_key = jax.random.split(prng_key)
     global_step = jnp.array(0, dtype=jnp.uint64)
 
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=compute_key, global_step=global_step):
-      fprop_out, _ = layer.FProp(initial_vars, query_vec, key_vec, value_vec,
+      fprop_out, _ = layer.fprop(initial_vars, query_vec, key_vec, value_vec,
                                  atten_mask)
 
       decoder_output = jnp.zeros(
@@ -291,7 +291,7 @@ class AttentionsTest(test_util.JaxTestCase):
           query_vec_prefix = jnp.pad(query_vec_prefix, paddings)
         else:
           query_vec_prefix = query_vec[:, t, :]
-        atten_states, encoded = layer.ExtendStep(
+        atten_states, encoded = layer.extend_step(
             initial_vars,
             atten_states,
             query_vec=query_vec_prefix,
@@ -320,7 +320,7 @@ class AttentionsTest(test_util.JaxTestCase):
 
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = layer.InstantiateVariables(init_key)
+    initial_vars = layer.instantiate_variables(init_key)
 
     target_batch_size = 3
     source_max_length = 8
@@ -334,14 +334,14 @@ class AttentionsTest(test_util.JaxTestCase):
         size=[target_batch_size, source_max_length, mdl_dim]).astype(np.float32)
     segment_ids = np.random.random_integers(
         0, 1, size=[target_batch_size, target_max_length]).astype(np.int32)
-    atten_mask = attentions.CausalSegmentMask(segment_ids, np.float32)
+    atten_mask = attentions.causal_segment_mask(segment_ids, np.float32)
 
     prng_key, compute_key = jax.random.split(prng_key)
     global_step = jnp.array(0, dtype=jnp.uint64)
 
-    with base_layer.JaxContext.NewContext(
+    with base_layer.JaxContext.new_context(
         prng_key=compute_key, global_step=global_step):
-      jax_fprop_out, jax_atten_prob = layer.FProp(initial_vars, query_vec,
+      jax_fprop_out, jax_atten_prob = layer.fprop(initial_vars, query_vec,
                                                   key_vec, value_vec,
                                                   atten_mask)
 
@@ -365,9 +365,10 @@ class AttentionsTest(test_util.JaxTestCase):
     logging.info('jax_atten_probs: %s', jax_atten_prob)
     logging.info('tf_layer_out: %s', tf_out)
     logging.info('tf_atten_probs: %s', tf_atten_prob)
-    self.assertAllClose(test_utils.ToNp(jax_fprop_out), test_utils.ToNp(tf_out))
     self.assertAllClose(
-        test_utils.ToNp(jax_atten_prob), test_utils.ToNp(tf_atten_prob))
+        test_utils.to_np(jax_fprop_out), test_utils.to_np(tf_out))
+    self.assertAllClose(
+        test_utils.to_np(jax_atten_prob), test_utils.to_np(tf_atten_prob))
 
   @parameterized.parameters(
       ([1, 2, 3, 4, 5], 1, 0, [0, 1, 2, 3, 4]),
@@ -382,7 +383,7 @@ class AttentionsTest(test_util.JaxTestCase):
   )
   def test_shift1d(self, inputs, offset, axis, outputs):
     inputs = np.asarray(inputs)
-    shift_outputs = attentions.Shift1D(inputs, offset, axis)
+    shift_outputs = attentions.shift_1d(inputs, offset, axis)
     self.assertArraysEqual(shift_outputs, np.asarray(outputs))
 
   @parameterized.parameters(
@@ -397,18 +398,18 @@ class AttentionsTest(test_util.JaxTestCase):
     causal_dconv_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = causal_dconv_layer.InstantiateVariables(init_key)
+    initial_vars = causal_dconv_layer.instantiate_variables(init_key)
     if isinstance(hidden_dims, list):
       kernel_shape = hidden_dims
     else:
       kernel_shape = [hidden_dims]
     for k in range(kernel_size):
       initial_vars[f'dconv_{k}'] = np.ones(kernel_shape)
-    jax_dconv_out = causal_dconv_layer.FProp(initial_vars, inputs, axis=axis)
-    jax_np_out = test_utils.ToNp(jax_dconv_out)
+    jax_dconv_out = causal_dconv_layer.fprop(initial_vars, inputs, axis=axis)
+    jax_np_out = test_utils.to_np(jax_dconv_out)
     outputs = inputs
     for _ in range(1, kernel_size):
-      inputs = attentions.Shift1D(inputs, offset=1, axis=axis)
+      inputs = attentions.shift_1d(inputs, offset=1, axis=axis)
       outputs += inputs
     self.assertArraysEqual(jax_np_out, outputs)
 
@@ -425,17 +426,17 @@ class AttentionsTest(test_util.JaxTestCase):
     causal_dconv_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
-    initial_vars = causal_dconv_layer.InstantiateVariables(init_key)
-    jax_dconv_out = causal_dconv_layer.FProp(initial_vars, inputs, axis=axis)
-    jax_np_out = test_utils.ToNp(jax_dconv_out)
+    initial_vars = causal_dconv_layer.instantiate_variables(init_key)
+    jax_dconv_out = causal_dconv_layer.fprop(initial_vars, inputs, axis=axis)
+    jax_np_out = test_utils.to_np(jax_dconv_out)
     jax_extend_step_out = jnp.zeros_like(jax_dconv_out)
     for i in range(shape[1]):
-      jax_extend_step_out = causal_dconv_layer.ExtendStep(
+      jax_extend_step_out = causal_dconv_layer.extend_step(
           initial_vars, inputs, axis=axis, step=i)
-      jax_np_extend_step_out = test_utils.ToNp(jax_extend_step_out)
-      jax_extend_step_out_tensor = causal_dconv_layer.ExtendStep(
+      jax_np_extend_step_out = test_utils.to_np(jax_extend_step_out)
+      jax_extend_step_out_tensor = causal_dconv_layer.extend_step(
           initial_vars, inputs, axis=axis, step=jnp.array(i))
-      jax_np_extend_step_out_tensor = test_utils.ToNp(
+      jax_np_extend_step_out_tensor = test_utils.to_np(
           jax_extend_step_out_tensor)
       jax_fprop_slice = jax.lax.dynamic_slice_in_dim(
           jax_np_out, start_index=i, slice_size=1, axis=axis)
