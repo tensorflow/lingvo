@@ -953,6 +953,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bd_num_blocks&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of blocks for the block diagonal matmul &#39;</span>
         <span class="s1">&#39;which should divide both input_dim and output_dim&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bd_mix&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If True, add a linear mixing for block diagonal &#39;</span>
+             <span class="s1">&#39;matmul.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour for weights.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the weights.&#39;</span><span class="p">)</span>
 
@@ -1140,7 +1143,7 @@
                                            <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetLastCompressionOp</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bd_mix</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;mix_kernel&#39;</span><span class="p">,</span> <span class="n">mix_kernel_pc</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
@@ -1220,10 +1223,9 @@
           <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">c_matrix_tfvar</span>
       <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
 
-      <span class="n">mix_kernel</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">mix_kernel</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span> <span class="k">else</span> <span class="kc">None</span>
       <span class="n">proj_kwargs</span> <span class="o">=</span> <span class="p">{</span>
-          <span class="s1">&#39;mix_kernel&#39;</span><span class="p">:</span> <span class="n">mix_kernel</span>
-      <span class="p">}</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span> <span class="k">else</span> <span class="p">{}</span>
+          <span class="s1">&#39;mix_kernel&#39;</span><span class="p">:</span> <span class="n">theta</span><span class="o">.</span><span class="n">mix_kernel</span>
+      <span class="p">}</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bd_mix</span> <span class="k">else</span> <span class="p">{}</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span><span class="p">:</span>
         <span class="c1"># Reversed computation. Does not handle folding.</span>
@@ -1315,10 +1317,9 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Updates moments based on a trial run of the kernel (without activation</span>
       <span class="c1"># function).</span>
-      <span class="n">mix_kernel</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">mix_kernel</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span> <span class="k">else</span> <span class="kc">None</span>
       <span class="n">proj_kwargs</span> <span class="o">=</span> <span class="p">{</span>
-          <span class="s1">&#39;mix_kernel&#39;</span><span class="p">:</span> <span class="n">mix_kernel</span>
-      <span class="p">}</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span> <span class="k">else</span> <span class="p">{}</span>
+          <span class="s1">&#39;mix_kernel&#39;</span><span class="p">:</span> <span class="n">theta</span><span class="o">.</span><span class="n">mix_kernel</span>
+      <span class="p">}</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bd_mix</span> <span class="k">else</span> <span class="p">{}</span>
       <span class="n">raw_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyProjectionKernel</span><span class="p">(</span>
           <span class="n">w</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">with_activation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">proj_kwargs</span><span class="p">)</span>
       <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">ComputeAndUpdateMoments</span><span class="p">(</span>
