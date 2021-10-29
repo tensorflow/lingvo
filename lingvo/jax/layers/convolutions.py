@@ -150,13 +150,13 @@ class ConvBNAct(Conv2D):
     super().__init__(params)
     p = self.params
     if p.batch_norm:
-      bn = normalizations.BatchNormLayer.Params().Set(
+      bn = normalizations.BatchNorm.Params().Set(
           name='bn',
           dim=p.filter_shape[3],
           decay=p.bn_decay,
           use_moving_avg_in_training=p.bn_use_moving_avg_in_training)
       self.create_child('bn', bn)
-    act_p = activations.ActivationLayer.Params().Set(activation=p.activation)
+    act_p = activations.Activation.Params().Set(activation=p.activation)
     self.create_child('activation', act_p)
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:

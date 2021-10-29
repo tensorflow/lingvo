@@ -87,11 +87,11 @@ class ResNetBlock(base_layer.BaseLayer):
 
     # Initialize droppath layer
     if p.residual_droppath_prob > 0:
-      droppath_p = stochastics.StochasticResidualLayer.Params().Set(
+      droppath_p = stochastics.StochasticResidual.Params().Set(
           survival_prob=1.0 - p.residual_droppath_prob)
       self.create_child('residual_droppath', droppath_p)
 
-    post_activation = activations.ActivationLayer.Params().Set(
+    post_activation = activations.Activation.Params().Set(
         name='post_activation', activation=p.activation)
     self.create_child('postact', post_activation)
 
@@ -180,7 +180,7 @@ class ResNet(base_layer.BaseLayer):
     p.Define('entryflow_conv_stride', (2, 2),
              'A tuple of two integers as the stride of entryflow convolution.')
     p.Define(
-        'output_spatial_pooling_params', poolings.GlobalPoolingLayer.Params(),
+        'output_spatial_pooling_params', poolings.GlobalPooling.Params(),
         'A layer params template specifying spatial pooling before output '
         'If None, spatial pooling is not added.')
     return p
@@ -231,7 +231,7 @@ class ResNet(base_layer.BaseLayer):
     self.create_child('entryflow_conv', entryflow_conv_params)
 
     # Create the entryflow max pooling layer.
-    maxpool_params = poolings.PoolingLayer.Params().Set(
+    maxpool_params = poolings.Pooling.Params().Set(
         name='entryflow_maxpool',
         window_shape=(3, 3),
         window_stride=(2, 2),

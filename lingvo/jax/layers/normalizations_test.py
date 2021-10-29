@@ -61,7 +61,7 @@ class NormalizationsTest(test_util.JaxTestCase):
     self.assertAllClose(to_np(jax_variance), to_np(tf_variance))
 
   def test_bn01(self):
-    test_layer_p = normalizations.BatchNormLayer.Params().Set(
+    test_layer_p = normalizations.BatchNorm.Params().Set(
         name='bn', decay=0.8, dim=8)
     layer = test_layer_p.Instantiate()
 
@@ -128,7 +128,7 @@ class NormalizationsTest(test_util.JaxTestCase):
         to_np(expected_moving_variance), to_np(new_vars.moving_variance))
 
   def test_bn02(self):
-    test_layer_p = normalizations.BatchNormLayer.Params().Set(
+    test_layer_p = normalizations.BatchNorm.Params().Set(
         name='bn', decay=0.8, dim=1)
     layer = test_layer_p.Instantiate()
 

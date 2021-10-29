@@ -28,5 +28,5 @@ class SyntheticClassifier(base_model_params.BaseModelParams):
     return []
 
   def task(self):
-    act_p = layers.ActivationLayer.Params()
+    act_p = layers.Activation.Params()
     return act_p

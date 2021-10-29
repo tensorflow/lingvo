@@ -42,7 +42,7 @@ class LinearsTest(test_util.JaxTestCase):
   @parameterized.parameters(('RELU'), ('TANH'), ('RELU6'), ('SIGMOID'),
                             ('NONE'))
   def test_feedforward_layer(self, activation):
-    p = linears.FeedForwardLayer.Params().Set(
+    p = linears.FeedForward.Params().Set(
         name='jax_ffn', input_dims=3, output_dims=20, activation=activation)
     ffn = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)

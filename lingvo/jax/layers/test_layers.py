@@ -48,10 +48,10 @@ class ProjectionLayer(base_layer.BaseLayer):
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     p = self.params
-    linear_layer_p = linears.LinearLayer.Params().Set(
+    linear_layer_p = linears.Linear.Params().Set(
         input_dims=p.input_dims, output_dims=p.output_dims)
     self.create_child('linear', linear_layer_p)
-    bias_layer_p = linears.BiasLayer.Params().Set(dims=p.output_dims)
+    bias_layer_p = linears.Bias.Params().Set(dims=p.output_dims)
     self.create_child('bias', bias_layer_p)
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
@@ -70,16 +70,14 @@ class TestLayer(base_layer.BaseLayer):
 
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
-    linear_layer_p01 = linears.LinearLayer.Params().Set(
-        input_dims=2, output_dims=3)
-    linear_layer_p02 = linears.LinearLayer.Params().Set(
-        input_dims=3, output_dims=4)
+    linear_layer_p01 = linears.Linear.Params().Set(input_dims=2, output_dims=3)
+    linear_layer_p02 = linears.Linear.Params().Set(input_dims=3, output_dims=4)
     self.create_children('linear', {
         'linear01': linear_layer_p01,
         'linear02': linear_layer_p02
     })
-    bias_layer_p01 = linears.BiasLayer.Params().Set(dims=3)
-    bias_layer_p02 = linears.BiasLayer.Params().Set(dims=4)
+    bias_layer_p01 = linears.Bias.Params().Set(dims=3)
+    bias_layer_p02 = linears.Bias.Params().Set(dims=4)
     self.create_children('bias', [bias_layer_p01, bias_layer_p02])
     add_one_layer_p = AddOneLayer.Params()
     self.create_child('add_one', add_one_layer_p)
@@ -121,7 +119,7 @@ class CNN(flax_nn.Module):
     return x
 
 
-class MnistCnnLayer(flax_wrapper.FlaxModuleLayer):
+class MnistCnnLayer(flax_wrapper.FlaxModule):
   """A wrapper of the CNN layer above."""
 
   def _create_flax_module(self) -> flax_nn.Module:
@@ -159,7 +157,7 @@ class FlaxTestLayer(base_layer.BaseLayer):
     cnn_p = MnistCnnLayer.Params()
     self.create_child('cnn_p1', cnn_p.Copy())
     self.create_child('cnn_p2', cnn_p.Copy())
-    bn_p = normalizations.BatchNormLayer.Params().Set(dim=10)
+    bn_p = normalizations.BatchNorm.Params().Set(dim=10)
     self.create_child('bn', bn_p)
 
   def fprop(self, theta: NestedMap,
@@ -216,7 +214,7 @@ class TestModel01(model.BaseTask):
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     p = self.params
-    bn_params = normalizations.BatchNormLayer.Params().Set(
+    bn_params = normalizations.BatchNorm.Params().Set(
         name='bn', dim=p.input_dims)
     self.create_child('bn', bn_params)
 
@@ -262,7 +260,7 @@ class TestLinearRegressionModel(model.BaseTask):
     p = super().Params()
     p.Define('input_dims', 0, 'Depth of the input.')
     p.Define('output_dims', 0, 'Depth of the output.')
-    p.Define('linear_p', linears.LinearLayer.Params(),
+    p.Define('linear_p', linears.Linear.Params(),
              'Params for the linear layer.')
     return p
 
@@ -299,7 +297,7 @@ class TestBatchNormalizationModel(model.BaseTask):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    bn_params = normalizations.BatchNormLayer.Params().Set(
+    bn_params = normalizations.BatchNorm.Params().Set(
         name='bn', dim=p.input_dims)
     self.create_child('bn', bn_params)
 
@@ -323,7 +321,7 @@ class TestSpmdModel(model.BaseTask):
   @classmethod
   def Params(cls) -> InstantiableParams:
     p = super().Params()
-    p.Define('xformer_ffw', transformers.TransformerFeedForwardLayer.Params(),
+    p.Define('xformer_ffw', transformers.TransformerFeedForward.Params(),
              'Xformer feedforward layer params.')
     return p
 

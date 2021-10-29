@@ -120,10 +120,9 @@ class BertAdamL4H128(BertDataset):
     model_p.lm.softmax_tpl.soft_cap_logits = 30.0
     if self.USE_REPEATED_LAYER:
       model_p.lm.stacked_transformer_tpl = (
-          layers.StackedTransformerLayersRepeated.Params())
+          layers.StackedTransformerRepeated.Params())
     else:
-      model_p.lm.stacked_transformer_tpl = (
-          layers.StackedTransformerLayers.Params())
+      model_p.lm.stacked_transformer_tpl = (layers.StackedTransformer.Params())
     model_p.lm.stacked_transformer_tpl.enable_while_loop = (
         self.ENABLE_WHILE_LOOP)
     model_p.lm.stacked_transformer_tpl.checkpoint_policy = (
@@ -145,7 +144,7 @@ class BertAdamL4H128(BertDataset):
 
     lp = model_p.train.learner
     lp.loss_name = 'total_loss'
-    lp.optimizer = optimizers.AdamOptimizer.Params().Set(
+    lp.optimizer = optimizers.Adam.Params().Set(
         beta1=0.9,
         beta2=0.99,
         weight_decay=self.WEIGHT_DECAY,
@@ -209,10 +208,9 @@ class BertSpmd(BertDataset):
     model_p.lm.softmax_tpl.soft_cap_logits = 30.0
     if self.USE_REPEATED_LAYER:
       model_p.lm.stacked_transformer_tpl = (
-          layers.StackedTransformerLayersRepeated.Params())
+          layers.StackedTransformerRepeated.Params())
     else:
-      model_p.lm.stacked_transformer_tpl = (
-          layers.StackedTransformerLayers.Params())
+      model_p.lm.stacked_transformer_tpl = (layers.StackedTransformer.Params())
     model_p.lm.stacked_transformer_tpl.enable_while_loop = (
         self.ENABLE_WHILE_LOOP)
     model_p.lm.stacked_transformer_tpl.checkpoint_policy = (
@@ -233,7 +231,7 @@ class BertSpmd(BertDataset):
     model_p.train.save_max_to_keep = self.CHECKPOINT_SAVE_MAX_TO_KEEP
     lp = model_p.train.learner
     lp.loss_name = 'total_loss'
-    lp.optimizer = optimizers.ShardedAdafactorOptimizer.Params().Set(
+    lp.optimizer = optimizers.ShardedAdafactor.Params().Set(
         decay_method='adam',
         beta1=0.9,
         decay_adam=0.99,

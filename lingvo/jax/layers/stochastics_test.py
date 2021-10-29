@@ -27,7 +27,7 @@ from lingvo.jax.layers import stochastics
 class StochaticsTest(test_util.JaxTestCase):
 
   def test_dropout_layer01(self):
-    test_layer_p = stochastics.DropoutLayer.Params().Set(
+    test_layer_p = stochastics.Dropout.Params().Set(
         name='dropout', keep_prob=0.8)
     layer = test_layer_p.Instantiate()
 
@@ -66,7 +66,7 @@ class StochaticsTest(test_util.JaxTestCase):
     self.assertEqual(8029.0, out2_nonzero)
 
   def test_dropout_layer_02(self):
-    test_layer_p = stochastics.DropoutLayer.Params().Set(
+    test_layer_p = stochastics.Dropout.Params().Set(
         name='dropout',
         keep_prob=0.8,
         noise_shape=[10, 6, 8],

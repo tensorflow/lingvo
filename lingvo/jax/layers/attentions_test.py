@@ -66,7 +66,7 @@ class AttentionsTest(test_util.JaxTestCase):
     self.assertDtypesMatch(jax_number, dtype)
 
   def test_per_dim_scale(self):
-    test_layer_p = attentions.PerDimScaleLayer.Params().Set(name='scale', dim=4)
+    test_layer_p = attentions.PerDimScale.Params().Set(name='scale', dim=4)
     layer = test_layer_p.Instantiate()
 
     prng_key = jax.random.PRNGKey(seed=123)
@@ -105,7 +105,7 @@ class AttentionsTest(test_util.JaxTestCase):
     self.assertAllClose(test_utils.to_np(jax_out), test_utils.to_np(tf_output2))
 
   def test_mhd_projection_01(self):
-    test_layer_p = attentions.MultiHeadedProjectionLayer.Params().Set(
+    test_layer_p = attentions.AttentionProjection.Params().Set(
         name='mh',
         input_dim=16,
         num_heads=2,
@@ -155,7 +155,7 @@ class AttentionsTest(test_util.JaxTestCase):
     self.assertAllClose(test_utils.to_np(jax_out), test_utils.to_np(tf_output2))
 
   def test_mhd_projection_02(self):
-    test_layer_p = attentions.MultiHeadedProjectionLayer.Params().Set(
+    test_layer_p = attentions.AttentionProjection.Params().Set(
         name='mh',
         input_dim=16,
         num_heads=2,
@@ -205,7 +205,7 @@ class AttentionsTest(test_util.JaxTestCase):
     self.assertAllClose(test_utils.to_np(jax_out), test_utils.to_np(tf_output2))
 
   def test_mhd_projection_var_stats(self):
-    test_layer_p = attentions.MultiHeadedProjectionLayer.Params().Set(
+    test_layer_p = attentions.AttentionProjection.Params().Set(
         name='mh',
         input_dim=256,
         num_heads=16,
@@ -244,7 +244,7 @@ class AttentionsTest(test_util.JaxTestCase):
     mdl_dim = 16
     hidden_dim = 32
     num_heads = 4
-    test_layer_p = attentions.MultiHeadedAttention.Params().Set(
+    test_layer_p = attentions.Attention.Params().Set(
         name='mh',
         input_dim=mdl_dim,
         hidden_dim=hidden_dim,
@@ -309,7 +309,7 @@ class AttentionsTest(test_util.JaxTestCase):
     mdl_dim = 16
     hidden_dim = 32
     num_heads = 4
-    test_layer_p = attentions.MultiHeadedAttention.Params().Set(
+    test_layer_p = attentions.Attention.Params().Set(
         name='mh',
         input_dim=mdl_dim,
         hidden_dim=hidden_dim,

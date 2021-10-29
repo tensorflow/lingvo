@@ -125,7 +125,7 @@ class _AdamOptState:
     self.v = v
 
 
-class _ShardedAdamOptimizerHelper:
+class _ShardedAdamHelper:
   """A helper class facilitates the creation of sharded_adam_optimizer."""
 
   def opt_state_sharding_spec(self,
@@ -330,7 +330,7 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
   Returns:
     A `ShardedGradientTransformation`.
   """
-  helper = _ShardedAdamOptimizerHelper()
+  helper = _ShardedAdamHelper()
 
   def init_fn(mdl_vars):
     slot_vars = jax.tree_map(helper.init_opt_state, mdl_vars)
@@ -475,7 +475,7 @@ class BaseOptimizer:
     raise NotImplementedError()
 
 
-class SgdOptimizer(BaseOptimizer):
+class Sgd(BaseOptimizer):
   """Canonical SGD optimizer."""
 
   @classmethod
@@ -494,7 +494,7 @@ class SgdOptimizer(BaseOptimizer):
     return optax.sgd(learning_rate=lr, momentum=p.momentum, nesterov=p.nesterov)
 
 
-class ShardedSgdOptimizer(BaseOptimizer):
+class ShardedSgd(BaseOptimizer):
   """Sharded SGD optimizer."""
 
   @classmethod
@@ -514,7 +514,7 @@ class ShardedSgdOptimizer(BaseOptimizer):
         learning_rate_fn=lr, momentum=p.momentum, nesterov=p.nesterov)
 
 
-class AdamOptimizer(BaseOptimizer):
+class Adam(BaseOptimizer):
   """Adam optimizer."""
 
   @classmethod
@@ -575,7 +575,7 @@ class AdamOptimizer(BaseOptimizer):
           eps_root=p.epsilon_root)
 
 
-class AdafactorOptimizer(BaseOptimizer):
+class Adafactor(BaseOptimizer):
   """Adafactor optimizer from Optax."""
 
   @classmethod
@@ -793,7 +793,7 @@ class ShardedAdafactorState(optax.OptState):
   v: Optional[NestedJTensor]
 
 
-class ShardedAdafactorHelper:
+class _ShardedAdafactorHelper:
   """Helper class to implement optax-based sharded Adafactor."""
 
   def __init__(
@@ -1179,7 +1179,7 @@ def sharded_adafactor(
       f'decay_method: {decay_method} not supported. Supported methods are '
       '"pow", or "adam".')
 
-  sharded_adafactor_helper = ShardedAdafactorHelper(
+  sharded_adafactor_helper = _ShardedAdafactorHelper(
       learning_rate_fn=learning_rate_fn,
       weight_decay=weight_decay,
       layerwise_adaptation=layerwise_adaptation,
@@ -1238,7 +1238,7 @@ def sharded_adafactor(
       init_partition_spec=init_partition_spec_fn)
 
 
-class ShardedAdafactorOptimizer(BaseOptimizer):
+class ShardedAdafactor(BaseOptimizer):
   """Sharded AdaFactor optimizer."""
 
   @classmethod

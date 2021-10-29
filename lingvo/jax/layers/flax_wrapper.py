@@ -29,7 +29,7 @@ NestedMap = py_utils.NestedMap
 JTensor = pytypes.JTensor
 
 
-class FlaxModuleLayer(base_layer.BaseLayer):
+class FlaxModule(base_layer.BaseLayer):
   """An adaptor for a Flax Module."""
 
   def __init__(self, params: base_layer.BaseLayerParamsT) -> None:

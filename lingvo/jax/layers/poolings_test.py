@@ -49,7 +49,7 @@ class PoolingsTest(test_util.JaxTestCase):
   )
   def test_pooling_layer(self, window_shape, window_stride, padding,
                          pooling_type, input_shape, int_inputs):
-    p = poolings.PoolingLayer.Params().Set(
+    p = poolings.Pooling.Params().Set(
         name='jax_pooling',
         window_shape=window_shape,
         window_stride=window_stride,
@@ -98,7 +98,7 @@ class PoolingsTest(test_util.JaxTestCase):
   def test_pooling_layer_with_paddings(self, window_shape, window_stride,
                                        padding, pooling_type, input_shape,
                                        int_inputs, paddings_all_ones):
-    p = poolings.PoolingLayer.Params().Set(
+    p = poolings.Pooling.Params().Set(
         name='jax_pooling',
         window_shape=window_shape,
         window_stride=window_stride,

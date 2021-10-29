@@ -54,7 +54,7 @@ class BaseSchedule:
     raise NotImplementedError()
 
 
-class ConstantSchedule(BaseSchedule):
+class Constant(BaseSchedule):
   """A schedule whose value is a constant."""
 
   @classmethod
@@ -68,7 +68,7 @@ class ConstantSchedule(BaseSchedule):
     return jnp.array(self.params.value, dtype=jnp.float32)
 
 
-class PolynomialSchedule(BaseSchedule):
+class Polynomial(BaseSchedule):
   """Polynomial learning rate schedule.
 
   If x < x0, returns y0. If x >= x1, returns y1. Otherwise, interpolate with
@@ -113,7 +113,7 @@ class PolynomialSchedule(BaseSchedule):
     return jnp.where(x < x0, y0, jnp.where(x >= x1, y1, y))
 
 
-class LinearSchedule(PolynomialSchedule):
+class Linear(Polynomial):
   """Linear learning rate schedule.
 
   If x < x0, returns y0. If x >= x1, returns y1. Otherwise, interpolate
@@ -125,7 +125,7 @@ class LinearSchedule(PolynomialSchedule):
     return super().Params().Set(power=1)
 
 
-class ExponentialSchedule(BaseSchedule):
+class Exponential(BaseSchedule):
   """Exponential learning rate schedule."""
 
   @classmethod
@@ -143,14 +143,14 @@ class ExponentialSchedule(BaseSchedule):
     assert x0 < x1, '%s must be < %s' % (x0, x1)
     assert y0 > 0, '%s must be > 0' % y0
     assert y1 > 0, '%s must be > 0' % y1
-    self.linear = LinearSchedule.Params().Set(
+    self.linear = Linear.Params().Set(
         start=(x0, math.log(y0)), limit=(x1, math.log(y1))).Instantiate()
 
   def value(self, count: JTensor) -> JTensor:
     return jnp.exp(self.linear.value(count))
 
 
-class PiecewiseConstantSchedule(BaseSchedule):
+class PiecewiseConstant(BaseSchedule):
   """A schedule with piecewise constants rate decay."""
 
   @classmethod
@@ -195,7 +195,7 @@ class PiecewiseConstantSchedule(BaseSchedule):
     return v
 
 
-class TransformerSchedule(BaseSchedule):
+class Transformer(BaseSchedule):
   """Inverse-decay learning rate until warmup_steps, then decay."""
 
   @classmethod
@@ -229,7 +229,7 @@ class TransformerSchedule(BaseSchedule):
         (current_step + 1) * warmup_steps**-1.5, (current_step + 1)**-0.5)
 
 
-class SqrtDecaySchedule(BaseSchedule):
+class SqrtDecay(BaseSchedule):
   """Square root decay learning rate after warmup_steps."""
 
   @classmethod
@@ -287,15 +287,15 @@ class LinearRampupExponentialDecay(BaseSchedule):
     self._schedules = []
     self._boundaries = []
     if p.warmup > 0:
-      self._schedules.append(LinearSchedule.Params().Set(
+      self._schedules.append(Linear.Params().Set(
           start=(0, 0.0), limit=(p.warmup, p.max)).Instantiate())
       self._boundaries.append(p.warmup)
     if p.decay_start > p.warmup:
-      self._schedules.append(LinearSchedule.Params().Set(
+      self._schedules.append(Linear.Params().Set(
           start=(0, p.max),
           limit=(p.decay_start - p.warmup, p.max)).Instantiate())
       self._boundaries.append(p.decay_start)
-    self._schedules.append(ExponentialSchedule.Params().Set(
+    self._schedules.append(Exponential.Params().Set(
         start=(0, p.max),
         limit=(p.decay_end - p.decay_start, p.max * p.min_ratio)).Instantiate())
 
@@ -305,7 +305,7 @@ class LinearRampupExponentialDecay(BaseSchedule):
                              self._boundaries)(value), jnp.float32)
 
 
-class LinearRampupPiecewiseConstantSchedule(BaseSchedule):
+class LinearRampupPiecewiseConstant(BaseSchedule):
   """A learning rate schedule that does the following.
 
   1. The multiplier ramps up linearly from 0 to the peak(lrs[0]) at
@@ -331,13 +331,13 @@ class LinearRampupPiecewiseConstantSchedule(BaseSchedule):
     super().__init__(params)
     p = self.params
     assert len(p.boundaries) >= 1 and len(p.boundaries) == len(p.values)
-    self.p0 = LinearSchedule.Params().Set(
+    self.p0 = Linear.Params().Set(
         start=(0, 0.0), limit=(p.boundaries[0], p.values[0])).Instantiate()
     # Offset the boundaries, since each schedule passed to
     # optax.join_schedules() will receive a step count indicating the number
     # of steps since the previous boundary transition.
     boundaries_pc = [b - p.boundaries[0] for b in p.boundaries[1:]]
-    self.p1 = PiecewiseConstantSchedule.Params().Set(
+    self.p1 = PiecewiseConstant.Params().Set(
         boundaries=boundaries_pc, values=p.values).Instantiate()
 
   def value(self, value: JTensor) -> JTensor:

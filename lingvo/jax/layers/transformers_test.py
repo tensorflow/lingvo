@@ -43,7 +43,7 @@ class TransformersTest(test_util.JaxTestCase):
   @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
   def test_transformer_layer(self, mask_self_attention, packed_input,
                              cross_attention):
-    p = transformers.TransformerLayer.Params().Set(
+    p = transformers.Transformer.Params().Set(
         name='jax_transformer_layer',
         input_dims=32,
         hidden_dims=128,
@@ -149,7 +149,7 @@ class TransformersTest(test_util.JaxTestCase):
   @parameterized.parameters((True, True), (False, True), (True, False),
                             (False, False))
   def test_transformer_layer_extendstep(self, packed_input, cross_attention):
-    p = transformers.TransformerLayer.Params().Set(
+    p = transformers.Transformer.Params().Set(
         name='jax_transformer_layer',
         input_dims=8,
         hidden_dims=32,
@@ -234,7 +234,7 @@ class TransformersTest(test_util.JaxTestCase):
 
   @parameterized.parameters(True, False)
   def test_transformer_layer_cross_attention_ln(self, packed_input):
-    p = transformers.TransformerLayer.Params().Set(
+    p = transformers.Transformer.Params().Set(
         name='jax_transformer_layer',
         input_dims=8,
         hidden_dims=32,
@@ -307,7 +307,7 @@ class TransformersTest(test_util.JaxTestCase):
                             (False, False, True), (False, False, False))
   def test_stacked_transformer_layer(self, mask_self_attention, packed_input,
                                      cross_attention):
-    p = transformers.StackedTransformerLayers.Params().Set(
+    p = transformers.StackedTransformer.Params().Set(
         name='jax_stacked_transformer_layer',
         model_dims=16,
         hidden_dims=64,
@@ -414,7 +414,7 @@ class TransformersTest(test_util.JaxTestCase):
   def test_repeated_stacked_xformer_layer(self, mask_self_attention,
                                           packed_input, cross_attention):
     model_dims = 16
-    p1 = transformers.StackedTransformerLayers.Params().Set(
+    p1 = transformers.StackedTransformer.Params().Set(
         name='jax_stacked_transformer_layer',
         model_dims=model_dims,
         hidden_dims=64,
@@ -423,7 +423,7 @@ class TransformersTest(test_util.JaxTestCase):
         num_layers=4,
         packed_input=packed_input,
         cross_attention=cross_attention)
-    p2 = transformers.StackedTransformerLayersRepeated.Params().Set(
+    p2 = transformers.StackedTransformerRepeated.Params().Set(
         name='jax_stacked_transformer_layer_repeated',
         model_dims=model_dims,
         hidden_dims=64,
@@ -505,9 +505,9 @@ class TransformersTest(test_util.JaxTestCase):
     if cross_attention and combine_qkv:
       self.skipTest('combine_qkv optimization only works for self-attention')
     if use_repeat_layer:
-      layer_params = transformers.StackedTransformerLayersRepeated.Params()
+      layer_params = transformers.StackedTransformerRepeated.Params()
     else:
-      layer_params = transformers.StackedTransformerLayers.Params()
+      layer_params = transformers.StackedTransformer.Params()
 
     p = layer_params.Set(
         name='jax_transformer_layer',
@@ -599,7 +599,7 @@ class TransformersTest(test_util.JaxTestCase):
   def test_stacked_transformer_layer_while_loop(self, packed_input,
                                                 cross_attention):
     num_layers = 2
-    p1 = transformers.StackedTransformerLayers.Params().Set(
+    p1 = transformers.StackedTransformer.Params().Set(
         name='jax_transformer_layer',
         model_dims=8,
         hidden_dims=32,
@@ -609,7 +609,7 @@ class TransformersTest(test_util.JaxTestCase):
         cross_attention=cross_attention,
         num_layers=num_layers,
         enable_while_loop=False)
-    p2 = transformers.StackedTransformerLayers.Params().Set(
+    p2 = transformers.StackedTransformer.Params().Set(
         name='jax_transformer_layer',
         model_dims=8,
         hidden_dims=32,
@@ -725,7 +725,7 @@ class TransformersTest(test_util.JaxTestCase):
   @parameterized.parameters(('RELU',), ('GATED_SILU',))
   def test_gated_ffwd(self, activation_function):
     """Test JAX and TF transformer on PTB."""
-    p = transformers.TransformerFeedForwardLayer.Params().Set(
+    p = transformers.TransformerFeedForward.Params().Set(
         name='ffwd',
         input_dims=8,
         hidden_dims=32,

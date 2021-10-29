@@ -35,7 +35,7 @@ JTensor = pytypes.JTensor
 NestedJTensor = pytypes.NestedJTensor
 
 
-class RepeatLayer(base_layer.BaseLayer):
+class Repeat(base_layer.BaseLayer):
   """A generic repeat layer."""
 
   @classmethod

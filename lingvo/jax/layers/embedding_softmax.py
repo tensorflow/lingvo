@@ -33,7 +33,7 @@ InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-class SingleShardEmbeddingLayer(base_layer.BaseLayer):
+class SingleShardEmbedding(base_layer.BaseLayer):
   """Embedding layer that is not sharded."""
 
   @classmethod
@@ -100,7 +100,7 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
     p = self.params
     wp = p.weight_split_dims_mapping
     ap = p.activation_split_dims_mapping
-    ff_p = linears.FeedForwardLayer.Params().Set(
+    ff_p = linears.FeedForward.Params().Set(
         input_dims=p.input_dims,
         output_dims=p.num_classes,
         activation='NONE',
@@ -232,7 +232,7 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
     return embs
 
 
-class PositionalEmbeddingLayer(base_layer.BaseLayer):
+class PositionalEmbedding(base_layer.BaseLayer):
   """Generates position embedding for a given 1-d sequence."""
 
   @classmethod
@@ -289,7 +289,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     return signal
 
 
-class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
+class RotaryPositionalEmbedding(PositionalEmbedding):
   """Applies rotary position embedding for a given 1-d sequence.
 
   The Rotary position embedding is described in https://arxiv.org/abs/2104.09864

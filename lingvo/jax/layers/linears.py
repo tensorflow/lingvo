@@ -59,7 +59,7 @@ def project_last_dim(inputs: JTensor, weight: JTensor) -> JTensor:
     return jnp.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
 
 
-class LinearLayer(base_layer.BaseLayer):
+class Linear(base_layer.BaseLayer):
   """Linear layer without bias."""
 
   @classmethod
@@ -100,7 +100,7 @@ class LinearLayer(base_layer.BaseLayer):
     return out
 
 
-class BiasLayer(base_layer.BaseLayer):
+class Bias(base_layer.BaseLayer):
   """Bias layer."""
 
   @classmethod
@@ -136,7 +136,7 @@ class BiasLayer(base_layer.BaseLayer):
     return inputs + theta.b
 
 
-class FeedForwardLayer(base_layer.BaseLayer):
+class FeedForward(base_layer.BaseLayer):
   """Feedforward layer with activation."""
 
   @classmethod
@@ -154,19 +154,19 @@ class FeedForwardLayer(base_layer.BaseLayer):
     p = self.params
     wp = p.weight_split_dims_mapping
     ap = p.activation_split_dims_mapping
-    linear_layer_p = LinearLayer.Params().Set(
+    linear_layer_p = Linear.Params().Set(
         input_dims=p.input_dims,
         output_dims=p.output_dims,
         weight_split_dims_mapping=wp.Copy(),
         activation_split_dims_mapping=ap.Copy())
     self.create_child('linear', linear_layer_p)
-    bias_layer_p = BiasLayer.Params().Set(dims=p.output_dims)
+    bias_layer_p = Bias.Params().Set(dims=p.output_dims)
     if p.device_mesh is not None and wp.wt is not None:
       assert len(wp.wt) == 2
       wp_bias = [wp.wt[1]]
       bias_layer_p.weight_split_dims_mapping.wt = wp_bias
     self.create_child('bias', bias_layer_p)
-    act_p = activations.ActivationLayer.Params().Set(activation=p.activation)
+    act_p = activations.Activation.Params().Set(activation=p.activation)
     self.create_child('activation', act_p)
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:

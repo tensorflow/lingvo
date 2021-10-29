@@ -29,7 +29,7 @@ InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-class DropoutLayer(base_layer.BaseLayer):
+class Dropout(base_layer.BaseLayer):
   """Apply dropout during training."""
 
   @classmethod
@@ -94,12 +94,12 @@ class DropoutLayer(base_layer.BaseLayer):
       return inputs
 
 
-class StochasticResidualLayer(base_layer.BaseLayer):
+class StochasticResidual(base_layer.BaseLayer):
   """Stochastic residual layer that randomly drops the residual branch."""
 
   @classmethod
   def Params(cls) -> InstantiableParams:
-    """Params for `StochasticResidualLayer`."""
+    """Params for `StochasticResidual`."""
     p = super().Params()
     p.Define(
         'residual_weight', 1.0, 'Residual weight with which to add the '

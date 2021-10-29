@@ -53,7 +53,7 @@ def compute_moments(inputs: JTensor,
   return mean, variance
 
 
-class BatchNormLayer(base_layer.BaseLayer):
+class BatchNorm(base_layer.BaseLayer):
   """Batch normalization layer."""
 
   @classmethod

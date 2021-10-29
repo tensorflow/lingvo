@@ -29,7 +29,7 @@ InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-class PoolingLayer(base_layer.BaseLayer):
+class Pooling(base_layer.BaseLayer):
   """Pooling layer, which by default performs max pooling."""
 
   @classmethod
@@ -173,7 +173,7 @@ class PoolingLayer(base_layer.BaseLayer):
     return out, paddings
 
 
-class GlobalPoolingLayer(base_layer.BaseLayer):
+class GlobalPooling(base_layer.BaseLayer):
   """Performs a simple global pooling over the input.
 
   Raises:

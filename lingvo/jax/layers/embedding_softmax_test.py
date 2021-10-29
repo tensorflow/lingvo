@@ -40,7 +40,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
   @parameterized.parameters(('index', True), ('index', False), ('matmul', True),
                             ('matmul', False))
   def test_single_sharded_embedding_layer(self, lookup_style, scale_sqrt_depth):
-    p = embedding_softmax.SingleShardEmbeddingLayer.Params().Set(
+    p = embedding_softmax.SingleShardEmbedding.Params().Set(
         name='jax_emb_lookup',
         vocab_size=10,
         embedding_dims=40,
@@ -302,7 +302,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
 
   @parameterized.parameters((1, 10), (1, 1e5), (10, 20), (10, 1e5))
   def test_position_embedding_layer(self, min_timescale, max_timescale):
-    p = embedding_softmax.PositionalEmbeddingLayer.Params().Set(
+    p = embedding_softmax.PositionalEmbedding.Params().Set(
         name='jax_pos',
         embedding_dims=50,
         min_timescale=min_timescale,
@@ -330,7 +330,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
   @parameterized.parameters((1, 10), (1, 1e5), (10, 20), (10, 1e5))
   def test_position_embedding_layer_with_position(self, min_timescale,
                                                   max_timescale):
-    p = embedding_softmax.PositionalEmbeddingLayer.Params().Set(
+    p = embedding_softmax.PositionalEmbedding.Params().Set(
         name='jax_pos',
         embedding_dims=50,
         min_timescale=min_timescale,
@@ -361,7 +361,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
   def test_rotary_position_embedding_layer_prefix(self, min_timescale,
                                                   max_timescale, window_size):
     embedding_dims = 32
-    p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params().Set(
+    p = embedding_softmax.RotaryPositionalEmbedding.Params().Set(
         name='jax_pos',
         embedding_dims=embedding_dims,
         min_timescale=min_timescale,
@@ -395,7 +395,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
   def test_rotary_position_embedding_layer_no_prefix(self, min_timescale,
                                                      max_timescale):
     embedding_dims = 32
-    p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params().Set(
+    p = embedding_softmax.RotaryPositionalEmbedding.Params().Set(
         name='jax_pos',
         embedding_dims=embedding_dims,
         min_timescale=min_timescale,
@@ -424,7 +424,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     embedding_dims = 2
     min_timescale = 1
     max_timescale = 1e4
-    p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params().Set(
+    p = embedding_softmax.RotaryPositionalEmbedding.Params().Set(
         name='jax_pos',
         embedding_dims=embedding_dims,
         min_timescale=min_timescale,

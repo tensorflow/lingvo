@@ -135,7 +135,7 @@ class RecurrentTest(test_util.JaxTestCase):
       tf.nest.map_structure(same_value, grad01, grad02)
 
   def test_recurrent03(self):
-    dropout_l = stochastics.DropoutLayer.Params().Set(
+    dropout_l = stochastics.Dropout.Params().Set(
         name='dropout01', keep_prob=0.5)
     layer = dropout_l.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)

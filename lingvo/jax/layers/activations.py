@@ -26,7 +26,7 @@ InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-class ActivationLayer(base_layer.BaseLayer):
+class Activation(base_layer.BaseLayer):
   """Activation layer that wraps popular activation functions."""
 
   @classmethod

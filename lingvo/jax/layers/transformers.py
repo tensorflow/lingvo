@@ -180,7 +180,7 @@ def compute_attention_masks_for_extend_step(
   return attention_mask, cross_attention_mask
 
 
-class TransformerFeedForwardLayer(base_layer.BaseLayer):
+class TransformerFeedForward(base_layer.BaseLayer):
   """Transformer feedforward layer with residual connection and dropout."""
 
   @classmethod
@@ -192,17 +192,17 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         'activation', 'RELU', 'Activation function to use.'
         'Options are RELU, RELU6, RELU^2, RELU^3, SIGMOID, TANH, GELU,'
         'GATED_SILU, NONE.')
-    p.Define('fflayer_tpl', linears.FeedForwardLayer.Params(),
+    p.Define('fflayer_tpl', linears.FeedForward.Params(),
              'Feedforward layer params')
     p.Define('ln_tpl', normalizations.LayerNorm.Params(), 'Layer norm params')
     p.Define('residual_dropout_prob', 0., 'Residual dropout')
     p.Define(
-        'relu_dropout_tpl', stochastics.DropoutLayer.Params(),
+        'relu_dropout_tpl', stochastics.Dropout.Params(),
         'Relu dropout params template. keep_prop will be reset to '
         '(1.0 - relu_dropout_prob).')
     p.Define('relu_dropout_prob', 0., 'FFN dropout')
     p.Define(
-        'residual_dropout_tpl', stochastics.DropoutLayer.Params(),
+        'residual_dropout_tpl', stochastics.Dropout.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
     p.Define('add_skip_connection', True, 'Whether to add residual connection')
@@ -339,7 +339,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     return projected_inputs
 
 
-class TransformerShardedMoeLayer(base_layer.BaseLayer):
+class TransformerFeedForwardMoe(base_layer.BaseLayer):
   """A sharded MoE Layer.
 
   This is a drop-in replacement of the transformer feedforward layer. It is a
@@ -364,7 +364,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'activation', 'RELU', 'Activation function to use.'
         'Options are RELU, RELU6, SIGMOID, TANH, NONE.')
     p.Define(
-        'relu_dropout_tpl', stochastics.DropoutLayer.Params(),
+        'relu_dropout_tpl', stochastics.Dropout.Params(),
         'Relu dropout params template. keep_prop will be reset to '
         '(1.0 - relu_dropout_prob).')
     p.Define(
@@ -372,7 +372,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'Probability at which we apply dropout to the hidden layer of '
         'feedforward network.')
     p.Define(
-        'residual_dropout_tpl', stochastics.DropoutLayer.Params(),
+        'residual_dropout_tpl', stochastics.Dropout.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
     p.Define(
@@ -468,13 +468,12 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
     if p.residual_droppath_prob > 0:
       assert p.add_skip_connection
-      droppath_p = stochastics.StochasticResidualLayer.Params().Set(
+      droppath_p = stochastics.StochasticResidual.Params().Set(
           name='residual_droppath',
           survival_prob=1.0 - p.residual_droppath_prob)
       self.create_child('residual_droppath', droppath_p)
 
-    act_p = activations_lib.ActivationLayer.Params().Set(
-        activation=p.activation)
+    act_p = activations_lib.Activation.Params().Set(activation=p.activation)
     self.create_child('activation', act_p)
 
   def create_layer_variables(self) -> None:
@@ -686,7 +685,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     return out
 
 
-class TransformerLayer(base_layer.BaseLayer):
+class Transformer(base_layer.BaseLayer):
   """Transformer layer with multi-headed attention."""
 
   @classmethod
@@ -696,7 +695,7 @@ class TransformerLayer(base_layer.BaseLayer):
     p.Define('hidden_dims', 0, 'Hidden dimension of FFN layer.')
     p.Define('num_heads', None, 'Num of heads in self attention.')
     p.Define(
-        'dropout_tpl', stochastics.DropoutLayer.Params(),
+        'dropout_tpl', stochastics.Dropout.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
     p.Define('atten_dropout_prob', 0.0,
@@ -712,11 +711,10 @@ class TransformerLayer(base_layer.BaseLayer):
              'encoder-decoder attention.')
     p.Define('ln_tpl', normalizations.LayerNorm.Params(), 'Layer norm params.')
     p.Define('tr_atten_tpl',
-             attentions.MultiHeadedAttention.Params().Set(),
-             'Attention Layer params.')
+             attentions.Attention.Params().Set(), 'Attention Layer params.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
-    p.Define('tr_fflayer_tpl', TransformerFeedForwardLayer.Params(),
+    p.Define('tr_fflayer_tpl', TransformerFeedForward.Params(),
              'Transformer Feed-Forward Layer params.')
     return p
 
@@ -926,7 +924,7 @@ class TransformerLayer(base_layer.BaseLayer):
     return updated_states, output
 
 
-class StackedTransformerLayers(base_layer.BaseLayer):
+class StackedTransformer(base_layer.BaseLayer):
   """A stack of Transformer layers."""
 
   @staticmethod
@@ -942,8 +940,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     p.Define('dropout_prob', 0.0,
              'Apply dropout at this prob at various places.')
     p.Define(
-        'transformer_layer_params_tpl', TransformerLayer.Params(),
-        'A template of TransformerLayer.params, can be a list of params '
+        'transformer_layer_params_tpl', Transformer.Params(),
+        'A template of Transformer.params, can be a list of params '
         'of length equal to the num_layers or a factor of num_layers.'
         'For a factor, the params are tiled as [a, a, ..., b, b,...,].')
     p.Define('packed_input', False,
@@ -962,7 +960,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         'How to checkpoint residuals for BProp: save nothing, dot only or '
         'dot with no batch dimensions.')
     # MoE related params.
-    p.Define('moe_layer_tpl', TransformerShardedMoeLayer.Params(),
+    p.Define('moe_layer_tpl', TransformerFeedForwardMoe.Params(),
              'Template configuration for the moe feedforward layer.')
     p.Define('num_experts', 0, 'Total number of experts.')
     p.Define('num_groups', 1, 'Num of groups for dispathcing.')
@@ -976,7 +974,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
   @classmethod
   def Params(cls) -> InstantiableParams:
     p = super().Params()
-    p = StackedTransformerLayers.DefineParams(p)
+    p = StackedTransformer.DefineParams(p)
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -991,7 +989,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
 
     def _moe_layer_params(ff_p):
       """Convert a TransformerFeedforwardLayer to a MoE Layer."""
-      assert issubclass(ff_p.cls, TransformerFeedForwardLayer)
+      assert issubclass(ff_p.cls, TransformerFeedForward)
       p = self.params
       assert p.num_experts > 0
       moe_p = p.moe_layer_tpl.Copy()
@@ -1209,14 +1207,14 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     return updated_states, decoder_output
 
 
-class StackedTransformerLayersRepeated(base_layer.BaseLayer):
-  """A StackedTransformerLayer implemented using the generic RepeatLayer."""
+class StackedTransformerRepeated(base_layer.BaseLayer):
+  """A StackedTransformer implemented using the generic Repeat."""
 
   @classmethod
   def Params(cls) -> InstantiableParams:
     p = super().Params()
-    # Share the same params as the StackedTransformerLayers.
-    p = StackedTransformerLayers.DefineParams(p)
+    # Share the same params as the StackedTransformer.
+    p = StackedTransformer.DefineParams(p)
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -1244,7 +1242,7 @@ class StackedTransformerLayersRepeated(base_layer.BaseLayer):
       sub_p.hidden_dims = p.hidden_dims
       return sub_p
 
-    repeat_l_params = repeats.RepeatLayer.Params().Set(
+    repeat_l_params = repeats.Repeat.Params().Set(
         sub=_sub_params(), x_times=p.num_layers)
 
     self.create_child('repeat', repeat_l_params)
@@ -1385,8 +1383,7 @@ class TransformerLm(base_layer.BaseLayer):
   def Params(cls) -> InstantiableParams:
     """Parameterization of this model."""
     p = super().Params()
-    p.Define('position_emb_tpl',
-             embedding_softmax.PositionalEmbeddingLayer.Params(),
+    p.Define('position_emb_tpl', embedding_softmax.PositionalEmbedding.Params(),
              'The Positional Embedding layer params.')
     p.Define('model_dims', 0, 'Model dimension in Transformer layers.')
     p.Define('hidden_dims', 0,
@@ -1394,8 +1391,8 @@ class TransformerLm(base_layer.BaseLayer):
     p.Define('num_layers', 0, 'The number of transformer layers.')
     p.Define('num_heads', 0,
              'The number of attention heads in transformer layers.')
-    p.Define('stacked_transformer_tpl', StackedTransformerLayers.Params(),
-             'StackedTransformerLayer params tpl.')
+    p.Define('stacked_transformer_tpl', StackedTransformer.Params(),
+             'StackedTransformer params tpl.')
     p.Define(
         'softmax_tpl',
         embedding_softmax.SingleShardSharedEmbeddingSoftmax.Params(),

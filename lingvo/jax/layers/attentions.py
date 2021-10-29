@@ -164,12 +164,12 @@ def shift_1d(inputs: JTensor, offset: int, axis: int):
   return output
 
 
-class PerDimScaleLayer(base_layer.BaseLayer):
+class PerDimScale(base_layer.BaseLayer):
   """A layer to scale individual dims of the input."""
 
   @classmethod
   def Params(cls) -> InstantiableParams:
-    """Params for `PerDimScaleLayer`."""
+    """Params for `PerDimScale`."""
     p = super().Params()
     p.Define('dim', 0, 'Number of individual dims .')
     return p
@@ -203,15 +203,15 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     return inputs * scale
 
 
-class MultiHeadedProjectionLayer(base_layer.BaseLayer):
+class AttentionProjection(base_layer.BaseLayer):
   """Layer that computes multi heads projection.
 
-    This layer is expected to be used within MultiHeadedAttention below.
+    This layer is expected to be used within Attention below.
   """
 
   @classmethod
   def Params(cls) -> InstantiableParams:
-    """Params for MultiHeadedProjectionLayer."""
+    """Params for AttentionProjection."""
     p = super().Params()
     p.Define('input_dim', 0, 'Input dimension.')
     p.Define('num_heads', 0, 'Number of heads.')
@@ -309,7 +309,7 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
 
   It may lead to faster collectives and step-time on TPU.
 
-  This layer is expected to be used within MultiHeadedAttention below.
+  This layer is expected to be used within Attention below.
   """
 
   @classmethod
@@ -400,7 +400,7 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
     return query_proj, key_proj, value_proj
 
 
-class MultiHeadedAttention(base_layer.BaseLayer):
+class Attention(base_layer.BaseLayer):
   """Dot-product attention with multiple attention heads.
 
   This implementation heavily uses einsum to be efficient on TPUs.  We use the
@@ -436,7 +436,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls) -> InstantiableParams:
-    """Params for _MultiHeadedAttention."""
+    """Params for _Attention."""
     p = super().Params()
     p.Define(
         'input_dim', 0,
@@ -445,11 +445,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     p.Define('num_heads', 1, 'Num of attention heads.')
     # dim_per_head == hidden_dim // num_heads
-    p.Define('dropout_tpl', stochastics.DropoutLayer.Params(),
+    p.Define('dropout_tpl', stochastics.Dropout.Params(),
              'Params for dropout layer.')
     p.Define('atten_dropout_prob', 0.0,
              'Probability at which we apply dropout to the attention weights.')
-    p.Define('proj_tpl', MultiHeadedProjectionLayer.Params(), 'Params for '
+    p.Define('proj_tpl', AttentionProjection.Params(), 'Params for '
              'projection layer.')
     p.Define(
         'dconv_qkv', False, 'If True then apply a depth-wise convolution of '
@@ -505,7 +505,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
-    """Constructs a _MultiHeadedAttention object."""
+    """Constructs a _Attention object."""
     super().__init__(params)
     p = self.params
     wp = p.weight_split_dims_mapping
@@ -560,7 +560,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       self.create_child('value', project_input(value_input_dim))
 
     if p.use_rotary_position_emb:
-      pos_emb_p = embedding_softmax.RotaryPositionalEmbeddingLayer.Params()
+      pos_emb_p = embedding_softmax.RotaryPositionalEmbedding.Params()
       pos_emb_p.embedding_dims = dim_per_head
       self.create_child('rotary_position_emb', pos_emb_p)
 
@@ -575,7 +575,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
     if p.internal_enable_per_dim_scale:
       self.create_child('per_dim_scale',
-                        PerDimScaleLayer.Params().Set(dim=dim_per_head))
+                        PerDimScale.Params().Set(dim=dim_per_head))
     self.create_child('atten_dropout',
                       p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
     # Setting is_output_projection=True to set the projection direction
