@@ -119,7 +119,6 @@ def evaluate_pmap_model(model_p: InstantiableParams,
   ]
   summary_writer = summary_utils.get_summary_writer
 
-  # TODO(zhouwk): support eval for one epoch with Lingvo input as well.
   num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
   last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
   while True:
@@ -215,7 +214,6 @@ def evaluate_spmd_model(model_p: InstantiableParams,
     ]
     summary_writer = summary_utils.get_summary_writer
 
-    # TODO(zhouwk): support eval for one epoch with Lingvo input as well.
     num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
     last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
     while True:

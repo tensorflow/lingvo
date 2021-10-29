@@ -138,9 +138,7 @@ class LingvoInputAdaptor(BaseInput):
 
   def __init__(self, p):
     p.batch_size = -1  # unused
-    p.reset_for_eval = False
     super().__init__(p)
-
     self._initialize()
 
   def _initialize(self) -> None:
