@@ -85,6 +85,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">program</span> <span class="k">as</span> <span class="n">program_lib</span>
 
 
 <span class="c1"># Define some type aliases for common types returned by SingleTaskModelParams</span>
@@ -180,7 +181,12 @@
 
 <div class="viewcode-block" id="SingleTaskModelParams.ProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.ProgramSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a schedule for the Executor.&quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">program_lib</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
+        <span class="s1">&#39;Train&#39;</span><span class="p">,</span>
+        <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">,</span>
+        <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="MultiTaskModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskModelParams</span><span class="p">(</span><span class="n">_BaseModelParams</span><span class="p">):</span>
