@@ -607,6 +607,9 @@ class ConformerLayer(base_layer.BaseLayer):
       elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
         # TODO(rpang): make users call ConfigMoEParams directly.
         return cls.ConfigMoEParams(tpl=fflayer_tpl, **config_kwargs)
+      elif fflayer_tpl.use_block_diagonal_matmul_pl:
+        # Override params other than block_diag_matmul options.
+        return cls.ConfigFFLayer(tpl=fflayer_tpl, **config_kwargs)
       else:
         assert fflayer_hidden_dim is None, fflayer_hidden_dim
         assert fflayer_activation is None, fflayer_activation
