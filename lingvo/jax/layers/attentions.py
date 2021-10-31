@@ -206,7 +206,7 @@ class PerDimScale(base_layer.BaseLayer):
 class AttentionProjection(base_layer.BaseLayer):
   """Layer that computes multi heads projection.
 
-    This layer is expected to be used within Attention below.
+    This layer is expected to be used within DotProductAttention below.
   """
 
   @classmethod
@@ -309,7 +309,7 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
 
   It may lead to faster collectives and step-time on TPU.
 
-  This layer is expected to be used within Attention below.
+  This layer is expected to be used within DotProductAttention below.
   """
 
   @classmethod
@@ -400,7 +400,7 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
     return query_proj, key_proj, value_proj
 
 
-class Attention(base_layer.BaseLayer):
+class DotProductAttention(base_layer.BaseLayer):
   """Dot-product attention with multiple attention heads.
 
   This implementation heavily uses einsum to be efficient on TPUs.  We use the
@@ -436,7 +436,7 @@ class Attention(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls) -> InstantiableParams:
-    """Params for _Attention."""
+    """Params for DotProductAttention."""
     p = super().Params()
     p.Define(
         'input_dim', 0,
@@ -505,7 +505,7 @@ class Attention(base_layer.BaseLayer):
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
-    """Constructs a _Attention object."""
+    """Constructs a DotProductAttention object."""
     super().__init__(params)
     p = self.params
     wp = p.weight_split_dims_mapping

@@ -17,11 +17,11 @@
 
 from lingvo.jax.layers.activations import Activation
 
-from lingvo.jax.layers.attentions import Attention
 from lingvo.jax.layers.attentions import AttentionProjection
 from lingvo.jax.layers.attentions import causal_mask
 from lingvo.jax.layers.attentions import causal_segment_mask
 from lingvo.jax.layers.attentions import convert_paddings_to_mask
+from lingvo.jax.layers.attentions import DotProductAttention
 from lingvo.jax.layers.attentions import PerDimScale
 from lingvo.jax.layers.attentions import segment_mask
 

@@ -244,7 +244,7 @@ class AttentionsTest(test_util.JaxTestCase):
     mdl_dim = 16
     hidden_dim = 32
     num_heads = 4
-    test_layer_p = attentions.Attention.Params().Set(
+    test_layer_p = attentions.DotProductAttention.Params().Set(
         name='mh',
         input_dim=mdl_dim,
         hidden_dim=hidden_dim,
@@ -309,7 +309,7 @@ class AttentionsTest(test_util.JaxTestCase):
     mdl_dim = 16
     hidden_dim = 32
     num_heads = 4
-    test_layer_p = attentions.Attention.Params().Set(
+    test_layer_p = attentions.DotProductAttention.Params().Set(
         name='mh',
         input_dim=mdl_dim,
         hidden_dim=hidden_dim,

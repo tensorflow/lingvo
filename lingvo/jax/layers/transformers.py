@@ -711,7 +711,8 @@ class Transformer(base_layer.BaseLayer):
              'encoder-decoder attention.')
     p.Define('ln_tpl', normalizations.LayerNorm.Params(), 'Layer norm params.')
     p.Define('tr_atten_tpl',
-             attentions.Attention.Params().Set(), 'Attention Layer params.')
+             attentions.DotProductAttention.Params().Set(),
+             'DotProductAttention Layer params.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
     p.Define('tr_fflayer_tpl', TransformerFeedForward.Params(),
