@@ -495,7 +495,7 @@ class TransformersTest(test_util.JaxTestCase):
           cross_inputs=cross_inputs,
           cross_paddings=cross_paddings,
           cross_segment_mask=cross_segment_mask)
-      self.assertAllClose(outputs, outputs_repeated)
+      self.assertAllClose(outputs, outputs_repeated, atol=1e-5)
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=5)))
   def test_stacked_transformer_layer_extendstep(self, packed_input,
