@@ -1687,8 +1687,8 @@ class StackingOverTime(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
     assert p.name
-    assert p.left_context >= 0
-    assert p.right_context >= 0
+    assert p.left_context >= 0, p.left_context
+    assert p.right_context >= 0, p.right_context
     assert p.stride >= 1
     assert p.padding_reduce_option in ('reduce_min', 'reduce_max')
     self.SetVariableFree()
