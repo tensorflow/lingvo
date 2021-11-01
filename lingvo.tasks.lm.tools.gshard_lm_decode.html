@@ -81,8 +81,167 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-tasks-lm-tools-gshard-lm-decode-module">
-<h1>lingvo.tasks.lm.tools.gshard_lm_decode module<a class="headerlink" href="#lingvo-tasks-lm-tools-gshard-lm-decode-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.tasks.lm.tools.gshard_lm_decode">
+<span id="lingvo-tasks-lm-tools-gshard-lm-decode-module"></span><h1>lingvo.tasks.lm.tools.gshard_lm_decode module<a class="headerlink" href="#module-lingvo.tasks.lm.tools.gshard_lm_decode" title="Permalink to this headline"></a></h1>
+<p>Tool to decode GShard LM models.</p>
+<p>Sample usage:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ bazel run -c opt lingvo/tasks/lm/tools:gshard_lm_decode -- <span class="se">\</span>
+    --model<span class="o">=</span>lm.synthetic_packed_input.DenseLm8B2x2Decode <span class="se">\</span>
+    --checkpoint<span class="o">=</span>&lt;checkpoint path&gt; <span class="se">\</span>
+    --input<span class="o">=</span>&lt;input file&gt; --output<span class="o">=</span>&lt;output file&gt; <span class="se">\</span>
+    --tpu<span class="o">=</span>&lt;tpu node name&gt; --print_outputs<span class="o">=</span>True --is_cloud_tpu_node<span class="o">=</span>True
+</pre></div>
+</div>
+<p>This binary does not include a tokenizer, so each line in the input file should
+be space-separated integer strings, e.g.,
+8 3 5 4 2
+5 8 2 493 23 432
+6 22 3 42 2</p>
+<p>To include a tokenizer, override the following functions of GShardLMDecode:
+init_vocab(), encode_string_to_ids(), and decode_ids_to_string().</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.override_flags">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">override_flags</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#override_flags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.override_flags" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">GShardLMDecode</span></span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode" title="lingvo.core.gshard_decode.GShardDecode"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_decode.GShardDecode</span></code></a></p>
+<p>GShard LM decoder class.</p>
+<p>This implementation does not include a tokenizer, and directly reads/writes
+integer token IDs. To include a tokenizer, override the following functions:
+init_vocab(), encode_string_to_ids(), and decode_ids_to_string().</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.init_vocab">
+<span class="sig-name descname"><span class="pre">init_vocab</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecode.init_vocab"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.init_vocab" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.encode_string_to_ids">
+<span class="sig-name descname"><span class="pre">encode_string_to_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecode.encode_string_to_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.encode_string_to_ids" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a list of IDs by parsing a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>string</strong> – str.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>int32 vector.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.decode_ids_to_string">
+<span class="sig-name descname"><span class="pre">decode_ids_to_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecode.decode_ids_to_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.decode_ids_to_string" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a string from token IDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ids</strong> – int32 vector.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of strings</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.ids_to_strings_packed">
+<span class="sig-name descname"><span class="pre">ids_to_strings_packed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_empty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecode.ids_to_strings_packed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.ids_to_strings_packed" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a list of strings from packed representation.</p>
+<p>Strings in the returned as a flat list,
+ordered first by batch then by segment id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> – int32 tensor of shape [batch_size, max_len]</p></li>
+<li><p><strong>segment_id</strong> – int32 tensor of shape [batch_size, max_len]</p></li>
+<li><p><strong>skip_empty</strong> – skip empty segments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of strings</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.preload_lm_prompts">
+<span class="sig-name descname"><span class="pre">preload_lm_prompts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tsv_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tsv_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">truncate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_extra_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecode.preload_lm_prompts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode.preload_lm_prompts" title="Permalink to this definition"></a></dt>
+<dd><p>Preloads lm prompts from line-delimited files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tsv_files</strong> – input files, list of strings</p></li>
+<li><p><strong>tsv_data</strong> – TSV data returned by read_files_1_col(); overrides tsv_files</p></li>
+<li><p><strong>batch_size</strong> – batch size</p></li>
+<li><p><strong>max_len</strong> – max length</p></li>
+<li><p><strong>truncate</strong> – truncate inputs to max_len</p></li>
+<li><p><strong>append_extra_eos</strong> – whether to tack on EOS at the end of the input (for
+delimited_lm model)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>file number, -1 is padding; int32 tensor [num_batches, batch_size]
+lineno: line number, -1 is padding; int32 tensor [num_batches, batch_size]
+tgt_id: int32 tensor of shape [num_batches, batch_size, max_len]
+tgt_segment_id: int32 tensor of shape [num_batches, batch_size, max_len]
+tgt_segment_pos: int32 tensor of shape [num_batches, batch_size, max_len]
+tgt_labels: int32 tensor of shape [num_batches, batch_size, max_len]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>fileno</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – if strings exceed max_len</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.read_file_1_col">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">read_file_1_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#read_file_1_col"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.read_file_1_col" title="Permalink to this definition"></a></dt>
+<dd><p>Reads one TSV file. Returns list of [(src, tgt)].</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.read_files_1_col">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">read_files_1_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#read_files_1_col"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.read_files_1_col" title="Permalink to this definition"></a></dt>
+<dd><p>Reads multiple TSV files. Returns nested list of [[(src, tgt)]].</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">GShardLMDecodeBatch</span></span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecodeBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode" title="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode</span></code></a></p>
+<p>Subclass for LM batch decoding.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.preload_data">
+<span class="sig-name descname"><span class="pre">preload_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecodeBatch.preload_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.preload_data" title="Permalink to this definition"></a></dt>
+<dd><p>Preload data into memory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.write_ith_sample_to_output">
+<span class="sig-name descname"><span class="pre">write_ith_sample_to_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_decoded</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topk_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecodeBatch.write_ith_sample_to_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.write_ith_sample_to_output" title="Permalink to this definition"></a></dt>
+<dd><p>Write samples to output file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.batch_decode">
+<span class="sig-name descname"><span class="pre">batch_decode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecodeBatch.batch_decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.batch_decode" title="Permalink to this definition"></a></dt>
+<dd><p>Starts batch decoding.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.main">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unused_argv</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.main" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
 
 

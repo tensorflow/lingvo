@@ -80,8 +80,588 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-step-module">
-<h1>lingvo.core.step module<a class="headerlink" href="#lingvo-core-step-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.step">
+<span id="lingvo-core-step-module"></span><h1>lingvo.core.step module<a class="headerlink" href="#module-lingvo.core.step" title="Permalink to this headline"></a></h1>
+<p>An abstract layer for processing sequences step-by-step.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ProcessSeq</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+  <span class="n">prepared_inputs</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">PrepareExternalInputs</span><span class="p">(</span>
+      <span class="n">step</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">)</span>
+  <span class="n">batch_size</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">state</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">ZeroState</span><span class="p">(</span>
+      <span class="n">step</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+    <span class="n">step_inputs</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">t</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+    <span class="n">step_outputs</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">step</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">step_inputs</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">processing</span> <span class="n">step_outputs</span><span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.Step">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">Step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.Step" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer that processes input sequences step-by-step.</p>
+<p>This can be seen as an RNNCell extended with optional external inputs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.Step.PrepareExternalInputs">
+<span class="sig-name descname"><span class="pre">PrepareExternalInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.PrepareExternalInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.Step.PrepareExternalInputs" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the prepared external inputs, e.g., packed_src for attention.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.Step.ZeroState">
+<span class="sig-name descname"><span class="pre">ZeroState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.ZeroState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.Step.ZeroState" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the initial state given external inputs and batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – External inputs returned by PrepareExternalInputs().</p></li>
+<li><p><strong>batch_size</strong> – An int scalar representing the batch size of per-step inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the initial state, which can be passed to
+FProp() for processing the first time step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.Step.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.Step.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Forward function.</p>
+<p>step_inputs, state0, step_outputs, and state1 should each be a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>
+of tensor values. Each tensor must be of shape [batch_size …]. The
+structure of NestedMaps are determined by the implementation. state0 and
+state1 must have exactly the same structure and tensor shapes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – External inputs returned by PrepareExternalInputs().</p></li>
+<li><p><strong>step_inputs</strong> – The inputs for this time step.</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – The previous recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (step_outputs, state1).</p>
+<ul class="simple">
+<li><p>outputs: The outputs of this step.</p></li>
+<li><p>state1: The next recurrent state.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.StatelessLayerStep">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">StatelessLayerStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StatelessLayerStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StatelessLayerStep" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<p>Allows BaseLayer subclasses to be used as Steps.</p>
+<p>Layers used with this class should be stateless: they should not return
+anything that must be passed back in the next invocation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.StatelessLayerStep.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StatelessLayerStep.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StatelessLayerStep.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.StatelessLayerStep.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StatelessLayerStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StatelessLayerStep.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Perform inference on a stateless layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – unused.</p></li>
+<li><p><strong>step_inputs</strong> – A NestedMap containing ‘inputs’, which are passed directly to
+the layer.</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – unused.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(output, state1), where output is the output of the layer, and
+state1 is an empty NestedMap.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.StackStep">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">StackStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StackStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StackStep" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<p>A stack of steps.</p>
+<p>Each sub-step is assumed to accept step_inputs of type NestedMap(inputs=[])
+and return a primary output of type NestedMap(output=tensor). The
+output of layer n-1 is sent to input of layer n.</p>
+<p>Per-step context vectors and per-sequence context vectors can also be
+supplied; see FProp for more details.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.StackStep.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StackStep.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StackStep.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.StackStep.PrepareExternalInputs">
+<span class="sig-name descname"><span class="pre">PrepareExternalInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StackStep.PrepareExternalInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StackStep.PrepareExternalInputs" title="Permalink to this definition"></a></dt>
+<dd><p>Delegates external inputs preparation to sub-layers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>external_inputs</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object. The structure of the internal
+fields is defined by the sub-steps.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing a pre-processed version of the external_inputs,
+one per sub-step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.StackStep.ZeroState">
+<span class="sig-name descname"><span class="pre">ZeroState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StackStep.ZeroState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StackStep.ZeroState" title="Permalink to this definition"></a></dt>
+<dd><p>Computes a zero state for each sub-step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – An output from PrepareExternalInputs.</p></li>
+<li><p><strong>batch_size</strong> – The number of items in the batch that FProp will process.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing a state0 object for each sub-step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.StackStep.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StackStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StackStep.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Performs inference on the stack of sub-steps.</p>
+<p>There are three possible ways to feed input to the stack:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>step_inputs.inputs: These tensors are fed only to the lowest layer.</p></li>
+<li><p>step_inputs.context: [Optional] This tensor is fed to every layer.</p></li>
+<li><dl class="simple">
+<dt>prepared_inputs: [Optional] This tensor is fed to every layer and</dt><dd><p>is assumed to stay constant over all steps.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – An output from PrepareExternalInputs.</p></li>
+<li><p><strong>step_inputs</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing a list called ‘inputs’, an
+optionally a tensor called ‘context’.</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – The previous recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>output: A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the output of the top-most step.</p></li>
+<li><p>state1: The recurrent state to feed to next invocation of this graph.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple (output, state1)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.ParallelStep">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">ParallelStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#ParallelStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.ParallelStep" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<p>Runs many steps on the same input and concatenates their outputs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.ParallelStep.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#ParallelStep.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.ParallelStep.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.ParallelStep.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#ParallelStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.ParallelStep.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Performs inference on N steps at once and concatenates the result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – An output from PrepareExternalInputs.</p></li>
+<li><p><strong>step_inputs</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing a list called ‘inputs’.</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – The previous recurrent state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>output: A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the output of the top-most step.</p></li>
+<li><p>state1: The recurrent state to feed to next invocation of this graph.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple (output, state1)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">SubStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_signature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.step.SubStep" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#tuple" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep._asdict">
+<span class="sig-name descname"><span class="pre">_asdict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.step.SubStep._asdict" title="Permalink to this definition"></a></dt>
+<dd><p>Return a new dict which maps field names to their values.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep._field_defaults">
+<span class="sig-name descname"><span class="pre">_field_defaults</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#lingvo.core.step.SubStep._field_defaults" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep._fields">
+<span class="sig-name descname"><span class="pre">_fields</span></span><em class="property"> <span class="pre">=</span> <span class="pre">('signature',</span> <span class="pre">'external_signature',</span> <span class="pre">'params')</span></em><a class="headerlink" href="#lingvo.core.step.SubStep._fields" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep._make">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">_make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.step.SubStep._make" title="Permalink to this definition"></a></dt>
+<dd><p>Make a new SubStep object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep._replace">
+<span class="sig-name descname"><span class="pre">_replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.step.SubStep._replace" title="Permalink to this definition"></a></dt>
+<dd><p>Return a new SubStep object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep.external_signature">
+<span class="sig-name descname"><span class="pre">external_signature</span></span><a class="headerlink" href="#lingvo.core.step.SubStep.external_signature" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep.params">
+<span class="sig-name descname"><span class="pre">params</span></span><a class="headerlink" href="#lingvo.core.step.SubStep.params" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.step.SubStep.signature">
+<span class="sig-name descname"><span class="pre">signature</span></span><a class="headerlink" href="#lingvo.core.step.SubStep.signature" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.GraphStep">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">GraphStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#GraphStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.GraphStep" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<p>A step that connects sub-steps in a simple data flow graph.</p>
+<p>This is an adaptation of builder_layers.GraphLayer to support steps.</p>
+<p>Params.sub specifies a list of Specs that define each sub-step.</p>
+<p>A spec contains:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>step_inputs: The signature describing how to assemble the input and output
+for this step. The input part describes the ‘step_inputs’ parameter,
+while the output part describes the name of the output. The state0
+input and state1 output are handled automatically and should not be
+specified.</p></li>
+<li><p>external_inputs: if this Step requires external_inputs, this
+is the signature describing how to find those inputs.
+This value can also be set to None.</p></li>
+<li><p>params: the params used to construct the sub-step.</p></li>
+</ul>
+</div></blockquote>
+<p>The format of signature strings is defined in detail in the GraphSignature
+class documentation.</p>
+<p>All inputs to a layer must have been produced by some previous layer. No
+cycles are allowed. All outputs must be uniquely named; no overwriting
+of previous names is allowed.</p>
+<dl class="simple">
+<dt>Example</dt><dd><dl class="simple">
+<dt>(‘(act=[layer_0.output,step_inputs.context])-&gt;layer_1’,</dt><dd><p>‘external_inputs.extra’,
+step_params)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>This constructs the step defined by step_params. Its FProp method will be
+called with {act=[layer_0.output,step_inputs.context]} as the step_inputs
+parameter. Its PrepareExternalInputs method will be called with
+‘external_inputs.extra’ as the external_inputs parameter. The output of that
+method will be passed to ZeroState and FProp.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.GraphStep.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#GraphStep.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.GraphStep.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.step.GraphStep._seq">
+<span class="sig-name descname"><span class="pre">_seq</span></span><a class="headerlink" href="#lingvo.core.step.GraphStep._seq" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step._Seq</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.GraphStep.PrepareExternalInputs">
+<span class="sig-name descname"><span class="pre">PrepareExternalInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#GraphStep.PrepareExternalInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.GraphStep.PrepareExternalInputs" title="Permalink to this definition"></a></dt>
+<dd><p>Prepares external inputs for each sub-step.</p>
+<p>The external_inputs parameter of this method is processed by the
+external_inputs of each sub-step, then processed by the sub-step’s
+PrepareExternalInputs method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – variables used by sub-steps.</p></li>
+<li><p><strong>external_inputs</strong> – A NestedMap of [n_batch, …] tensors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A NestedMap of prepared inputs, where the keys are the names of</dt><dd><p>each sub-step.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.GraphStep.ZeroState">
+<span class="sig-name descname"><span class="pre">ZeroState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#GraphStep.ZeroState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.GraphStep.ZeroState" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a zero state NestedMap for this step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – variables used by sub-steps.</p></li>
+<li><p><strong>prepared_inputs</strong> – Output from a call to PrepareExternalInputs.</p></li>
+<li><p><strong>batch_size</strong> – The number of items in the batch that FProp will process.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap of ZeroState results for each sub-step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.GraphStep.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#GraphStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.GraphStep.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>A single inference step for this step graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – variables used by sub-steps.</p></li>
+<li><p><strong>prepared_inputs</strong> – A NestedMap containing external_inputs that were
+pre-processed by the PrepareExternalInputs method of each sub-step. The
+keys are the names of the sub-steps.</p></li>
+<li><p><strong>step_inputs</strong> – A NestedMap of [batch, …] tensors. The structure of this
+depends on the graph implementation.</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – A NestedMap of state variables produced by either ZeroState or a
+previous invocation of this FProp step. The keys are the names of the
+sub-steps.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(output, state1), both of which are NestedMaps.
+output is implementation-dependent and is defined by the output_signature
+parameter.
+state1 is a NestedMap where the keys are names of sub-steps and the values
+are state outputs from their FProp methods.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.IteratorStep">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">IteratorStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#IteratorStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.IteratorStep" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<p>An iterator over the time dimension of some tensors.</p>
+<p>It’s common to have a tensor of shape [batch, time, …] or
+[time, batch, …]. This object will step through the time dimension,
+producing tensors of shape [batch, …] in succession.</p>
+<p>The input tensors are passed to PrepareExternalInputs. The step_inputs
+argument of FProp is unused.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.IteratorStep.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#IteratorStep.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.IteratorStep.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.IteratorStep.PrepareExternalInputs">
+<span class="sig-name descname"><span class="pre">PrepareExternalInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#IteratorStep.PrepareExternalInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.IteratorStep.PrepareExternalInputs" title="Permalink to this definition"></a></dt>
+<dd><p>Prepares the input for iteration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – unused.</p></li>
+<li><p><strong>external_inputs</strong> – A NestedMap containing tensors. The time axis of each
+tensor should be params.axis.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A prepared NestedMap (current the same as the input).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.IteratorStep.ZeroState">
+<span class="sig-name descname"><span class="pre">ZeroState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#IteratorStep.ZeroState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.IteratorStep.ZeroState" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the initial iterator state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – unused.</p></li>
+<li><p><strong>prepared_inputs</strong> – Output from a call to PrepareExternalInputs.</p></li>
+<li><p><strong>batch_size</strong> – The number of items in the batch that FProp will process.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An initial state NestedMap.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.IteratorStep.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#IteratorStep.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.IteratorStep.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a A single inference step for this step graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – unused.</p></li>
+<li><p><strong>prepared_inputs</strong> – Output from a call to PrepareExternalInputs.</p></li>
+<li><p><strong>step_inputs</strong> – unused.</p></li>
+<li><p><strong>padding</strong> – unused.</p></li>
+<li><p><strong>state0</strong> – A NestedMap of state variables produced by either ZeroState or a
+previous invocation of this FProp step.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(output, state1), both of which are NestedMaps.
+output is implementation-dependent and is defined by the output_signature
+parameter.
+state1 is a NestedMap where the keys are names of sub-steps and the values
+are state outputs from their FProp methods.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">RecurrentStepWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer that wraps a step in a recurrent.Recurrent call.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper._CreateChildrenVariables">
+<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compatibility. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper.PrepareExternalInputs">
+<span class="sig-name descname"><span class="pre">PrepareExternalInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.PrepareExternalInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.PrepareExternalInputs" title="Permalink to this definition"></a></dt>
+<dd><p>See Step.PrepareExternalInputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper.ZeroState">
+<span class="sig-name descname"><span class="pre">ZeroState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.ZeroState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.ZeroState" title="Permalink to this definition"></a></dt>
+<dd><p>See Step.ZeroState.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prepared_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Runs a Step layer over multiple timesteps using Recurrent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>prepared_inputs</strong> – External inputs returned by Step.PrepareExternalInputs().</p></li>
+<li><p><strong>inputs</strong> – A NestedMap of inputs of shape [time, batch_size, dim].</p></li>
+<li><p><strong>padding</strong> – A 0/1 float tensor of shape [time, batch_size]; 1.0 means that
+this batch element is empty in this step.</p></li>
+<li><p><strong>state0</strong> – A NestedMap containing the initial recurrent state.</p></li>
+<li><p><strong>**kwargs</strong> – Additional kwargs to pass to Recurrent.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (outputs, state1).</p>
+<ul class="simple">
+<li><p>outputs: A NestedMap containing the accumulated outputs of all steps,
+containing Tensors shaped [time, batch_size, dim].</p></li>
+<li><p>state1: A NestedMap containing the accumulated recurrent states,
+containing Tensors shaped [time, batch_size, dim].</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
