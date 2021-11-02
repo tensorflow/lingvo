@@ -17,6 +17,7 @@
 
 import lingvo.compat as tf
 from lingvo.core import base_model
+from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.tasks.lm import layers
@@ -30,6 +31,9 @@ class LanguageModel(base_model.BaseTask):
     p = super().Params()
     p.Define('lm', layers.RnnLm.Params(), 'LM layer.')
     p.Define('packed_input', False, 'Whether the inputs are packed.')
+    p.Define(
+        'inference', hyperparams.Params(),
+        'Nest all params which pertain only to the inference graph in here.')
 
     tp = p.train
     tp.Define(

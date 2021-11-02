@@ -82,6 +82,7 @@ py_library(
         ":layers",
         "//lingvo:compat",
         "//lingvo/core:base_model",
+        "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
     ],
