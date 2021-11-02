@@ -1298,6 +1298,13 @@ REGISTER_OP("Mass")
     .Output("tgt_ids: int32")
     .Output("tgt_labels: int32")
     .Output("tgt_weights: float32")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      c->set_output(0, c->input(0));
+      c->set_output(1, c->input(0));
+      c->set_output(2, c->input(0));
+      c->set_output(3, c->input(0));
+      return ::tensorflow::Status::OK();
+    })
     .Doc(R"doc(
 Applies masking to implement MASS.
 
