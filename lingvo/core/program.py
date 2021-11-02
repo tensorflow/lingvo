@@ -105,6 +105,9 @@ class BaseProgram:
       program_dir_name = p.name + '_' + p.dataset_name.lower()
     self._program_dir = os.path.join(self._logdir, program_dir_name)
     tf.io.gfile.makedirs(self._program_dir)
+    with tf.io.gfile.GFile(os.path.join(self._program_dir, 'params.txt'),
+                           'w') as f:
+      f.write(p.ToText())
     # Initialized on use; access via self._summary_writer property only.
     self._summary_writer_obj = None
 
