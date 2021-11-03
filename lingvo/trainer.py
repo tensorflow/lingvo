@@ -125,14 +125,6 @@ tf.flags.DEFINE_string(
     'input job. E.g., a single ip:port, or a list of '
     'comma-separated grpc://ip:port, etc.')
 
-tf.flags.DEFINE_string('evaler_job', '/job:evaler', 'Job name')
-tf.flags.DEFINE_integer('evaler_replicas', 0, 'Number of replicas.')
-tf.flags.DEFINE_integer('evaler_gpus', 0, 'Number of gpus to use per replica.')
-
-tf.flags.DEFINE_string('decoder_job', '/job:decoder', 'Job name')
-tf.flags.DEFINE_integer('decoder_replicas', 0, 'Number of replicas.')
-tf.flags.DEFINE_integer('decoder_gpus', 0, 'Number of gpus to use per replica.')
-
 tf.flags.DEFINE_string('tf_data_service_address', '',
                        'The address of the tf.data service.')
 
@@ -190,16 +182,6 @@ def _ValidateVizierReportingJob(value):
                   f'vizier_reporting_job={value}')
   return True
 
-
-tf.flags.DEFINE_integer(
-    'enqueue_max_steps', None, 'Max enqueue steps. -1 meaning no limit.'
-    ' This flag should be set for unit-test only.')
-
-tf.flags.DEFINE_integer('saver_max_to_keep', None,
-                        'Maximum number of recent checkpoints to keep.')
-
-tf.flags.DEFINE_float('saver_keep_checkpoint_every_n_hours', None,
-                      'How often to keep a checkpoint.')
 
 tf.flags.DEFINE_bool(
     'checkpoint_in_trainer_tpu', False,

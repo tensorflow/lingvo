@@ -121,6 +121,7 @@ class _Cluster:
     # standalone process. It places computations on the worker and
     # ps devices, while itself does not host any.
     p.Define('controller', cls._JobSpec(1), 'The controller job.')
+    p.Define('train_summaries', cls._JobSpec(1), 'The train_summaries job.')
     p.Define('worker', cls._JobSpec(1), 'The worker job.')
     p.Define('ps', cls._JobSpec(1), 'The ps job.')
     p.Define('input', cls._JobSpec(0), 'The input job.')
@@ -298,6 +299,10 @@ class _Cluster:
       assert 0 <= p.task and p.task < p.decoder.replicas
     elif p.mode == 'sync' and p.job == 'executor_tpu':
       assert p.worker.replicas >= 1
+    elif p.job == 'train_summaries':
+      # There is only 1 train_summaries.
+      assert p.train_summaries.replicas == 1
+      assert p.task == 0
     else:
       assert False, (p.mode, p.job)
 
@@ -329,6 +334,8 @@ class _Cluster:
       return p.controller
     elif p.job in ('trainer', 'worker', 'trainer_client'):
       return p.worker
+    elif p.job == 'train_summaries':
+      return p.train_summaries
     elif p.job == 'evaler':
       return p.evaler
     elif p.job == 'decoder':
@@ -423,7 +430,7 @@ class _Cluster:
       # executor_tpu can use every device.
       return self.ListDevices(self.job_spec)
 
-    if self.job in ('controller', 'evaler', 'decoder'):
+    if self.job in ('controller', 'train_summaries', 'evaler', 'decoder'):
       # Our current policy is that each controller/evaler/decoder task
       # only uses 1 replica.
       return self.ListDevices(self.job_spec)[self.task:(self.task + 1), :]

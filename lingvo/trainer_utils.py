@@ -32,3 +32,20 @@ tf.flags.DEFINE_list('additional_worker_jobs', [],
                      'Additional worker job names.')
 tf.flags.DEFINE_integer('worker_tpus', 0, 'Number of tpus to use per replica.')
 tf.flags.DEFINE_integer('worker_num_tpu_hosts', 0, 'Number of tpu hosts.')
+
+tf.flags.DEFINE_string('evaler_job', '/job:evaler', 'Job name')
+tf.flags.DEFINE_integer('evaler_replicas', 0, 'Number of replicas.')
+tf.flags.DEFINE_integer('evaler_gpus', 0, 'Number of gpus to use per replica.')
+
+tf.flags.DEFINE_string('decoder_job', '/job:decoder', 'Job name')
+tf.flags.DEFINE_integer('decoder_replicas', 0, 'Number of replicas.')
+tf.flags.DEFINE_integer('decoder_gpus', 0, 'Number of gpus to use per replica.')
+
+tf.flags.DEFINE_integer(
+    'enqueue_max_steps', None, 'Max enqueue steps. -1 meaning no limit.'
+    ' This flag should be set for unit-test only.')
+
+tf.flags.DEFINE_integer('saver_max_to_keep', None,
+                        'Maximum number of recent checkpoints to keep.')
+tf.flags.DEFINE_float('saver_keep_checkpoint_every_n_hours', None,
+                      'How often to keep a checkpoint.')

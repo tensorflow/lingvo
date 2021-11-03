@@ -293,6 +293,7 @@ py_library(
         ":model_registry",
         ":trainer_lib",
         # Implicit absl.testing.flagsaver dependency.
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",

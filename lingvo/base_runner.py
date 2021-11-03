@@ -569,29 +569,6 @@ class BaseRunner:
     latest_ckpt = tf.train.load_checkpoint(latest_ckpt_path)
     return self._ShouldStop(sess, step=latest_ckpt.get_tensor('global_step'))
 
-  def _GetProcessedCheckpoints(self, runner_dir):
-    """Returns the list of checkpoints previously processed by this runner."""
-    # Set up (or reload) a file storing the list of previously processed
-    # checkpoints. This caching allows jobs to run on VMs which may be
-    # interrupted without duplicating work.
-    processed_ckpts_path = os.path.join(runner_dir, 'processed_ckpts.txt')
-    if not tf.io.gfile.exists(processed_ckpts_path):
-      with tf.io.gfile.GFile(processed_ckpts_path, 'w') as f:
-        f.write('')
-    with tf.io.gfile.GFile(processed_ckpts_path, 'r') as f:
-      processed_ckpts = list(line.strip() for line in f.readlines())
-    return processed_ckpts
-
-  def _UpdateProcessedCheckpoints(self, runner_dir, ckpt_path):
-    """Denotes 'ckpt_path' as having been processed by this runner."""
-    processed_ckpts_path = os.path.join(runner_dir, 'processed_ckpts.txt')
-    # Some file systems don't support append operations, so we rewrite whole
-    # file to append the latest checkpoint.
-    processed_ckpts = self._GetProcessedCheckpoints(runner_dir)
-    processed_ckpts.append(ckpt_path)
-    with tf.io.gfile.GFile(processed_ckpts_path, 'w') as f:
-      f.write('\n'.join(processed_ckpts) + '\n')
-
   def _RunOnLatestCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
     """Executes 'runner_fn' on the latest checkpoints produced by the Trainer.
 
@@ -605,7 +582,7 @@ class BaseRunner:
     # will be 0 in this process until a checkpoint is restored, so we infer the
     # trainer global_step from the step of its latest checkpoint.
     trainer_finished_at_job_start = self._TrainerFinished(sess)
-    processed_ckpts = set(self._GetProcessedCheckpoints(runner_dir))
+    processed_ckpts = set(py_utils.GetProcessedCheckpoints(runner_dir))
     if (trainer_finished_at_job_start and
         tf.train.latest_checkpoint(self._train_dir) in processed_ckpts):
       tf.logging.warning(
@@ -625,7 +602,7 @@ class BaseRunner:
         break
 
       runner_fn(sess, ckpt_path)
-      self._UpdateProcessedCheckpoints(runner_dir, ckpt_path)
+      py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
       processed_ckpts.add(ckpt_path)
       if self._ShouldStop(sess):
         break
@@ -643,7 +620,7 @@ class BaseRunner:
     # will be 0 in this process until a checkpoint is restored, so we infer the
     # trainer global_step from the step of its latest checkpoint.
     trainer_finished_at_job_start = self._TrainerFinished(sess)
-    processed_ckpts = set(self._GetProcessedCheckpoints(runner_dir))
+    processed_ckpts = set(py_utils.GetProcessedCheckpoints(runner_dir))
 
     while True:
       # Checkpoints may be deleted while runner_fn is running, so we fetch the
@@ -657,7 +634,7 @@ class BaseRunner:
         ckpt_path = sorted(unprocessed_ckpts)[0]
         try:
           runner_fn(sess, ckpt_path)
-          self._UpdateProcessedCheckpoints(runner_dir, ckpt_path)
+          py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
           processed_ckpts.add(ckpt_path)
         except tf.errors.NotFoundError as e:
           # Though it should be exceedingly rare in realistic cases, it's

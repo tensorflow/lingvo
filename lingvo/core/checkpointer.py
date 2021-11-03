@@ -214,6 +214,10 @@ class Checkpointer:
       fn = py_utils.OverrideVarsFromCheckpoints(tf.global_variables(), rules)
       self._restore_fns.append(fn)
 
+  @property
+  def checkpoint_dir(self):
+    return self._train_dir
+
   def _GetSaver(self):
     """Returns a saver."""
     do_eval = cluster_factory.Current().do_eval

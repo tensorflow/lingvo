@@ -315,7 +315,8 @@ class Decoder(base_runner.BaseRunner):
 
       if self._decode_path:
         self.DecodeCheckpoint(sess, self._decode_path)
-        self._UpdateProcessedCheckpoints(self._decoder_dir, self._decode_path)
+        py_utils.UpdateProcessedCheckpoints(self._decoder_dir,
+                                            self._decode_path)
       elif self._task.params.eval.decode_all_checkpoints:
         self._RunOnAllCheckpoints(sess, self.DecodeCheckpoint,
                                   self._decoder_dir)

@@ -6489,3 +6489,28 @@ def BlockDiagonalProjectLastDimWithMix(inputs,
                   axis=0))
 
   return outputs
+
+
+def GetProcessedCheckpoints(runner_dir):
+  """Returns the list of checkpoints previously processed by this runner."""
+  # Set up (or reload) a file storing the list of previously processed
+  # checkpoints. This caching allows jobs to run on VMs which may be
+  # interrupted without duplicating work.
+  processed_ckpts_path = os.path.join(runner_dir, 'processed_ckpts.txt')
+  if not tf.io.gfile.exists(processed_ckpts_path):
+    with tf.io.gfile.GFile(processed_ckpts_path, 'w') as f:
+      f.write('')
+  with tf.io.gfile.GFile(processed_ckpts_path, 'r') as f:
+    processed_ckpts = list(line.strip() for line in f.readlines())
+  return processed_ckpts
+
+
+def UpdateProcessedCheckpoints(runner_dir, ckpt_path):
+  """Denotes 'ckpt_path' as having been processed by this runner."""
+  processed_ckpts_path = os.path.join(runner_dir, 'processed_ckpts.txt')
+  # Some file systems don't support append operations, so we rewrite whole
+  # file to append the latest checkpoint.
+  processed_ckpts = GetProcessedCheckpoints(runner_dir)
+  processed_ckpts.append(ckpt_path)
+  with tf.io.gfile.GFile(processed_ckpts_path, 'w') as f:
+    f.write('\n'.join(processed_ckpts) + '\n')
