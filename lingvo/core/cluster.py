@@ -254,6 +254,10 @@ class _Cluster:
   def Top():
     return _CLUSTER_STACK.stack[-1] if _CLUSTER_STACK.stack else None
 
+  def ExportMetrics(self, *args, **kwargs):
+    """Export metrics externally."""
+    pass
+
   def __init__(self, params):
     self._params = params.Copy()
     self._session_devices = None

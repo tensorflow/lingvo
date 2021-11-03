@@ -268,6 +268,9 @@ class BaseProgram:
 
     else:
       vizier_early_stop = False
+    # Export cluster metrics as well.
+    cluster_factory.Current().ExportMetrics(
+        global_step, {k: metric.value for k, metric in metrics_dict.items()})
     return vizier_early_stop
 
   def BuildTpuSubgraph(self):
