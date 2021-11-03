@@ -679,11 +679,13 @@ until there is no more data (OutOfRange error is thrown). If this is True,
 decode_steps_per_loop is ignored (and not required). Currently do not
 support ExperimentalDecodeProgram, which uses loop on TPU. So keep
 experimental_decoder=False</p></li>
-<li><p><strong>postprocess_all_at_once</strong> – bool. Whether to postprocess all the (combined)
+<li><p><strong>postprocess_all_at_once</strong> – bool/List. Whether to postprocess the (combined)
 batches at once at the end of Decode program, instead of once per step.
 This is needed if one needs to reference/combine data across different
 batches/steps during postprocess. The PostProcess(DecodeOut) function
-should define the logic of aggregating across steps/batches.</p></li>
+should define the logic of aggregating across steps/batches. Can be a
+single value or a list of values corresponding to the entries in
+eval_dataset_names.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

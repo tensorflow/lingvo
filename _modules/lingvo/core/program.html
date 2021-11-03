@@ -1759,11 +1759,13 @@
 <span class="sd">      decode_steps_per_loop is ignored (and not required). Currently do not</span>
 <span class="sd">      support ExperimentalDecodeProgram, which uses loop on TPU. So keep</span>
 <span class="sd">      experimental_decoder=False</span>
-<span class="sd">    postprocess_all_at_once: bool. Whether to postprocess all the (combined)</span>
+<span class="sd">    postprocess_all_at_once: bool/List. Whether to postprocess the (combined)</span>
 <span class="sd">      batches at once at the end of Decode program, instead of once per step.</span>
 <span class="sd">      This is needed if one needs to reference/combine data across different</span>
 <span class="sd">      batches/steps during postprocess. The PostProcess(DecodeOut) function</span>
-<span class="sd">      should define the logic of aggregating across steps/batches.</span>
+<span class="sd">      should define the logic of aggregating across steps/batches. Can be a</span>
+<span class="sd">      single value or a list of values corresponding to the entries in</span>
+<span class="sd">      eval_dataset_names.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A populated SimpleProgramSchedule.Params()</span>
@@ -1795,6 +1797,14 @@
                        <span class="s1">&#39;decode_steps_per_loop is not specified (None).&#39;</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">decode_steps_per_loop</span> <span class="o">=</span> <span class="p">[</span><span class="n">decode_steps_per_loop</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;postprocess_all_at_once doesn</span><span class="se">\&#39;</span><span class="s1">t match the size of &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;eval_dataset_names: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">)</span><span class="si">}</span><span class="s1"> vs &#39;</span>
+                       <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="p">[</span><span class="n">postprocess_all_at_once</span>
+                              <span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
 
   <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dataset_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
     <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
@@ -1812,14 +1822,14 @@
             <span class="s1">&#39;experimental_decoder must be False for decode_until_out_of_range&#39;</span><span class="p">)</span>
       <span class="n">decoder_param</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span>
                                            <span class="n">dataset_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span>
+      <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
       <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decoder_param</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">decoder</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">ExperimentalDecodeProgram</span> <span class="k">if</span> <span class="n">experimental_decoder</span> <span class="k">else</span> <span class="n">DecodeProgram</span><span class="p">)</span>
       <span class="n">decoder_param</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">decoder</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
                                            <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
-      <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span>
+      <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
       <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decoder_param</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">program_schedule_params</span></div>
