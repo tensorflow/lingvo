@@ -242,18 +242,16 @@ class TopK {
 // Exposed for benchmarking purposes.
 //
 // Please see the definition for function comments.
-void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
-                 const int32 k, const int32 eos_id, const int32 eoc_id,
-                 const int32 num_beams, const float valid_eos_max_logit_delta,
-                 const float local_eos_threshold, bool is_first_step,
-                 bool is_last_decoder_step, const Tensor& is_last_chunk,
-                 bool merge_paths, bool allow_empty_terminated_hyp,
-                 bool force_eos_in_top_k, bool force_last_chunk_eoc_in_top_k,
-                 int merged_topk_buffer_size_factor,
-                 const std::vector<bool>& skip_beam,
-                 std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
-                 std::vector<Hyp>* eos_hyps,
-                 std::vector<int32>* terminal_symbols);
+tensorflow::Status ComputeTopK(
+    int step, const std::vector<Hyp>& hyps, const Tensor& scores, const int32 k,
+    const int32 eos_id, const int32 eoc_id, const int32 num_beams,
+    const float valid_eos_max_logit_delta, const float local_eos_threshold,
+    bool is_first_step, bool is_last_decoder_step, const Tensor& is_last_chunk,
+    bool merge_paths, bool allow_empty_terminated_hyp, bool force_eos_in_top_k,
+    bool force_last_chunk_eoc_in_top_k, int merged_topk_buffer_size_factor,
+    const std::vector<bool>& skip_beam, std::vector<char>* eos_in_topk,
+    std::vector<Hyp>* top_k, std::vector<Hyp>* eos_hyps,
+    std::vector<int32>* terminal_symbols);
 
 }  // namespace lingvo
 }  // namespace tensorflow

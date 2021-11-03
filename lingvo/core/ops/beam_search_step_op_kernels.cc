@@ -23,7 +23,10 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/lib/strings/str_util.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/errors.h"
+#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/util/work_sharder.h"
 
 namespace tensorflow {
@@ -104,26 +107,39 @@ bool all_less_than(const float* p, float threshold) {
 // eos_in_topk is filled with true/false to indicate whether or not the eos
 // symbol is among the topk candidate for a hyp.
 // terminal_symbols stores the terminal token id (eos or eoc).
-void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
-                 const int32 k, const int32 eos_id, const int32 eoc_id,
-                 const int32 num_beams, const float valid_eos_max_logit_delta,
-                 const float local_eos_threshold, bool is_first_step,
-                 bool is_last_decoder_step, const Tensor& is_last_chunk,
-                 bool merge_paths, bool allow_empty_terminated_hyp,
-                 bool force_eos_in_top_k, bool force_last_chunk_eoc_in_top_k,
-                 int merged_topk_buffer_size_factor,
-                 const std::vector<bool>& skip_beam,
-                 // Note that this is functionally a bool, however
-                 // vector<bool> is not safe to parallel write into
-                 // since it's underlying storage is at the byte-level.
-                 std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
-                 std::vector<Hyp>* eos_hyps,
-                 std::vector<int32>* terminal_symbols) {
-  VLOG(1) << "Topk clear, num_beams: " << num_beams;
-  DCHECK_EQ(hyps.size(), num_beams * k);
+Status ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
+                   const int32 k, const int32 eos_id, const int32 eoc_id,
+                   const int32 num_beams, const float valid_eos_max_logit_delta,
+                   const float local_eos_threshold, bool is_first_step,
+                   bool is_last_decoder_step, const Tensor& is_last_chunk,
+                   bool merge_paths, bool allow_empty_terminated_hyp,
+                   bool force_eos_in_top_k, bool force_last_chunk_eoc_in_top_k,
+                   int merged_topk_buffer_size_factor,
+                   const std::vector<bool>& skip_beam,
+                   // Note that this is functionally a bool, however
+                   // vector<bool> is not safe to parallel write into
+                   // since it's underlying storage is at the byte-level.
+                   std::vector<char>* eos_in_topk, std::vector<Hyp>* top_k,
+                   std::vector<Hyp>* eos_hyps,
+                   std::vector<int32>* terminal_symbols) {
   DCHECK(eos_in_topk && top_k && eos_hyps && terminal_symbols);
-  DCHECK_EQ(hyps.size(), scores.dim_size(0));
-  DCHECK_LT(eos_id, scores.dim_size(1));
+  if (hyps.size() != num_beams * k) {
+    return tensorflow::errors::Internal(strings::StrCat(
+        "Expecting hyps.size()=", num_beams * k, " (num_beams=", num_beams,
+        ", k=", k, "), actual hyps.size()=", hyps.size()));
+  }
+  if (hyps.size() != scores.dim_size(0)) {
+    return tensorflow::errors::Internal(strings::StrCat(
+        "Expecting scores.shape[0]=", num_beams * k, " (num_beams=", num_beams,
+        ", k=", k, "), actual scores.shape[0]=", scores.dim_size(0)));
+  }
+  if (eos_id >= scores.dim_size(1)) {
+    return tensorflow::errors::Internal(strings::StrCat(
+        "Expecting eos_id < scores.shape[1]=", scores.dim_size(1),
+        ", actual eos_id=", eos_id));
+  }
+
+  VLOG(1) << "Topk clear, num_beams: " << num_beams;
   int hyps_size = hyps.size();
   eos_in_topk->clear();
   top_k->clear();
@@ -144,6 +160,8 @@ void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
                                      merged_topk_buffer_size_factor));
   // Each mutex is used to protect corresponding merged_topk_vec.
   std::vector<mutex> mu_vec(num_beams);
+  tensorflow::Status status = Status::OK();
+  mutex mu_status;
   // The thread sharding is along the hyps_size.
   Shard(
       kNumWorkers, workers, hyps_size, num_ids, [&](int64 start, int64 limit) {
@@ -202,9 +220,15 @@ void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
           }
 
           std::vector<Hyp> entries = topk.Get();
-          DCHECK(!entries.empty())
-              << "No entries in TopK. This typically "
-              << "happens if your model is producing NaNs in the output.";
+          if (entries.empty()) {
+            mutex_lock l(mu_status);
+            // This happens when global_score is NaN, hence topk.Add() is never
+            // called above, as all comparisons against NaNs are false.
+            status = tensorflow::errors::Internal(
+                "No entries in TopK. This typically happens if the model is "
+                "producing NaNs in the output.");
+            return;
+          }
           std::sort(entries.begin(), entries.end(), HigherScore());
           if (force_eos_in_top_k) {
             if (std::find_if(entries.begin(), entries.end(),
@@ -294,6 +318,9 @@ void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
           }
         }
       });
+  if (!status.ok()) {
+    return status;
+  }
 
   const int hyps_per_beam = k;
   for (int i = 0; i < num_beams; ++i) {
@@ -315,6 +342,7 @@ void ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
     }
   }
   VLOG(1) << "Topk done";
+  return Status::OK();
 }
 
 // Symbols:
@@ -698,14 +726,16 @@ class BeamSearchStepOp : public OpKernel {
         skip_beam[i] = input_beam_done.vec<bool>()(i);
       }
     }
-    ComputeTopK(t, hyps, scores, /*k=*/num_hyps_per_beam_,
-                /*eos_id=*/eos_id_, /*eoc_id=*/eoc_id_, num_beams,
-                valid_eos_max_logit_delta_, local_eos_threshold_,
-                /*is_first_step=*/t == 0, is_last_decoder_step, is_last_chunk,
-                merge_paths_, allow_empty_terminated_hyp_, force_eos_in_top_k_,
-                force_last_chunk_eoc_in_top_k_, merged_topk_buffer_size_factor_,
-                skip_beam, &eos_in_topk, &top_k_hyps, &eos_hyps,
-                &terminal_symbols);
+    OP_REQUIRES_OK(
+        ctx,
+        ComputeTopK(t, hyps, scores, /*k=*/num_hyps_per_beam_,
+                    /*eos_id=*/eos_id_, /*eoc_id=*/eoc_id_, num_beams,
+                    valid_eos_max_logit_delta_, local_eos_threshold_,
+                    /*is_first_step=*/t == 0, is_last_decoder_step,
+                    is_last_chunk, merge_paths_, allow_empty_terminated_hyp_,
+                    force_eos_in_top_k_, force_last_chunk_eoc_in_top_k_,
+                    merged_topk_buffer_size_factor_, skip_beam, &eos_in_topk,
+                    &top_k_hyps, &eos_hyps, &terminal_symbols));
 
     Tensor* out_done_hyps = nullptr;
     OP_REQUIRES_OK(ctx, ForwardOrCopyInputToOutput(ctx, 7, 5, &out_done_hyps));

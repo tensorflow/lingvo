@@ -555,6 +555,25 @@ class BeamSearchOpTest(test_utils.TestCase, parameterized.TestCase):
     expected_beam_done = np.array([False])
     self.assertAllEqual(results[-1], expected_beam_done)
 
+  def testBeamSearchOpNan(self):
+    hyp_size = 2
+    num_beams = 1
+    seq_len = 3
+    nan = float('nan')
+    probs = [
+        [[nan] * 3, [nan] * 3],
+    ]
+    with self.assertRaisesRegex(tf.errors.InternalError,
+                                'model is producing NaNs in the output'):
+      self._runBeamSearchOpHelper(
+          hyp_size,
+          num_beams,
+          seq_len,
+          _MIN_SCORE,
+          probs,
+          init_atten_probs=tf.zeros([hyp_size, 0]),
+          atten_probs=np.zeros([seq_len, hyp_size, 0]))
+
   @parameterized.parameters(False, True)
   def testBeamSearchOpV2ThreeSteps(self, independence):
     """Similar setup as test_three_steps_eos above but for op V2."""
