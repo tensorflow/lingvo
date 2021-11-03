@@ -82,14 +82,16 @@ tf.flags.DEFINE_string(
     'host3:port3@job2=host3:port4,...')
 
 tf.flags.DEFINE_string(
-    'mode', 'async', 'How this trainer binary is used. '
+    'mode',
+    'async', 'How this trainer binary is used. '
     'async: used in an async training setup; '
     'sync: used in a sync training setup; '
     'shell: an interactive shell for development; '
     'inspect_evaler: print evaler dataset names; '
     'inspect_decoder: print decoder dataset names; '
     'inspect_model: print the model params name and shape; '
-    'write_inference_graph: write inference graphs to logdir.')
+    'write_inference_graph: write inference graphs to logdir.',
+    allow_hide_cpp=True)
 
 tf.flags.DEFINE_multi_string(
     'inspect_model_part_regex', None,
