@@ -314,7 +314,8 @@ class InferenceGraphExporter:
              subgraph_filter=None,
              random_seed=None,
              disable_packed_input=True,
-             prune_graph=True):
+             prune_graph=True,
+             export_graph_collections=False):
     """Exports a InferenceGraph proto with piecewise subgraphs.
 
     Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.
@@ -338,6 +339,8 @@ class InferenceGraphExporter:
       random_seed: Fixes the random seed in the exported inference graph.
       disable_packed_input: Disable packed input for inference writing purposes.
       prune_graph: If true, prune the graph to just the parts we need.
+      export_graph_collections: If true, export graph collections to the
+      InferenceGraph proto.
 
     Returns:
       InferenceGraph proto.
@@ -499,11 +502,12 @@ class InferenceGraphExporter:
 
     # Collection defs
     if not tf.executing_eagerly():
-      meta_graph = tf.train.export_meta_graph(graph=graph)
-      for key in meta_graph.collection_def:
-        tf.logging.info('copying collection %s', key)
-        inference_graph_proto.collection_def[key].CopyFrom(
-            meta_graph.collection_def[key])
+      if export_graph_collections:
+        meta_graph = tf.train.export_meta_graph(graph=graph)
+        for key in meta_graph.collection_def:
+          tf.logging.info('copying collection %s', key)
+          inference_graph_proto.collection_def[key].CopyFrom(
+              meta_graph.collection_def[key])
     else:
       tf.logging.warning('Not exporting collection defs '
                          'since operating in eager mode.')

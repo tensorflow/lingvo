@@ -271,7 +271,7 @@ class InferenceGraphExporterLinearModelTest(test_utils.TestCase):
     """Test basic export."""
     params = model_registry.GetParams('test.LinearModelParams', 'Test')
     inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
-        params, subgraph_filter=['default'])
+        params, subgraph_filter=['default'], export_graph_collections=True)
     self.assertIn('default', inference_graph.subgraphs)
     self.assertEqual(1, len(inference_graph.asset_file_def))
     # Check the GLOBAL_VARIABLES graph collection which is needed for
