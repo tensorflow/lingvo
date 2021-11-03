@@ -634,29 +634,6 @@
     <span class="n">latest_ckpt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span><span class="n">latest_ckpt_path</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">latest_ckpt</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="BaseRunner._GetProcessedCheckpoints"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetProcessedCheckpoints">[docs]</a>  <span class="k">def</span> <span class="nf">_GetProcessedCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runner_dir</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the list of checkpoints previously processed by this runner.&quot;&quot;&quot;</span>
-    <span class="c1"># Set up (or reload) a file storing the list of previously processed</span>
-    <span class="c1"># checkpoints. This caching allows jobs to run on VMs which may be</span>
-    <span class="c1"># interrupted without duplicating work.</span>
-    <span class="n">processed_ckpts_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="s1">&#39;processed_ckpts.txt&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">processed_ckpts_path</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">processed_ckpts_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">processed_ckpts_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-      <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">processed_ckpts</span></div>
-
-<div class="viewcode-block" id="BaseRunner._UpdateProcessedCheckpoints"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._UpdateProcessedCheckpoints">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateProcessedCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Denotes &#39;ckpt_path&#39; as having been processed by this runner.&quot;&quot;&quot;</span>
-    <span class="n">processed_ckpts_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="s1">&#39;processed_ckpts.txt&#39;</span><span class="p">)</span>
-    <span class="c1"># Some file systems don&#39;t support append operations, so we rewrite whole</span>
-    <span class="c1"># file to append the latest checkpoint.</span>
-    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">)</span>
-    <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">processed_ckpts_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">processed_ckpts</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="BaseRunner._RunOnLatestCheckpoints"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunOnLatestCheckpoints">[docs]</a>  <span class="k">def</span> <span class="nf">_RunOnLatestCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Executes &#39;runner_fn&#39; on the latest checkpoints produced by the Trainer.</span>
 
@@ -670,7 +647,7 @@
     <span class="c1"># will be 0 in this process until a checkpoint is restored, so we infer the</span>
     <span class="c1"># trainer global_step from the step of its latest checkpoint.</span>
     <span class="n">trainer_finished_at_job_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrainerFinished</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
+    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">trainer_finished_at_job_start</span> <span class="ow">and</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span> <span class="ow">in</span> <span class="n">processed_ckpts</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
@@ -690,7 +667,7 @@
         <span class="k">break</span>
 
       <span class="n">runner_fn</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
       <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
         <span class="k">break</span></div>
@@ -708,7 +685,7 @@
     <span class="c1"># will be 0 in this process until a checkpoint is restored, so we infer the</span>
     <span class="c1"># trainer global_step from the step of its latest checkpoint.</span>
     <span class="n">trainer_finished_at_job_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrainerFinished</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
+    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
 
     <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
       <span class="c1"># Checkpoints may be deleted while runner_fn is running, so we fetch the</span>
@@ -722,7 +699,7 @@
         <span class="n">ckpt_path</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unprocessed_ckpts</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">try</span><span class="p">:</span>
           <span class="n">runner_fn</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
           <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
           <span class="c1"># Though it should be exceedingly rare in realistic cases, it&#39;s</span>
