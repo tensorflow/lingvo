@@ -107,13 +107,14 @@ class QuantizableLayer(base_layer.BaseLayer):
   automatically add the necessary annotations. All such functions take the
   following named parameters:
 
-    - qt: Name of QTensor (setup with TrackQTensor) for dynamic range tracking.
+    - qout_name: Name of QTensor (setup with TrackQTensor) for dynamic range
+      tracking.
     - qmin/qmax/qdomain: Constant min/max range plus optional QDomain name to
       resolve against. Typically, only qmin/qmax are used.
 
   Functions that have a natural output range will have default values for
   qmin/qmax so that they just work. Functions that do not have a natural
-  output range must have either qt or qmin/qmax specified manually.
+  output range must have either qout_name or qmin/qmax specified manually.
 
   Natural range functions
 
@@ -174,41 +175,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         qdomain.InstantiateVariables()
     super()._CreateChildrenVariables()
 
-  def QRTanh(self, t, domain='actf'):
-    """Quantizes the output of a tanh (-1.0, 1.0)."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, -1.0, 1.0) if qd else t
-
-  def QRSigmoid(self, t, domain='actf'):
-    """Quantizes the output of a sigmoid (0, 1.0)."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
-
-  def QRSoftmax(self, t, domain='softmax', narrow_to_asym_bit_depth=False):
-    """Quantizes the output of a softmax (0, 1.0 - 1.0/2^-bits)."""
-    qd = self.GetQDomain(domain)
-    # Override based on TFLite softmax support.
-    softmax_max = 1.0
-    if qd is not None and narrow_to_asym_bit_depth:
-      softmax_max = (2**qd.bits - 1) / (2**qd.bits)
-    return qd.QuantizeNaturalRange(t, 0.0, softmax_max) if qd else t
-
-  def QRRelu(self, t, domain='relu'):
-    """Quantizes the output of a relu (0, 1.0)."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
-
-  def QRRelu6(self, t, domain='relu6'):
-    """Quantizes the output of a relu6 (0, 6.0)."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, 0.0, 6.0) if qd else t
-
-  def QRPadding(self, t, domain='padding'):
-    """Quantizes the padding."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeConstantRange(t, 0.0, 1.0) if qd else t
-
-  def TrackQTensor(self, *t_names, **kwargs):
+  def TrackQTensor(self, *t_names, domain='default'):
     r"""Creates one or more QTensors for later use.
 
     Any tensor that will later be quantized must be created first, preferably
@@ -219,20 +186,12 @@ class QuantizableLayer(base_layer.BaseLayer):
     domain (QDomain), typically 'default'. However, additional QDomains can
     be defined as parameters to control fine grained aspects of quantization.
 
-    If no explicit domain is passed, then the domain ('tensor\_' + t_name) is
-    tried. If that is not defined, then 'default'.
-
     Args:
       *t_names: Positional parameters are taken to be QTensor names to create.
-      **kwargs: Can contain an explicit 'domain'. Written this way due to
-        python2 limitations.
+      domain: name of the qdomain to use
     """
-    domain_override = kwargs['domain'] if 'domain' in kwargs else None
+    qd = self.GetQDomain(domain)
     for t_name in t_names:
-      domain = domain_override
-      if domain is None:
-        domain = 'tensor_' + t_name
-      qd = self.GetQDomain(domain)
       self._tracked_tensors[t_name] = qd
       if qd:
         qd.CreateTensor(t_name)
@@ -251,8 +210,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     Args:
       w_name: Positional parameters are taken to be QTensor names to create.
-      shape: Can contain an explicit 'domain'. Written this way due to python2
-        limitations
+      shape: Shape of the weight.
       feature_axis: axis corresponding to output channel/feature for weights.
       domain: Custom domain to match (defaults to 'weight').
       legacy_aqt_w_name: Used for compatibility with old checkpoints.
@@ -277,7 +235,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     """
     return self.QTensorMulti(t_name, t, eval_only=eval_only)[0]
 
-  def QTensorMulti(self, t_name, *ts, **kwargs):
+  def QTensorMulti(self, t_name, *ts, eval_only=False):
     """Quantizes multiple tensors simultaneously.
 
     t_name must have been previously created via TrackQTensor.
@@ -289,14 +247,13 @@ class QuantizableLayer(base_layer.BaseLayer):
     Args:
       t_name: Previously created QTensor t_name to quantize to.
       *ts: Tensor to quantize.
-      **kwargs: Additional kwargs as per QTensor.
+      eval_only: Whether to only apply quantization pressure at eval time.
     Returns:
       Tuple of quantized tensors.
     """
     assert t_name in self._tracked_tensors, (
         ('Call to QTensor without first calling TrackQTensor: %s '
          '(all known = %r)') % (t_name, list(self._tracked_tensors.keys())))
-    eval_only = kwargs['eval_only'] if 'eval_only' in kwargs else False
     qd = self._tracked_tensors[t_name]
     if not qd:
       return ts
@@ -631,48 +588,73 @@ class QuantizableLayer(base_layer.BaseLayer):
       qdparams = p.qdomain.default
     return qdparams
 
+  def QRTanh(self, t, domain='actf'):
+    """Quantizes the output of a tanh (-1.0, 1.0)."""
+    qd = self.GetQDomain(domain)
+    return qd.QuantizeNaturalRange(t, -1.0, 1.0) if qd else t
+
+  def QRSigmoid(self, t, domain='actf'):
+    """Quantizes the output of a sigmoid (0, 1.0)."""
+    qd = self.GetQDomain(domain)
+    return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
+
+  def QRSoftmax(self, t, domain='softmax', narrow_to_asym_bit_depth=False):
+    """Quantizes the output of a softmax (0, 1.0 - 1.0/2^-bits)."""
+    qd = self.GetQDomain(domain)
+    # Override based on TFLite softmax support.
+    softmax_max = 1.0
+    if qd is not None and narrow_to_asym_bit_depth:
+      softmax_max = (2**qd.bits - 1) / (2**qd.bits)
+    return qd.QuantizeNaturalRange(t, 0.0, softmax_max) if qd else t
+
+  def QRRelu(self, t, domain='relu'):
+    """Quantizes the output of a relu (0, 1.0)."""
+    qd = self.GetQDomain(domain)
+    return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
+
+  def QRRelu6(self, t, domain='relu6'):
+    """Quantizes the output of a relu6 (0, 6.0)."""
+    qd = self.GetQDomain(domain)
+    return qd.QuantizeNaturalRange(t, 0.0, 6.0) if qd else t
+
+  def QRPadding(self, t, domain='padding'):
+    """Quantizes the padding."""
+    qd = self.GetQDomain(domain)
+    return qd.QuantizeConstantRange(t, 0.0, 1.0) if qd else t
+
   def _AddQuantizationFunctions(self):
     """Adds standard quantization functions against the given layer."""
 
-    def WrapOp(fnname, f, default_qmin=None, default_qmax=None):
+    def WrapOp(op_name, op, default_qmin=None, default_qmax=None):
       """Adds a wrapper op to the layer's fns."""
 
-      def Wrapped(*args, **kwargs):
+      def Wrapped(*op_args,
+                  qout_name=None,
+                  qmin=None,
+                  qmax=None,
+                  qdomain=None,
+                  narrow_to_asym_bit_depth=None,
+                  **op_kwargs):
         """Wraps a native op."""
-        # Validate and pop args 'qt', 'qmin', 'qmax' and 'qdomain'.
-        qt = kwargs.get('qt')
-        if qt is not None:
-          del kwargs['qt']
-        qmin = kwargs.get('qmin')
-        if qmin is not None:
-          del kwargs['qmin']
-        qmax = kwargs.get('qmax')
-        if qmax is not None:
-          del kwargs['qmax']
-        qdomain = kwargs.get('qdomain')
-        if qdomain is not None:
-          del kwargs['qdomain']
-        narrow_to_asym_bit_depth = kwargs.get('narrow_to_asym_bit_depth')
-        if narrow_to_asym_bit_depth is not None:
-          del kwargs['narrow_to_asym_bit_depth']
         if qmin is None:
           qmin = default_qmin
         if qmax is None:
           qmax = default_qmax
-        assert qt is not None or (qmin is not None and qmax is not None), (
-            ('Quantized function "%s" requires either qt (QTensor name) or '
-             'qmin/qmax to be set.') % fnname)
+        if qout_name is None and (qmin is None or qmax is None):
+          raise ValueError(
+              f'Quantized op "{op_name}" requires either qout_name (QTensor '
+              'name) or qmin/qmax to be set.')
 
         # Provide a better default name if none provided.
-        if 'name' not in kwargs and qt is not None:
-          kwargs['name'] = '%s_%s' % (fnname, qt)
+        if 'name' not in op_kwargs and qout_name is not None:
+          op_kwargs['name'] = '%s_%s' % (op_name, qout_name)
 
         # Invoke original.
-        y = f(*args, **kwargs)
+        y = op(*op_args, **op_kwargs)
 
         # Handle the output.
-        if qt is not None:
-          y = self.QTensor(qt, y)
+        if qout_name is not None:
+          y = self.QTensor(qout_name, y)
         else:
           qd = self.GetQDomain(qdomain)
           if qd:
@@ -682,7 +664,7 @@ class QuantizableLayer(base_layer.BaseLayer):
             y = qd.QuantizeNaturalRange(y, qmin, qmax)
         return y
 
-      self.AddFunction(fnname, Wrapped)
+      self.AddFunction(op_name, Wrapped)
 
     # Supported quantized functions.
     WrapOp('qadd', tf.add)
@@ -703,9 +685,6 @@ class QuantizableLayer(base_layer.BaseLayer):
         tf.random.uniform,
         default_qmin=0.0,
         default_qmax=1.0)
-
-    # Convenience for quantizing weights.
-    self.AddFunction('qweight', self.QWeight)
 
 
 class BaseClippingCapSchedule(base_layer.BaseLayer):

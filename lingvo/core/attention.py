@@ -1440,16 +1440,16 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
               act=source_vecs,
               weight=theta.source_proj,
               w_feature_axis=-1)
-          w_source_proj = fns.qweight(w_source_proj)
+          w_source_proj = self.QWeight(w_source_proj)
           source_projected = (
               fns.qbatchmatmul(
-                  source_vecs, w_source_proj, qt='source_proj_matmul'))
+                  source_vecs, w_source_proj, qout_name='source_proj_matmul'))
           source_projected = self.FromAqtMatmul('source_proj', source_projected)
           if p.use_bias:
             source_projected = fns.qadd(
                 source_projected,
-                fns.qweight(theta.source_proj_b),
-                qt='source_proj_add')
+                self.QWeight(theta.source_proj_b),
+                qout_name='source_proj_add')
         else:
           source_projected = tf.reshape(source_vecs, [-1, source_vec_depth])
         if p.activation_split_dims_mapping:
@@ -1478,17 +1478,17 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
               act=source_contexts,
               weight=theta.ctx_proj,
               w_feature_axis=-1)
-          w_ctx_proj = fns.qweight(w_ctx_proj)
+          w_ctx_proj = self.QWeight(w_ctx_proj)
 
           source_contexts_projected = fns.qbatchmatmul(
-              source_contexts, w_ctx_proj, qt='ctx_pre_proj_matmul')
+              source_contexts, w_ctx_proj, qout_name='ctx_pre_proj_matmul')
           source_contexts_projected = self.FromAqtMatmul(
               'ctx_proj', source_contexts_projected)
           if p.use_bias:
             source_contexts_projected = fns.qadd(
                 source_contexts_projected,
-                fns.qweight(theta.ctx_proj_b),
-                qt='ctx_pre_proj_add')
+                self.QWeight(theta.ctx_proj_b),
+                qout_name='ctx_pre_proj_add')
           if p.activation_split_dims_mapping:
             source_contexts_projected = gshard_utils.MeshSplit(
                 source_contexts_projected, p.device_mesh,
@@ -1704,16 +1704,16 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           act=query_vec,
           weight=theta.query_proj,
           w_feature_axis=-1)
-      w_query_proj = fns.qweight(w_query_proj)
+      w_query_proj = self.QWeight(w_query_proj)
       query_vec_projected = fns.qbatchmatmul(
-          query_vec, w_query_proj, qt='query_proj_matmul')
+          query_vec, w_query_proj, qout_name='query_proj_matmul')
       query_vec_projected = self.FromAqtMatmul('query_proj',
                                                query_vec_projected)
       if p.use_bias:
         query_vec_projected = fns.qadd(
             query_vec_projected,
-            fns.qweight(theta.query_proj_b),
-            qt='query_proj_add')
+            self.QWeight(theta.query_proj_b),
+            qout_name='query_proj_add')
       query_vec_projected = tf.reshape(query_vec_projected,
                                        query_vec_projected_shape)
       query_vec_projected = self.ProcessProjectionVec(theta,
@@ -1770,15 +1770,15 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             act=ctx_vec,
             weight=theta.ctx_post_proj,
             w_feature_axis=-1)
-        w_ctx_post_proj = fns.qweight(w_ctx_post_proj)
+        w_ctx_post_proj = self.QWeight(w_ctx_post_proj)
         ctx_vec = fns.qbatchmatmul(
-            ctx_vec, w_ctx_post_proj, qt='ctx_post_proj_matmul')
+            ctx_vec, w_ctx_post_proj, qout_name='ctx_post_proj_matmul')
         ctx_vec = self.FromAqtMatmul('ctx_post_proj', ctx_vec)
         if p.use_bias:
           ctx_vec = fns.qadd(
               ctx_vec,
-              fns.qweight(theta.ctx_post_proj_b),
-              qt='ctx_post_proj_add')
+              self.QWeight(theta.ctx_post_proj_b),
+              qout_name='ctx_post_proj_add')
       else:
         assert p.num_post_proj > 1, (
             'atten_idx is not None, this means there are multiple post '
@@ -1981,7 +1981,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # => [sl, sb, hd]
       location_feats = tf.transpose(inputs.location_feats, [2, 0, 1])
       location_hidden = fns.qmatmul(
-          CollapseOutDim(location_feats), inputs.location_var, qt='logits_mul')
+          CollapseOutDim(location_feats),
+          inputs.location_var,
+          qout_name='logits_mul')
 
       sl = py_utils.GetShape(location_feats)[0]
       tb = py_utils.GetShape(location_feats)[1]
@@ -1995,8 +1997,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       summed = fns.qadd(
           inputs.concated_source_vecs,
           inputs.query_vec_reshaped,
-          qt='logits_add')
-      summed = fns.qadd(summed, location_hidden, qt='logits_bias')
+          qout_name='logits_add')
+      summed = fns.qadd(summed, location_hidden, qout_name='logits_bias')
       summed = fns.qtanh(summed)
       # logits is of shape [sl * tb/sb * sb, 1]. Computes dot product
       # between v with every rows in 'summed'. Then we reshape the
@@ -2004,7 +2006,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       logits = fns.qmatmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
           tf.reshape(inputs.hidden_v, [p.hidden_dim, 1]),
-          qt='logits')
+          qout_name='logits')
       logits = tf.reshape(logits, py_utils.GetShape(summed)[:3])
       return logits
 
@@ -2033,7 +2035,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # => [sl, sb, hd]
       location_feats = tf.transpose(inputs.location_feats, [2, 0, 1])
       location_hidden = fns.qmatmul(
-          CollapseOutDim(location_feats), inputs.location_var, qt='logits_mul')
+          CollapseOutDim(location_feats),
+          inputs.location_var,
+          qout_name='logits_mul')
       sl = tf.shape(location_feats)[0]
       tb = tf.shape(location_feats)[1]
       hd = tf.shape(inputs.location_var)[1]
@@ -2043,9 +2047,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       summed = fns.qadd(
           inputs.concated_source_vecs,
           tf.expand_dims(inputs.query_vec_transformed, 0),
-          qt='logits_add')
+          qout_name='logits_add')
 
-      summed = fns.qadd(summed, location_hidden, qt='logits_bias')
+      summed = fns.qadd(summed, location_hidden, qout_name='logits_bias')
       summed = fns.qtanh(summed)
 
       # logits is of shape [sl * sb, 1]. Computes dot product
@@ -2054,7 +2058,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       logits = fns.qmatmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
           tf.reshape(inputs.hidden_v, [p.hidden_dim, 1]),
-          qt='logits')
+          qout_name='logits')
       logits = tf.reshape(logits, py_utils.GetShape(summed)[:2])
       return logits
 
@@ -2080,7 +2084,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # concated_source_vecs is reshaped to [sl, 1, sb, hidden_dims]
       concated_source_vecs = tf.expand_dims(concated_source_vecs, 1)
       query_vec_transformed = fns.qmatmul(
-          query_vec, query_var, qt='atten_matmul')
+          query_vec, query_var, qout_name='atten_matmul')
       # query_vec is reshaped to [1, tb/sb, sb, hidden_dims].
       query_vec_reshaped = tf.reshape(query_vec_transformed,
                                       [1, multiplier, sb, p.hidden_dim])
@@ -2117,7 +2121,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       summed = fns.qbatchmatmul(
           tf.cast(probs_reshaped, concated_source_contexts.dtype),
           concated_source_contexts,
-          qt='atten_context')
+          qout_name='atten_context')
       # summed is of shape [tb/sb, sb, context_dim]
       summed = tf.transpose(summed, [1, 0, 2])
       return tf.reshape(summed, [tb, -1]), probs
@@ -2140,7 +2144,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       fns = self.fns
       location_feats = self._ApplyConv(attention_state, location_filter_var)
       query_vec_transformed = fns.qmatmul(
-          query_vec, query_var, qt='atten_matmul')
+          query_vec, query_var, qout_name='atten_matmul')
       # logits is of shape [sl, sb]
       logits = _ConditionalCallDefun(
           not self._is_quantized, AttenLogitsSameBatchSize,
@@ -2161,7 +2165,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       summed = fns.qbatchmatmul(
           tf.cast(tf.expand_dims(probs, 1), concated_source_contexts.dtype),
           concated_source_contexts,
-          qt='atten_context')
+          qout_name='atten_context')
       return tf.squeeze(summed, 1), probs
 
     if p.same_batch_size:
@@ -2175,8 +2179,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
       transformed_vecs = tf.reshape(
           fns.qmatmul(
-              tf.reshape(vecs, [-1, p.source_dim]), src_w, qt='encode_matmul'),
-          [time, batch, -1])
+              tf.reshape(vecs, [-1, p.source_dim]),
+              src_w,
+              qout_name='encode_matmul'), [time, batch, -1])
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
       return transformed_vecs, transposed_ctxs
 
@@ -2268,7 +2273,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         1,
         'SAME',
         data_format=data_format,
-        qt='atten_conv')
+        qout_name='atten_conv')
     if py_utils.use_xla() in ('', 'cpu'):
       location_feats = tf.transpose(location_feats, [0, 2, 1])
     if p.dtype != tf.float32:

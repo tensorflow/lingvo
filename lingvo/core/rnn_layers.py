@@ -286,7 +286,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
       if (p.skip_start >= 0 and i >= p.skip_start and
           (p.num_input_nodes <= 0 or i != 0) and
           (p.num_output_nodes <= 0 or i != p.num_layers - 1)):
-        ys = self.fns.qadd(ys, xs, qt='residual')
+        ys = self.fns.qadd(ys, xs, qout_name='residual')
       xs = ys
     return xs, state1
 
@@ -362,7 +362,7 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
       if (p.skip_start >= 0 and i >= p.skip_start and
           (p.num_input_nodes <= 0 or i != 0) and
           (p.num_output_nodes <= 0 or i != p.num_layers - 1)):
-        ys = self.fns.qadd(ys, xs, qt='residual')
+        ys = self.fns.qadd(ys, xs, qout_name='residual')
       xs = ys
     return xs
 

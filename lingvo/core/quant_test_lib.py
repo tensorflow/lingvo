@@ -71,7 +71,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     #     the provided name should match a call to self.TrackQTensor in the
     #     constructor. This creates an tensor that is individually accounted
     #     for.
-    w = fns.qweight(theta.w)
+    w = self.QWeight(theta.w)
 
     inputs = self.QTensor('inputs', inputs)
 
@@ -85,7 +85,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
 
     # Note the use of the qmatmul from the function library. This will
     # automatically track the output against the qtensor 'transformed'.
-    out = fns.qmatmul(reshaped_inputs, w, qt='transformed')
+    out = fns.qmatmul(reshaped_inputs, w, qout_name='transformed')
     out = self.FromAqtMatmul('w', out)
 
     out = tf.reshape(out, tf.concat([tf.shape(inputs)[:-1], [p.output_dim]], 0))

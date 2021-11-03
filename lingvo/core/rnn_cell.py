@@ -148,7 +148,7 @@ class RNNCell(quant_utils.QuantizableLayer):
                zo_prob,
                is_eval,
                random_uniform,
-               qt=None,
+               qout_name=None,
                qdomain=''):
     """Apply ZoneOut regularlization to cur_v.
 
@@ -163,7 +163,7 @@ class RNNCell(quant_utils.QuantizableLayer):
       is_eval: A bool, whether or not in eval mode.
       random_uniform: a tensor of random uniform numbers. This can be None if
         zo_prob=0.0
-      qt: A string, name of the qtensor for zone out math.
+      qout_name: A string, name of the qtensor for zone out math.
       qdomain: A string, name of the qdomain for quantized zone out math.
 
     Returns:
@@ -185,7 +185,7 @@ class RNNCell(quant_utils.QuantizableLayer):
       # verified.
       prev_weight = self.QWeight(tf.cast(zo_prob, prev_v.dtype), domain=qdomain)
       new_weight = self.QWeight(1.0 - prev_weight, domain=qdomain)
-      if qt is None:
+      if qout_name is None:
         mix_prev = tf.multiply(tf.fill(tf.shape(prev_v), prev_weight), prev_v)
         mix_curr = tf.multiply(tf.fill(tf.shape(cur_v), new_weight), cur_v)
         mix = tf.add(mix_prev, mix_curr)
@@ -194,12 +194,12 @@ class RNNCell(quant_utils.QuantizableLayer):
             self.QWeight(
                 tf.fill(tf.shape(prev_v), prev_weight), domain=qdomain),
             prev_v,
-            qt=qt)
+            qout_name=qout_name)
         mix_curr = fns.qmultiply(
             self.QWeight(tf.fill(tf.shape(cur_v), new_weight), domain=qdomain),
             cur_v,
-            qt=qt)
-        mix = fns.qadd(mix_prev, mix_curr, qt=qt)
+            qout_name=qout_name)
+        mix = fns.qadd(mix_prev, mix_curr, qout_name=qout_name)
 
       # If padding_v is 1, it always carries over the previous state.
       return py_utils.ApplyPadding(padding_v, mix, prev_v)
@@ -555,7 +555,7 @@ class LSTMCellSimple(RNNCell):
   def _RetrieveAndSplitGates(self, xmw, theta):
     p = self.params
     b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
-    xmw = self.fns.qadd(xmw, b, qt='add_bias')
+    xmw = self.fns.qadd(xmw, b, qout_name='add_bias')
     gates = tf.split(value=xmw, num_or_size_splits=self.num_gates, axis=1)
     if p.couple_input_forget_gates:
       gates = gates[0], None, gates[1], gates[2]
@@ -566,17 +566,19 @@ class LSTMCellSimple(RNNCell):
     fns = self.fns
     if not p.couple_input_forget_gates:
       assert i_g is not None
-      forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
+      forget_gate = fns.qmultiply(
+          tf.sigmoid(f_g), state0.c, qout_name='c_input_gate')
       # Sigmoid / tanh calls are not quantized under the assumption they share
       # the range with c_input_gate and c_forget_gate.
       input_gate = fns.qmultiply(
-          tf.sigmoid(i_g), tf.tanh(i_i), qt='c_forget_gate')
-      new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+          tf.sigmoid(i_g), tf.tanh(i_i), qout_name='c_forget_gate')
+      new_c = fns.qadd(forget_gate, input_gate, qout_name='c_output_gate')
     else:
       assert i_g is None
       # Sigmoid / tanh calls are not quantized under the assumption they share
       # the range with c_input_gate and c_forget_gate.
-      forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
+      forget_gate = fns.qmultiply(
+          tf.sigmoid(f_g), state0.c, qout_name='c_input_gate')
 
       # input_gate = tanh(i_i) - tanh(i_i) * tf.sigmoid(f_g)
       # equivalent to (but more stable in fixed point):
@@ -584,10 +586,10 @@ class LSTMCellSimple(RNNCell):
       tanh_i_i = tf.tanh(i_i)
       input_gate = fns.qsubtract(
           tanh_i_i,
-          fns.qmultiply(tanh_i_i, tf.sigmoid(f_g), qt='c_couple_invert'),
-          qt='c_forget_gate')
+          fns.qmultiply(tanh_i_i, tf.sigmoid(f_g), qout_name='c_couple_invert'),
+          qout_name='c_forget_gate')
 
-      new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+      new_c = fns.qadd(forget_gate, input_gate, qout_name='c_output_gate')
 
     new_c = self._ProcessNewC(theta, new_c)
 
@@ -595,16 +597,17 @@ class LSTMCellSimple(RNNCell):
     if p.cell_value_cap is not None:
       new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
     if p.output_nonlinearity:
-      new_m = fns.qmultiply(tf.sigmoid(o_g), tf.tanh(new_c), qt='m_output')
+      new_m = fns.qmultiply(
+          tf.sigmoid(o_g), tf.tanh(new_c), qout_name='m_output')
     else:
-      new_m = fns.qmultiply(tf.sigmoid(o_g), new_c, qt='m_output')
+      new_m = fns.qmultiply(tf.sigmoid(o_g), new_c, qout_name='m_output')
     if p.num_hidden_nodes:
       w_proj = theta.w_proj
       if p.apply_pruning_to_projection:
         w_proj = tf.multiply(w_proj, theta.proj_mask, 'masked_projection')
       w_proj = self.QWeight(w_proj, domain='m_state')
 
-      new_m = fns.qmatmul(new_m, w_proj, qt='m_output_projection')
+      new_m = fns.qmatmul(new_m, w_proj, qout_name='m_output_projection')
 
     # Apply Zoneout.
     return self._ApplyZoneOut(state0, inputs, new_c, new_m)
@@ -1290,7 +1293,7 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
       # i_g is None when p.couple_input_forget_gates is True.
       if gates[i] is not None:
         gates[i] = _LayerNorm(gates[i]) * tf.expand_dims(ln_scales[i], 0)
-        gates[i] = self.fns.qadd(gates[i], bs[i], qt='add_bias_{}'.format(i))
+        gates[i] = self.fns.qadd(gates[i], bs[i], qout_name=f'add_bias_{i}')
 
     if not p.couple_input_forget_gates:
       i_i, i_g, f_g, o_g = gates

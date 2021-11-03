@@ -37,23 +37,23 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
 
       # Just testing one dynamic and one const op.
       # Dynamic.
-      fns.qadd(1, 1, qt='test')
+      fns.qadd(1, 1, qout_name='test')
       fns.qadd(1, 1, qmin=-1.0, qmax=1.0)
-      with self.assertRaises(AssertionError):
+      with self.assertRaises(ValueError):
         fns.qadd(1, 1)  # No range args.
-      with self.assertRaises(AssertionError):
+      with self.assertRaises(ValueError):
         fns.qadd(1, 1, qmin=-1.0)  # Incomplete range args.
-      with self.assertRaises(AssertionError):
+      with self.assertRaises(ValueError):
         fns.qadd(1, 1, qmax=-1.0)  # Incomplete range args.
       with self.assertRaisesRegex(AssertionError, 'first calling TrackQTensor'):
-        fns.qadd(1, 1, qt='non_existing')  # Test that qt is resolved.
+        fns.qadd(1, 1, qout_name='non_existing')  # Test qout_name is resolved.
 
       # Const.
       fns.qtanh(6.0)  # No min/max.
       fns.qtanh(6.0, qmin=-5.0, qmax=6.0)  # Min/max
-      fns.qtanh(6.0, qt='test')
+      fns.qtanh(6.0, qout_name='test')
       with self.assertRaisesRegex(AssertionError, 'first calling TrackQTensor'):
-        fns.qtanh(6.0, qt='non_existing')  # Test that qt has precedence.
+        fns.qtanh(6.0, qout_name='non_existing')  # Test qout_name precedence.
 
   def testLayerWithNoQDomain(self):
     with self.session():
