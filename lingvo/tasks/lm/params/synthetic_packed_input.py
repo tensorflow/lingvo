@@ -254,6 +254,21 @@ class DenseLm175B32x32(DenseLm128B16x16):
       np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
 
 
+# On v3-2048:
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr --model=lm.synthetic_packed_input.DenseLm175B32x32DP \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=1024 \
+# --ps_replicas=128 --job=executor_tpu --disable_tf2=true
+@model_registry.RegisterSingleTaskModel
+class DenseLm175B32x32DP(DenseLm175B32x32):
+  """175B model running on v3-2048 with 2-way data parallelism."""
+  NUM_DEVICES_PER_SPLIT = 1024
+  TRAIN_STEPS_PER_LOOP = 20
+  DEVICE_MESH_SHAPE = [64, 16]
+  DEVICE_MESH = gshard_utils.GetNonPod2dMesh([16, 64], [16, 32, 2]).transpose()
+  MODEL_DIM_RESHAPE_SEGMENTS = [16]
+
+
 @model_registry.RegisterSingleTaskModel
 class DenseLM13B32x32(DenseLm175B32x32):
   MODEL_DIM = 5120
