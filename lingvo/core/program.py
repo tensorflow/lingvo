@@ -1694,11 +1694,13 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       decode_steps_per_loop is ignored (and not required). Currently do not
       support ExperimentalDecodeProgram, which uses loop on TPU. So keep
       experimental_decoder=False
-    postprocess_all_at_once: bool. Whether to postprocess all the (combined)
+    postprocess_all_at_once: bool/List. Whether to postprocess the (combined)
       batches at once at the end of Decode program, instead of once per step.
       This is needed if one needs to reference/combine data across different
       batches/steps during postprocess. The PostProcess(DecodeOut) function
-      should define the logic of aggregating across steps/batches.
+      should define the logic of aggregating across steps/batches. Can be a
+      single value or a list of values corresponding to the entries in
+      eval_dataset_names.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -1730,6 +1732,14 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                        'decode_steps_per_loop is not specified (None).')
   else:
     decode_steps_per_loop = [decode_steps_per_loop] * len(eval_dataset_names)
+  if isinstance(postprocess_all_at_once, list):
+    if len(postprocess_all_at_once) != len(eval_dataset_names):
+      raise ValueError('postprocess_all_at_once doesn\'t match the size of '
+                       f'eval_dataset_names: {len(postprocess_all_at_once)} vs '
+                       f'{len(eval_dataset_names)}.')
+  else:
+    postprocess_all_at_once = [postprocess_all_at_once
+                              ] * len(eval_dataset_names)
 
   for idx, dataset_name in enumerate(eval_dataset_names):
     program_schedule_params.dataset_names.append(dataset_name)
@@ -1747,14 +1757,14 @@ def SimpleProgramScheduleForTask(train_dataset_name,
             'experimental_decoder must be False for decode_until_out_of_range')
       decoder_param = _CreateProgramParams(DecodeProgram, 'decode_tpu',
                                            dataset_name, -1)
-      decoder_param.postprocess_all_at_once = postprocess_all_at_once
+      decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
       program_schedule_params.eval_programs.append(decoder_param)
     elif decode_steps_per_loop[idx] > 0:
       decoder = (
           ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
       decoder_param = _CreateProgramParams(decoder, 'decode_tpu', dataset_name,
                                            decode_steps_per_loop[idx])
-      decoder_param.postprocess_all_at_once = postprocess_all_at_once
+      decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
       program_schedule_params.eval_programs.append(decoder_param)
 
   return program_schedule_params
