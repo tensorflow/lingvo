@@ -130,6 +130,27 @@ class InputTest(test_util.JaxTestCase):
     batch = inp2.get_next()
     self.assertArraysEqual(np.array([0, 1], dtype=np.int32), batch.num)
 
+  def test_lingvo_tfdata_input(self):
+    num_batches = 10
+
+    def testdata():
+
+      def to_map(i):
+        return py_utils.NestedMap(data=i)
+
+      return tf.data.Dataset.range(num_batches).map(to_map)
+
+    input_p = base_input_generator.DefineTFDataInput('TestData',
+                                                     testdata).Params()
+    p = base_input.LingvoInputAdaptor.Params().Set(input=input_p)
+    inp = p.Instantiate()
+    for i in range(int(num_batches * 2.5)):
+      x = inp.get_next()
+      self.assertEqual(x.data, i % num_batches)
+    inp.reset()
+    x = inp.get_next()
+    self.assertEqual(x.data, 0)
+
   def test_tfdata_input(self):
     p = TestInput.Params()
     p.num_infeed_hosts = 3

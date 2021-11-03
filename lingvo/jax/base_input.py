@@ -15,6 +15,7 @@
 # ==============================================================================
 """Base classes for the lingvo Jax input layers."""
 
+from lingvo.core import datasource
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 import tensorflow.compat.v2 as tf
@@ -142,6 +143,7 @@ class LingvoInputAdaptor(BaseInput):
     self._initialize()
 
   def _initialize(self) -> None:
+    """Initializes the relevant fields of this adaptor input."""
     p = self.params
     # We make self.input public so that users can access its methods like
     # IdsToStrings if needed.
@@ -149,7 +151,15 @@ class LingvoInputAdaptor(BaseInput):
         infeed_host_index=p.infeed_host_index,
         num_infeed_hosts=p.num_infeed_hosts):
       self.input = p.input.Instantiate()
-    self._get_next_fn = tf.function(self._get_batch)
+
+    if hasattr(self.input, 'datasource') and isinstance(
+        self.input.datasource, datasource.TFDatasetSource):
+      # For the special case when the input is implemented by a tf.data.Dataset,
+      # use it directly. Otherwise roundtrip adaptions may result in returning
+      # duplciate batches.
+      self._get_next_fn = self.input.datasource.GetNext
+    else:
+      self._get_next_fn = tf.function(self._get_batch)
     self._num_batches_produced = 0
 
   def _get_batch(self) -> NestedMap:
@@ -174,5 +184,9 @@ class LingvoInputAdaptor(BaseInput):
     return tf.nest.map_structure(lambda x: x.numpy(), ret)
 
   def reset(self) -> None:
+    if hasattr(self.input, 'datasource') and isinstance(
+        self.input.datasource, datasource.TFDatasetSource):
+      self.input.datasource.Reset()
+      return
     # reinstantiate the input and retrace self._get_batch.
     self._initialize()

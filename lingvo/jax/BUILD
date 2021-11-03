@@ -54,6 +54,7 @@ pytype_strict_library(
     deps = [
         ":py_utils",
         ":pytypes",
+        "//lingvo/core:datasource",
         # Implicit tensorflow dependency.
     ],
 )
