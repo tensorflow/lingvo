@@ -80,64 +80,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-lingvo.core.activations">
-<span id="lingvo-core-activations-module"></span><h1>lingvo.core.activations module<a class="headerlink" href="#module-lingvo.core.activations" title="Permalink to this headline"></a></h1>
-<p>Activations layers.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.activations.GetFn">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.activations.</span></span><span class="sig-name descname"><span class="pre">GetFn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activation_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/activations.html#GetFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.activations.GetFn" title="Permalink to this definition"></a></dt>
-<dd><p>Returns function corresponding to the activation name.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.activations.GetFlops">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.activations.</span></span><span class="sig-name descname"><span class="pre">GetFlops</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activation_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/activations.html#GetFlops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.activations.GetFlops" title="Permalink to this definition"></a></dt>
-<dd><p>Returns FLOPS corresponding to the activation name.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.activations.IsSupported">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.activations.</span></span><span class="sig-name descname"><span class="pre">IsSupported</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activation_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/activations.html#IsSupported"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.activations.IsSupported" title="Permalink to this definition"></a></dt>
-<dd><p>Checks if the activation is supported.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="lingvo.core.activations.ActivationLayer">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.activations.</span></span><span class="sig-name descname"><span class="pre">ActivationLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/activations.html#ActivationLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.activations.ActivationLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>Activation layer.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.activations.ActivationLayer.Params">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/activations.html#ActivationLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.activations.ActivationLayer.Params" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.activations.ActivationLayer.FProp">
-<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/activations.html#ActivationLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.activations.ActivationLayer.FProp" title="Permalink to this definition"></a></dt>
-<dd><p>Applies activation fn.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</p></li>
-<li><p><strong>inputs</strong> – The input tensor.</p></li>
-<li><p><strong>paddings</strong> – The paddings tensor.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>If paddings is not None, an (output, paddings) tensor, else just the
-output with the same shape and type of inputs.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.activations.ActivationLayer.FPropMeta">
-<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">FPropMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/activations.html#ActivationLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.activations.ActivationLayer.FPropMeta" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
+  <section id="lingvo-core-activations-module">
+<h1>lingvo.core.activations module<a class="headerlink" href="#lingvo-core-activations-module" title="Permalink to this headline"></a></h1>
 </section>
 
 
