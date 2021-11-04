@@ -80,87 +80,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-lingvo.tasks.asr.decoder_utils">
-<span id="lingvo-tasks-asr-decoder-utils-module"></span><h1>lingvo.tasks.asr.decoder_utils module<a class="headerlink" href="#module-lingvo.tasks.asr.decoder_utils" title="Permalink to this headline"></a></h1>
-<p>Common utilities for ASR decoders.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils._IsSymbolOrPositive">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">_IsSymbolOrPositive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#_IsSymbolOrPositive"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils._IsSymbolOrPositive" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils.SetRnnCellNodes">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">SetRnnCellNodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoder_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rnn_cell_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#SetRnnCellNodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.SetRnnCellNodes" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils.Tokenize">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">Tokenize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#Tokenize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.Tokenize" title="Permalink to this definition"></a></dt>
-<dd><p>Returns a list containing non-empty tokens from the given string.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils.ComputeWer">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">ComputeWer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#ComputeWer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.ComputeWer" title="Permalink to this definition"></a></dt>
-<dd><p>Computes word errors in hypotheses relative to reference transcripts.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>hyps</strong> – Hypotheses, represented as string tensors of shape [N].</p></li>
-<li><p><strong>refs</strong> – References, represented as string tensors of shape [N].</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An int64 tensor, word_errs, of size [N, 2] where word_errs[i, 0] corresponds
-to the number of word errors in hyps[i] relative to refs[i]; word_errs[i, 1]
-corresponds to the number of words in refs[i].</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils.EditDistance">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">EditDistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyp_str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#EditDistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.EditDistance" title="Permalink to this definition"></a></dt>
-<dd><p>Computes Levenshtein edit distance between reference and hypotheses.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ref_str</strong> – A string of the ref sentence.</p></li>
-<li><p><strong>hyp_str</strong> – A string of one actual hyp.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p>ins:         number of insertions.</p></li>
-<li><p>subs:        number of substitutions.</p></li>
-<li><p>del:         number of deletions.</p></li>
-<li><p>total:       total difference length.</p></li>
-</ul>
-</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>(ins, subs, del, total)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils.EditDistanceInIds">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">EditDistanceInIds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyp_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#EditDistanceInIds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.EditDistanceInIds" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils.FilterEpsilon">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">FilterEpsilon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#FilterEpsilon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.FilterEpsilon" title="Permalink to this definition"></a></dt>
-<dd><p>Filters out &lt;epsilon&gt; tokens from the given string.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.decoder_utils.FilterNoise">
-<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.decoder_utils.</span></span><span class="sig-name descname"><span class="pre">FilterNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder_utils.html#FilterNoise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder_utils.FilterNoise" title="Permalink to this definition"></a></dt>
-<dd><p>Filters out &lt;noise&gt; tokens from the given string.</p>
-</dd></dl>
-
+  <section id="lingvo-tasks-asr-decoder-utils-module">
+<h1>lingvo.tasks.asr.decoder_utils module<a class="headerlink" href="#lingvo-tasks-asr-decoder-utils-module" title="Permalink to this headline"></a></h1>
 </section>
 
 
