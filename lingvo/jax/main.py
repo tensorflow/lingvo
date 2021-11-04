@@ -24,6 +24,7 @@ $ bazel run -c opt \
 
 import random
 import time
+from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
@@ -70,7 +71,7 @@ flags.DEFINE_bool(
 # Flags --jax_backend_target and --jax_xla_backend are available through JAX.
 
 
-def globally_use_rbg_prng_key():
+def globally_use_rbg_prng_key() -> None:
   logging.info('Globally use RngBitGenerator-based RNG: '
                'Deterministic at the same compiler version and sharding;'
                'Non-deterministic when compiler versions change')
@@ -81,25 +82,20 @@ def globally_use_rbg_prng_key():
   jax.random.PRNGKey = rbg_key
 
 
-def wait_with_random_jitter(min_secs: int, max_secs: int) -> None:
-  """Sleeps for a random short interval to avoid thundering herd RPC calls."""
-  time.sleep(random.randint(min_secs, max_secs))
-
-
-def main(argv):
-  del argv  # Unused
-
+def setup_jax(globally_use_hardware_rng: bool,
+              jax_backend_target: Optional[str],
+              jax_xla_backend: Optional[str]) -> None:
+  """Setups JAX and logs information about this job."""
   # Hide any GPUs from TensorFlow. Otherwise TF might reserve memory and make
   # it unavailable to JAX.
   tf.config.experimental.set_visible_devices([], 'GPU')
-  if FLAGS.globally_use_hardware_rng:
+  if globally_use_hardware_rng:
     jax.config.update('jax_enable_custom_prng', True)
     globally_use_rbg_prng_key()
 
-  if FLAGS.jax_backend_target:
-    logging.info('Using JAX backend target %s', FLAGS.jax_backend_target)
-    jax_xla_backend = ('None' if FLAGS.jax_xla_backend is None else
-                       FLAGS.jax_xla_backend)
+  if jax_backend_target:
+    logging.info('Using JAX backend target %s', jax_backend_target)
+    jax_xla_backend = 'None' if jax_xla_backend is None else jax_xla_backend
     logging.info('Using JAX XLA backend %s', jax_xla_backend)
 
   logging.info('JAX process: %d / %d', jax.process_index(), jax.process_count())
@@ -107,6 +103,19 @@ def main(argv):
   logging.info('jax.device_count(): %d', jax.device_count())
   logging.info('jax.local_device_count(): %d', jax.local_device_count())
   logging.info('jax.process_count(): %d', jax.process_count())
+
+
+def wait_with_random_jitter(min_secs: int, max_secs: int) -> None:
+  """Sleeps for a random short interval to avoid thundering herd RPC calls."""
+  time.sleep(random.randint(min_secs, max_secs))
+
+
+def main(argv: Sequence[str]) -> None:
+  if len(argv) > 1:
+    raise app.UsageError('Too many command-line arguments.')
+
+  setup_jax(FLAGS.globally_use_hardware_rng, FLAGS.jax_backend_target,
+            FLAGS.jax_xla_backend)
 
   # Add a note so that we can tell which Borg task is which JAX host.
   # (Borg task 0 is not guaranteed to be host 0)
