@@ -80,8 +80,264 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-base-decoder-module">
-<h1>lingvo.core.base_decoder module<a class="headerlink" href="#lingvo-core-base-decoder-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.base_decoder">
+<span id="lingvo-core-base-decoder-module"></span><h1>lingvo.core.base_decoder module<a class="headerlink" href="#module-lingvo.core.base_decoder" title="Permalink to this headline"></a></h1>
+<p>Common decoder interface.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_decoder.</span></span><span class="sig-name descname"><span class="pre">DecoderOutput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_sequence</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#tuple" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput._asdict">
+<span class="sig-name descname"><span class="pre">_asdict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._asdict" title="Permalink to this definition"></a></dt>
+<dd><p>Return a new dict which maps field names to their values.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput._field_defaults">
+<span class="sig-name descname"><span class="pre">_field_defaults</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._field_defaults" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput._fields">
+<span class="sig-name descname"><span class="pre">_fields</span></span><em class="property"> <span class="pre">=</span> <span class="pre">('metrics',</span> <span class="pre">'predictions',</span> <span class="pre">'per_sequence')</span></em><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._fields" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput._make">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">_make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._make" title="Permalink to this definition"></a></dt>
+<dd><p>Make a new DecoderOutput object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput._replace">
+<span class="sig-name descname"><span class="pre">_replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput._replace" title="Permalink to this definition"></a></dt>
+<dd><p>Return a new DecoderOutput object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput.metrics">
+<span class="sig-name descname"><span class="pre">metrics</span></span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput.metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput.per_sequence">
+<span class="sig-name descname"><span class="pre">per_sequence</span></span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput.per_sequence" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.DecoderOutput.predictions">
+<span class="sig-name descname"><span class="pre">predictions</span></span><a class="headerlink" href="#lingvo.core.base_decoder.DecoderOutput.predictions" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseDecoder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_decoder.</span></span><span class="sig-name descname"><span class="pre">BaseDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Base class for all decoders.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseDecoder.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseDecoder.UpdateTargetVocabSize">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">UpdateTargetVocabSize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wpm_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.UpdateTargetVocabSize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.UpdateTargetVocabSize" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the vocab size and wpm model in the params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – model params.</p></li>
+<li><p><strong>vocab_size</strong> – size of the vocabulary.</p></li>
+<li><p><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Model target vocabulary params updated with the vocab size and wpm model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseDecoder.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
+<li><p><strong>targets</strong> – A NestedMap containing additional inputs to the decoder,
+such as the targets being predicted.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A DecoderOutput namedtuple.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseDecoder.ComputePredictions">
+<span class="sig-name descname"><span class="pre">ComputePredictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.ComputePredictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.ComputePredictions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseDecoder.ComputeLoss">
+<span class="sig-name descname"><span class="pre">ComputeLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.ComputeLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.ComputeLoss" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_decoder.</span></span><span class="sig-name descname"><span class="pre">BaseBeamSearchDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_decoder.BaseDecoder" title="lingvo.core.base_decoder.BaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_decoder.BaseDecoder</span></code></a></p>
+<p>Decoder that does beam search.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.UpdateTargetVocabSize">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">UpdateTargetVocabSize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wpm_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.UpdateTargetVocabSize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.UpdateTargetVocabSize" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the vocab size and wpm model in the params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> – model params.</p></li>
+<li><p><strong>vocab_size</strong> – size of the vocabulary.</p></li>
+<li><p><strong>wpm_model</strong> – file name prefix pointing to a wordpiece model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Model target vocabulary params updated with the vocab size and wpm model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.AddExtraDecodingInfo">
+<span class="sig-name descname"><span class="pre">AddExtraDecodingInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.AddExtraDecodingInfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.AddExtraDecodingInfo" title="Permalink to this definition"></a></dt>
+<dd><p>Adds extra decoding information to encoded_outputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
+<li><p><strong>targets</strong> – a NestedMap containing target input fields.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>encoder_ouputs with extra information used for decoding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">
+<span class="sig-name descname"><span class="pre">BeamSearchDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.BeamSearchDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode" title="Permalink to this definition"></a></dt>
+<dd><p>Performs beam search based decoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_outputs</strong> – the outputs of the encoder.</p></li>
+<li><p><strong>num_hyps_per_beam_override</strong> – If set to a value &lt;= 0, this parameter is
+ignored. If set to a value &gt; 0, then this value will be used to override
+p.num_hyps_per_beam.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>, A namedtuple whose elements are tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecodeWithTheta">
+<span class="sig-name descname"><span class="pre">BeamSearchDecodeWithTheta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.BeamSearchDecodeWithTheta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecodeWithTheta" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.GreedySearchDecode">
+<span class="sig-name descname"><span class="pre">GreedySearchDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.GreedySearchDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.GreedySearchDecode" title="Permalink to this definition"></a></dt>
+<dd><p>Performs beam search based decoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>encoder_outputs</strong> – the outputs of the encoder.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>greedy search decode output.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.GreedySearchDecodeWithTheta">
+<span class="sig-name descname"><span class="pre">GreedySearchDecodeWithTheta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.GreedySearchDecodeWithTheta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.GreedySearchDecodeWithTheta" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.SampleTargetSequences">
+<span class="sig-name descname"><span class="pre">SampleTargetSequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.SampleTargetSequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.SampleTargetSequences" title="Permalink to this definition"></a></dt>
+<dd><p>Performs target sequence sampling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
+<li><p><strong>random_seed</strong> – a scalar int32 tensor representing the random seed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A NestedMap containing the following tensors</p>
+<ul class="simple">
+<li><p>’ids’: [batch, max_target_length] of int32, representing the target
+sequence ids, not including target_sos_id, but maybe ending with
+target_eos_id if target_eos_id is sampled.</p></li>
+<li><p>’paddings’: [batch, max_target_length] of 0/1, where 1 represents
+a padded timestep.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecodeBiased">
+<span class="sig-name descname"><span class="pre">BeamSearchDecodeBiased</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.BeamSearchDecodeBiased"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecodeBiased" title="Permalink to this definition"></a></dt>
+<dd><p>Performs beam-search decoding while biasing towards provided targets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder. Must include <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code>,
+which is used to bias beam search.</p></li>
+<li><p><strong>num_hyps_per_beam_override</strong> – If set to a value &lt;= 0, this parameter is
+ignored. If set to a value &gt; 0, then this value will be used to override
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">p.num_hyps_per_beam</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>BeamSearchDecodeOutput, a namedtuple containing the decode results.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.InferenceAdditionalEncoder">
+<span class="sig-name descname"><span class="pre">InferenceAdditionalEncoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feeds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.InferenceAdditionalEncoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.InferenceAdditionalEncoder" title="Permalink to this definition"></a></dt>
+<dd><p>Generate an inference graph for the additional encoder.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

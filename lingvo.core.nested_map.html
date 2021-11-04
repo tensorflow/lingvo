@@ -80,8 +80,279 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-nested-map-module">
-<h1>lingvo.core.nested_map module<a class="headerlink" href="#lingvo-core-nested-map-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.nested_map">
+<span id="lingvo-core-nested-map-module"></span><h1>lingvo.core.nested_map module<a class="headerlink" href="#module-lingvo.core.nested_map" title="Permalink to this headline"></a></h1>
+<p>NestedMap dict structure.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.nested_map._FromNestedDict">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.nested_map.</span></span><span class="sig-name descname"><span class="pre">_FromNestedDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#_FromNestedDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map._FromNestedDict" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.nested_map.</span></span><span class="sig-name descname"><span class="pre">_FromNestedDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">lingvo.core.nested_map.T</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.T</span></span></span></dt>
+<dd><p>Converts every dict in nested structure ‘x’ to a NestedMap.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.nested_map.</span></span><span class="sig-name descname"><span class="pre">NestedMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/typing.html#typing.Dict" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3.7/library/typing.html#typing.Any" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Any</span></code></a>]</p>
+<p>A simple helper to maintain a dict.</p>
+<dl class="simple">
+<dt>It is a sub-class of dict with the following extensions/restrictions:</dt><dd><ul class="simple">
+<li><p>It supports attr access to its members (see examples below).</p></li>
+<li><p>Member keys have to be valid identifiers.</p></li>
+</ul>
+</dd>
+</dl>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">foo</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">foo</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">foo</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">foo</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">==</span> <span class="n">foo</span><span class="o">.</span><span class="n">y</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap._HAS_DYNAMIC_ATTRIBUTES">
+<span class="sig-name descname"><span class="pre">_HAS_DYNAMIC_ATTRIBUTES</span></span><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#lingvo.core.nested_map.NestedMap._HAS_DYNAMIC_ATTRIBUTES" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap._RESERVED_KEYS">
+<span class="sig-name descname"><span class="pre">_RESERVED_KEYS</span></span><em class="property"> <span class="pre">=</span> <span class="pre">frozenset({'__class__',</span> <span class="pre">'__class_getitem__',</span> <span class="pre">'__contains__',</span> <span class="pre">'__delattr__',</span> <span class="pre">'__delitem__',</span> <span class="pre">'__dir__',</span> <span class="pre">'__doc__',</span> <span class="pre">'__eq__',</span> <span class="pre">'__format__',</span> <span class="pre">'__ge__',</span> <span class="pre">'__getattribute__',</span> <span class="pre">'__getitem__',</span> <span class="pre">'__gt__',</span> <span class="pre">'__hash__',</span> <span class="pre">'__init__',</span> <span class="pre">'__init_subclass__',</span> <span class="pre">'__ior__',</span> <span class="pre">'__iter__',</span> <span class="pre">'__le__',</span> <span class="pre">'__len__',</span> <span class="pre">'__lt__',</span> <span class="pre">'__ne__',</span> <span class="pre">'__new__',</span> <span class="pre">'__or__',</span> <span class="pre">'__reduce__',</span> <span class="pre">'__reduce_ex__',</span> <span class="pre">'__repr__',</span> <span class="pre">'__reversed__',</span> <span class="pre">'__ror__',</span> <span class="pre">'__setattr__',</span> <span class="pre">'__setitem__',</span> <span class="pre">'__sizeof__',</span> <span class="pre">'__str__',</span> <span class="pre">'__subclasshook__',</span> <span class="pre">'clear',</span> <span class="pre">'copy',</span> <span class="pre">'fromkeys',</span> <span class="pre">'get',</span> <span class="pre">'items',</span> <span class="pre">'keys',</span> <span class="pre">'pop',</span> <span class="pre">'popitem',</span> <span class="pre">'setdefault',</span> <span class="pre">'update',</span> <span class="pre">'values'})</span></em><a class="headerlink" href="#lingvo.core.nested_map.NestedMap._RESERVED_KEYS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap._DELETE">
+<span class="sig-name descname"><span class="pre">_DELETE</span></span><em class="property"> <span class="pre">=</span> <span class="pre">&lt;object</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#lingvo.core.nested_map.NestedMap._DELETE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">a</span> <span class="pre">shallow</span> <span class="pre">copy</span> <span class="pre">of</span> <span class="pre">D</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.copy" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.DeepCopy">
+<span class="sig-name descname"><span class="pre">DeepCopy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.NestedMapT</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.DeepCopy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.DeepCopy" title="Permalink to this definition"></a></dt>
+<dd><p>Deep-copies the structure but not the leaf objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.FromNestedDict">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">FromNestedDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.FromNestedDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.FromNestedDict" title="Permalink to this definition"></a></dt>
+<dd><p>Converts every dict in nested structure ‘x’ to a NestedMap.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.ToNestedDict">
+<span class="sig-name descname"><span class="pre">ToNestedDict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.ToNestedDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.ToNestedDict" title="Permalink to this definition"></a></dt>
+<dd><p>Converts every NestedMap in nested structure to a ‘dict’ instance.</p>
+<p>This is relevant for code that checks a dictionary’s exact type, instead of
+isinstance (e.g. parts of tf.data). In those cases, we need a ‘dict’ object,
+not NestedMap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>‘dict’ instance where nested NestedMaps are also converted to ‘dict’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.CheckKey">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">CheckKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.CheckKey"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.CheckKey" title="Permalink to this definition"></a></dt>
+<dd><p>Asserts that key is valid NestedMap key.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.SquareBracketIndex">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">SquareBracketIndex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.SquareBracketIndex"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.SquareBracketIndex" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts the name and the index from the indexed key (e.g., k[0]).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.GetItem">
+<span class="sig-name descname"><span class="pre">GetItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.GetItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.GetItem" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the value for the nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code>.</p>
+<p>Names with underscores will be considered as one key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>key</strong> – str of the form
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.</span></code>.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The value for the given nested key.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#KeyError" title="(in Python v3.7)"><strong>KeyError</strong></a> – if a key is not present.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#IndexError" title="(in Python v3.7)"><strong>IndexError</strong></a> – when an intermediate item is a list and we try to access
+    an element which is out of range.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#TypeError" title="(in Python v3.7)"><strong>TypeError</strong></a> – when an intermediate item is a list and we try to access
+    an element of it with a string.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.Get">
+<span class="sig-name descname"><span class="pre">Get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.Get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.Get" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the value for nested <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code>, returns <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> if key does not exist.</p>
+<p>Names with underscores will be considered as one key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – str of the form
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">([A-Za-z_][A-Za-z0-9_]*)(.[A-Za-z_][A-Za-z0-9_]*)*.</span></code>.</p></li>
+<li><p><strong>default</strong> – Optional default value, defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The value for the given nested key or <code class="xref py py-obj docutils literal notranslate"><span class="pre">default</span></code> if the key does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.Set">
+<span class="sig-name descname"><span class="pre">Set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.Set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.Set" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the value for a nested key.</p>
+<p>There is limited support for indexing lists when square bracket indexing is
+used, e.g., key[0], key[1], etc. Names with underscores will be considered
+as one key. When key[idx] is set, all of the values with indices before idx
+must be already set. E.g., setting key=’a[2]’ to value=42 when
+key=’a’ wasn’t referenced before will throw a ValueError. Setting key=’a[0]’
+will not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – str of the form key_part1.key_part2…key_partN where each key_part
+is of the form <code class="xref py py-obj docutils literal notranslate"><span class="pre">[A-Za-z_][A-Za-z0-9_]*</span></code> or
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">[A-Za-z_][A-Za-z0-9_]*[d+]</span></code></p></li>
+<li><p><strong>value</strong> – The value to insert.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError if a sub key is not a NestedMap</strong><strong> or </strong><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)"><strong>dict</strong></a><strong> or </strong><strong>idx &gt; list length</strong> – </p></li>
+<li><p><strong>for key='key</strong><strong>[</strong><strong>idx</strong><strong>]</strong><strong>'.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap._RecursiveMap">
+<span class="sig-name descname"><span class="pre">_RecursiveMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flatten</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">False</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.NestedMapT</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap._RecursiveMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap._RecursiveMap" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_RecursiveMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flatten</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">True</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Traverse recursively into lists, dicts, and NestedMaps applying <code class="xref py py-obj docutils literal notranslate"><span class="pre">fn</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn</strong> – The function to apply to each item (leaf node).</p></li>
+<li><p><strong>flatten</strong> – If true, the result should be a single flat list. Otherwise the
+result will have the same structure as this NestedMap.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The result of applying fn.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.Flatten">
+<span class="sig-name descname"><span class="pre">Flatten</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.Flatten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.Flatten" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a list containing the flattened values in the <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+<p>Unlike py_utils.Flatten(), this will only descend into lists, dicts, and
+NestedMaps and not tuples, or namedtuples.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.FlattenItems">
+<span class="sig-name descname"><span class="pre">FlattenItems</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.FlattenItems"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.FlattenItems" title="Permalink to this definition"></a></dt>
+<dd><p>Flatten the <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns &lt;key, value&gt; pairs in a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of &lt;key, value&gt; pairs, where keys for nested entries will be
+represented in the form of <code class="xref py py-obj docutils literal notranslate"><span class="pre">foo.bar[10].baz</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.Pack">
+<span class="sig-name descname"><span class="pre">Pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.NestedMapT</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.Pack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.Pack" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a copy of this with each value replaced by a value in lst.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.Transform">
+<span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.NestedMapT</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.Transform" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fn applied on each value.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.TransformWithKey">
+<span class="sig-name descname"><span class="pre">TransformWithKey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.NestedMapT</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.TransformWithKey"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.TransformWithKey" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fn applied on each key/value.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.IsCompatible">
+<span class="sig-name descname"><span class="pre">IsCompatible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">lingvo.core.nested_map.NestedMap</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.IsCompatible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.IsCompatible" title="Permalink to this definition"></a></dt>
+<dd><p>Returns true if self and other are compatible.</p>
+<p>If x and y are two compatible <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.Pack(y.Flatten())</span></code> produces y
+and vice versa.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> – Another <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.Filter">
+<span class="sig-name descname"><span class="pre">Filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.NestedMapT</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.Filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.Filter" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a copy with entries where fn(entry) is True.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.FilterKeyVal">
+<span class="sig-name descname"><span class="pre">FilterKeyVal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.nested_map.NestedMapT</span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.FilterKeyVal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.FilterKeyVal" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> filtered by fn.</p>
+<p>If fn(key, entry) is True, the entry is copied into the returned NestedMap.
+Otherwise, it is not copied.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fn</strong> – a callable of (string, entry)-&gt;boolean.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> contains copied entries from this <code class="xref py py-obj docutils literal notranslate"><span class="pre">'.NestedMap</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap._ToStrings">
+<span class="sig-name descname"><span class="pre">_ToStrings</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap._ToStrings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap._ToStrings" title="Permalink to this definition"></a></dt>
+<dd><p>Returns debug strings in a list for this <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.DebugString">
+<span class="sig-name descname"><span class="pre">DebugString</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.DebugString"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.DebugString" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a debug string for this <a class="reference internal" href="#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.nested_map.NestedMap.VLog">
+<span class="sig-name descname"><span class="pre">VLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/nested_map.html#NestedMap.VLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.nested_map.NestedMap.VLog" title="Permalink to this definition"></a></dt>
+<dd><p>Logs the debug string at the level.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

@@ -379,7 +379,8 @@
              <span class="n">subgraph_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">disable_packed_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-             <span class="n">prune_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+             <span class="n">prune_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+             <span class="n">export_graph_collections</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exports a InferenceGraph proto with piecewise subgraphs.</span>
 
 <span class="sd">    Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</span>
@@ -403,6 +404,8 @@
 <span class="sd">      random_seed: Fixes the random seed in the exported inference graph.</span>
 <span class="sd">      disable_packed_input: Disable packed input for inference writing purposes.</span>
 <span class="sd">      prune_graph: If true, prune the graph to just the parts we need.</span>
+<span class="sd">      export_graph_collections: If true, export graph collections to the</span>
+<span class="sd">      InferenceGraph proto.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      InferenceGraph proto.</span>
@@ -564,11 +567,12 @@
 
     <span class="c1"># Collection defs</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
-      <span class="n">meta_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">export_meta_graph</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">meta_graph</span><span class="o">.</span><span class="n">collection_def</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;copying collection </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-        <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">collection_def</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span>
-            <span class="n">meta_graph</span><span class="o">.</span><span class="n">collection_def</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">export_graph_collections</span><span class="p">:</span>
+        <span class="n">meta_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">export_meta_graph</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">meta_graph</span><span class="o">.</span><span class="n">collection_def</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;copying collection </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+          <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">collection_def</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span>
+              <span class="n">meta_graph</span><span class="o">.</span><span class="n">collection_def</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Not exporting collection defs &#39;</span>
                          <span class="s1">&#39;since operating in eager mode.&#39;</span><span class="p">)</span>

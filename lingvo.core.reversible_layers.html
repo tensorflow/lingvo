@@ -80,8 +80,142 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-reversible-layers-module">
-<h1>lingvo.core.reversible_layers module<a class="headerlink" href="#lingvo-core-reversible-layers-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.reversible_layers">
+<span id="lingvo-core-reversible-layers-module"></span><h1>lingvo.core.reversible_layers module<a class="headerlink" href="#module-lingvo.core.reversible_layers" title="Permalink to this headline"></a></h1>
+<p>Reversible layers for memory efficient Backpropagation.</p>
+<dl class="simple">
+<dt>[1] The Reversible Residual Network: Backpropagation Without Storing Activations</dt><dd><p><a class="reference external" href="https://arxiv.org/abs/1707.04585">https://arxiv.org/abs/1707.04585</a></p>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.reversible_layers.RevNetLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.reversible_layers.</span></span><span class="sig-name descname"><span class="pre">RevNetLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A reversible residual block.</p>
+<p>Computes y1 = x1 + f(x2), y2 = x2 + g(y1), where f and g can be arbitrary
+functions that retain the input tensor shape.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.reversible_layers.RevNetLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.reversible_layers.RevNetLayer.ReverseAndGrad">
+<span class="sig-name descname"><span class="pre">ReverseAndGrad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_seed</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">extra_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer.ReverseAndGrad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer.ReverseAndGrad" title="Permalink to this definition"></a></dt>
+<dd><p>Implements Algorithm 1 in the revnet paper.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>outputs</strong> – A NestedMap: .split1 and .split2 corresponding to y1 and y2.</p></li>
+<li><p><strong>d_outputs</strong> – A NestedMap: .split1 and .split2 corresponding to dy1 and dy2,
+the total derivatives.</p></li>
+<li><p><strong>f_seed</strong> – Scalar tensor. The step seed used in forward for the f block.</p></li>
+<li><p><strong>g_seed</strong> – Scalar tensor. The step seed used in forward for the g block. The
+step seeds are needed for deterministic randomness, e.g. to ensure
+dropout generate the same random mask in forward and reverse_grad.</p></li>
+<li><p><strong>*extra_inputs</strong> – additional inputs that will be passed to both f and g. No
+gradient will be computed for these inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of NestedMaps</p>
+<ul class="simple">
+<li><p>inputs: .split1 and .split2 corresponding to x1 and x2.</p></li>
+<li><p>d_inputs: .split1 and .split2 corresponding to dx1 and dx2, the total
+derivatives with respect to inputs.</p></li>
+<li><p>d_theta: has the same structure as theta. The total derivatives with
+respect to weights.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.reversible_layers.RevNetLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">extra_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#RevNetLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.reversible_layers.RevNetLayer.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Forward pass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>inputs</strong> – A NestedMap: .split1 and .split2 corresponding to x1 and x2.</p></li>
+<li><p><strong>*extra_inputs</strong> – additional inputs that will be passed to both f and g. No
+gradient will be computed for these inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap: .split1 and .split2 corresponding to y1 and y2.
+f_seed: Scalar tensor. The step seed used in forward for the f block.
+g_seed: Scalar tensor. The step seed used in forward for the g block.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.reversible_layers.StackedRevNetLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.reversible_layers.</span></span><span class="sig-name descname"><span class="pre">StackedRevNetLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#StackedRevNetLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.reversible_layers.StackedRevNetLayer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Stacked RevNet layers with custom gradient.</p>
+<p>The standard backpropagation has peak memory footprint of</p>
+<blockquote>
+<div><p>Θ(num_layers x (activation_size_per_layer + param_size_per_layer)),</p>
+</div></blockquote>
+<p>which is reduced to</p>
+<blockquote>
+<div><p>Θ(activation_size_per_layer + num_layers x param_size_per_layer)),</p>
+</div></blockquote>
+<p>in the custom gradient implmentation, at the cost of extra computation for the
+reverse and potential accumulated numerical errors. See Section 3.2 in the
+revnet paper for the full discussion.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.reversible_layers.StackedRevNetLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#StackedRevNetLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.reversible_layers.StackedRevNetLayer.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.reversible_layers.StackedRevNetLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">extra_inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/reversible_layers.html#StackedRevNetLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.reversible_layers.StackedRevNetLayer.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.reversible_layers.StackedRevNetLayer.FProp" title="lingvo.core.reversible_layers.StackedRevNetLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.reversible_layers.StackedRevNetLayer.FProp" title="lingvo.core.reversible_layers.StackedRevNetLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</p></li>
+<li><p><strong>*args</strong> – List args.</p></li>
+<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

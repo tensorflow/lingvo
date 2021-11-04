@@ -333,6 +333,9 @@
 
     <span class="k">else</span><span class="p">:</span>
       <span class="n">vizier_early_stop</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># Export cluster metrics as well.</span>
+    <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">ExportMetrics</span><span class="p">(</span>
+        <span class="n">global_step</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">metric</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
     <span class="k">return</span> <span class="n">vizier_early_stop</span></div>
 
 <div class="viewcode-block" id="BaseProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

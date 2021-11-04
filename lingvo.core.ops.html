@@ -80,8 +80,1208 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-ops-package">
-<h1>lingvo.core.ops package<a class="headerlink" href="#lingvo-core-ops-package" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.ops">
+<span id="lingvo-core-ops-package"></span><h1>lingvo.core.ops package<a class="headerlink" href="#module-lingvo.core.ops" title="Permalink to this headline"></a></h1>
+<p>Operations.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.assert_shape_match">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">assert_shape_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.assert_shape_match" title="Permalink to this definition"></a></dt>
+<dd><p>Asserts that shape vector x and y matches.</p>
+<p>The i-th dimension matches iff x[i] == y[i] || x[i] == -1 || y[i] == -1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A shape vector.</p></li>
+<li><p><strong>y</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A shape vector.</p></li>
+<li><p><strong>msg</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
+The error message generated when the assertion failed.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The created Operation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.assert_same_dim0">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">assert_same_dim0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.assert_same_dim0" title="Permalink to this definition"></a></dt>
+<dd><p>Asserts that all input tensors are non-scalar and have the same 0-th dim size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects. The list of tensors.</p></li>
+<li><p><strong>msg</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
+The error message generated when the assertion failed.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The created Operation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.random_permutation_sequence">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">random_permutation_sequence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.random_permutation_sequence" title="Permalink to this definition"></a></dt>
+<dd><p>Generate random samples from [0..num-1] without replacements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>. The number of ids.</p></li>
+<li><p><strong>batch</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.
+Each output is a vector of size up to batch. Right now,
+the last batch from one epoch is the only one that can be
+smaller than a full batch.</p></li>
+<li><p><strong>repeat</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If true, this op keep generating random samples after one
+epoch. If false, this op errors with <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.errors.OutOfRangeError</span></code> when an
+epoch finishes.</p></li>
+<li><p><strong>seed</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>. The random seed.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. Each output is a vector of size up to batch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.best_step">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">best_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hist_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.best_step" title="Permalink to this definition"></a></dt>
+<dd><p>Determines the best global step from a history file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hist_file</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A text file containing ‘step score’ records, or a file pattern that
+matches tf event files in the format of /path_to_file/events.out.tfevents*.</p></li>
+<li><p><strong>tol</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.
+Difference between previous best score and current score must be greater
+than this amount to trigger update.</p></li>
+<li><p><strong>minimize</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+If the metric is being minimized. Recorded in hist_file, smaller
+scores are better if True, and bigger scores are better if False.</p></li>
+<li><p><strong>metric</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
+The name of the metric being tracked.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int64</span></code>.
+Shape [2]. best_step[0] is scalar value for best global step.
+best_step[1] is scalar value for last global step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.beam_search_step_deprecated">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">beam_search_step_deprecated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_prev_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_done_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_last_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eoc_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_eos_max_logit_delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_eos_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty_terminated_hyp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_full_beam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_eos_in_last_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.beam_search_step_deprecated" title="Permalink to this definition"></a></dt>
+<dd><p>See BeamSearchStepV2 below. This op is identical except that it does not support</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_independence</span></code>.</p>
+<p>This exists to support backward-compatibility of exported graphs only. Please
+use BeamSearchStepV2 below.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</p></li>
+<li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</p></li>
+<li><p><strong>best_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</p></li>
+<li><p><strong>cumulative_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</p></li>
+<li><p><strong>in_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</p></li>
+<li><p><strong>in_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</p></li>
+<li><p><strong>in_prev_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</p></li>
+<li><p><strong>in_done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.</p></li>
+<li><p><strong>in_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</p></li>
+<li><p><strong>is_last_chunk</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.</p></li>
+<li><p><strong>cur_step</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</p></li>
+<li><p><strong>eos_id</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.</p></li>
+<li><p><strong>beam_size</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.</p></li>
+<li><p><strong>eoc_id</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.</p></li>
+<li><p><strong>valid_eos_max_logit_delta</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">5</span></code>.</p></li>
+<li><p><strong>local_eos_threshold</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-100</span></code>.</p></li>
+<li><p><strong>merge_paths</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.</p></li>
+<li><p><strong>allow_empty_terminated_hyp</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.</p></li>
+<li><p><strong>ensure_full_beam</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.</p></li>
+<li><p><strong>force_eos_in_last_step</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (out_best_scores, out_cumulative_scores, out_scores, out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs, all_done).</p>
+<p>out_best_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+out_cumulative_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+out_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+out_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+out_prev_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+out_done_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+out_atten_probs: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+all_done: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.beam_search_step">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">beam_search_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_prev_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_done_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_beam_done</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_last_chunk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eoc_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_eos_max_logit_delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_eos_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_empty_terminated_hyp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_full_beam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_eos_in_last_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_eos_in_top_k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_last_chunk_eoc_in_top_k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merged_topk_buffer_size_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beam_independence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_vecs_in_hypothesis_protos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.beam_search_step" title="Permalink to this definition"></a></dt>
+<dd><p>Move forward one step in beam search.</p>
+<p>Let “b” be the number of beams, “k” be the number hyps in each beam, “t” be the
+maximum decoding steps.</p>
+<p>The following data structures are allocated before the first decoding step and
+are passed along from cur step to the next step:</p>
+<dl class="simple">
+<dt>in_scores</dt><dd><p>A tensor of shape [t, k * b]. in_scores[i, j] is the local
+score of the j-th hyp at the i-th decoding step.</p>
+</dd>
+<dt>in_hyps</dt><dd><p>A tensor of shape [t, k * b]. in_hyps[i, j] is the token id of the
+j-th hyp at the i-th decoding step.</p>
+</dd>
+<dt>in_prev_hyps</dt><dd><p>A tensor of shape [t, k * b]. in_prev_hyps[i, j] stores a
+pointer of the j-th hyp at time step i to the hyp at previous timestep
+(i - 1). 0 &lt;= in_prev_hyps[i, j] &lt; k * b.</p>
+</dd>
+<dt>in_done_hyps</dt><dd><p>A tensor of shape [t, k * b]. in_done_hyps[i, j] can be either an
+empty string, or a serialized Hypothesis proto. Terminated hyps are removed
+from the beam and are moved to the corresponding in_done_hyps slot.</p>
+</dd>
+<dt>in_atten_probs</dt><dd><p>A tensor of shape [t, k * b, s_len]. in_atten_probs[i, j, …]
+is the attention probs over the source words for the j-th hyp at the i-th
+timestep.</p>
+</dd>
+<dt>in_beam_done</dt><dd><p>A tensor of shape [b] of bools, whether each individual beam is done.
+See attr <code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_independence</span></code>.</p>
+</dd>
+</dl>
+<p>Those tensors are modified (with content for the cur_step timestep being filled
+in) within this op invocation and are passed to the corresponding output
+tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A matrix of shape [k * b, vocab_size], where b is the number of
+active beams, and k is the number of hyps in each beam. Local scores for the
+current timestep.</p></li>
+<li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A matrix of shape [k * b, source_len]. Attention probabilities
+for the current timestep.</p></li>
+<li><p><strong>best_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A vector of size [b], best scores of terminated hyps so far in
+each of the beams.</p></li>
+<li><p><strong>cumulative_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A vector of size [k * b]. The cumulative score of each
+active hyp before the current step.</p></li>
+<li><p><strong>in_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. As explained above.</p></li>
+<li><p><strong>in_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. As explained above.</p></li>
+<li><p><strong>in_prev_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. As explained above.</p></li>
+<li><p><strong>in_done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. As explained above.</p></li>
+<li><p><strong>in_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. As explained above.</p></li>
+<li><p><strong>in_beam_done</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
+A vector of [b], whether each beam was previously done. See
+attr <code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_independence</span></code>.</p></li>
+<li><p><strong>is_last_chunk</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
+A tensor of shape [k * b]. Used by neural transducer, determine
+whether the current hypothesis reaches the last chunk and should treat the
+next end-of-chunk symbol as end-of-sentence.</p></li>
+<li><p><strong>cur_step</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. Current step id.</p></li>
+<li><p><strong>eos_id</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Token id of the special end of sequence token.</p></li>
+<li><p><strong>beam_size</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>.
+Search terminates if the delta between the scores of the active hyps
+in a beam and the best scores exceeds this threashold.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Number of hyps in a beam.</p></li>
+<li><p><strong>eoc_id</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+Token id of the special end of chunk token.</p></li>
+<li><p><strong>valid_eos_max_logit_delta</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">5</span></code>.
+We allow &lt;/s&gt; to terminate a hyp only if its logit
+is no more than <code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_eos_max_logit_delta</span></code> away from the logit of the best
+candidate.</p></li>
+<li><p><strong>local_eos_threshold</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-100</span></code>.
+We allow &lt;/s&gt; to terminate a hyp if the local score for
+&lt;/s&gt; is greater than local_eos_threshold.</p></li>
+<li><p><strong>merge_paths</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If true, hyps which are identical when epsilons are removed will
+be combined into a single hyp.  The probability for that combined hyp will
+be the sum of the probabilities of the component hyps.  This can only be
+applied for epsilon-emitting models (RNN-T and NT).</p></li>
+<li><p><strong>allow_empty_terminated_hyp</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether it is okay to consider a hyp that consists
+only of epsilons as terminated.  By default this is true, as an
+utterance may consist of silence.  It should be set to false when EMBR
+training epsilon-emitting models (e.g., RNN-T), which are prone to emit
+all-epsilon hyps even in the absence of silence.  Note that a hyp that
+terminates in EOS is not considered empty, so this flag has no effect for
+non-epsilon-emitting models.</p></li>
+<li><p><strong>ensure_full_beam</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If True, we will not set the all_done output to True until we
+have found ‘num_hyps_per_beam’ terminated hyps AND no active hyps have a
+score within ‘beam_size’ of the best terminated hyp.  If False, only the
+second condition must be satisfied.  Generally this should be False unless
+beam search is being run as part of minimum word error rate training.</p></li>
+<li><p><strong>force_eos_in_last_step</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+If true, then if decode does not terminate even after
+(max - 1) steps, eos symbol is injected into the result and partial
+hypotheses (with a valid eos symbol in the end) are returned. all_done
+is set to true for these partials. If false, which is the default behavior,
+empty hypothesis are returned and all_done is set to false at termination.</p></li>
+<li><p><strong>force_eos_in_top_k</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Whether to always consider the eos token to be among the top
+k tokens for every step. When False, hyps can only terminate if the eos
+token is part of the top k. Note that valid_eos_max_logit_delta and
+local_eos_threshold always apply regardless of this.</p></li>
+<li><p><strong>force_last_chunk_eoc_in_top_k</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Whether to always consider the last chunk eoc
+token to be among the top k tokens. This is effective only when decoding
+has reached the last frame of input. When True, hyps can terminate at the
+last frame by eoc even if the eoc score is not high enough to enter the
+top k. Note that p.valid_eos_max_logit_delta and p.local_eos_threshold
+always apply regardless of this.</p></li>
+<li><p><strong>merged_topk_buffer_size_factor</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">2</span></code>.
+The buffer size factor when pruning the per
+hyp top-k extensions to form the per beam top-k extensions. If this factor
+is set to be greater than or equal to num_hyps_per_beam + 2 when
+eoc_id &gt;= 0, there will be no pruning before all possible path mergings are
+performed (if merge_paths=True). To be memory efficient (i.e., to maintain
+less hyps during pruning), a reasonable value is 2.</p></li>
+<li><p><strong>beam_independence</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+When enabled, this step will become a no-op for beam_id if
+and only if in_beam_done[beam_id] == True.</p></li>
+<li><p><strong>atten_vecs_in_hypothesis_protos</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether to populate the atten_vecs fields in
+the returned Hypothesis protos.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (out_best_scores, out_cumulative_scores, out_scores, out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs, out_beam_done, all_done).</p>
+<dl class="simple">
+<dt>out_best_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>Updated best scores for each of the beams.</p>
+</dd>
+<dt>out_cumulative_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>A vector of size [k * b]. The cumulative score of the new hyps after the
+current decoding step.</p>
+</dd>
+<dt>out_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_prev_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_done_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_atten_probs: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>As explained above.</p>
+</dd>
+<dt>out_beam_done: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.</dt><dd><p>A vector of size [b], whether each beam is done after this step is taken.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">all_done</span></code> below is the logical AND of out_beam_done over all beams.</p>
+</dd>
+<dt>all_done: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.</dt><dd><p>A scalar, whether decoding should terminate for all beams.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.top_k_terminated_hyps">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">top_k_terminated_hyps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_done_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_seq_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length_normalization</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coverage_penalty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_seq_length_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eoc_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.top_k_terminated_hyps" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the top k terminated hyps based on normalized score for each beam.</p>
+<p>Let “b” be the number of beams, “h” be the number hyps in each beam, “t” be the
+maximum decoding steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A tensor of shape [t, h * b]. Each string in in_done_hyps can be
+either an empty string, or a serialized Hypothesis proto. If not empty,
+in_done_hyps[t, i * num_beams + j] represents the i-th hypothesis for beam
+j that terminates at step t.</p></li>
+<li><p><strong>src_seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [b] of the src sequence lengths.</p></li>
+<li><p><strong>k</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. number of highest scoring hyps to be returned for each beam.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+Number of hyps per beam in the input <code class="xref py py-obj docutils literal notranslate"><span class="pre">in_done_hyps</span></code>.</p></li>
+<li><p><strong>length_normalization</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. The length normalization ratio.</p></li>
+<li><p><strong>coverage_penalty</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. The alpha value for coverage penalty.</p></li>
+<li><p><strong>target_seq_length_ratio</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.
+Ratio of the average target sequence length
+over the average source sequence length.</p></li>
+<li><p><strong>eoc_id</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.</p></li>
+<li><p><strong>merge_paths</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A string tensor of shape [b, k]. topk_hyps[i: ] contains
+top k terminated hyp for beam ‘i’, each hyp could be either an empty string
+or a serialized <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hypothesis</span></code> proto.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.unpack_hyp">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">unpack_hyp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.unpack_hyp" title="Permalink to this definition"></a></dt>
+<dd><p>Unpacks hyps into tensors of ids, seq_len and scores.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A vector of serialized <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hypothesis</span></code> protos.</p></li>
+<li><p><strong>max_seq_length</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (out_ids, out_seq_lens, out_scores).</p>
+<dl class="simple">
+<dt>out_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Output sequences, a matrix of shape (batch_size, max_seq_length).
+Sequences shorter than max_seq_length are padded with 0s. If max_seq_length is 0, derive it from the longest sequence in input_hyps.</p>
+</dd>
+<dt>out_seq_lens: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Length of each of the output sequence, a vector of size <code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_size</span></code>.</p>
+</dd>
+<dt>out_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>Scores for each of the output sequence, a vector of <code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_size</span></code>.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.hyps_from_beam_search_outs">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">hyps_from_beam_search_outs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prev_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fix_hyp_atten_vecs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.hyps_from_beam_search_outs" title="Permalink to this definition"></a></dt>
+<dd><p>Generates <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hypothesis</span></code> protos from output of a beam search step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [t, k * b] with ids of the token selected.</p></li>
+<li><p><strong>prev_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [t, k * b] with index to the previous hyps which
+was selected.</p></li>
+<li><p><strong>done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
+A boolean tensor of shape [t, k * b] where value indicates if hyps
+was terminated.</p></li>
+<li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must be one of the following types: <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">bfloat16</span></code>.
+A tensor of shape [t, k * b]. in_scores[i, j] is the local score of
+the j-th hyp at the i-th decoding step.</p></li>
+<li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
+A tensor of shape [t, k * b, s_len]. atten_probs[i, j, …]
+is the attention probs over the source words for the j-th hyp at the i-th
+timestep.</p></li>
+<li><p><strong>eos_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
+A tensor of shape [t, k * b]. eos_scores[i, j] is the local
+score of the EOS token at the j-th hyp at the i-th decoding step.</p></li>
+<li><p><strong>eos_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>.
+A tensor of shape [t, k * b, s_len].
+eos_atten_probs[i, j, …] is the attention probs over the source words
+for the j-th terminated hyp at the i-th timestep.</p></li>
+<li><p><strong>eos_id</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Token id of the special end of sequence token.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Number of hyps per beam.</p></li>
+<li><p><strong>fix_hyp_atten_vecs</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Obsolete and unused.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A tensor of shape [t, k * b] with terminated hyps.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.top_k_from_beam_search_outs">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">top_k_from_beam_search_outs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prev_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done_hyps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cumulative_atten_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length_normalization</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coverage_penalty</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hyps_per_beam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_seq_length_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">populate_topk_hyps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.top_k_from_beam_search_outs" title="Permalink to this definition"></a></dt>
+<dd><p>Compute tensors of ids, seq_len and scores from outputs of beam search steps.</p>
+<p>This op is able to combine the work of 3 ops that are typically called
+consecutively together (HypsFromBeamSearchOuts, TopKTerminatedHyps,
+UnpackHyp) into one.</p>
+<p>When we have a dimension of size b * k (of all the hyps), there are two ways to
+order it. ‘div’ means for beam n, hyp j will have index (n * k + j). Conversely,
+j = index % k, n = index // k. ‘mod’ means for beam n, hyp j will have index
+(j * b + n). Conversely, j = index // b, n = index % b. All inputs on the
+(k * b) sized dimension is mod ordered. The outputs have different ordering as
+indicated below.</p>
+<p>Note that the inputs <code class="xref py py-obj docutils literal notranslate"><span class="pre">scores</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">atten_probs</span></code>, and <code class="xref py py-obj docutils literal notranslate"><span class="pre">eos_atten_probs</span></code> are only
+used to assemble the Hypothesis protos. So if <code class="xref py py-obj docutils literal notranslate"><span class="pre">populate_topk_hyps</span></code> is false,
+these 3 inputs are unused and ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [t, k * b] with ids of the token selected.</p></li>
+<li><p><strong>prev_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [t, k * b] with index to the previous hyps which
+was selected. prev_hyps[i, j] should be in the range [0, k * b) and we
+should have prev_hyps[i, j] % b == j % b (i.e. they belong to the same
+beam).</p></li>
+<li><p><strong>done_hyps</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>.
+A boolean tensor of shape [t, k * b] where value indicates if hyps
+was terminated.</p></li>
+<li><p><strong>cumulative_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must be one of the following types: <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">bfloat16</span></code>.
+A tensor of shape [t, k * b]. cumulative_scores[i, j] is the
+cumulative score of the j-th hyp at the i-th decoding step. Note that EOS
+tokens are tracked separately, hence cumulative_scores cover only
+non-terminated hyps, i.e. the i-th step is never an EOS token.</p></li>
+<li><p><strong>eos_scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">cumulative_scores</span></code>.
+A tensor of shape [t, k * b]. eos_scores[i, j] is the local
+score of the EOS token at the j-th hyp at the i-th decoding step.</p></li>
+<li><p><strong>scores</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">cumulative_scores</span></code>.
+A tensor of shape [t, k * b]. scores[i, j] is the local score of
+the j-th hyp at the i-th decoding step.</p></li>
+<li><p><strong>atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">cumulative_scores</span></code>.
+A tensor of shape [t, k * b, s_len]. atten_probs[i, j, …]
+is the attention probs over the source words for the j-th hyp at the i-th
+timestep. Only used to assemble <code class="xref py py-obj docutils literal notranslate"><span class="pre">done_hyps</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">topk_hyps</span></code>.</p></li>
+<li><p><strong>eos_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">cumulative_scores</span></code>.
+A tensor of shape [t, k * b, s_len].
+eos_atten_probs[i, j, …] is the attention probs over the source words
+for the j-th terminated hyp at the i-th timestep. Only used to assemble
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">done_hyps</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">topk_hyps</span></code>.</p></li>
+<li><p><strong>cumulative_atten_probs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <code class="xref py py-obj docutils literal notranslate"><span class="pre">cumulative_scores</span></code>.
+A tensor of shape [t, k * b, s_len].
+cumulative_atten_probs[i, j, …] is the cumulative attention probs (
+summation along the t dimension) over the source words
+for the j-th terminated hyp at the i-th timestep. Only used when
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">coverage_penalty</span></code> is strictly positive.</p></li>
+<li><p><strong>length_normalization</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+The length normalization factor.</p></li>
+<li><p><strong>coverage_penalty</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+The coverage penalty coefficient.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+Number of hyps per beam, i.e. the value of k. Required.</p></li>
+<li><p><strong>max_seq_length</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Max output sequence length. Required.</p></li>
+<li><p><strong>eos_id</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">2</span></code>.
+Token id of the special end of sequence token.</p></li>
+<li><p><strong>target_seq_length_ratio</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.
+ratio used when computing coverage penalty.</p></li>
+<li><p><strong>populate_topk_hyps</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+whether to populate <code class="xref py py-obj docutils literal notranslate"><span class="pre">topk_hyps</span></code> with serialized protos. When
+False, the output <code class="xref py py-obj docutils literal notranslate"><span class="pre">topk_hyps</span></code> is just empty string with the shape [b, k].</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (out_ids, out_seq_lens, out_scores, topk_hyps).</p>
+<dl class="simple">
+<dt>out_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Output sequences, a matrix of shape (b * k, max_seq_length).
+Sequences shorter than max_seq_length are padded with 0s. div ordered.</p>
+</dd>
+<dt>out_seq_lens: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Length of each of the output sequence, a vector of size (b * k).
+div ordered.</p>
+</dd>
+<dt>out_scores: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>Scores for each of the output sequence, a vector of (b * k). div ordered.</p>
+</dd>
+<dt>topk_hyps: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.</dt><dd><p>A string tensor of shape [b, k]. topk_hyps[i,] contains top k terminated
+hyp for beam ‘i’, each hyp could be either an empty string or a serialized
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">Hypothesis</span></code> proto. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">populate_topk_hyps</span></code> is False, all strings are
+empty.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.cached_call">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">cached_call</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.cached_call" title="Permalink to this definition"></a></dt>
+<dd><p>Invokes function f once and memorize its output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> – A function decorated with &#64;Defun.
+A function that returns a list of tensors (T).</p></li>
+<li><p><strong>T</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.DTypes</span></code>.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>.
+A list of output tensors whose types are T.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.vocab_token_to_id">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">vocab_token_to_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_token_ids_from_vocab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.vocab_token_to_id" title="Permalink to this definition"></a></dt>
+<dd><p>Looks up the token in the vocab and return its id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A scalar or list of strings.</p></li>
+<li><p><strong>vocab</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. A list of strings.</p></li>
+<li><p><strong>load_token_ids_from_vocab</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Whether token ids are present in vocab (i.e. vocab
+contains two colums, one for IDs and one for words).  If false, line numbers
+are used.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A scalar or list of ints.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.vocab_id_to_token">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">vocab_id_to_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_token_ids_from_vocab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.vocab_id_to_token" title="Permalink to this definition"></a></dt>
+<dd><p>Looks up the token at the given id from a vocab.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>id</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A scalar or list of ints.</p></li>
+<li><p><strong>vocab</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. A list of strings.</p></li>
+<li><p><strong>load_token_ids_from_vocab</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Whether token ids are present in vocab (i.e. vocab
+contains two colums, one for IDs and one for words).  If false, line numbers
+are used.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A scalar or list of strings.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.token_in_vocab">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">token_in_vocab</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_token_ids_from_vocab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.token_in_vocab" title="Permalink to this definition"></a></dt>
+<dd><p>Checks whether the provided token is in the vocab.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A scalar or list of strings.</p></li>
+<li><p><strong>vocab</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. A list of strings.</p></li>
+<li><p><strong>load_token_ids_from_vocab</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Whether token ids are present in vocab (i.e. vocab
+contains two colums, one for IDs and one for words).  If false, line numbers
+are used.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. A scalar or list of bools.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.ascii_to_token_id">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">ascii_to_token_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_to_maxlen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.ascii_to_token_id" title="Permalink to this definition"></a></dt>
+<dd><p>Converts ASCII label strings into token ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A vector of shape [batch].</p></li>
+<li><p><strong>append_eos</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether to append &lt;/s&gt; at the end and treat it as a non-padded
+label.</p></li>
+<li><p><strong>maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">300</span></code>.
+an integer, sequence length of the output tensors.</p></li>
+<li><p><strong>pad_to_maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether to pad the output to maxlen.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (token_ids, target_ids, paddings).</p>
+<dl class="simple">
+<dt>token_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A matrix of shape [batch, maxlen].
+token_ids[i, j] is the i-th sample’s j-th token id.
+token_ids[i, 0] is always &lt;s&gt;.</p>
+</dd>
+<dt>target_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A matrix of shape [batch, maxlen].
+target_ids[i, j] is the i-th sample’s j-th prediction label id.</p>
+</dd>
+<dt>paddings: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>A matrix of shape [batch, maxlen].
+paddings[i, j] == 1.0 indicates that i-th training example’
+j-th target token is padded and should be ignored.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.str_to_vocab_tokens">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">str_to_vocab_tokens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_to_maxlen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_token_ids_from_vocab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'</span> <span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.str_to_vocab_tokens" title="Permalink to this definition"></a></dt>
+<dd><p>Tokenizes string into white space separated tokens according to a vocab file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A vector of shape [batch].</p></li>
+<li><p><strong>vocab_filepath</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. a string, filepath to the vocab file.</p></li>
+<li><p><strong>append_eos</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether to append &lt;/s&gt; at the end and treat it as a non-padded
+label.</p></li>
+<li><p><strong>maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">300</span></code>.
+an integer, sequence length of the output tensors.</p></li>
+<li><p><strong>pad_to_maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether to pad the output to maxlen.</p></li>
+<li><p><strong>load_token_ids_from_vocab</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+Whether token ids are present in vocab (i.e. vocab
+contains two colums, one for IDs and one for words).  If false, line numbers
+are used.</p></li>
+<li><p><strong>delimiter</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">&quot;</span></code>.
+The delimiter to split the labels to tokens by.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (token_ids, target_ids, paddings).</p>
+<dl class="simple">
+<dt>token_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A matrix of shape [batch, maxlen].
+token_ids[i, j] is the i-th sample’s j-th token id.
+token_ids[i, 0] is always &lt;s&gt;.</p>
+</dd>
+<dt>target_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A matrix of shape [batch, maxlen].
+target_ids[i, j] is the i-th sample’s j-th prediction label id.</p>
+</dd>
+<dt>paddings: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>A matrix of shape [batch, maxlen].
+paddings[i, j] == 1.0 indicates that i-th training example’s
+j-th target token is padded and should be ignored.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.id_to_ascii">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">id_to_ascii</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.id_to_ascii" title="Permalink to this definition"></a></dt>
+<dd><p>Converts sequences from token ids to actual ASCII tokens.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A matrix of shape [batch, seq_len].</p></li>
+<li><p><strong>seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A vector of shape [batch]. seq_lengths[i] is the length of the
+i-th sequence. Only the first seq_lengths[i] tokens in token_ids[i] are
+valid tokens for the i-th sequence.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A vector of shape [batch]. The converted string sequence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.ml_perf_subword_id_to_string">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">ml_perf_subword_id_to_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.ml_perf_subword_id_to_string" title="Permalink to this definition"></a></dt>
+<dd><p>Converts sequences from subword token ids to strings</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A matrix of shape [batch, seq_len].</p></li>
+<li><p><strong>seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A vector of shape [batch]. seq_lengths[i] is the length of the
+i-th sequence. Only the first seq_lengths[i] tokens in token_ids[i] are
+valid tokens for the i-th sequence.</p></li>
+<li><p><strong>vocab_filepath</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. filepath to the MLPerf subword vocab file.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A vector of shape [batch]. The converted string sequence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.ngram_id_to_token">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">ngram_id_to_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ngram_vocab_filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ngram_separator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.ngram_id_to_token" title="Permalink to this definition"></a></dt>
+<dd><p>Converts sequences from token ids to actual tokens.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A matrix of shape [batch, seq_len].</p></li>
+<li><p><strong>seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A vector of shape [batch]. seq_lengths[i] is the length of the
+i-th sequence. Only the first seq_lengths[i] tokens in token_ids[i] are
+valid tokens for the i-th sequence.</p></li>
+<li><p><strong>ngram_vocab_filepath</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. filepath to the ngram vocab file.</p></li>
+<li><p><strong>ngram_separator</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
+separator to use when joining ngrams into string.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A vector of shape [batch]. The converted string sequence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.bpe_ids_to_words">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">bpe_ids_to_words</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.bpe_ids_to_words" title="Permalink to this definition"></a></dt>
+<dd><p>A tokenizer to map BPE ids to strings.</p>
+<p>This op is to map a sequence of integer ids to a string. The op is typically
+used in conjunction with BpeWordsToIds.</p>
+<p>The op will consume <code class="xref py py-obj docutils literal notranslate"><span class="pre">seq_lengths</span></code> of tokens from <code class="xref py py-obj docutils literal notranslate"><span class="pre">token_ids</span></code> and convert it to
+string <code class="xref py py-obj docutils literal notranslate"><span class="pre">sequences</span></code>. A space character will be interested inbetween tokens. We do
+not filter any tokens (i.e., &lt;s&gt; and &lt;/s&gt; are not treated specially).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+The ids (can include paddings; length is determined by seq_lengths). The shape is [batch_size, maxlen].</p></li>
+<li><p><strong>seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+The length of the ids. The shape is [batch_size].</p></li>
+<li><p><strong>vocab_filepath</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A path to a text file where each line is a BPE string token.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+The string sequences. The shape is [batch_size].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.bpe_words_to_ids">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">bpe_words_to_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenization_filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sos_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.bpe_words_to_ids" title="Permalink to this definition"></a></dt>
+<dd><p>A tokenizer to convert string to BPE ids.</p>
+<p>This op is especially convenient for mapping string text to a sequenec of word BPE
+ids. The <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> strings are tokenized via BPE. This op is typically used in conjunction with BpeIdsToWords.
+As the vocabulary file it receives the mapping from each word to the series of BPE ids.
+An example of lines in the vocabulary file:
+…
+AARON 10005,16,29
+AARON’S 10005,16,3466
+AARONSON 10005,16,17,447
+…</p>
+<p>The output tensor <code class="xref py py-obj docutils literal notranslate"><span class="pre">token_ids</span></code> is a sequence of integer ids with &lt;s&gt; prepended.
+The output tensor <code class="xref py py-obj docutils literal notranslate"><span class="pre">target_ids</span></code> is a sequence of integer ids with &lt;/s&gt; appended.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+The batch of tf.String tensors. Expected shape is [batch_size].</p></li>
+<li><p><strong>tokenization_filepath</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A path to a text file where each line is a word separated with space form a list of ids which are separated by ‘,’.</p></li>
+<li><p><strong>append_eos</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.</p></li>
+<li><p><strong>maxlen</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">300</span></code>.
+Maximum length of token_ids/target_ids/paddings.</p></li>
+<li><p><strong>sos_id</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p><strong>eos_id</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">2</span></code>.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (token_ids, target_ids, paddings).</p>
+<dl class="simple">
+<dt>token_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>The ids with &lt;s&gt;. The shape is [batch_size, maxlen].</p>
+</dd>
+<dt>target_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>The ids with &lt;/s&gt;. The shape is [batch_size, maxlen].</p>
+</dd>
+<dt>paddings: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>The paddings. The shape is [batch_size, maxlen].</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.static_map_string_int">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">static_map_string_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unk</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.static_map_string_int" title="Permalink to this definition"></a></dt>
+<dd><p>Maps every element of x according a static mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A Tensor of type string.</p></li>
+<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. The list of keys.</p></li>
+<li><p><strong>vals</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
+The list of values. If empty, defaults to [0 .. len(keys)).</p></li>
+<li><p><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+The value when the key is not found.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32. Same shape of x.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.static_map_int_string">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">static_map_int_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unk</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.static_map_int_string" title="Permalink to this definition"></a></dt>
+<dd><p>Maps every element of x according a static mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32.</p></li>
+<li><p><strong>vals</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>. The list of values.</p></li>
+<li><p><strong>keys</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
+The list of keys. If empty, defaults to [0 .. len(keys)).</p></li>
+<li><p><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.
+The value when the key is not found.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. A Tensor of type string. Same shape of x.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.static_map_int_int">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">static_map_int_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unk</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.static_map_int_int" title="Permalink to this definition"></a></dt>
+<dd><p>Maps every element of x according a static mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32.</p></li>
+<li><p><strong>vals</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. The list of values.</p></li>
+<li><p><strong>keys</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
+The list of keys. If empty, defaults to [0 .. len(keys)).</p></li>
+<li><p><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+The value when the key is not found.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32. Same shape of x.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.get_preconditioners">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">get_preconditioners</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shapes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preconditioner_compute_graphdef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.get_preconditioners" title="Permalink to this definition"></a></dt>
+<dd><p>Get preconditioners for Shampoo optimizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shapes</strong> – A list of at least 1 <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with the same type in: <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">int64</span></code>.
+A list of Tensors of type Tshape indicating the size of preconditioner.</p></li>
+<li><p><strong>preconditioner_compute_graphdef</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A graphdef which indicates the function to run.</p></li>
+<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>.
+A list of keys indicating the name of preconditioners.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (outputs, statuses).</p>
+<p>outputs: A list with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">shapes</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A list of Tensors of type float32 which are the preconditioners.
+statuses: A list with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">shapes</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. A list of Tensors of type bool which are the preconditioner status.</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.compute_preconditioners">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">compute_preconditioners</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponents</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preconditioner_compute_graphdef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.compute_preconditioners" title="Permalink to this definition"></a></dt>
+<dd><p>Compute preconditioners for Shampoo optimizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – A list of at least 1 <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A list of Tensors of type float32, of statistic matrices.</p></li>
+<li><p><strong>exponents</strong> – A list with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A list of scalar Tensors of type float32, exponent for matrix power.</p></li>
+<li><p><strong>global_step</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A scalar Tensor of type int32 which indicates the global step.</p></li>
+<li><p><strong>preconditioner_compute_graphdef</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A graphdef which indicates the function to run.</p></li>
+<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>.
+A list of keys indicating the name of preconditioners.</p></li>
+<li><p><strong>sync</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Boolean indicating whether to run preconditioning in synchronous mode.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The created Operation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.pack_sequences">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">pack_sequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_actual_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt_actual_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed_batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed_src_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">packed_tgt_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.pack_sequences" title="Permalink to this definition"></a></dt>
+<dd><p>Produces a packing pattern for the (src, tgt) input pair with the provided</p>
+<p>lengths, according to the given packed shape.</p>
+<p>If only a single input sequence is used and a fixed output batch size is not
+required, consider using the simpler PackSingleSequence op.</p>
+<p>For example, the following input:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">src_actual_seq_len</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">tgt_actual_seq_len</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">packed_batch_size</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">packed_src_seq_len</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">packed_tgt_seq_len</span> <span class="o">=</span> <span class="mi">5</span>
+</pre></div>
+</div>
+<p>will result in:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">src_segment_ids</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">src_segment_pos</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">src_indices_in_input</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">tgt_segment_ids</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">tgt_segment_pos</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">tgt_indices_in_input</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="p">]</span>
+</pre></div>
+</div>
+<p>The packed sequence length can be different between src and tgt. For example,
+the following input:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">src_actual_seq_len</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">tgt_actual_seq_len</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">packed_batch_size</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">packed_src_seq_len</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">packed_tgt_seq_len</span> <span class="o">=</span> <span class="mi">6</span>
+</pre></div>
+</div>
+<p>will result in:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">src_segment_ids</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">src_segment_pos</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">src_indices_in_input</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">tgt_segment_ids</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">tgt_segment_pos</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">tgt_indices_in_input</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="p">]</span>
+</pre></div>
+</div>
+<p>If packed_batch_size is set to 0, output will be of variable batch
+size, determined by the number of row needed to pack all given inputs.</p>
+<p>If there are too few input sequences to pack into <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>, the op pads
+the remaining elements in the output.</p>
+<p>If there are too many input sequences to pack into <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_shape</span></code>, the op drops
+input sequences. The dropping is done randomly uniformly on the input sequences
+to not bias the distribution of sequence lengths in the packed output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>src_actual_seq_len</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [N], where N is the input batch size.
+This tensor contains the actual lengths for the src sequence.</p></li>
+<li><p><strong>tgt_actual_seq_len</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [N], where N is the input batch size.
+This tensor contains the actual lengths for the tgt sequence.</p></li>
+<li><p><strong>packed_batch_size</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+A scalar. The output batch size. The packed output will
+be of shape [packed_batch_size, packed_{src,tgt}_seq_len] for src and tgt,
+respectively. if this value is set to 0, output will be of variable batch
+size, determined by the number of row needed to pack all given inputs.</p></li>
+<li><p><strong>packed_src_seq_len</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+A scalar. The output sequence length for src. A src input
+with shape [N, src_input_seq_len] will be packed into an output with shape
+[packed_batch_size, packed_src_seq_len].</p></li>
+<li><p><strong>packed_tgt_seq_len</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+A scalar. The output sequence length for tgt. A tgt input
+with shape [N, tgt_input_seq_len] will be packed into an output with shape
+[packed_batch_size, packed_tgt_seq_len].</p></li>
+<li><p><strong>seed</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.
+Seed for random number generator, which is used when we need to drop
+excessive input sequences. If seed is zero, use completely random seed.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (src_segment_ids, src_segment_pos, src_indices_in_input, tgt_segment_ids, tgt_segment_pos, tgt_indices_in_input).</p>
+<dl class="simple">
+<dt>src_segment_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, packed_src_seq_len]. Incrementing from 1
+to indicate each segment in the packed output for src. Zero is reserved for
+indicating padding at the end of each row.</p>
+</dd>
+<dt>src_segment_pos: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, packed_src_seq_len]. Zero-based index to
+indicate relative position within each segment for src. Zero is also used to
+indicate padding. When needed, use <code class="xref py py-obj docutils literal notranslate"><span class="pre">src_segment_ids</span></code> to disambiguate.</p>
+</dd>
+<dt>src_indices_in_input: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, packed_src_seq_len]. For each segment in
+the packed output, it contains the original (zero-based) row index of each
+segment found in <code class="xref py py-obj docutils literal notranslate"><span class="pre">src_actual_seq_len</span></code>. Zero is also used to indicate padding.
+When needed, use <code class="xref py py-obj docutils literal notranslate"><span class="pre">src_segment_ids</span></code> to disambiguate.</p>
+</dd>
+<dt>tgt_segment_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, packed_tgt_seq_len]. Incrementing from 1
+to indicate each segment in the packed output for tgt. Zero is reserved for
+indicating padding at the end of each row.</p>
+</dd>
+<dt>tgt_segment_pos: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, packed_tgt_seq_len]. Zero-based index to
+indicate relative position within each segment for tgt. Zero is also used to
+indicate padding. When needed, use <code class="xref py py-obj docutils literal notranslate"><span class="pre">tgt_segment_ids</span></code> to disambiguate.</p>
+</dd>
+<dt>tgt_indices_in_input: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, packed_tgt_seq_len]. For each segment in
+the packed output, it contains the original (zero-based) row index of each
+segment found in <code class="xref py py-obj docutils literal notranslate"><span class="pre">tgt_actual_seq_len</span></code>. Zero is also used to indicate padding.
+When needed, use <code class="xref py py-obj docutils literal notranslate"><span class="pre">tgt_segment_ids</span></code> to disambiguate.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.pack_single_sequence">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">pack_single_sequence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_packed_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_sequential_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.pack_single_sequence" title="Permalink to this definition"></a></dt>
+<dd><p>Produces a packing pattern with the provided <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_lengths</span></code>.</p>
+<p>Examples are packed into sequences not exceeding max_packed_length. The number
+of sequences in the output is dynamic. No examples are dropped.</p>
+<p>If x and y are packed together, and if x comes before y in <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_lengths</span></code>, it
+is guaranteed that x will come before y in the packed sequence. That is,
+it is guaranteed that each row of <code class="xref py py-obj docutils literal notranslate"><span class="pre">indices_in_input</span></code> is non-descending.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A tensor of shape [batch_size], containing actual lengths for the
+input examples. All input lengths must be no larger than <code class="xref py py-obj docutils literal notranslate"><span class="pre">max_packed_length</span></code>.</p></li>
+<li><p><strong>max_packed_length</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+A scalar. The maximum length of a packed sequence. The output
+will have the length dimension padded to this value.</p></li>
+<li><p><strong>require_sequential_order</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+A boolean. If true, the input will be packed in order
+(fill the first output before moving to the next one). If false, the input
+examples can be reordered for better packing.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (segment_ids, indices_in_input).</p>
+<dl class="simple">
+<dt>segment_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, max_packed_length]. Incrementing from 1
+to indicate segments in the packed output. Zero indicates padding at the end.</p>
+</dd>
+<dt>indices_in_input: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>A tensor of shape [packed_batch_size, max_packed_length]. For each segment in
+the packed output, it contains the original (zero-based) index of each input
+segment.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.apply_packing">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">apply_packing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices_in_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.apply_packing" title="Permalink to this definition"></a></dt>
+<dd><p>Applies a packing pattern on the input to obtain a packed output.</p>
+<p>The input can be either a matrix or higher dimension, in which case the output
+is shorter and the elements are rearranged according to the packing pattern;
+or the input can be a vector, in which case the output is a shorter vector,
+where each position is the sum of the elements packed on that same row.</p>
+<p>When T is tf.string type, only the vector input is supported and the output
+joins the strings that are packed on the same row, separated by <code class="xref py py-obj docutils literal notranslate"><span class="pre">padding</span></code>.</p>
+<p>The inputs <code class="xref py py-obj docutils literal notranslate"><span class="pre">segment_ids</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">indices_in_input</span></code> can be obtained from the outputs
+of an <code class="xref py py-obj docutils literal notranslate"><span class="pre">PackSequence</span></code> op (though only the src or the tgt tensors are needed).</p>
+<p>Note that ApplyPacking is done on a per column basis (either on the src or on
+the tgt), as opposed to in PackSequences, when both src and tgt columns must be
+processed together within the same op.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>.
+A tensor of shape [N, seq_len, …] or [N]. The input to apply the
+packing to. For tf.string typed input only a vector of shape [N] is supported.</p></li>
+<li><p><strong>padding</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Must have the same type as <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#input" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></a>.
+A scalar to indicate the padding value. This is typically the zero
+value of T, but may not always be the case, e.g. when the input is a paddings
+tensor, in which case caller should set padding=1.
+For tf.string typed input, padding is used as a separator to join all the
+strings on the same row in the output.</p></li>
+<li><p><strong>segment_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A rank 2 tensor of shape [M, packed_seq_len].</p></li>
+<li><p><strong>indices_in_input</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A rank 2 tensor of shape [M, packed_seq_len].</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>. Has the same type as <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#input" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></a>.
+A tensor of shape [M, packed_seq_len, …], where the later dimensions match
+those of <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#input" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></a>. For tf.string typed input, the output is a vector of strings
+of shape [M].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.ops.mass">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.ops.</span></span><span class="sig-name descname"><span class="pre">mass</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">actual_seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_minlen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_start_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rand_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_unreserved_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.mass" title="Permalink to this definition"></a></dt>
+<dd><p>Applies masking to implement MASS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+Tensor of shape [batch_size, max_seq_len] containing the token ids.
+Should include EOS token &lt;/s&gt;.</p></li>
+<li><p><strong>weights</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+Tensor of shape [batch_size, max_seq_len].</p></li>
+<li><p><strong>actual_seq_len</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. Tensor of shape [batch_size].</p></li>
+<li><p><strong>mask_id</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. The id to use for the mask token.</p></li>
+<li><p><strong>vocab_size</strong> – An <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>.
+Vocab size used when selecting a random token to replace a masked
+token.</p></li>
+<li><p><strong>mask_ratio</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0.5</span></code>.
+Proportion of src to mask.</p></li>
+<li><p><strong>mask_minlen</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0</span></code>.
+Skip sentences too short to mask at least this many tokens.</p></li>
+<li><p><strong>span_len</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">100000</span></code>.
+Split mask_len into segments of this size and randomly distribute
+those across the src.</p></li>
+<li><p><strong>random_start_prob</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0.6</span></code>.
+The probability that the placement of masked segments will be
+entirely random. The remaining cases are split evenly between masking at the
+beginning and at the end of the src.</p></li>
+<li><p><strong>keep_prob</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0.1</span></code>.
+The probability that a token to be masked will be unchanged.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_prob</span> <span class="pre">+</span> <span class="pre">rand_prob</span> <span class="pre">+</span> <span class="pre">mask_prob</span></code> must sum to 1.</p></li>
+<li><p><strong>rand_prob</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0.1</span></code>.
+The probability that a token to be masked will be replaced with a
+random token in the vocab. <code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_prob</span> <span class="pre">+</span> <span class="pre">rand_prob</span> <span class="pre">+</span> <span class="pre">mask_prob</span></code> must sum to 1.</p></li>
+<li><p><strong>mask_prob</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#float" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">0.8</span></code>.
+The probability that a token to be masked will be replaced with the
+mask_id. <code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_prob</span> <span class="pre">+</span> <span class="pre">rand_prob</span> <span class="pre">+</span> <span class="pre">mask_prob</span></code> must sum to 1.</p></li>
+<li><p><strong>mask_target</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#True" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.
+whether to mask the target (the mask will be the inverse of that of
+the src).</p></li>
+<li><p><strong>first_unreserved_id</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">4</span></code>.
+Tokens greater than or equal to this may be selected at
+random to replace a masked token.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (src_ids, tgt_ids, tgt_labels, tgt_weights).</p>
+<dl class="simple">
+<dt>src_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Masked ids. E.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">s1</span> <span class="pre">s2</span> <span class="pre">s3</span> <span class="pre">m</span> <span class="pre">m</span></code></p>
+</dd>
+<dt>tgt_ids: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>Right-shifted ids with BOS token added, where the mask is the
+positional inverse of that of the source unless mask_target=False.
+E.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">m</span> <span class="pre">m</span> <span class="pre">m</span> <span class="pre">s3</span> <span class="pre">s4</span> <span class="pre">m</span></code></p>
+</dd>
+<dt>tgt_labels: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.</dt><dd><p>E.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">s1</span> <span class="pre">s2</span> <span class="pre">s3</span> <span class="pre">s4</span> <span class="pre">s5</span></code></p>
+</dd>
+<dt>tgt_weights: A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.</dt><dd><p>weights are zeroed wherever the target is masked.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
 <div class="toctree-wrapper compound">

@@ -80,8 +80,469 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-datasource-module">
-<h1>lingvo.core.datasource module<a class="headerlink" href="#lingvo-core-datasource-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.datasource">
+<span id="lingvo-core-datasource-module"></span><h1>lingvo.core.datasource module<a class="headerlink" href="#module-lingvo.core.datasource" title="Permalink to this headline"></a></h1>
+<p>DataSources describe how data should be produced.</p>
+<p>There are two broad types of DataSources:
+1) A source that reads some type of resource to produce tensors;
+2) A metasource/transformation that modifies the output of other datasources.</p>
+<p>The InputGenerator instance is passed in to each DataSource. A DataSource
+subclass may attempt to call specific methods or access specific attributes on
+the InputGenerator instance, and it is up to the user to ensure such
+requirements are met.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.DataSource">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">DataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#DataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.DataSource" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A base class for data sources.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.DataSource.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#DataSource.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.DataSource.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.DataSource.SetInputGenerator">
+<span class="sig-name descname"><span class="pre">SetInputGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_generator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#DataSource.SetInputGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.DataSource.SetInputGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize this datasource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_generator</strong> – A reference to the external input_generator.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.DataSource.Initialize">
+<span class="sig-name descname"><span class="pre">Initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#DataSource.Initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.DataSource.Initialize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.DataSource.Reset">
+<span class="sig-name descname"><span class="pre">Reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#DataSource.Reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.DataSource.Reset" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.DataSource.GetNext">
+<span class="sig-name descname"><span class="pre">GetNext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#DataSource.GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.DataSource.GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Override this method to return the next element from the datasource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the next element from the datasource. Depending
+on the datasource this may be a single tensor or a batch of tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.DataSource.GetMeta">
+<span class="sig-name descname"><span class="pre">GetMeta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#DataSource.GetMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.DataSource.GetMeta" title="Permalink to this definition"></a></dt>
+<dd><p>Gets metadata for the batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.SimpleDataSource">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">SimpleDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#SimpleDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.SimpleDataSource" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
+<p>A simple file based data source.</p>
+<p>This uses the Lingvo input pipeline consisting of input_common.h and
+record_yielder/record_batcher.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.SimpleDataSource.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#SimpleDataSource.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.SimpleDataSource.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.SimpleDataSource.GetNext">
+<span class="sig-name descname"><span class="pre">GetNext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#SimpleDataSource.GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.SimpleDataSource.GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Return input batch from p.file_patterns list weighted by p.weights.</p>
+<p>Examples in the batch will be mixed together from different file_pattern
+source proportionally to the weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>An input batch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.SimpleDataSource.GetMeta">
+<span class="sig-name descname"><span class="pre">GetMeta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#SimpleDataSource.GetMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.SimpleDataSource.GetMeta" title="Permalink to this definition"></a></dt>
+<dd><p>Gets metadata for the batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CrossBatchMixingDataSource">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">CrossBatchMixingDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CrossBatchMixingDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CrossBatchMixingDataSource" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
+<p>Mixes batches from different sources, each batch from only one source.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CrossBatchMixingDataSource.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CrossBatchMixingDataSource.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CrossBatchMixingDataSource.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CrossBatchMixingDataSource.GetNext">
+<span class="sig-name descname"><span class="pre">GetNext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CrossBatchMixingDataSource.GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CrossBatchMixingDataSource.GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Override this method to return the next element from the datasource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the next element from the datasource. Depending
+on the datasource this may be a single tensor or a batch of tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CrossBatchMixingDataSource.GetMeta">
+<span class="sig-name descname"><span class="pre">GetMeta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CrossBatchMixingDataSource.GetMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CrossBatchMixingDataSource.GetMeta" title="Permalink to this definition"></a></dt>
+<dd><p>Gets metadata for the batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CurriculumDataSource">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">CurriculumDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CurriculumDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CurriculumDataSource" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
+<p>A data source that reads different DataSources in stages.</p>
+<p>Supports multiple stages of training, where each stage yields batches for
+based on global step boundaries. The contents per stage are defined by nested
+DataSources.</p>
+<p>Boundaries are defined by the training global step.</p>
+<p>Currently bprop_variable_filters are not_supported.
+# TODO(rosenberg) support bprop_variable_filter within CurriculumDataSource
+The issue here is that by conditioning on tf.Variable global_step, the
+bprop_variable_filter from the selected DataSource is itself a tf.Variable.
+Other bprop_variable_filters are python strings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CurriculumDataSource.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CurriculumDataSource.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CurriculumDataSource.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CurriculumDataSource.GetNext">
+<span class="sig-name descname"><span class="pre">GetNext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CurriculumDataSource.GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CurriculumDataSource.GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Override this method to return the next element from the datasource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the next element from the datasource. Depending
+on the datasource this may be a single tensor or a batch of tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CurriculumDataSource.GetMeta">
+<span class="sig-name descname"><span class="pre">GetMeta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CurriculumDataSource.GetMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CurriculumDataSource.GetMeta" title="Permalink to this definition"></a></dt>
+<dd><p>Gets metadata for the batch.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.PrefixedDataSource">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">PrefixedDataSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#PrefixedDataSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.PrefixedDataSource" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.SimpleDataSource" title="lingvo.core.datasource.SimpleDataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.SimpleDataSource</span></code></a></p>
+<p>Prepends path prefix to file patterns.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.PrefixedDataSource.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#PrefixedDataSource.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.PrefixedDataSource.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.DataSource" title="lingvo.core.datasource.DataSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.DataSource</span></code></a></p>
+<p>Base DataSource class based on tf.data.Dataset.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource.num_hosts">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">num_hosts</span></span><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource.num_hosts" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource.host_id">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">host_id</span></span><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource.host_id" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource._map_args">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_map_args</span></span><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource._map_args" title="Permalink to this definition"></a></dt>
+<dd><p>Arguments for calls to dataset.map() or similar functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource.GetDataset">
+<span class="sig-name descname"><span class="pre">GetDataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetSource.GetDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource.GetDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Override to return a tf.data.Dataset containing a NestedMap.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource._InitIterator">
+<span class="sig-name descname"><span class="pre">_InitIterator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetSource._InitIterator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource._InitIterator" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource.Initialize">
+<span class="sig-name descname"><span class="pre">Initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetSource.Initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource.Initialize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource.Reset">
+<span class="sig-name descname"><span class="pre">Reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetSource.Reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource.Reset" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetSource.GetNext">
+<span class="sig-name descname"><span class="pre">GetNext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetSource.GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetSource.GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the next element from the dataset.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetAdaptor">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetAdaptor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetAdaptor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetAdaptor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetSource" title="lingvo.core.datasource.TFDatasetSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetSource</span></code></a></p>
+<p>Converts a DataSource into a TFDatasetSource.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetAdaptor.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetAdaptor.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetAdaptor.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetAdaptor.GetDataset">
+<span class="sig-name descname"><span class="pre">GetDataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetAdaptor.GetDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetAdaptor.GetDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Override to return a tf.data.Dataset containing a NestedMap.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetTransform" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetSource" title="lingvo.core.datasource.TFDatasetSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetSource</span></code></a></p>
+<p>Transforms the output of a child TFDatasetSource.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetTransform.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetTransform.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetTransform.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetTransform.GetDataset">
+<span class="sig-name descname"><span class="pre">GetDataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetTransform.GetDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetTransform.GetDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Override to return a tf.data.Dataset containing a NestedMap.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetTransform.Transform">
+<span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetTransform.Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetTransform.Transform" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a transformed tf.data.Dataset.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CustomTFDatasetTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">CustomTFDatasetTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CustomTFDatasetTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CustomTFDatasetTransform" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetTransform" title="lingvo.core.datasource.TFDatasetTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetTransform</span></code></a></p>
+<p>Transforms using a custom method of the input generator.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CustomTFDatasetTransform.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CustomTFDatasetTransform.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CustomTFDatasetTransform.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.CustomTFDatasetTransform.Transform">
+<span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#CustomTFDatasetTransform.Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.CustomTFDatasetTransform.Transform" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a transformed tf.data.Dataset.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">RepeatableCustomTFDatasetTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.CustomTFDatasetTransform" title="lingvo.core.datasource.CustomTFDatasetTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.CustomTFDatasetTransform</span></code></a></p>
+<p>A custom transform w/ repeatable dataset.</p>
+<p>The repeat options for the dataset are configured by the Generic input
+generator (could be TF data based) that creates/owns this datasource.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform._InitIterator">
+<span class="sig-name descname"><span class="pre">_InitIterator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform._InitIterator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform._InitIterator" title="Permalink to this definition"></a></dt>
+<dd><p>Override of the root’s _InitIterator to support dataset repeat.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.RepeatableCustomTFDatasetTransform.GetNext">
+<span class="sig-name descname"><span class="pre">GetNext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#RepeatableCustomTFDatasetTransform.GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.RepeatableCustomTFDatasetTransform.GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Override of the root’s GetNext to support checking repeat sentinel.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetFnInput">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetFnInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetFnInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetFnInput" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetSource" title="lingvo.core.datasource.TFDatasetSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetSource</span></code></a></p>
+<p>Loads a TFDataset using a function.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetFnInput.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetFnInput.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetFnInput.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetFnInput.GetDataset">
+<span class="sig-name descname"><span class="pre">GetDataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetFnInput.GetDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetFnInput.GetDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Override to return a tf.data.Dataset containing a NestedMap.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDSInput">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDSInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDSInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDSInput" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetSource" title="lingvo.core.datasource.TFDatasetSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetSource</span></code></a></p>
+<p>Load tfds datasets.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDSInput.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDSInput.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDSInput.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDSInput.GetDataset">
+<span class="sig-name descname"><span class="pre">GetDataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDSInput.GetDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDSInput.GetDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Override to return a tf.data.Dataset containing a NestedMap.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetBatchBySequenceLength">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetBatchBySequenceLength</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetBatchBySequenceLength"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetBatchBySequenceLength" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetTransform" title="lingvo.core.datasource.TFDatasetTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetTransform</span></code></a></p>
+<p>Batches examples without a leading batch dimension by length buckets.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetBatchBySequenceLength.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetBatchBySequenceLength.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetBatchBySequenceLength.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetBatchBySequenceLength.Transform">
+<span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetBatchBySequenceLength.Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetBatchBySequenceLength.Transform" title="Permalink to this definition"></a></dt>
+<dd><p>Batches a dataset containing NestedMaps of tensors.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetPrefetch">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetPrefetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetPrefetch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetPrefetch" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetTransform" title="lingvo.core.datasource.TFDatasetTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetTransform</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetPrefetch.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetPrefetch.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetPrefetch.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetPrefetch.Transform">
+<span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetPrefetch.Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetPrefetch.Transform" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a transformed tf.data.Dataset.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetMixer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetMixer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetMixer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetMixer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetSource" title="lingvo.core.datasource.TFDatasetSource"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetSource</span></code></a></p>
+<p>Mixes multiple TFDatasetSource with provided weights.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetMixer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetMixer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetMixer.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetMixer.GetDataset">
+<span class="sig-name descname"><span class="pre">GetDataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetMixer.GetDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetMixer.GetDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Override to return a tf.data.Dataset containing a NestedMap.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.datasource.GetTFDataServiceDataSet">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">GetTFDataServiceDataSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf_data_service_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bucket_upper_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_hosts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processing_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parallel_epochs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_spec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#GetTFDataServiceDataSet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.GetTFDataServiceDataSet" title="Permalink to this definition"></a></dt>
+<dd><p>Register and get a dataset from TF Data Service.</p>
+<p>Must provide an already registered dataset_id, or a dataset to be registered.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_name</strong> – name of the TF data service job (uuid str).</p></li>
+<li><p><strong>tf_data_service_address</strong> – tf_data_service_address (str).</p></li>
+<li><p><strong>bucket_upper_bound</strong> – The bucket upper bounds of datasource. (tensor/array)</p></li>
+<li><p><strong>num_hosts</strong> – Number of hosts (e.g. depends on use_per_host_infeed). (int)</p></li>
+<li><p><strong>host_id</strong> – The datasource’s host_id. (int)</p></li>
+<li><p><strong>processing_mode</strong> – mode for TF data service. Optional.</p></li>
+<li><p><strong>dataset</strong> – a TF data Dataset to be registered. Optional.</p></li>
+<li><p><strong>dataset_id</strong> – the ID of an already registered TF data Dataset. Optional.</p></li>
+<li><p><strong>element_spec</strong> – the element_spec of the TF data Dataset. Optional.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A TF data Dataset registered with the TF Data Service, its dataset_id, and
+element_spec.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>ValueError if both dataet and dataset_id are not set.</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDataServiceSource">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDataServiceSource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDataServiceSource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDataServiceSource" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetTransform" title="lingvo.core.datasource.TFDatasetTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetTransform</span></code></a></p>
+<p>Obtains input using remote tf.data service, potentially in batches.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDataServiceSource.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDataServiceSource.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDataServiceSource.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDataServiceSource.SetInputGenerator">
+<span class="sig-name descname"><span class="pre">SetInputGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_generator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDataServiceSource.SetInputGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDataServiceSource.SetInputGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize this datasource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_generator</strong> – A reference to the external input_generator.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDataServiceSource.GetDataset">
+<span class="sig-name descname"><span class="pre">GetDataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDataServiceSource.GetDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDataServiceSource.GetDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Override to return a tf.data.Dataset containing a NestedMap.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.datasource.TFDataServiceSource.Reset">
+<span class="sig-name descname"><span class="pre">Reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDataServiceSource.Reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDataServiceSource.Reset" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 
 

@@ -319,6 +319,21 @@
       <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)),</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span></div>
 
 
+<span class="c1"># On v3-2048:</span>
+<span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
+<span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm175B32x32DP \</span>
+<span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=1024 \</span>
+<span class="c1"># --ps_replicas=128 --job=executor_tpu --disable_tf2=true</span>
+<div class="viewcode-block" id="DenseLm175B32x32DP"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm175B32x32DP">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DenseLm175B32x32DP</span><span class="p">(</span><span class="n">DenseLm175B32x32</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;175B model running on v3-2048 with 2-way data parallelism.&quot;&quot;&quot;</span>
+  <span class="n">NUM_DEVICES_PER_SPLIT</span> <span class="o">=</span> <span class="mi">1024</span>
+  <span class="n">TRAIN_STEPS_PER_LOOP</span> <span class="o">=</span> <span class="mi">20</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">([</span><span class="mi">16</span><span class="p">,</span> <span class="mi">64</span><span class="p">],</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+  <span class="n">MODEL_DIM_RESHAPE_SEGMENTS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="DenseLM13B32x32"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLM13B32x32">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLM13B32x32</span><span class="p">(</span><span class="n">DenseLm175B32x32</span><span class="p">):</span>
   <span class="n">MODEL_DIM</span> <span class="o">=</span> <span class="mi">5120</span>

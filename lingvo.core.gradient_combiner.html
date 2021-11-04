@@ -80,8 +80,43 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-gradient-combiner-module">
-<h1>lingvo.core.gradient_combiner module<a class="headerlink" href="#lingvo-core-gradient-combiner-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.gradient_combiner">
+<span id="lingvo-core-gradient-combiner-module"></span><h1>lingvo.core.gradient_combiner module<a class="headerlink" href="#module-lingvo.core.gradient_combiner" title="Permalink to this headline"></a></h1>
+<p>Layers to combine gradients computed from multiple losses.</p>
+<p>Multi-task learning can sometimes benefit from more sophisticated gradient
+combination algorithms than simple linear aggregation, for example</p>
+<ul class="simple">
+<li><p>Gradient surgery: <a class="reference external" href="https://arxiv.org/abs/2001.06782">https://arxiv.org/abs/2001.06782</a></p></li>
+<li><p>GradNorm: <a class="reference external" href="https://arxiv.org/abs/1711.02257">https://arxiv.org/abs/1711.02257</a></p></li>
+</ul>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.gradient_combiner.GradientCombiner">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gradient_combiner.</span></span><span class="sig-name descname"><span class="pre">GradientCombiner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gradient_combiner.html#GradientCombiner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gradient_combiner.GradientCombiner" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>An abstract class to combine gradients (from multiple loss functions).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gradient_combiner.GradientCombiner.Combine">
+<span class="sig-name descname"><span class="pre">Combine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">losses_and_gradients</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gradient_combiner.html#GradientCombiner.Combine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gradient_combiner.GradientCombiner.Combine" title="Permalink to this definition"></a></dt>
+<dd><p>Combines gradients on the variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vmap</strong> – a NestedMap containing the variables.</p></li>
+<li><p><strong>losses_and_gradients</strong> – a Dict[str, loss_and_grads], where each key
+represents the loss name used to compute the gradients and each value is
+a NestedMap with the following entries, ‘loss_metric’, a (loss, weight)
+pair representing the loss; ‘grads’, a NestedMap containing the gradient
+tensors for variables, with the identical structure as ‘vmap’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap of combined gradients, with an identical structure as ‘vmap’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

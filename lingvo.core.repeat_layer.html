@@ -80,8 +80,167 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-repeat-layer-module">
-<h1>lingvo.core.repeat_layer module<a class="headerlink" href="#lingvo-core-repeat-layer-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.repeat_layer">
+<span id="lingvo-core-repeat-layer-module"></span><h1>lingvo.core.repeat_layer module<a class="headerlink" href="#module-lingvo.core.repeat_layer" title="Permalink to this headline"></a></h1>
+<p>A generic repeat layer.</p>
+<p>Adapted from builder_layers.RepeatLayer.</p>
+<dl class="simple">
+<dt>A repeat layer consists a stack of <code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat</span></code> identical sub layers, where</dt><dd><ul class="simple">
+<li><p>The variables are stacked across layers. Each stacked variable has shape
+[repeat, …].</p></li>
+<li><p>The computation is performed with a recurrent loop across layers.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Compared with a layer stack, a repeat layer’s TF graph size does not grow
+proportional to the number of layers. It also reduces HBM usage but incurs
+additional computation through rematerialization.</p>
+<p>GenericRepeatLayer._Repeat() allows its subclasses to describe arbitrary
+computation across sub layers.</p>
+<p>Inputs to repeat layer computation fall into three categories:</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>common_input: shared tensor or numeric inputs to all sub layers, e.g.,</dt><dd><p>aux_vec for cross attention, batch_size for creating zero state.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>layerwise_inputs: separate inputs for each sub layer, specified by tensors</dt><dd><p>of shape [repeat, …], where T[i, …] is the input for sub layer i,
+e.g., cached_states for ExtendStep. In particular, ‘theta’ is also a type
+of layerwise input, but in API we treat it separately for convenience.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>iterative_input_0: iterative input to the first sub layer, e.g., hidden</dt><dd><p>vectors.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<p>The output of a sub layer can include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>layerwise: layerwise outputs, to be stacked for the final output, e.g.,</dt><dd><p>updated_states from ExtendStep.</p>
+</dd>
+</dl>
+</li>
+<li><p>iterative: iterative input for the next sub layer.</p></li>
+</ul>
+</div></blockquote>
+<p>The final output of a repeat layer will include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>layerwise: stacked tensors of layerwise outputs, of shape [repeat, …],</dt><dd><p>where T[i, …] is a layerwise output of sub layer i.</p>
+</dd>
+</dl>
+</li>
+<li><p>iterative: the iterative output of the final sub layer.</p></li>
+</ul>
+</div></blockquote>
+<p>In pseudo code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_Repeat</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">common_input</span><span class="p">,</span> <span class="n">layerwise_inputs</span><span class="p">,</span> <span class="n">iterative_input_0</span><span class="p">):</span>
+  <span class="n">iterative</span> <span class="o">=</span> <span class="n">iterative_input_0</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
+    <span class="n">fn_out</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+                <span class="n">iterative</span><span class="o">=</span><span class="n">iterative</span><span class="p">,</span>
+                <span class="n">common_input</span><span class="o">=</span><span class="n">common_input</span><span class="p">,</span>
+                <span class="n">layerwise_input</span><span class="o">=</span><span class="n">layerwise_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+    <span class="n">layerwise_outputs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn_out</span><span class="o">.</span><span class="n">layerwise_output</span>
+    <span class="n">iterative</span> <span class="o">=</span> <span class="n">fn_out</span><span class="o">.</span><span class="n">iterative</span>
+  <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">iterative</span><span class="o">=</span><span class="n">iterative</span><span class="p">,</span> <span class="n">layerwise</span><span class="o">=</span><span class="n">layerwise_outputs</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer._CopyShapes">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.repeat_layer.</span></span><span class="sig-name descname"><span class="pre">_CopyShapes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#_CopyShapes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer._CopyShapes" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">lingvo.core.repeat_layer.</span></span><span class="sig-name descname"><span class="pre">GenericRepeatLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer which repeats itself sequentially using lingvo Recurrent.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer.Params">
+<em class="property"><span class="pre">classmethod</span> </em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer.Params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer._body">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">_body</span></span><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._body" title="Permalink to this definition"></a></dt>
+<dd><p>A child layer to be used as the loop body.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables">
+<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compatibility. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer._MaybeStackExtraTheta">
+<span class="sig-name descname"><span class="pre">_MaybeStackExtraTheta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._MaybeStackExtraTheta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._MaybeStackExtraTheta" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer._Repeat">
+<span class="sig-name descname"><span class="pre">_Repeat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">common_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layerwise_inputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterative_input_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layerwise_output_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._Repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._Repeat" title="Permalink to this definition"></a></dt>
+<dd><p>Invokes ‘fn’ for each sub-layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – layer parameters.</p></li>
+<li><p><strong>fn</strong> – A function with args (theta, common_input, layerwise_input, iterative)
+returning a NestedMap(layerwise_output=…, iterative=…).</p></li>
+<li><p><strong>common_input</strong> – a NestedMap with common inputs for every sub-layer.</p></li>
+<li><p><strong>layerwise_inputs</strong> – a nested tensor with separate inputs for each sub-layer,
+where each leaf value T is a tensor of shape [p.repeat, …] and T[i,
+…] represents layerwise inputs to the i’th sub-layer.</p></li>
+<li><p><strong>iterative_input_0</strong> – a nested tensor for the iterative input of the 0’th
+sub-layer.</p></li>
+<li><p><strong>layerwise_output_0</strong> – a nested tensor representing the layerwise output of
+the first sub layer. The actual tensor values are not used. Only the
+structure and tensor shapes are. In particular, if layerwise_output_0 is
+None, calls fn(…) to compute the output.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>iterative: a nested tensor with the same structure as iterative_input_0</dt><dd><p>representing the iterative output of the last sub-layer.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>layerwise: a nested tensor where each leaf value T is a tensor of shape</dt><dd><p>[p.repeat, …] and T[i, …] represents layerwise output from the
+i’th sub-layer.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A NestedMap with</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
