@@ -61,7 +61,7 @@ class BertDataset(base_model_params.BaseModelParams):
     p.name = 'test'
     p.input_file = 'gs://mlperf_v1_1/bert/eval'
     p.enable_packing = False
-    p.resettable = True
+    p.reset_for_eval = True
     num_local_devices = jax.local_device_count()
     p.batch_size = self.PERCORE_BATCH_SIZE * num_local_devices
     p.num_samples = 10_000

@@ -49,6 +49,22 @@ class InputTest(test_util.JaxTestCase):
     self.assertArraysEqual(ids, expected_ids)
     self.assertArraysEqual(lengths, expected_lengths)
 
+  def test_remask(self):
+    p = input_generator.TFRecordBertInput.Params()
+    # There are 10 examples in this test data file.
+    p.input_file = test_helper.test_src_dir_path(
+        'jax/tasks/lm/testdata/tfrecords')
+    p.batch_size = 10
+    p.is_training = True
+    p.remask = True
+    p.mlm_augmenter.Set(mask_token_id=103, vocab_size=8000)
+
+    inp = p.Instantiate()
+    batch = inp.get_next()
+    ids, lengths = self._get_first_id_and_lengths(batch)
+    self.assertEqual(ids.shape, (10,))
+    self.assertEqual(lengths.shape, (10,))
+
   @parameterized.parameters(True, False)
   def test_sharded(self, provide_data_size):
     p = input_generator.TFRecordBertInput.Params()

@@ -15,7 +15,6 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         # Implicit absl.logging dependency.
-        "//lingvo/core:base_input_generator",
         "//lingvo/core:layers",
         "//lingvo/core/ops",
         "//lingvo/jax:base_input",
@@ -44,7 +43,6 @@ py_strict_test(
         # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
         "//lingvo/core:test_helper",
-        "//lingvo/jax:py_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],

@@ -70,6 +70,7 @@ class TFRecordBertInput(base_input.BaseInput):
 
     if p.remask:
       mlm_p = p.mlm_augmenter.Copy()
+      mlm_p.name = 'mlm_augmenter'
       mlm_p.dtype = tf.float32
       mlm_p.fprop_dtype = tf.float32
       logging.info('mlm_p=%s', mlm_p.ToText())
@@ -135,7 +136,7 @@ class TFRecordBertInput(base_input.BaseInput):
     ret.segment_pos = tf.cast(ret.segment_ids * pos, dtype=tf.int32)
 
     if p.remask:
-      new_masked_ids, new_masked_pos = self.mlm.fprop(None, ret.labels,
+      new_masked_ids, new_masked_pos = self.mlm.FProp(None, ret.labels,
                                                       ret.paddings)
       ret.masked_ids = new_masked_ids
       ret.masked_pos = new_masked_pos
