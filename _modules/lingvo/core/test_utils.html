@@ -110,6 +110,8 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setUp</span><span class="p">()</span>
     <span class="c1"># Ensure the global_step variable is created in the default graph.</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+    <span class="c1"># Clean up the EMA object.</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">_EXECUTOR_EMA</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># pylint:disable=protected-access</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetRequireSequentialInputOrder</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">in_unit_test</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">cluster</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span></div>

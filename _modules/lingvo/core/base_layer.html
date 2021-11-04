@@ -742,6 +742,20 @@
 
     <span class="n">private_theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span>
 
+    <span class="c1"># When ExecutorTpu specifies the EMA (e.g. when running eval/decode program</span>
+    <span class="c1"># with EMA enabled), use the EMA version of the variables if applicable.</span>
+    <span class="n">ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">ema</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">MaybeUseEmaVar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;EMA is used but self._private_theta contains &#39;</span>
+                           <span class="sa">f</span><span class="s1">&#39;non-variables: </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+        <span class="n">ema_x</span> <span class="o">=</span> <span class="n">ema</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ema_x</span> <span class="k">if</span> <span class="n">ema_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span>
+
+      <span class="n">private_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">MaybeUseEmaVar</span><span class="p">,</span> <span class="n">private_theta</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">dtype</span><span class="p">):</span>
 
