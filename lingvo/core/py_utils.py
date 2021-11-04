@@ -690,8 +690,8 @@ def GradientTape(*args, **kwargs):
     _GRADIENT_TAPE_STACK.stack.pop()
 
 
-# The tf.train.ExponentialMovingAverage singleton used by all subtasks in
-# multi-task training with ExecutorTpu.
+# The tf.train.ExponentialMovingAverage singleton used by all programs when
+# training with ExecutorTpu.
 _EXECUTOR_EMA = None
 
 

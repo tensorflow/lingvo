@@ -677,6 +677,20 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     private_theta = self._private_theta
 
+    # When ExecutorTpu specifies the EMA (e.g. when running eval/decode program
+    # with EMA enabled), use the EMA version of the variables if applicable.
+    ema = py_utils.ExponentialMovingAverage()
+    if self.do_eval and ema:
+
+      def MaybeUseEmaVar(x):
+        if not isinstance(x, tf.Variable):
+          raise ValueError('EMA is used but self._private_theta contains '
+                           f'non-variables: {x}.')
+        ema_x = ema.average(x)
+        return ema_x if ema_x is not None else x
+
+      private_theta = py_utils.Transform(MaybeUseEmaVar, private_theta)
+
     if (self._params.fprop_dtype is not None and
         self._params.fprop_dtype != self._params.dtype):
 

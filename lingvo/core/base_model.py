@@ -1063,7 +1063,7 @@ class BaseModel(base_layer.BaseLayer):
     tp = self.params.train
     if tp.ema_decay > 0:
       assert tp.ema_decay < 1.0
-      # Use the global EMA if set (for multi-task training).
+      # Use the global EMA if set (for executor training).
       self._ema = py_utils.ExponentialMovingAverage()
       if not self._ema:
         self._ema = tf.train.ExponentialMovingAverage(

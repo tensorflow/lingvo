@@ -1563,6 +1563,11 @@ class SimpleProgramSchedule:
       self.train_program = p.train_program.Instantiate(
           shared_model=shared_model, trial=trial, **kwargs)
       self._programs.append(self.train_program)
+    elif py_utils.ExponentialMovingAverage():
+      # When EMA is used, the train program must be added to self._programs
+      # before any eval programs.
+      raise ValueError('When EMA is used, there must be a train program to '
+                       'apply the EMA before eval programs can use it.')
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir
