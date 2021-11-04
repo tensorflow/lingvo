@@ -140,17 +140,19 @@ class Base(base_layer.BaseLayer):
     for var in tf_optimizer.variables():
       res[var.name] = var
 
-    try:
-      # hyper params such as decay, beta_1, beta_2 in Adam optimizer.
-      # Not always applicable: V1 optimizers do not have them
-      hyper_params = getattr(tf_optimizer, '_hyper')
-      res.update({
-          var.name: var
-          for var in hyper_params.values()
-          if isinstance(var, tf.Variable)
-      })
-    except AttributeError:
-      pass
+    # hyper params such as beta_1, beta_2 in AdamV1 optimizer.
+    # V1 optimizers have '_non_slot_dict'
+    # V2 optimizers have '_hyper'
+    for param_var_str in ['_hyper', '_non_slot_dict']:
+      try:
+        hyper_params = getattr(tf_optimizer, param_var_str)
+        res.update({
+            var.name: var
+            for var in hyper_params.values()
+            if isinstance(var, tf.Variable)
+        })
+      except AttributeError:
+        pass
 
     return res
 

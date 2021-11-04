@@ -333,10 +333,11 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       return {}
     visited.add(id(self))
 
-    res = {}
+    res = self._GetSelfVariablesDict()
     for child in py_utils.Flatten(self.children):
-      res.update(child.GetVariablesDict(visited))
-    res.update(self._GetSelfVariablesDict())
+      res = py_utils.MergeDictsWithValueCheck(res,
+                                              child.GetVariablesDict(visited))
+
     return res
 
   def _GetSelfVariablesDict(self):

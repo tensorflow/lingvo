@@ -3940,6 +3940,17 @@ class HasShapeTest(test_utils.TestCase):
                 y_pl: np.random.rand(2, 3, 2, 5, 4),
             })
 
+  def testMergeDictsWithValueCheck(self):
+    d1 = {'a': 1, 'b': 2}
+    d2 = {'a': 1, 'c': 3}
+    d_merge = py_utils.MergeDictsWithValueCheck(d1, d2)
+    self.assertEqual(d_merge, {'a': 1, 'b': 2, 'c': 3})
+
+    d3 = {'a': 1, 'b': 3}
+    with self.assertRaisesRegex(RuntimeError,
+                                '.*corresponds to different values.*'):
+      _ = py_utils.MergeDictsWithValueCheck(d1, d3)
+
 
 class SoftmaxTest(test_utils.TestCase, parameterized.TestCase):
 

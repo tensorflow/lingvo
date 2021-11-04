@@ -72,6 +72,11 @@ tf.flags.DEFINE_bool(
     'since XLA does not fully respect the contract with respect to '
     'user-specified seeds, when using TensorFlow stateful RNGs.')
 
+# TODO(jiaweix): add the flag in launch.py
+tf.flags.DEFINE_bool(
+    'use_v2_checkpoints_in_eager', False,
+    'Whether to use v2 object based checkpoints or v1 checkpoints.')
+
 # NOTE: Using absl flags in libraries are frowned upon for several reasons:
 #
 # 1) They require app.run() or explicit flag parsing, preventing the use of

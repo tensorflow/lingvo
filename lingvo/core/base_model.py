@@ -1154,7 +1154,8 @@ class BaseModel(base_layer.BaseLayer):
     """Returns a dict of variables from the model, excluding its children."""
     res = super()._GetSelfVariablesDict()
     if self.ema:
-      res.update(self._ema_variables_dict)
+      res = py_utils.MergeDictsWithValueCheck(res, self._ema_variables_dict)
+
     return res
 
 

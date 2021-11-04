@@ -40,6 +40,7 @@ from tensorflow.python.tpu import training_loop as tpu_training_loop
 from tensorflow.python.tpu.ops import tpu_ops
 
 # pylint:enable=g-direct-tensorflow-import
+FLAGS = tf.flags.FLAGS
 
 
 class BaseProgram:
@@ -325,17 +326,24 @@ class BaseProgram:
     pass
 
   def CreateCheckpointer(self, init_op=None):
+    """Creates a checkpointer, whose version depends on the mode and config.
+
+    Args:
+      init_op: The initialize variables op. If unset, it will call
+        tf.global_variables_initializer().
+
+    Raises:
+      TypeError: When the function is called in Eager mode.
+    """
     if py_utils.IsEagerMode():
-      # TODO(laigd): implement eager checkpointing.
-      pass
+      raise TypeError('Not supported in Eager mode.')
     else:
       self._checkpointer = checkpointer.Checkpointer(
           self._checkpoint_dir, self._model, init_op=init_op)
 
   def RestoreIfNeeded(self, sess=None):
     if py_utils.IsEagerMode():
-      # TODO(laigd): implement eager checkpointing.
-      pass
+      raise TypeError('Not supported in Eager mode.')
     else:
       self._checkpointer.RestoreIfNeeded(sess)
 
@@ -367,6 +375,9 @@ class BaseProgram:
     device = tpu.core(0) if self.spmd else ''
     with tf.device(device):
       return tpu_ops.outfeed_enqueue_tuple(per_example_tensors.Flatten())
+
+  def GetModel(self):
+    return self._model
 
 
 class TrainProgram(BaseProgram):

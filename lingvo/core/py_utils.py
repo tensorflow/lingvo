@@ -6514,3 +6514,16 @@ def UpdateProcessedCheckpoints(runner_dir, ckpt_path):
   processed_ckpts.append(ckpt_path)
   with tf.io.gfile.GFile(processed_ckpts_path, 'w') as f:
     f.write('\n'.join(processed_ckpts) + '\n')
+
+
+def MergeDictsWithValueCheck(dict1, dict2):
+  """Merges two dictionaries with same-key values."""
+  common_keys = set(dict1.keys()) & set(dict2.keys())
+  for key in common_keys:
+    # The values must be the same object
+    if dict1[key] is not dict2[key]:
+      raise RuntimeError(f'The same key {key} corresponds to different values '
+                         f'in the dictionaries: {dict1[key]} vs {dict2[key]}')
+
+  dict1.update(dict2)
+  return dict1

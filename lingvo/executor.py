@@ -353,19 +353,34 @@ class ExecutorTpu(base_runner.BaseRunner):
         self._initialize_local_vars = tf.local_variables_initializer()
         self._initialize_global_vars = tf.global_variables_initializer()
 
+      if py_utils.IsEagerMode():
+        if FLAGS.use_v2_checkpoints_in_eager:
+          self._eager_checkpointer = checkpointer.EagerCheckpointerV2(
+              self._checkpoint_dir,
+              models=[program.GetModel() for program in self._programs],
+              init_op=None,
+              train_params=train_cfg.train,
+              save_only=False)
+        else:
+          self._eager_checkpointer = checkpointer.EagerCheckpointerV1(
+              self._checkpoint_dir,
+              models=[program.GetModel() for program in self._programs],
+              init_op=None,
+              train_params=train_cfg.train,
+              save_only=False)
+
       for program in self._programs:
         program.SetStatusMessageFn(self._SetStatusMessage)
         if py_utils.IsEagerMode():
-          # TODO(laigd): support checkpointing.
+          # A single checkpinter `_eager_checkpointer` is used
           pass
         else:
           program.CreateCheckpointer(init_op=self._initialize_global_vars)
 
       if py_utils.IsEagerMode():
-        # TODO(laigd): support checkpointing.
-        pass
+        self._save_only_checkpointer = self._eager_checkpointer
       else:
-        self.save_only_checkpointer = checkpointer.Checkpointer(
+        self._save_only_checkpointer = checkpointer.Checkpointer(
             self._checkpoint_dir,
             model=None,
             init_op=self._initialize_global_vars,
@@ -440,8 +455,12 @@ class ExecutorTpu(base_runner.BaseRunner):
       # Initialize the variables first, if needed.
       compile_fns = []
       for program in self._programs:
-        program.RestoreIfNeeded(sess)
+        if not py_utils.IsEagerMode():
+          program.RestoreIfNeeded(sess)
         compile_fns += [program.Compile]
+
+      if py_utils.IsEagerMode():
+        self._eager_checkpointer.Restore()
 
       # Run the compiles in parallel.
       threadpool = multiprocessing.dummy.Pool(len(compile_fns))
@@ -471,36 +490,33 @@ class ExecutorTpu(base_runner.BaseRunner):
           global_step = sess.run(py_utils.GetGlobalStep())
 
         async_checkpointing = False
-        if py_utils.IsEagerMode():
-          # TODO(laigd): save checkpoints.
-          pass
-        else:
 
-          def RunSave(sess, global_step):
-            # Run TPU embedding retrieve ops.
-            # NOTE: this is expensive, so only run it when we're checkpointing.
+        def RunSave(sess, global_step):
+          # Run TPU embedding retrieve ops.
+          # NOTE: this is expensive, so only run it when we're checkpointing.
+          if not py_utils.IsEagerMode():
             tf.logging.info('Retrieve params.')
             sess.run(self._retrieve_ops)
             tf.logging.info('Retrieve params done.')
-            # Save program state first, so it's recoverable after we restore
-            # from checkpoint.
-            for program in self._programs:
-              program.SaveProgramState(sess, global_step)
-            # Save the checkpoints.
-            self.save_only_checkpointer.Save(sess, global_step)
 
-          if not self._ml_perf_log and self.save_only_checkpointer.ShouldSave(
-              global_step):
+          # Save program state first, so it's recoverable after we restore
+          # from checkpoint.
+          for program in self._programs:
+            program.SaveProgramState(sess, global_step)
+          # Save the checkpoints.
+          self._save_only_checkpointer.Save(sess, global_step)
 
-            if self.save_only_checkpointer.async_checkpointing:
-              tf.logging.info(
-                  'Save checkpoint asynchronously AT YOUR OWN RISK.')
-              threadpool = multiprocessing.dummy.Pool(1)
-              saver_future = threadpool.apply_async(
-                  RunSave, args=(sess, global_step))
-              async_checkpointing = True
-            else:
-              RunSave(sess, global_step)
+        if not self._ml_perf_log and self._save_only_checkpointer.ShouldSave(
+            global_step):
+
+          if self._save_only_checkpointer.async_checkpointing:
+            tf.logging.info('Save checkpoint asynchronously AT YOUR OWN RISK.')
+            threadpool = multiprocessing.dummy.Pool(1)
+            saver_future = threadpool.apply_async(
+                RunSave, args=(sess, global_step))
+            async_checkpointing = True
+          else:
+            RunSave(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
@@ -547,12 +563,8 @@ class ExecutorTpu(base_runner.BaseRunner):
           global_step = sess.run(py_utils.GetGlobalStep())
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
-          if py_utils.IsEagerMode():
-            # TODO(laigd): save checkpoints.
-            pass
-          else:
-            if not self._ml_perf_log:
-              RunSave(sess, global_step)
+          if not self._ml_perf_log:
+            RunSave(sess, global_step)
           tf.logging.info(
               'Program finished after %f seconds. Waiting for threads to end.',
               time.time() - start_time)
