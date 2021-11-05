@@ -17,7 +17,7 @@
 
 import dataclasses
 import functools
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, NamedTuple, Optional, Sequence, Tuple, Union
 
 from absl import logging
 import jax
@@ -783,7 +783,7 @@ class _ShardedAdafactorUpdateResult:
   v: Optional[Any]
 
 
-class ShardedAdafactorState(optax.OptState):
+class ShardedAdafactorState(NamedTuple):
   """Overall state of the ShardedAdafactor optimizer."""
   count: JTensor
   m: Optional[NestedJTensor]
