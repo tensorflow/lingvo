@@ -260,7 +260,7 @@ class DenseLm175B32x32(DenseLm128B16x16):
 # bazel run -c opt //lingvo:trainer -- --mode=sync \
 # --alsologtostderr --model=lm.synthetic_packed_input.DenseLm175B32x32DP \
 # --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=1024 \
-# --ps_replicas=128 --job=executor_tpu --disable_tf2=true
+# --ps_replicas=256 --job=executor_tpu --disable_tf2=true
 @model_registry.RegisterSingleTaskModel
 class DenseLm175B32x32DP(DenseLm175B32x32):
   """175B model running on v3-2048 with 2-way data parallelism."""
