@@ -70,6 +70,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
   DEVICE_MESH = None
   DEBUG = False
   ATTEN_LOGIT_CAP = 0
+  MODEL_DIM_RESHAPE_SEGMENTS = None
 
   GATED_GELU = True
   POSITIONAL_EMBEDDING = False
@@ -105,6 +106,7 @@ class DenseLmTemplate(base_model_params.SingleTaskModelParams):
             attention_key_value_dim=self.ATTENTION_KEY_VALUE_DIM,
             attention_extra_logit=0.0,
             relative_attention_use_universal_1d_position=True,
+            model_dim_reshape_segments=self.MODEL_DIM_RESHAPE_SEGMENTS,
             model_dim=self.MODEL_DIM,
             attention_num_heads=self.NUM_HEADS,
             ff_dim=self.HIDDEN_DIM,
