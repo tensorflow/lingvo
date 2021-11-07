@@ -669,7 +669,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
   inputs = .... # Get some input for the model.
 
   # The main compute loop. This is a pure function without side effect.
-  def Compute(theta, prng_key, global_step, inputs):
+  def compute(theta, prng_key, global_step, inputs):
     with jax_base_layer.JaxContext.new_context():
       # Mix in global seed so that rng_seed are different for different steps.
       per_step_prng_key = jrandom.fold_in(prng_key, global_step)
@@ -691,8 +691,6 @@ class BaseLayer(metaclass=BaseLayerMeta):
                                         forward_updated_theta)
       # Fetch summaries.
       summaries = jax_base_layer.all_summaries()
-      # Finally, reset the prng key.
-      jax_base_layer.ClearPrngKey()
       global_step += 1
 
       return new_theta, global_step, output, summaries
@@ -865,7 +863,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
     assert var_not_trainable(self.vars[name])
     self._forward_updated_vars.dict[name] = new_val
 
-  def fprop(self, theta: Any, *args: Any, **kwargs: Any) -> Any:
+  def fprop(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
     """Forward propagation.
 
     Note, this function is almost pure, except for the following elements:
