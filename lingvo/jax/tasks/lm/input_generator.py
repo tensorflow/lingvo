@@ -16,6 +16,7 @@
 """Language model input generator."""
 
 from absl import logging
+from lingvo.core import base_input_generator
 from lingvo.core import layers
 from lingvo.core import ops
 from lingvo.jax import base_input
@@ -276,3 +277,31 @@ class TFRecordBertInput(base_input.BaseInput):
     batch_out.segment_pos = segment_pos
 
     return batch_out
+
+
+class SyntheticLmData(base_input_generator.BaseInputGenerator):
+  """Generated synthetic data with packed_input lm formats."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    """Defaults params for input generators."""
+    p = super().Params()
+    p.Define('seq_len', 0, 'Number of tokens in one example')
+    return p
+
+  def _InputBatch(self):
+    p = self.params
+    targets = tf.ones([p.batch_size, p.seq_len], dtype=tf.int32)
+    input_batch = py_utils.NestedMap()
+    input_batch.ids = targets  # equivalent to tf.roll(targets, 1, axis=1)
+    input_batch.paddings = tf.zeros_like(targets)
+    input_batch.weights = tf.ones_like(targets)
+    input_batch.labels = targets
+    # segment_id = 0 meant padded tokens
+    # e.g., if we have two segments packed into one sentence with paddings
+    # segment_ids = 1, 1, 1, 1, 2, 2, 2, 2, 0, 0
+    # segment_pos = 0, 1, 2, 3, 0, 1, 2, 3, 0, 0
+    input_batch.segment_ids = targets
+    input_batch.segment_pos = tf.tile(
+        tf.range(0, p.seq_len)[tf.newaxis, :], [p.batch_size, 1])
+    return input_batch

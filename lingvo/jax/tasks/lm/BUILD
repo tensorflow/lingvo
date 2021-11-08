@@ -15,6 +15,7 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         # Implicit absl.logging dependency.
+        "//lingvo/core:base_input_generator",
         "//lingvo/core:layers",
         "//lingvo/core/ops",
         "//lingvo/jax:base_input",

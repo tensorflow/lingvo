@@ -18,5 +18,6 @@
 # Import ModelParams to ensure that they are added to the global registry.
 # pylint: disable=unused-import
 import lingvo.jax.tasks.lm.params.bert
+import lingvo.jax.tasks.lm.params.lm_cloud
 
 # pylint: enable=unused-import

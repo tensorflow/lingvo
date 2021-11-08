@@ -12,6 +12,7 @@ pytype_library(
     name = "params",
     srcs = [
         "bert.py",
+        "lm_cloud.py",
         "params.py",
     ],
     srcs_version = "PY3",
@@ -26,6 +27,7 @@ pytype_library(
         "//lingvo/jax:schedules",
         "//lingvo/jax/layers",
         "//lingvo/jax/tasks/lm:input_generator",
+        "//lingvo/tasks/lm/params",
         # Implicit numpy dependency.
     ],
 )
