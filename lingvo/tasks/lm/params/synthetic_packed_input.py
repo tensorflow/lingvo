@@ -271,6 +271,19 @@ class DenseLm175B32x32DP(DenseLm175B32x32):
   MODEL_DIM_RESHAPE_SEGMENTS = [16]
 
 
+# On v4-2048:
+# bazel run -c opt //lingvo:trainer -- --mode=sync \
+# --alsologtostderr --model=lm.synthetic_packed_input.DenseLm175B1K \
+# --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=1024 \
+# --ps_replicas=256 --job=executor_tpu --disable_tf2=true
+@model_registry.RegisterSingleTaskModel
+class DenseLm175B1K(DenseLm175B32x32):
+  """175B model running on v4-2048."""
+  DEVICE_MESH_SHAPE = [64, 16]
+  DEVICE_MESH = np.arange(
+      0, np.product(DEVICE_MESH_SHAPE)).reshape(DEVICE_MESH_SHAPE)
+
+
 @model_registry.RegisterSingleTaskModel
 class DenseLM13B32x32(DenseLm175B32x32):
   MODEL_DIM = 5120
