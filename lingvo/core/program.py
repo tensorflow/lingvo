@@ -919,9 +919,7 @@ class DecodeProgram(BaseProgram):
           return i + 1
 
       tf.while_loop(
-          cond=lambda i: i < self._steps_per_loop,
-          body=InfeedBody,
-          loop_vars=[tf.constant(0)])
+          cond=lambda i: i < 1, body=InfeedBody, loop_vars=[tf.constant(0)])
 
     self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
         _DecodeFn,
