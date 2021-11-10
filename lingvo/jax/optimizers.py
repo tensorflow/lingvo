@@ -553,7 +553,8 @@ class Adam(BaseOptimizer):
     return cls.Params().Set(beta1=0.9, beta2=0.98, epsilon=1e-9)
 
   def _get_raw_grad_transformation(
-      self, lr: optax.Schedule) -> optax.GradientTransformation:
+      self, lr: optax.Schedule
+  ) -> Union[optax.GradientTransformation, ShardedGradientTransformation]:
     p = self._params
     if p.sharded_adam:
       logging.info('Using sharded_adam.')
