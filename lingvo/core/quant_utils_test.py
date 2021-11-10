@@ -199,7 +199,7 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
           global_step=16)
 
 
-class ClippingCapScheduleTest:
+class ClippingCapScheduleTest(quant_test_lib.QuantUtilsBaseTest):
 
   def testLinearClippingCapSchedule(self):
     p = quant_utils.LinearClippingCapSchedule.Params()
@@ -208,15 +208,21 @@ class ClippingCapScheduleTest:
     p.start_cap = 6.0
     p.end_cap = 1.0
     cc_schedule = p.Instantiate()
+    step_to_expected_value = {
+        25: 6.0,
+        50: 6.0,
+        60: 5.0,
+        70: 4.0,
+        80: 3.0,
+        90: 2.0,
+        100: 1.0,
+        110: 1.0,
+    }
     with self.session():
-      self.assertAllClose(cc_schedule._Value(25).eval(), 6.0)
-      self.assertAllClose(cc_schedule._Value(50).eval(), 6.0)
-      self.assertAllClose(cc_schedule._Value(60).eval(), 5.0)
-      self.assertAllClose(cc_schedule._Value(70).eval(), 4.0)
-      self.assertAllClose(cc_schedule._Value(80).eval(), 3.0)
-      self.assertAllClose(cc_schedule._Value(90).eval(), 2.0)
-      self.assertAllClose(cc_schedule._Value(100).eval(), 1.0)
-      self.assertAllClose(cc_schedule._Value(110).eval(), 1.0)
+      global_step = py_utils.GetGlobalStep()
+      for step, expected_value in step_to_expected_value.items():
+        tf.assign(global_step, step).eval()
+        self.assertAllClose(cc_schedule._Value().eval(), expected_value)
 
   def _ClipExample(self, cc_schedule, v):
     """Returns a tuple of (neg, pos) for clipped neg/pos values of v."""
