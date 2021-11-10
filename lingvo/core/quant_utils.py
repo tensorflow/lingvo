@@ -26,16 +26,37 @@ import numpy as np
 
 
 @enum.unique
-class InputDistribution(str, enum.Enum):
-  """Distribution type for the inputs for AqtQdomain.
+class QDistribution(str, enum.Enum):
+  """Distribution type for the inputs for QDomain.
 
-  Symmetric distribution is for signed inputs, here we quantize the inputs using
-  symmetric range around 0 i.e. in range [-max, max]. Weights are signed.
-  Positive distribution is for unsigned distribution, here we quantize the
-  inputs in range [0, max_val]
+  Symmetric and positive represent general signed and unsigned inputs, while
+  padding, relu, ... allow for quantization using known ranges.
   """
+  # General distributions.
   SYMMETRIC = 'symmetric'
   POSITIVE = 'positive'
+  # Specific activation distributions.
+  LOG_SOFTMAX = 'log_softmax'
+  PADDING = 'padding'
+  RANDOM_UNIFORM = 'random_uniform'
+  RELU = 'relu'
+  RELU6 = 'relu6'
+  SIGMOID = 'sigmoid'
+  SOFTMAX = 'softmax'
+  TANH = 'tanh'
+
+  @classmethod
+  def IsPositive(cls, dist: 'QDistribution') -> bool:
+    return dist in [
+        QDistribution.POSITIVE,
+        QDistribution.PADDING,
+        QDistribution.RANDOM_UNIFORM,
+        QDistribution.RELU,
+        QDistribution.RELU6,
+        QDistribution.SIGMOID,
+        QDistribution.SOFTMAX,
+        QDistribution.TANH,
+    ]
 
 
 class QuantizableLayer(base_layer.BaseLayer):
@@ -71,14 +92,8 @@ class QuantizableLayer(base_layer.BaseLayer):
   The "decorators" are:
 
   - QWeight: Tags a tensor (typically a var) as a weight quantized type.
-  - QR* (QRTanh, QRSigmoid, QRSoftmax, etc): Tags a tensor as the result
-    of a fixed activation function with a known output range (the range
-    is implied in the name).
-  - QRPadding: Tags a tensor as containing a padding value (as we define
-    them as 0..1). While such values are numeric, they generally exist with
-    very different ranges from the rest of the graph and should not be
-    arithmetically combined with tensors that may have a different/variable
-    range.
+  - QRAct(act, dist: QDistribution): Tags a tensor as an activation
+    with a known or configurable quantization range.
   - QTensor: Tags a tensor as a generic quantized intermediate value.
     These are also tagged with a layer-unique name. All QTensors with the
     same name will be considered the same from a numerical range/precision
@@ -99,7 +114,6 @@ class QuantizableLayer(base_layer.BaseLayer):
   RNN cell that uses 8bit quantization for inputs/outputs and 16bit
   quantization for internal state arithmetic). Such uses should be rare.
 
-
   **Convenience functions:**
 
   The layer adds a number of convenience functions to the layer's 'fns'
@@ -116,12 +130,14 @@ class QuantizableLayer(base_layer.BaseLayer):
   qmin/qmax so that they just work. Functions that do not have a natural
   output range must have either qout_name or qmin/qmax specified manually.
 
-  Natural range functions
+  Natural or configurable range functions
 
   - qtanh
   - qsigmoid
   - qsoftmax
+  - qrelu  (quantized to [0, 1])
   - qrelu6
+  - qlogsoftmax  (configured in FakeQDomain.Params)
   - qrandom_uniform
 
   Dynamic range functions:
@@ -133,8 +149,7 @@ class QuantizableLayer(base_layer.BaseLayer):
   - qbatchmatmul (defers to `tf.matmul` directly)
   - qconv1d
   - qlog
-  - qlogsoftmax
-  - qrelu
+
   """
 
   @classmethod
@@ -390,7 +405,7 @@ class QuantizableLayer(base_layer.BaseLayer):
                 act,
                 weight,
                 w_feature_axis,
-                act_distribution=InputDistribution.SYMMETRIC,
+                act_distribution=QDistribution.SYMMETRIC,
                 w_expected_scale_shape=None):
     """Quantizes Weights and activations for convolutions.
 
@@ -401,8 +416,7 @@ class QuantizableLayer(base_layer.BaseLayer):
       act: The activation tensor to quantize.
       weight: The weight tensor to quantizes.
       w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act; of type InputDistribution or a
-        string representing one of its members. Defaults to SYMMETRIC.
+      act_distribution: Distribution of act.
       w_expected_scale_shape: Optional shape to verify if scale shape is
         expected. Defaults to None.
 
@@ -450,7 +464,7 @@ class QuantizableLayer(base_layer.BaseLayer):
                   act,
                   weight,
                   w_feature_axis,
-                  act_distribution=InputDistribution.SYMMETRIC,
+                  act_distribution=QDistribution.SYMMETRIC,
                   w_expected_scale_shape=None):
     """Quantizes weights and activations for (act * w) matmul AQT style.
 
@@ -464,8 +478,7 @@ class QuantizableLayer(base_layer.BaseLayer):
       act: The activation tensor to quantize.
       weight: The weight tensor to quantizes.
       w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act; of type InputDistribution or a
-        string representing one of its members. Defaults to SYMMETRIC.
+      act_distribution: Distribution of act.
       w_expected_scale_shape: Optional shape to verify if scale shape is
         expected. Defaults to None.
 
@@ -510,8 +523,8 @@ class QuantizableLayer(base_layer.BaseLayer):
                         act_lhs,
                         act_rhs,
                         *,
-                        act_lhs_distribution=InputDistribution.SYMMETRIC,
-                        act_rhs_distribution=InputDistribution.SYMMETRIC,
+                        act_lhs_distribution=QDistribution.SYMMETRIC,
+                        act_rhs_distribution=QDistribution.SYMMETRIC,
                         domain=None):
     """Quantizes activations for (act * act) matmul AQT style.
 
@@ -521,10 +534,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Args:
       act_lhs: Left hand side activation.
       act_rhs: Right hand side activation.
-      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution
-        or a string representing one of its members. Defaults to SYMMETRIC.
-      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution
-        or a string representing one of its members. Defaults to SYMMETRIC.
+      act_lhs_distribution: Distribution of act_lhs.
+      act_rhs_distribution: Distribution of act_rhs.
       domain: Custom domain to match (defaults to 'default').
 
     Returns:
@@ -588,44 +599,19 @@ class QuantizableLayer(base_layer.BaseLayer):
       qdparams = p.qdomain.default
     return qdparams
 
-  def QRTanh(self, t, domain='actf'):
-    """Quantizes the output of a tanh (-1.0, 1.0)."""
+  def QRAct(self,
+            act,
+            dist: QDistribution,
+            domain: str = 'default',
+            narrow_to_asym_bit_depth: bool = False):
+    """Quantizes act according to its distribution."""
     qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, -1.0, 1.0) if qd else t
-
-  def QRSigmoid(self, t, domain='actf'):
-    """Quantizes the output of a sigmoid (0, 1.0)."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
-
-  def QRSoftmax(self, t, domain='softmax', narrow_to_asym_bit_depth=False):
-    """Quantizes the output of a softmax (0, 1.0 - 1.0/2^-bits)."""
-    qd = self.GetQDomain(domain)
-    # Override based on TFLite softmax support.
-    softmax_max = 1.0
-    if qd is not None and narrow_to_asym_bit_depth:
-      softmax_max = (2**qd.bits - 1) / (2**qd.bits)
-    return qd.QuantizeNaturalRange(t, 0.0, softmax_max) if qd else t
-
-  def QRRelu(self, t, domain='relu'):
-    """Quantizes the output of a relu (0, 1.0)."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
-
-  def QRRelu6(self, t, domain='relu6'):
-    """Quantizes the output of a relu6 (0, 6.0)."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, 0.0, 6.0) if qd else t
-
-  def QRPadding(self, t, domain='padding'):
-    """Quantizes the padding."""
-    qd = self.GetQDomain(domain)
-    return qd.QuantizeConstantRange(t, 0.0, 1.0) if qd else t
+    return act if qd is None else qd.QRAct(act, dist, narrow_to_asym_bit_depth)
 
   def _AddQuantizationFunctions(self):
     """Adds standard quantization functions against the given layer."""
 
-    def WrapOp(op_name, op, default_qmin=None, default_qmax=None):
+    def WrapOp(op_name, op, dist=None):
       """Adds a wrapper op to the layer's fns."""
 
       def Wrapped(*op_args,
@@ -633,17 +619,14 @@ class QuantizableLayer(base_layer.BaseLayer):
                   qmin=None,
                   qmax=None,
                   qdomain=None,
-                  narrow_to_asym_bit_depth=None,
+                  narrow_to_asym_bit_depth=False,
                   **op_kwargs):
         """Wraps a native op."""
-        if qmin is None:
-          qmin = default_qmin
-        if qmax is None:
-          qmax = default_qmax
-        if qout_name is None and (qmin is None or qmax is None):
+        if (qout_name is None and (qmin is None or qmax is None) and
+            dist is None):
           raise ValueError(
-              f'Quantized op "{op_name}" requires either qout_name (QTensor '
-              'name) or qmin/qmax to be set.')
+              f'Quantized op "{op_name}" requires qout_name (QTensor name) or '
+              'qmin/qmax to be set.')
 
         # Provide a better default name if none provided.
         if 'name' not in op_kwargs and qout_name is not None:
@@ -655,13 +638,12 @@ class QuantizableLayer(base_layer.BaseLayer):
         # Handle the output.
         if qout_name is not None:
           y = self.QTensor(qout_name, y)
-        else:
+        elif qmin is not None:
           qd = self.GetQDomain(qdomain)
           if qd:
-            if narrow_to_asym_bit_depth:
-              qrange = qmax - qmin
-              qmax = qmin + qrange * (2**qd.bits - 1) / (2**qd.bits)
             y = qd.QuantizeNaturalRange(y, qmin, qmax)
+        else:
+          y = self.QRAct(y, dist, qdomain, narrow_to_asym_bit_depth)
         return y
 
       self.AddFunction(op_name, Wrapped)
@@ -673,18 +655,353 @@ class QuantizableLayer(base_layer.BaseLayer):
     WrapOp('qmatmul', py_utils.Matmul)
     WrapOp('qbatchmatmul', tf.matmul)
     WrapOp('qconv1d', tf.nn.conv1d)
-    WrapOp('qtanh', tf.tanh, default_qmin=-1.0, default_qmax=1.0)
-    WrapOp('qsigmoid', tf.sigmoid, default_qmin=0.0, default_qmax=1.0)
-    WrapOp('qsoftmax', tf.nn.softmax, default_qmin=0.0, default_qmax=1.0)
+    WrapOp('qtanh', tf.tanh, dist=QDistribution.TANH)
+    WrapOp('qsigmoid', tf.sigmoid, dist=QDistribution.SIGMOID)
+    WrapOp('qsoftmax', tf.nn.softmax, dist=QDistribution.SOFTMAX)
     WrapOp('qlog', tf.math.log)
-    WrapOp('qlogsoftmax', tf.nn.log_softmax)
-    WrapOp('qrelu', tf.nn.relu)
-    WrapOp('qrelu6', tf.nn.relu6, default_qmin=0.0, default_qmax=6.0)
+    WrapOp('qlogsoftmax', tf.nn.log_softmax, dist=QDistribution.LOG_SOFTMAX)
+    WrapOp('qrelu', tf.nn.relu, dist=QDistribution.RELU)
+    WrapOp('qrelu6', tf.nn.relu6, dist=QDistribution.RELU6)
     WrapOp(
-        'qrandom_uniform',
-        tf.random.uniform,
-        default_qmin=0.0,
-        default_qmax=1.0)
+        'qrandom_uniform', tf.random.uniform, dist=QDistribution.RANDOM_UNIFORM)
+
+
+class QDomain(base_layer.BaseLayer):
+  """Base class for a quantization domain layer.
+
+  This implementation doubles as a no-op quantization domain.
+  """
+
+  @property
+  def bits(self):
+    """Retrieves the bits used by this quantization layer.
+
+    Returns:
+      The number of bits available to this qdomain or None if unquantized.
+    """
+    return None
+
+  def QuantizeWeight(self, w):
+    """Quantizes a weight.
+
+    Args:
+      w: Weight tensor to quantize.
+
+    Returns:
+      Quantized weight.
+    """
+    return w
+
+  def QRAct(self, act, dist: QDistribution, narrow_to_asym_bit_depth: bool):
+    del dist, narrow_to_asym_bit_depth
+    return act
+
+  def ToAqtConv(self,
+                w_name,
+                act,
+                weight,
+                w_feature_axis,
+                act_distribution=QDistribution.SYMMETRIC,
+                w_expected_scale_shape=None):
+    """Quantizes Weights and activations for convolutions.
+
+    Refer to quantizable_layer.ToAqtConv.
+
+    Args:
+      w_name: Previously created w_name QWeight to quantize weight.
+      act: The activation tensor to quantize.
+      weight: The weight tensor to quantizes.
+      w_feature_axis: axis corresponding to output channel/feature for weights.
+      act_distribution: Distribution of act.
+      w_expected_scale_shape: Optional shape to verify if scale shape is
+        expected. Defaults to None.
+
+    Returns:
+      Quantized act and weight.
+    """
+    del w_feature_axis, w_expected_scale_shape, w_name, act_distribution
+    return act, weight
+
+  def FromAqtConv(self, w_name, output, *, is_depthwise=False):
+    """Rescales the output corresponding to AQT quantized convolution.
+
+    Refer to quantizable_layer.FromAqtConv.
+
+    Args:
+      w_name: weight name.
+      output: The tensor to rescale.
+      is_depthwise: Whether or not this follows a DepthwiseConv, which merges
+        the feature axes in the output tensor.
+
+    Returns:
+      Rescaled output.
+    """
+    del w_name, is_depthwise
+    return output
+
+  def ToAqtInputs(self,
+                  w_name,
+                  act,
+                  weight,
+                  w_feature_axis,
+                  act_distribution=QDistribution.SYMMETRIC,
+                  w_expected_scale_shape=None):
+    """Quantizes weights and activations for (act * w) matmul AQT style.
+
+    Refer to quantizable_layer.ToAqtInputs.
+
+    Args:
+      w_name: Previously created w_name QWeight to quantize weight.
+      act: The activation tensor to quantize.
+      weight: The weight tensor to quantizes.
+      w_feature_axis: axis corresponding to output channel/feature for weights.
+      act_distribution: Distribution of act.
+      w_expected_scale_shape: Optional shape to verify if scale shape is
+        expected. Defaults to None.
+
+    Returns:
+      Quantized act and weight.
+    """
+    del w_feature_axis, w_expected_scale_shape, w_name, act_distribution
+    return act, weight
+
+  def FromAqtMatmul(self, w_name, output):
+    """Rescales the output corresponding to AQT quantized matmuls.
+
+    Refer to quantizable_layer.FromAqtOutput.
+
+    Args:
+      w_name: weight name.
+      output: The tensor to rescale.
+
+    Returns:
+      Rescaled output.
+    """
+    del w_name
+    return output
+
+  def FqWeight(self, w_name, w, feature_axis, expected_scale_shape):
+    """AQT Quantized weight FQ style .
+
+    Args:
+      w_name: weight name.
+      w: The weight tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
+      expected_scale_shape: Optional shape to verify if scale shape is expected.
+
+    Returns:
+      Quantized weights.
+    """
+    del feature_axis, expected_scale_shape, w_name
+    return w
+
+  def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape):
+    """Quantized weight AQT style.
+
+    Refer to quantizable_layer.ToAqtWeight.
+
+    Args:
+      w_name: weight name.
+      w: The weight tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
+      expected_scale_shape: Optional shape to verify if scale shape is expected.
+
+    Returns:
+      Quantized weights.
+    """
+    del feature_axis, expected_scale_shape, w_name
+    return w
+
+  def FromAqtWeight(self, w_name, out, merge_feature_axes=False):
+    """Rescales the output corresponding to AQT quantized matmuls' weight.
+
+    Refer to quantizable_layer.FromAqtWeight.
+
+    Args:
+      w_name: weight name.
+      out: The tensor to rescale.
+      merge_feature_axes: whether or the feature axes have been reshaped into a
+        single axis in 'out'.
+
+    Returns:
+      Rescaled output.
+    """
+    del w_name
+    return out
+
+  def ToAqtActActInputs(self,
+                        act_lhs,
+                        act_rhs,
+                        act_lhs_distribution=QDistribution.SYMMETRIC,
+                        act_rhs_distribution=QDistribution.SYMMETRIC):
+    """Quantizes activations for (act * act) matmul AQT style.
+
+    This only scales, rounds and clips; resulting quantized acts would be
+    either integer or integer emulated in float.
+
+    Args:
+      act_lhs: Left hand side activation.
+      act_rhs: Right hand side activation.
+      act_lhs_distribution: Distribution of act_lhs.
+      act_rhs_distribution: Distribution of act_rhs.
+
+    Returns:
+      Quantized activations corresponding to act_lhs and act_rhs.
+    """
+    del act_lhs_distribution, act_rhs_distribution
+    return act_lhs, act_rhs
+
+  def FromAqtActActMatmul(self, output):
+    """Rescales output of dynamic matmul (act * act).
+
+    Args:
+      output: output, corresponds to tf.matmul(act_lhs, act_rhs)
+
+    Returns:
+      Rescaled output.
+    """
+    return output
+
+  def QuantizeConstantRange(self, t, min_value, max_value):
+    """Quantizes a true-constant range that is not used for arithmetic.
+
+    This supports special values like padding that should have a precise
+    range that we do not deviate from.
+
+    Args:
+      t: Tensor to quantize.
+      min_value: Min of the range.
+      max_value: Max of the range.
+
+    Returns:
+      Quantized tensor.
+    """
+    return t
+
+  def QuantizeNaturalRange(self, t, min_value, max_value):
+    """Quantizes a tensor with a known, natural range.
+
+    Args:
+      t: Tensor to quantize.
+      min_value: Min value of the range.
+      max_value: Max value of the range.
+
+    Returns:
+      Quantized tensor.
+    """
+    return t
+
+  def CreateTensor(self, t_name):
+    """Creates a QTensor with t_name.
+
+    Args:
+      t_name: Unique name (within layer) for this tensor.
+    """
+    pass
+
+  def CreateTensorWithShape(self,
+                            t_name,
+                            shape,
+                            feature_axis,
+                            legacy_aqt_t_name=None):
+    """Creates a QTensor with t_name and given shape.
+
+    Args:
+      t_name: Unique name (within layer) for this tensor.
+      shape: Expected shape of the tensor.
+      feature_axis: axis corresponding to output channel/feature for weights.
+      legacy_aqt_t_name: Used for compatibility with old checkpoints.
+    """
+    pass
+
+  def QuantizeTensors(self, t_name, ts, eval_only=False):
+    """Quantizes a tensor with t_name previously created with CreateTensor.
+
+    If applicable, each of the passed tensors contributes to a shared
+    range.
+
+    Args:
+      t_name: Tensor name.
+      ts: List of tensors to quantize.
+      eval_only: Whether to only apply quantization pressure at eval time.
+
+    Returns:
+      Quantized tensors.
+    """
+    return ts
+
+  def GetTensorRange(self, t_name, ts):
+    """Retrieves the range of a tensor given the t_name used by CreateTensor.
+
+    Note, this computes the batch range across the list of tensors at training
+    time but fetches the stored tensor over time. This depends on
+    QuantizeTensors updating the appropriate value.
+
+    Args:
+      t_name: Tensor name.
+      ts: Tensor to determine the range for.
+
+    Returns:
+      A min-max pair that represents the tensor range.
+    """
+    raise NotImplementedError('Abstract method: NormalizeTensors')
+
+
+class FakeQDomain(QDomain):
+  """Base for QDomains using tf.quantization.fake_quant_with_*."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'log_softmax_range', None,
+        'Manual range for quantizing logsoftmax activations. Should be '
+        'None or a sequence of two numbers.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if not (p.log_softmax_range is None or len(p.log_softmax_range) == 2):
+      raise ValueError(f'p.log_softmax_range={p.log_softmax_range} should be '
+                       'None or a sequence of two numbers')
+
+  def _NarrowToAsymBitDepth(self, qmin, qmax):
+    qrange = qmax - qmin
+    qmax = qmin + qrange * (2**self.bits - 1) / (2**self.bits)
+    return qmin, qmax
+
+  def QRAct(self, act, dist: QDistribution, narrow_to_asym_bit_depth: bool):
+    p = self.params
+    if dist == QDistribution.LOG_SOFTMAX:
+      if p.log_softmax_range is None:
+        raise ValueError(
+            'p.log_softmax_range must be set when using fns.qlogsoftmax '
+            'without qout_name or QRAct(..., dist=QDistribution.LOG_SOFTMAX)')
+      qmin, qmax = p.log_softmax_range
+      return self.QuantizeNaturalRange(act, qmin, qmax)
+    if dist == QDistribution.PADDING:
+      return self.QuantizeConstantRange(act, 0.0, 1.0)
+    elif dist == QDistribution.RELU:
+      return self.QuantizeNaturalRange(act, 0.0, 1.0)
+    elif dist == QDistribution.RELU6:
+      return self.QuantizeNaturalRange(act, 0.0, 6.0)
+    elif dist == QDistribution.SIGMOID:
+      return self.QuantizeNaturalRange(act, 0.0, 1.0)
+    elif dist == QDistribution.SOFTMAX:
+      qmin, qmax = 0.0, 1.0
+      if narrow_to_asym_bit_depth:
+        qmin, qmax = self._NarrowToAsymBitDepth(qmin, qmax)
+      return self.QuantizeNaturalRange(act, qmin, qmax)
+    elif dist == QDistribution.TANH:
+      qmin, qmax = -1.0, 1.0
+      if narrow_to_asym_bit_depth:
+        qmin, qmax = self._NarrowToAsymBitDepth(qmin, qmax)
+      return self.QuantizeNaturalRange(act, qmin, qmax)
+    elif dist == QDistribution.RANDOM_UNIFORM:
+      return self.QuantizeNaturalRange(act, 0.0, 1.0)
+    else:
+      raise ValueError(f'cannot quantize act with dist={dist} to know range')
 
 
 class BaseClippingCapSchedule(base_layer.BaseLayer):
@@ -1079,285 +1396,7 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
     return _CopyShape(x, tf.where(fq_ratio <= 0.0, Clipped(), Quantized()))
 
 
-class QDomain(base_layer.BaseLayer):
-  """Base class for a quantization domain layer.
-
-  This implementation doubles as a no-op quantization domain.
-  """
-
-  @property
-  def bits(self):
-    """Retrieves the bits used by this quantization layer.
-
-    Returns:
-      The number of bits available to this qdomain or None if unquantized.
-    """
-    return None
-
-  def QuantizeWeight(self, w):
-    """Quantizes a weight.
-
-    Args:
-      w: Weight tensor to quantize.
-    Returns:
-      Quantized weight.
-    """
-    return w
-
-  def ToAqtConv(self,
-                w_name,
-                act,
-                weight,
-                w_feature_axis,
-                act_distribution=InputDistribution.SYMMETRIC,
-                w_expected_scale_shape=None):
-    """Quantizes Weights and activations for convolutions.
-
-    Refer to quantizable_layer.ToAqtConv.
-
-    Args:
-      w_name: Previously created w_name QWeight to quantize weight.
-      act: The activation tensor to quantize.
-      weight: The weight tensor to quantizes.
-      w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act; of type InputDistribution or a
-        string representing one of its members. Defaults to SYMMETRIC.
-      w_expected_scale_shape: Optional shape to verify if scale shape is
-        expected. Defaults to None.
-
-    Returns:
-      Quantized act and weight.
-    """
-    del w_feature_axis, w_expected_scale_shape, w_name, act_distribution
-    return act, weight
-
-  def FromAqtConv(self, w_name, output, *, is_depthwise=False):
-    """Rescales the output corresponding to AQT quantized convolution.
-
-    Refer to quantizable_layer.FromAqtConv.
-
-    Args:
-      w_name: weight name.
-      output: The tensor to rescale.
-      is_depthwise: Whether or not this follows a DepthwiseConv, which merges
-        the feature axes in the output tensor.
-
-    Returns:
-      Rescaled output.
-    """
-    del w_name, is_depthwise
-    return output
-
-  def ToAqtInputs(self,
-                  w_name,
-                  act,
-                  weight,
-                  w_feature_axis,
-                  act_distribution=InputDistribution.SYMMETRIC,
-                  w_expected_scale_shape=None):
-    """Quantizes weights and activations for (act * w) matmul AQT style.
-
-    Refer to quantizable_layer.ToAqtInputs.
-
-    Args:
-      w_name: Previously created w_name QWeight to quantize weight.
-      act: The activation tensor to quantize.
-      weight: The weight tensor to quantizes.
-      w_feature_axis: axis corresponding to output channel/feature for weights.
-      act_distribution: Distribution of act; of type InputDistribution or a
-        string representing one of its members. Defaults to SYMMETRIC.
-      w_expected_scale_shape: Optional shape to verify if scale shape is
-        expected. Defaults to None.
-
-    Returns:
-      Quantized act and weight.
-    """
-    del w_feature_axis, w_expected_scale_shape, w_name, act_distribution
-    return act, weight
-
-  def FromAqtMatmul(self, w_name, output):
-    """Rescales the output corresponding to AQT quantized matmuls.
-
-    Refer to quantizable_layer.FromAqtOutput.
-
-    Args:
-      w_name: weight name.
-      output: The tensor to rescale.
-
-    Returns:
-      Rescaled output.
-    """
-    del w_name
-    return output
-
-  def FqWeight(self, w_name, w, feature_axis, expected_scale_shape):
-    """AQT Quantized weight FQ style .
-
-    Args:
-      w_name: weight name.
-      w: The weight tensor.
-      feature_axis: axis corresponding to output channel/feature for weights.
-      expected_scale_shape: Optional shape to verify if scale shape is expected.
-
-    Returns:
-      Quantized weights.
-    """
-    del feature_axis, expected_scale_shape, w_name
-    return w
-
-  def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape):
-    """Quantized weight AQT style.
-
-    Refer to quantizable_layer.ToAqtWeight.
-
-    Args:
-      w_name: weight name.
-      w: The weight tensor.
-      feature_axis: axis corresponding to output channel/feature for weights.
-      expected_scale_shape: Optional shape to verify if scale shape is expected.
-
-    Returns:
-      Quantized weights.
-    """
-    del feature_axis, expected_scale_shape, w_name
-    return w
-
-  def FromAqtWeight(self, w_name, out, merge_feature_axes=False):
-    """Rescales the output corresponding to AQT quantized matmuls' weight.
-
-    Refer to quantizable_layer.FromAqtWeight.
-
-    Args:
-      w_name: weight name.
-      out: The tensor to rescale.
-      merge_feature_axes: whether or the feature axes have been reshaped into a
-        single axis in 'out'.
-
-    Returns:
-      Rescaled output.
-    """
-    del w_name
-    return out
-
-  def ToAqtActActInputs(self,
-                        act_lhs,
-                        act_rhs,
-                        act_lhs_distribution=InputDistribution.SYMMETRIC,
-                        act_rhs_distribution=InputDistribution.SYMMETRIC):
-    """Quantizes activations for (act * act) matmul AQT style.
-
-    This only scales, rounds and clips; resulting quantized acts would be
-    either integer or integer emulated in float.
-
-    Args:
-      act_lhs: Left hand side activation.
-      act_rhs: Right hand side activation.
-      act_lhs_distribution: Distribution of act_lhs; of type InputDistribution
-        or a string representing one of its members. Defaults to SYMMETRIC.
-      act_rhs_distribution: Distribution of act_rhs; of type InputDistribution
-        or a string representing one of its members. Defaults to SYMMETRIC.
-
-    Returns:
-      Quantized activations corresponding to act_lhs and act_rhs.
-    """
-    del act_lhs_distribution, act_rhs_distribution
-    return act_lhs, act_rhs
-
-  def FromAqtActActMatmul(self, output):
-    """Rescales output of dynamic matmul (act * act).
-
-    Args:
-      output: output, corresponds to tf.matmul(act_lhs, act_rhs)
-
-    Returns:
-      Rescaled output.
-    """
-    return output
-
-  def QuantizeConstantRange(self, t, min_value, max_value):
-    """Quantizes a true-constant range that is not used for arithmetic.
-
-    This supports special values like padding that should have a precise
-    range that we do not deviate from.
-
-    Args:
-      t: Tensor to quantize.
-      min_value: Min of the range.
-      max_value: Max of the range.
-
-    Returns:
-      Quantized tensor.
-    """
-    return t
-
-  def QuantizeNaturalRange(self, t, min_value, max_value):
-    """Quantizes a tensor with a known, natural range.
-
-    Args:
-      t: Tensor to quantize.
-      min_value: Min value of the range.
-      max_value: Max value of the range.
-    Returns:
-      Quantized tensor.
-    """
-    return t
-
-  def CreateTensor(self, t_name):
-    """Creates a QTensor with t_name.
-
-    Args:
-      t_name: Unique name (within layer) for this tensor.
-    """
-    pass
-
-  def CreateTensorWithShape(self,
-                            t_name,
-                            shape,
-                            feature_axis,
-                            legacy_aqt_t_name=None):
-    """Creates a QTensor with t_name and given shape.
-
-    Args:
-      t_name: Unique name (within layer) for this tensor.
-      shape: Expected shape of the tensor.
-      feature_axis: axis corresponding to output channel/feature for weights.
-      legacy_aqt_t_name: Used for compatibility with old checkpoints.
-    """
-    pass
-
-  def QuantizeTensors(self, t_name, ts, eval_only=False):
-    """Quantizes a tensor with t_name previously created with CreateTensor.
-
-    If applicable, each of the passed tensors contributes to a shared
-    range.
-
-    Args:
-      t_name: Tensor name.
-      ts: List of tensors to quantize.
-      eval_only: Whether to only apply quantization pressure at eval time.
-    Returns:
-      Quantized tensors.
-    """
-    return ts
-
-  def GetTensorRange(self, t_name, ts):
-    """Retrieves the range of a tensor given the t_name used by CreateTensor.
-
-    Note, this computes the batch range across the list of tensors at training
-    time but fetches the stored tensor over time. This depends on
-    QuantizeTensors updating the appropriate value.
-
-    Args:
-      t_name: Tensor name.
-      ts: Tensor to determine the range for.
-
-    Returns:
-      A min-max pair that represents the tensor range.
-    """
-    raise NotImplementedError('Abstract method: NormalizeTensors')
-
-
-class SymmetricScheduledClipQDomain(QDomain):
+class SymmetricScheduledClipQDomain(FakeQDomain):
   """A quantization domain that does symmetric scheduled clipping.
 
   This contains a BaseClippingCapSchedule which handles the actual clipping. It
@@ -1435,7 +1474,7 @@ class _CountedMinMaxAccumulator(base_layer.Accumulator):
     self.SetValue(state1)
 
 
-class PassiveAsymQDomain(QDomain):
+class PassiveAsymQDomain(FakeQDomain):
   """A quantization domain that does passive, asymmetric quantization.
 
   See: https://arxiv.org/abs/1712.05877

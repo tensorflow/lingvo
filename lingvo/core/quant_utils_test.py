@@ -199,6 +199,54 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
           global_step=16)
 
 
+class FakeQDomainTest(quant_test_lib.QuantUtilsBaseTest):
+
+  def testCustomLogSoftmaxRequiresRange(self):
+    qd = quant_utils.PassiveAsymQDomain.Params().Set(
+        name='log_softmax_unset').Instantiate()
+    with self.assertRaises(ValueError):
+      qd.QRAct(
+          tf.ones((3, 3)),
+          quant_utils.QDistribution.LOG_SOFTMAX,
+          narrow_to_asym_bit_depth=False)
+
+  def testCustomLogSoftmaxRange(self):
+    qd = quant_utils.PassiveAsymQDomain.Params().Set(
+        log_softmax_range=(-1, 0), name='log_softmax').Instantiate()
+    tf.random.set_seed(0)
+    probs = tf.random.uniform((8, 10), minval=0, maxval=1, dtype=tf.float32)
+    log_probs = tf.math.log(probs)
+    qlog_probs = qd.QRAct(
+        log_probs,
+        quant_utils.QDistribution.LOG_SOFTMAX,
+        narrow_to_asym_bit_depth=False)
+    # Test that the minimum value is clipped as expected.
+    self.assertEqual(self.evaluate(tf.reduce_min(qlog_probs)), -1)
+
+  def testSoftmaxExact(self):
+    qd = quant_utils.PassiveAsymQDomain.Params().Set(
+        name='softmax_exact', bits=4).Instantiate()
+    # Create probs in [0, 1] at intervals matching int4 quantization.
+    probs = tf.reshape(tf.range(16, dtype=tf.float32) / 15, (4, 4))
+    qprobs = qd.QRAct(
+        probs,
+        quant_utils.QDistribution.SOFTMAX,
+        narrow_to_asym_bit_depth=False)
+    # Test that they are quantized as expected (i.e. ~exactly).
+    self.assertAllClose(self.evaluate(qprobs), self.evaluate(probs))
+
+  def testNarrowSoftmaxBitDepth(self):
+    qd = quant_utils.PassiveAsymQDomain.Params().Set(
+        name='narrow_softmax', bits=4).Instantiate()
+    max_prob = 1
+    qmax_prob = qd.QRAct(
+        max_prob,
+        quant_utils.QDistribution.SOFTMAX,
+        narrow_to_asym_bit_depth=True)
+    # Test that the max is clipped to the correct range for TFLite.
+    self.assertEqual(self.evaluate(qmax_prob), 0.9375)
+
+
 class ClippingCapScheduleTest(quant_test_lib.QuantUtilsBaseTest):
 
   def testLinearClippingCapSchedule(self):

@@ -914,8 +914,8 @@ class DotProductAttention(BaseAttentionLayer):
       concated_source_vecs, query_vec = self.ToAqtActActInputs(
           act_lhs=concated_source_vecs,
           act_rhs=query_vec,
-          act_lhs_distribution=quant_utils.InputDistribution.SYMMETRIC,
-          act_rhs_distribution=quant_utils.InputDistribution.SYMMETRIC)
+          act_lhs_distribution=quant_utils.QDistribution.SYMMETRIC,
+          act_rhs_distribution=quant_utils.QDistribution.SYMMETRIC)
       logits = tf.matmul(concated_source_vecs, query_vec)
       logits = self.FromAqtActActMatmul(logits)
 
@@ -1008,8 +1008,8 @@ class DotProductAttention(BaseAttentionLayer):
       probs, concated_source_contexts = self.ToAqtActActInputs(
           act_lhs=probs,
           act_rhs=concated_source_contexts,
-          act_lhs_distribution=quant_utils.InputDistribution.POSITIVE,
-          act_rhs_distribution=quant_utils.InputDistribution.SYMMETRIC)
+          act_lhs_distribution=quant_utils.QDistribution.POSITIVE,
+          act_rhs_distribution=quant_utils.QDistribution.SYMMETRIC)
 
       context_vector = tf.matmul(probs, concated_source_contexts)
       context_vector = self.FromAqtActActMatmul(context_vector)
@@ -1799,9 +1799,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     # explicitly name this tensor for potential future reference
     multi_headed_atten_prob = tf.reshape(
         prob, [batch_size, num_heads, -1], name='multi_headed_atten_prob')
-    # TODO(laurenzo): Use a better named range function (we want to represent
-    # 0..1 probs).
-    prob = self.QRSoftmax(tf.reduce_mean(multi_headed_atten_prob, 1))
+    prob = self.QRAct(
+        tf.reduce_mean(multi_headed_atten_prob, 1),
+        quant_utils.QDistribution.SOFTMAX,
+        domain='softmax')
     if isinstance(attention_state, py_utils.NestedMap):
       att_state = attention_state
       if 'emit_probs' in attention_state:
@@ -2103,9 +2104,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       source_padding = tf.expand_dims(source_padding, 1)
       per_step_source_padding = tf.reshape(
           tf.transpose(per_step_source_padding), [-1, multiplier, sb])
-
-      source_padding = self.QRPadding(
-          tf.add(source_padding, per_step_source_padding))
+      source_padding = tf.add(source_padding, per_step_source_padding)
+      source_padding = self.QRAct(source_padding,
+                                  quant_utils.QDistribution.PADDING)
 
       # Reshape logits to a matrix of shape [tb, sl] and takes the
       # softmax to compute the probabilities.
@@ -2317,7 +2318,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
                    dtype=dtype)
       ], 2)
 
-      state = self.QRSoftmax(state)
+      state = self.QRAct(
+          state, quant_utils.QDistribution.SOFTMAX, domain='softmax')
       return state
 
   def ComputeContextVectorWithSource(self,
@@ -2391,9 +2393,13 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     if 'CUMULATIVE_PROBS' in p.location_features:
       # Quantization must match the _PaddedSoftmax method.
       cum_prob_index = p.location_features.index('CUMULATIVE_PROBS')
-      new_feats['CUMULATIVE_PROBS'] = self.QRSoftmax(
-          tf.add(prob, attention_state[:, cum_prob_index, :]),
+      cum_probs = tf.add(prob, attention_state[:, cum_prob_index, :])
+      cum_probs = self.QRAct(
+          cum_probs,
+          quant_utils.QDistribution.SOFTMAX,
+          domain='softmax',
           narrow_to_asym_bit_depth=True)
+      new_feats['CUMULATIVE_PROBS'] = cum_probs
     new_attention_state = tf.stack([new_feats[f] for f in p.location_features],
                                    axis=1)
     return ctx_vec, prob, new_attention_state

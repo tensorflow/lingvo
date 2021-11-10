@@ -104,7 +104,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     # For added numeric range protection, the QRPadding decorator ensures
     # the correct range. This is mostly needed for cases where padding is
     # dynamic at inference time.
-    paddings = self.QRPadding(paddings)
+    paddings = self.QRAct(paddings, quant_utils.QDistribution.PADDING)
     paddings *= tf.ones_like(out)  # Broadcast to 'out' size.
     out = tf.where(paddings > 0.0, tf.zeros_like(out), out)
 

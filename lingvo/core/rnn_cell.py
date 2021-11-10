@@ -625,7 +625,7 @@ class LSTMCellSimple(RNNCell):
       qt_c = 'zero_c'
       qt_m = 'zero_m'
     else:
-      padding = self.QRPadding(inputs.padding)
+      padding = self.QRAct(inputs.padding, quant_utils.QDistribution.PADDING)
       qt_c = 'c_zoneout'
       qt_m = 'm_zoneout'
 

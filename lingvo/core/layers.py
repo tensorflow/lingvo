@@ -562,8 +562,9 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
               tf.concat([tf.shape(paddings), [-1, p.filter_shape[2]]], 0))
       ], inputs)
       # Zeroing out padded inputs.
-      qpadding = self.QRPadding(
-          tf.expand_dims(tf.expand_dims(paddings, -1), -1))
+      qpadding = self.QRAct(
+          tf.expand_dims(tf.expand_dims(paddings, -1), -1),
+          quant_utils.QDistribution.PADDING)
       # Select based padding is required for quantized inference but is
       # causing regressions on other platforms. TODO: Remove use_select
       # attribute when root-caused/resolved.
@@ -593,8 +594,9 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
 
       # Lastly zeroing out padded states.
       if conv_padding is not None:
-        qpadding = self.QRPadding(
-            tf.expand_dims(tf.expand_dims(conv_padding, -1), -1))
+        qpadding = self.QRAct(
+            tf.expand_dims(tf.expand_dims(conv_padding, -1), -1),
+            quant_utils.QDistribution.PADDING)
         # Select based padding is required for quantized inference but is
         # causing regressions on other platforms. TODO: Remove use_select
         # attribute when root-caused/resolved.
@@ -1190,7 +1192,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             if not p.is_inference:
               out = py_utils.CheckNumerics(out)
             out = activations.GetFn(p.activation)(out)
-      return py_utils.ApplyPadding(self.QRPadding(paddings), out)
+      paddings = self.QRAct(paddings, quant_utils.QDistribution.PADDING)
+      return py_utils.ApplyPadding(paddings, out)
 
   def FPropFullSequence(self, theta, inputs, paddings):
     return self.FProp(theta, inputs, paddings)
