@@ -135,12 +135,17 @@ class ConvBNAct(Conv2D):
   @classmethod
   def Params(cls) -> InstantiableParams:
     p = super().Params()
+    # TODO(aurkor): Unify all BN-related params to a single BN layer params.
     p.Define('batch_norm', True, 'Whether or not to apply batch norm.')
     p.Define('bn_decay', 0.9, 'Decay in updating the mean and variance.')
     p.Define(
         'bn_use_moving_avg_in_training', False,
         'If True, uses moving avg (mean, variance) during both training '
         'and inference.')
+    p.Define(
+        'bn_enable_cross_replica_sum_on_tpu', False,
+        'If true, computes global mean and variance across all replicas.'
+        'Only effective for tpu.')
     p.Define(
         'activation', 'RELU', 'Activation function to use.'
         'Options are RELU, RELU6, SIGMOID, TANH, GELU, NONE.')
@@ -154,7 +159,9 @@ class ConvBNAct(Conv2D):
           name='bn',
           dim=p.filter_shape[3],
           decay=p.bn_decay,
-          use_moving_avg_in_training=p.bn_use_moving_avg_in_training)
+          use_moving_avg_in_training=p.bn_use_moving_avg_in_training,
+          enable_cross_replica_sum_on_tpu=p.bn_enable_cross_replica_sum_on_tpu,
+      )
       self.create_child('bn', bn)
     act_p = activations.Activation.Params().Set(activation=p.activation)
     self.create_child('activation', act_p)

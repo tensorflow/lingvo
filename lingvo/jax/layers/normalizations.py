@@ -31,10 +31,13 @@ InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-def compute_moments(inputs: JTensor,
-                    padding: JTensor,
-                    reduce_over_dims: List[int],
-                    keepdims=False) -> Tuple[JTensor, JTensor]:
+def compute_moments(
+    inputs: JTensor,
+    padding: JTensor,
+    reduce_over_dims: List[int],
+    enable_cross_replica_sum_on_tpu: bool = False,
+    keepdims: bool = False,
+) -> Tuple[JTensor, JTensor]:
   """Computes mean and variance over the valid data points in inputs."""
   assert inputs.ndim == padding.ndim
   rank = inputs.ndim
@@ -43,12 +46,23 @@ def compute_moments(inputs: JTensor,
   sum_v = jnp.sum(inputs * mask, axis=reduce_over_dims, keepdims=keepdims)
   count_v = jnp.sum(
       jnp.ones_like(inputs) * mask, axis=reduce_over_dims, keepdims=keepdims)
+
+  if enable_cross_replica_sum_on_tpu:
+    # TODO(shafey, yonghui): Fetch axis_name from globals.
+    sum_v = jax.lax.psum(sum_v, axis_name='batch')
+    count_v = jax.lax.psum(count_v, axis_name='batch')
+
   count_v = jnp.maximum(count_v, 1.0)
   mean = sum_v / count_v
   sum_vv = jnp.sum(
       (inputs - mean) * (inputs - mean) * mask,
       axis=reduce_over_dims,
       keepdims=keepdims)
+
+  if enable_cross_replica_sum_on_tpu:
+    # TODO(shafey, yonghui): Fetch axis_name from globals.
+    sum_vv = jax.lax.psum(sum_vv, axis_name='batch')
+
   variance = sum_vv / count_v
   return mean, variance
 
@@ -64,6 +78,10 @@ class BatchNorm(base_layer.BaseLayer):
         'decay', 0.999,
         'Decay in updating the mean and variance moving average used in'
         ' batch normalization.')
+    p.Define(
+        'enable_cross_replica_sum_on_tpu', False,
+        'If true, computes global mean and variance across all replicas.'
+        'Only effective for tpu.')
     p.Define(
         'use_moving_avg_in_training', False,
         'If True, use global moving avg (mean, variance) during training'
@@ -155,7 +173,11 @@ class BatchNorm(base_layer.BaseLayer):
       rank = inputs.ndim
       reduce_over_dims = list(range(0, rank - 1))
       mean, variance = compute_moments(
-          inputs, paddings, reduce_over_dims, keepdims=True)
+          inputs,
+          paddings,
+          reduce_over_dims,
+          enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
+          keepdims=True)
 
       new_moving_mean = theta.moving_mean * p.decay + mean * (1.0 - p.decay)
       self.forward_update_var('moving_mean', new_moving_mean)
