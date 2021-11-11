@@ -6166,7 +6166,7 @@ class Builder(builder.Base):
     if p.norm_layer_tpl:
       conv_builder_params.norm_layer_tpl = p.norm_layer_tpl
     conv_builder = conv_builder_params.Instantiate()
-    return conv_builder.DepthwiseConv2D(
+    return conv_builder.DepthwiseConv2D(  # pytype: disable=attribute-error  # compare-and-match
         name=name,
         in_dim=p.model_dim,
         depth_multiplier=1,
@@ -6182,7 +6182,7 @@ class Builder(builder.Base):
     p = self.params
     conv_builder_params = conv_layers.Builder.Params()
     conv_builder = conv_builder_params.Instantiate()
-    return conv_builder.NormalizedDepthwiseConv2D(
+    return conv_builder.NormalizedDepthwiseConv2D(  # pytype: disable=attribute-error  # compare-and-match
         name=name,
         kernel_size=kernel_size,
         num_heads=p.num_heads,

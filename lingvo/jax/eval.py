@@ -66,7 +66,7 @@ def evaluate(
     inp.infeed_host_index = jax.process_index()
   if model_p.device_mesh is not None:
     evaluate_spmd_model(model_p, eval_input_p, job_log_dir,
-                        multi_host_checkpointing, checkpoint_type)
+                        multi_host_checkpointing, checkpoint_type)  # pytype: disable=wrong-arg-types  # compare-and-match
   else:
     evaluate_pmap_model(model_p, eval_input_p, job_log_dir, checkpoint_type)
 
@@ -183,7 +183,10 @@ def evaluate_spmd_model(
     checkpoint_type: Type of model checkpointing method to use.
   """
   logging.info('Using SPMD sharding for model parallelism.')
-  eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
+  eval_input_pipelines = [
+      input_p.Instantiate()  # pytype: disable=name-error  # compare-and-match
+      for input_p in eval_input_p  # pytype: disable=attribute-error  # compare-and-match
+  ]
   # TODO(bf-jax): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
   prng_key, init_key = jax.random.split(prng_key)
@@ -229,11 +232,14 @@ def evaluate_spmd_model(
     summary_base_dir = os.path.join(job_log_dir, 'summaries')
     summary_eval_dirs = [
         os.path.join(summary_base_dir, f'eval_{split}')
-        for split, _ in enumerate(eval_input_p)
+        for split, _ in enumerate(eval_input_p)  # pytype: disable=wrong-arg-types  # compare-and-match
     ]
     summary_writer = summary_utils.get_summary_writer
 
-    num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
+    num_steps = [
+        -1 if p.reset_for_eval else 1  # pytype: disable=name-error  # compare-and-match
+        for p in eval_input_p  # pytype: disable=attribute-error  # compare-and-match
+    ]
     last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
     while True:
       step_i = int(jax.device_get(partitioned_train_state.step))
