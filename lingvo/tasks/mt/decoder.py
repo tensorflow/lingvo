@@ -1839,7 +1839,7 @@ class TransformerDecoder(MTBaseDecoder):
 
     bs = tf.shape(sample.ids)[0]
     num_hyps_per_beam = p.target_sequence_sampler.num_hyps_per_beam
-    sample.topk_hyps = tf.zeros([bs], dtype=tf.string)
+    sample.topk_hyps = tf.zeros([bs], dtype=tf.string if non_tpu else tf.int32)
     sample.topk_hyps = tf.reshape(sample.topk_hyps, [-1, num_hyps_per_beam])
 
     sample.topk_ids = sample.ids
