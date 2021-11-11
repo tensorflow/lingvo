@@ -18,7 +18,7 @@
 import functools
 import os
 import time
-from typing import List, Optional
+from typing import Optional, Sequence
 
 from absl import logging
 import jax
@@ -108,7 +108,8 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
                             job_log_dir: Optional[str],
                             restore_checkpoint_dir: Optional[str],
                             restore_checkpoint_step: Optional[int],
-                            eval_input_p: Optional[List[InstantiableParams]],
+                            eval_input_p: Optional[
+                                Sequence[InstantiableParams]],
                             mllogger: mllog.MLLogger) -> None:
   """Runs the training and evaluation loop.
 
@@ -121,7 +122,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
       instead.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    eval_input_p: Optional list of params for the eval input pipeline.
+    eval_input_p: Optional list of params for the eval input pipelines.
     mllogger: ML Perf logger.
   """
   logging.info('Using pmap for data parallelism.')
@@ -198,6 +199,8 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
         for split, _ in enumerate(eval_input_p)
     ]
     eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
+  else:
+    eval_input_p = []
 
   with summary_writer(
       summary_train_dir) as train_summary_writer, summary_writer(
@@ -326,7 +329,8 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
                                   multi_host_checkpointing: bool,
                                   restore_checkpoint_dir: Optional[str],
                                   restore_checkpoint_step: Optional[int],
-                                  eval_input_p: Optional[InstantiableParams],
+                                  eval_input_p: Optional[
+                                      Sequence[InstantiableParams]],
                                   mllogger: mllog.MLLogger) -> None:
   """Runs the training and evaluation loop.
 
@@ -340,16 +344,13 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
       instead.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    eval_input_p: Optional list of params for the eval input pipeline.
+    eval_input_p: Optional list of params for the eval input pipelines.
     mllogger: MLPerf logger.
   """
   logging.info('Using SPMD sharding for model parallelism.')
   train_input_pipeline = train_input_p.Instantiate()
   if eval_input_p is not None:
-    eval_input_pipelines = [
-        input_p.Instantiate()  # pytype: disable=name-error  # compare-and-match
-        for input_p in eval_input_p  # pytype: disable=attribute-error  # compare-and-match
-    ]
+    eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
 
   # TODO(bf-jax): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
@@ -420,14 +421,13 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
     if eval_input_p is not None:
       summary_eval_dirs = [
           os.path.join(summary_base_dir, f'eval_test_{split}')
-          for split, _ in enumerate(eval_input_p)  # pytype: disable=wrong-arg-types  # compare-and-match
+          for split, _ in enumerate(eval_input_p)
       ]
       # Eval batch size per replica defaults to 1 when not resettable,
       # otherwise we exhaust all eval data (num_steps=-1).
-      eval_num_steps = [
-          -1 if p.reset_for_eval else 1  # pytype: disable=name-error  # compare-and-match
-          for p in eval_input_p  # pytype: disable=attribute-error  # compare-and-match
-      ]
+      eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
+    else:
+      eval_input_p = []
 
     with summary_writer(
         summary_train_dir) as train_summary_writer, summary_writer(
@@ -446,7 +446,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
 
       step_i = int(jax.device_get(partitioned_train_state.step))
 
-      index_eval_p, _ = mllogger.extract_mlperf_eval_pipeline(eval_input_p)  # pytype: disable=wrong-arg-types  # compare-and-match
+      index_eval_p, _ = mllogger.extract_mlperf_eval_pipeline(eval_input_p)
       mllogger.log_run_start()
       mllogger.log_block_start(step_i)
 

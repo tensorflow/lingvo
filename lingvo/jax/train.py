@@ -18,7 +18,7 @@
 import functools
 import os
 import time
-from typing import List, Optional
+from typing import Optional, Sequence
 
 from absl import logging
 import jax
@@ -104,7 +104,7 @@ def train_and_evaluate_pmap(
     job_log_dir: Optional[str], checkpoint_type: checkpoints.CheckpointType,
     restore_checkpoint_dir: Optional[str],
     restore_checkpoint_step: Optional[int],
-    eval_input_p: Optional[List[InstantiableParams]]) -> None:
+    eval_input_p: Optional[Sequence[InstantiableParams]]) -> None:
   """Runs the training and evaluation loop.
 
   Args:
@@ -117,7 +117,7 @@ def train_and_evaluate_pmap(
       instead.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    eval_input_p: Optional list of params for the eval input pipeline.
+    eval_input_p: Optional list of params for the eval input pipelines.
   """
   logging.info('Using pmap for data parallelism.')
   jax_model = model_p.Instantiate()
@@ -314,7 +314,7 @@ def train_and_evaluate_spmd_model(
     checkpoint_type: checkpoints.CheckpointType,
     restore_checkpoint_dir: Optional[str],
     restore_checkpoint_step: Optional[int],
-    eval_input_p: Optional[InstantiableParams]) -> None:
+    eval_input_p: Optional[Sequence[InstantiableParams]]) -> None:
   """Runs the training and evaluation loop.
 
   Args:
@@ -328,15 +328,12 @@ def train_and_evaluate_spmd_model(
       instead.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    eval_input_p: Optional list of params for the eval input pipeline.
+    eval_input_p: Optional list of params for the eval input pipelines.
   """
   logging.info('Using SPMD sharding for model parallelism.')
   train_input_pipeline = train_input_p.Instantiate()
   if eval_input_p is not None:
-    eval_input_pipelines = [
-        input_p.Instantiate()  # pytype: disable=name-error  # compare-and-match
-        for input_p in eval_input_p  # pytype: disable=attribute-error  # compare-and-match
-    ]
+    eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
 
   # TODO(bf-jax): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
@@ -409,15 +406,12 @@ def train_and_evaluate_spmd_model(
     if eval_input_p is not None:
       summary_eval_dirs = [
           os.path.join(summary_base_dir, f'eval_test_{split}')
-          for split, _ in enumerate(eval_input_p)  # pytype: disable=wrong-arg-types  # compare-and-match
+          for split, _ in enumerate(eval_input_p)
       ]
       # Eval batch size per replica defaults to 1 when not resettable,
       # otherwise we exhaust all eval data (num_steps=-1).
       # TODO(yonghui): Allow user to customize this.
-      eval_num_steps = [
-          -1 if p.reset_for_eval else 1  # pytype: disable=name-error  # compare-and-match
-          for p in eval_input_p  # pytype: disable=attribute-error  # compare-and-match
-      ]
+      eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
 
     with summary_writer(
         summary_train_dir) as train_summary_writer, summary_writer(
