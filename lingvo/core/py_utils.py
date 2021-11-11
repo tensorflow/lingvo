@@ -4368,6 +4368,59 @@ def PadOrTrimTo(x, shape, pad_val=0, pad_after_contents=True):
   return tf.reshape(x, shape)
 
 
+def ExpandTo(x, target_rank):
+  """Expands the last dimension of x until it has rank target_rank."""
+  shape = GetShape(x)
+  rank = GetRank(x)
+  rank_diff = target_rank - rank
+
+  if isinstance(rank_diff, tf.Tensor):
+    new_shape = tf.concat([shape, tf.ones([rank_diff], tf.int32)], -1)
+  else:
+    new_shape = shape + [1] * rank_diff
+
+  return tf.reshape(x, new_shape)
+
+
+def ExpandAndPadOrTrimTo(x, target_shape, pad_val=0):
+  """Ensures that x is broadcast compatible with target_shape.
+
+  x is first expanded to the target rank. Thereafter, if x is not broadcast
+  compatible with target_shape the non-broadcast compatible dimensions are
+  either padded or trimmed to the target shape.
+
+  Args:
+    x: A tensor.
+    target_shape: A tensor shape either as a list or Tensor.
+    pad_val: The value to pad.
+
+  Returns:
+    A tensor which is broadcast compatible with target_shape.
+  """
+  target_rank = None
+  if isinstance(target_shape, tf.Tensor):
+    target_rank = GetShape(target_shape)[0]
+  else:
+    target_rank = len(target_shape)
+
+  x = ExpandTo(x, target_rank)
+  x_shape = GetShape(x)
+
+  if not isinstance(x_shape, tf.Tensor):
+    masked_target_shape = []
+    for i, n in enumerate(x_shape):
+      if n != 1:
+        masked_target_shape.append(target_shape[i])
+      else:
+        masked_target_shape.append(1)
+  else:
+    masked_target_shape = tf.where(
+        tf.equal(x_shape, 1), tf.ones_like(target_shape), target_shape)
+
+  new_x = PadOrTrimTo(x, masked_target_shape, pad_val)
+  return tf.reshape(new_x, masked_target_shape)
+
+
 def RepeatDim(tensor, multiple, axis):
   """Copies elements in tensor's axis "multiple" times, like np.repeat."""
   # x = [[1, 2, 3], [4, 5, 6]]

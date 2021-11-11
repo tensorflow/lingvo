@@ -2276,6 +2276,45 @@ class PadOrTrimToTest(test_utils.TestCase):
       ]]]
       self.assertAllClose(expected_x, real_x)
 
+  def testExpandToDynamicShapes(self):
+    with self.session(use_gpu=False) as sess:
+      x = tf.placeholder(dtype=tf.float32)
+      target_rank = tf.placeholder(dtype=tf.int32)
+      expanded_x = py_utils.ExpandTo(x, target_rank)
+      real_x = sess.run(expanded_x, feed_dict={target_rank: 3, x: np.ones([2])})
+      self.assertAllClose(np.ones((2, 1, 1)), real_x)
+
+  def testExpandToStaticShapes(self):
+    with self.session(use_gpu=False) as sess:
+      x = tf.ones([2])
+      target_rank = 3
+      expanded_x = py_utils.ExpandTo(x, target_rank)
+      self.assertEqual([2, 1, 1], py_utils.GetShape(expanded_x))
+      real_x = sess.run(expanded_x)
+      self.assertAllClose(np.ones((2, 1, 1)), real_x)
+
+  def testExpandAndPadOrTrimToStaticShapes(self):
+    with self.session(use_gpu=False) as sess:
+      x = tf.ones([2])
+      target_shape = [3, 2, 2]
+      expanded_x = py_utils.ExpandAndPadOrTrimTo(x, target_shape)
+      self.assertEqual([3, 1, 1], py_utils.GetShape(expanded_x))
+      real_x = sess.run(expanded_x)
+      self.assertAllClose([[[1]], [[1]], [[0]]], real_x)
+
+  def testExpandAndPadOrTrimToDynamicShapes(self):
+    with self.session(use_gpu=False) as sess:
+      x = tf.placeholder(dtype=tf.float32)
+      target_shape = tf.placeholder(dtype=tf.int32)
+      expanded_x = py_utils.ExpandAndPadOrTrimTo(x, target_shape)
+      real_x = sess.run(
+          expanded_x,
+          feed_dict={
+              target_shape: np.array([3, 2, 2]),
+              x: np.ones([2])
+          })
+      self.assertAllClose([[[1]], [[1]], [[0]]], real_x)
+
 
 class ApplyPaddingTest(test_utils.TestCase):
 
