@@ -22,12 +22,12 @@ from jax import numpy as jnp
 from jax.experimental import pjit
 from lingvo.jax import base_layer
 from lingvo.jax import layers
+from lingvo.jax import learners as learners_lib
 from lingvo.jax import metric_utils
 from lingvo.jax import optimizers
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 from lingvo.jax import train_states
-import optax
 import tensorflow.compat.v2 as tf
 
 NestedMap = py_utils.NestedMap
@@ -36,8 +36,6 @@ NestedJTensor = base_layer.NestedJTensor
 JTensorOrPartitionSpec = base_layer.JTensorOrPartitionSpec
 JTensorOrPartitionSpecOrNone = Optional[base_layer.JTensorOrPartitionSpec]
 NestedJTensorOrPartitionSpec = base_layer.NestedJTensorOrPartitionSpec
-NestedBool = base_layer.NestedBool
-NestedParams = base_layer.NestedParams
 InstantiableParams = py_utils.InstantiableParams
 Predictions = Union[JTensor, NestedMap, Dict[str, Any]]
 Metrics = Dict[str, Tuple[JTensor, JTensor]]
@@ -50,145 +48,6 @@ _PARTITIONED_SUBDIR = 'partitioned'
 _CHECKPOINT_PREFIX = 'ckpt'
 
 
-class Learner(base_layer.BaseLayer):
-  """A learner."""
-
-  @classmethod
-  def Params(cls) -> InstantiableParams:
-    p = super().Params()
-    p.Define('loss_name', None,
-             'Name of the loss this learner optimizes. Must not be None.')
-    p.Define('optimizer', None, 'Params for the optimizer.')
-    p.Define(
-        'skip_zero_gradients', None,
-        'If set, skips aggregating zero gradients while computing gradients.'
-        'This helps in case where some weights may not be used in forward '
-        'computation, e.g., sparsely activated networks or switchable layers '
-        'in neural architectural search. '
-        'Possible values are: '
-        'None: do not skip zero gradients; '
-        '"variable": skip if the entire variable gradients are almost zero.')
-    return p
-
-  def __init__(self, params: InstantiableParams) -> None:
-    super().__init__(params)
-    p = self.params
-    assert p.optimizer is not None
-    assert p.loss_name is not None
-    self._optimizer = p.optimizer.Instantiate()
-    self._grad_tx = self._optimizer.get_grad_transformation()
-
-  @property
-  def optimizer(self) -> optimizers.BaseOptimizer:
-    """Return the Optimizer object of this learner."""
-    return self._optimizer
-
-  @property
-  def grad_tx(self) -> optax.GradientTransformation:
-    return self._grad_tx
-
-  def scale_gradients(self, grads: NestedMap) -> NestedMap:
-    """Scales the gradient.
-
-    Args:
-      grads: A nested structure of gradient values.
-
-    Returns:
-     A nested structure with the rescaled gradient values.
-    """
-    p = self.params
-    # Compute gradient norm.
-    grad_squared = jax.tree_map(lambda x: jnp.sum(x * x), grads)
-    grad_squared, _ = jax.tree_flatten(grad_squared)
-    grad_squared = jnp.concatenate([x[jnp.newaxis] for x in grad_squared])
-    grad_norm = jnp.sqrt(jnp.sum(grad_squared))
-    learner_name = self.params.name
-    base_layer.add_summary(f'{learner_name}/grad_norm', grad_norm)
-    if p.optimizer.clip_gradient_norm_to_value:
-      assert p.optimizer.clip_gradient_single_norm_to_value == 0.
-      grad_scale = jnp.minimum(
-          jnp.array(1, grad_norm.dtype),
-          jnp.array(p.optimizer.clip_gradient_norm_to_value, grad_norm.dtype) /
-          grad_norm)
-      grads = jax.tree_map(lambda g: g * grad_scale, grads)
-    elif p.optimizer.clip_gradient_single_norm_to_value:
-      assert p.optimizer.clip_gradient_norm_to_value == 0.
-      grad_single_norm = jax.tree_map(lambda x: jnp.sqrt(jnp.sum(x * x)), grads)
-
-      def ScaleGradient(grad, norm):
-        return grad * jnp.minimum(
-            jnp.array(1, grad_norm.dtype),
-            jnp.array(p.optimizer.clip_gradient_single_norm_to_value,
-                      grad_norm.dtype) / norm)
-
-      grads = jax.tree_map(ScaleGradient, grads, grad_single_norm)
-    return grads
-
-  def update_states(
-      self, grads: NestedMap, states: optax.OptState,
-      old_vars: NestedJTensor) -> Tuple[NestedMap, optax.OptState]:
-    """Applies gradient transformation, updates optimizer states.
-
-    Args:
-      grads: A nested structure of gradient values.
-      states: Optimizer states.
-      old_vars: Current model weights.
-
-    Returns:
-      transformed_grad, new_states pair.
-    """
-    grads = self.scale_gradients(grads)
-    return self._grad_tx.update(grads, states, old_vars)
-
-  def apply_gradient(
-      self,
-      old_vars: NestedJTensor,
-      transformed_grads: NestedJTensor,
-      var_is_learnable: NestedBool,
-  ) -> NestedJTensor:
-    """Applies grads to model_variables.
-
-    Note, in a flax model learnable variables are often referred to as 'params'.
-    But since 'params' in Lingvo often refers to a hyperparams.Params, we
-    refer to learnable weights of a network as 'variables'.
-
-    Args:
-      old_vars: a nested structure of model variables.
-      transformed_grads: grads of loss wrt to the old_vars. Must be of the same
-        structure as old_var. 'transformed_grads' have already gone through
-        various gradient transformations.
-      var_is_learnable: a nested structure of boolean values indicate whether a
-        var is trainable. Must be of the same structure as old_vars.
-        'non-trainable' vars include batch norm stats, various other counts,
-        etc. Only learnable variables are updated.
-
-    Returns:
-      updated variables. Only learnable variables are updated.
-    """
-    p = self.params
-    tf.nest.assert_same_structure(old_vars, transformed_grads)
-    tf.nest.assert_same_structure(old_vars, var_is_learnable)
-
-    assert p.skip_zero_gradients is None
-
-    # TODO(yonghui): implement skip_zero_gradients.
-    # TODO(yonghui): implement numerical checks.
-
-    def _AdjustVar(old_var, transformed_grad, is_learnable):
-      if is_learnable:
-        return old_var + transformed_grad
-      else:
-        return old_var
-
-    return tf.nest.map_structure(_AdjustVar, old_vars, transformed_grads,
-                                 var_is_learnable)
-    # TODO(yonghui): export gradient / variable summaries.
-
-  @property
-  def loss_name(self) -> str:
-    return self._params.loss_name
-
-
 class BaseTask(base_layer.BaseLayer):
   """A jax task."""
 
@@ -198,7 +57,8 @@ class BaseTask(base_layer.BaseLayer):
     p.Define('train', py_utils.Params(),
              'Params to control how this task should be trained.')
     tp = p.train
-    tp.Define('learner', Learner.Params(), 'One or a list of learners.')
+    tp.Define('learner', learners_lib.Learner.Params(),
+              'One or a list of learners.')
     tp.Define('num_train_steps', 1e7,
               'Maximum number of training steps to run.')
     # TODO(bf-jax): Add an option to perform this wrt. a time duration.

@@ -135,6 +135,20 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "learners",
+    srcs = ["learners.py"],
+    deps = [
+        ":asserts",
+        ":base_layer",
+        ":optimizers",
+        ":py_utils",
+        # Implicit jax dependency.
+        # Implicit optax dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+pytype_strict_library(
     name = "metric_utils",
     srcs = ["metric_utils.py"],
     srcs_version = "PY3",
@@ -151,6 +165,7 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":learners",
         ":metric_utils",
         ":optimizers",
         ":py_utils",
@@ -158,7 +173,6 @@ pytype_strict_library(
         ":train_states",
         # Implicit jax dependency.
         "//lingvo/jax/layers",
-        # Implicit optax dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -355,6 +369,22 @@ py_strict_test(
         ":asserts",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+    ],
+)
+
+py_strict_test(
+    name = "learners_test",
+    srcs = ["learners_test.py"],
+    deps = [
+        ":base_layer",
+        ":learners",
+        ":optimizers",
+        ":py_utils",
+        ":schedules",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+        # Implicit numpy dependency.
     ],
 )
 
