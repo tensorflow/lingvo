@@ -61,11 +61,16 @@ def cum_sum(elements, axis=0, exclusive=False, reverse=False):
     return result
 
 
-# Difference wrt. to lingvo/core/gshard_layers.py:
-# Removed args:
-#   - inputs: always use sharded logits across tpu cores
-#   - use_xla_sharding: rely on sharding propagation instead
-#   - num_devices: no longer needed without use_xla_sharding
+# Close adaptation of the original gshard_layers.Top2GatingOnLogits TPU-specific
+# implementation of the Algorithm 2 from the http://arxiv.org/abs/2006.16668
+#
+# TODO(lepikhin): convert einsums to use ... (ellipses) for HMoE support similar
+# to original TF implementation.
+#
+# Historic unused arguments are removed:
+#   - inputs: unused, since gating logits are supplied explicitly.
+#   - use_xla_sharding: historic option, specifically for 1D sharding by E
+#   - num_devices: historic option, specifically for 1D sharding by E
 def top2_gating_on_logits(paddings,
                           logits,
                           experts_dim,
@@ -80,11 +85,12 @@ def top2_gating_on_logits(paddings,
                           mask_dtype=None):
   """Computes Top-2 gating for Mixture-of-Experts.
 
-  This function assumes sharded `logits` across tpu cores as inputs. The
-  operations within this function are explicitly sharded/replicated across
-  tpu cores with jax.with_sharding_constraint.
+  This function takes gating logits, potentially sharded across tpu cores as
+  inputs. We rely on sharding propagation to work universally with 1D and 2D
+  sharding cases. Dispatch and combine tensors should be explicitly annotated
+  with jax.with_sharding_constraint by the caller.
 
-  The ` next to an axis indicates common ways of splitting along mesh dimension.
+  We perform dispatch/combine via einsum.
 
   Dimensions:
 
@@ -150,22 +156,13 @@ def top2_gating_on_logits(paddings,
           'group_size_dim=%r experts_dim=%r)', expert_capacity_dim,
           capacity_factor, group_size_dim, experts_dim)
 
-  # top first and second gate value and expert index for each input
-  #
-  # GSK tensors, K=2
-  def split(x):
-    # TODO(zhangqiaorjc): figure out the splits
-    return x
-
   # TODO(zhangqiaorjc): Add summary.
 
   # top-1 index: GS tensor
   index_1 = jnp.argmax(raw_gates, axis=-1)
-  index_1 = split(index_1)
 
   # GSE
   mask_1 = jax.nn.one_hot(index_1, experts_dim, dtype=mask_dtype)
-  mask_1 = split(mask_1)
   density_1_proxy = raw_gates
 
   if importance is not None:
@@ -192,16 +189,15 @@ def top2_gating_on_logits(paddings,
     # we set a very negative value to the logit corresponding to the 1st expert.
     # Then we sample from the softmax distribution using the Gumbel max trick.
     prng_key, subkey = jax.random.split(prng_key)
-    noise = split(jax.random.uniform(subkey, logits.shape, dtype=logits.dtype))
+    noise = jax.random.uniform(subkey, logits.shape, dtype=logits.dtype)
     # Generates standard Gumbel(0, 1) noise, GSE tensor.
     noise = -jnp.log(-jnp.log(noise))
-    very_negative_logits = split(
-        jnp.ones_like(logits) * (-0.7) * np.finfo(logits.dtype).max)
+    very_negative_logits = jnp.ones_like(logits) * (-0.7) * np.finfo(
+        logits.dtype).max
     # Get rid of the first expert by setting its logit to be very negative.
-    updated_logits = split(
-        jnp.where(mask_1 > 0.0, very_negative_logits, logits))
+    updated_logits = jnp.where(mask_1 > 0.0, very_negative_logits, logits)
     # Add Gumbel noise to the updated logits.
-    noised_logits = split(updated_logits + noise)
+    noised_logits = updated_logits + noise
     # Pick the index of the largest noised logits as the 2nd expert. This is
     # equivalent to sampling from the softmax over the 2nd expert.
     index_2 = jnp.argmax(noised_logits, axis=-1)
@@ -209,9 +205,7 @@ def top2_gating_on_logits(paddings,
     # Greedily pick the 2nd expert.
     index_2 = jnp.argmax(gates_without_top_1, axis=-1)
 
-  index_2 = split(index_2)
   mask_2 = jax.nn.one_hot(index_2, experts_dim, dtype=mask_dtype)
-  mask_2 = split(mask_2)
   if paddings is not None:
     importance_is_nonzero = importance > 0.0
     mask_2 *= jnp.expand_dims(importance_is_nonzero.astype(mask_2.dtype), -1)
@@ -277,7 +271,7 @@ def top2_gating_on_logits(paddings,
     #
     prng_key, subkey = jax.random.split(prng_key)
     sampled_2 = jnp.less(
-        split(jax.random.uniform(subkey, gate_2.shape, dtype=gate_2.dtype)),
+        jax.random.uniform(subkey, gate_2.shape, dtype=gate_2.dtype),
         gate_2 / max(second_expert_threshold, 1e-9))
     gate_2 *= sampled_2.astype(gate_2.dtype)
     mask_2 *= jnp.expand_dims(sampled_2, -1).astype(mask_2.dtype)
@@ -325,10 +319,8 @@ def top2_gating_on_logits(paddings,
 
   # GSEC tensor
   combine_tensor = first_part_of_combine_tensor + second_part_of_combine_tensor
-  combine_tensor = split(combine_tensor)
 
   # GSEC tensor
   dispatch_tensor = combine_tensor.astype(bool).astype(fprop_dtype)
-  dispatch_tensor = split(dispatch_tensor)
 
   return aux_loss, combine_tensor, dispatch_tensor

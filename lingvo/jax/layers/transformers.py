@@ -591,6 +591,8 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     # due to much smaller group size.
     # TODO(yonghui): Avoid explicitly casting everything to fp32 once
     # top2_gating_on_logits is stable in low-precision mode.
+    # TODO(lepikhin): Validate stability. mask_dtype=np.int32 and
+    # logits.astype(np.float32) should generally be sufficient.
     aux_loss, combine_tensor, dispatch_tensor = gshard_utils.top2_gating_on_logits(
         paddings=reshaped_paddings.astype(np.float32),
         logits=logits.astype(np.float32),
@@ -605,7 +607,8 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
         # 'random'.
         legacy_mtf_behavior=True,
         # *2.0 because we choose top-2 experts per example
-        capacity_factor=2.0 * p.expert_capacity_factor)
+        capacity_factor=2.0 * p.expert_capacity_factor,
+        mask_dtype=np.int32)
 
     if fprop_dtype != np.float32:
       aux_loss = aux_loss.astype(fprop_dtype)

@@ -1919,6 +1919,9 @@ def Top2GatingOnLogits(inputs,
       over_capacity_ratio = over_capacity / tf.maximum(
           tf.constant(1.0, dtype=tf.float32),
           tf.cast(tf.reduce_sum(mask), tf.float32))
+      py_utils.AddTpuSummaryTensor(name, over_capacity)
+      tpu_summary.scalar(name, over_capacity, while_loop_reduce='sum')
+      name = name + '_ratio'
       py_utils.AddTpuSummaryTensor(name, over_capacity_ratio)
       tpu_summary.scalar(name, over_capacity_ratio, while_loop_reduce='mean')
 
@@ -2084,7 +2087,7 @@ def Top2GatingOnLogits(inputs,
 
   # Add the over capacity ratio for expert 1
   _CreateOverCapacityRatioSummary(mask_1, position_in_expert_1, capacity,
-                                  'over_capacity_1_ratio')
+                                  'over_capacity_1')
 
   mask_1 *= tf.cast(tf.less(position_in_expert_1, capacity), dtype=mask_1.dtype)
   position_in_expert_1 = tf.einsum('...GSE,...GSE->...GS', position_in_expert_1,
@@ -2124,7 +2127,7 @@ def Top2GatingOnLogits(inputs,
 
   # Add the over capacity ratio for expert 2
   _CreateOverCapacityRatioSummary(mask_2, position_in_expert_2, capacity,
-                                  'over_capacity_2_ratio')
+                                  'over_capacity_2')
 
   mask_2 *= tf.cast(tf.less(position_in_expert_2, capacity), mask_2.dtype)
   position_in_expert_2 = tf.einsum('...GSE,...GSE->...GS', position_in_expert_2,
