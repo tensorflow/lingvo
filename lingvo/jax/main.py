@@ -68,6 +68,10 @@ flags.DEFINE_bool(
     'globally_use_hardware_rng', True,
     'Whether to globally use fast hardware RNG. Deterministic only at the '
     'same compiler version and with the same sharding')
+flags.DEFINE_integer(
+    'jax_profiler_port', None,
+    'If set, the jax.profiler port to use. Only needed for profiling in open source.'
+)
 # Flags --jax_backend_target and --jax_xla_backend are available through JAX.
 
 
@@ -127,6 +131,9 @@ def main(argv: Sequence[str]) -> None:
   work_unit.create_artifact(platform.ArtifactType.DIRECTORY, FLAGS.job_log_dir,
                             'job_log_dir')
 
+  # Start jax.profiler for Tensorboard and profiling in open source.
+  if FLAGS.jax_profiler_port is not None:
+    server = jax.profiler.start_server(FLAGS.jax_profiler_port)
   if FLAGS.mode == 'train':
     train.train_and_evaluate(
         model_name=FLAGS.model,

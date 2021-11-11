@@ -241,7 +241,7 @@ class LmCloudSpmd2B(LmCloudSpmd):
   """
   PERCORE_BATCH_SIZE = 32
 
-  NUM_LAYERS = 10
+  NUM_LAYERS = 18
   MODEL_DIMS = 3072
 
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
