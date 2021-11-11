@@ -15,6 +15,7 @@ pytype_strict_binary(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":checkpoints",
         ":eval",
         ":train",
         # Implicit absl.app dependency.
@@ -106,7 +107,6 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":base_model_params",
-        ":checkpoints",
         ":model_utils",
         ":partitioning",
         ":py_utils",
@@ -116,6 +116,7 @@ pytype_strict_library(
         ":trainer_lib",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
+        "//lingvo/jax:checkpoints",
         "//lingvo/jax:model_imports",
         # Implicit tensorflow dependency.
     ],
@@ -306,7 +307,6 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":base_input",
-        ":checkpoints",
         ":model_utils",
         ":partitioning",
         ":py_utils",
@@ -314,6 +314,7 @@ pytype_strict_library(
         ":trainer_lib",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
+        "//lingvo/jax:checkpoints",
         "//lingvo/jax:model_imports",
         # Implicit tensorflow dependency.
     ],

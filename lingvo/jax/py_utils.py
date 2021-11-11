@@ -74,8 +74,17 @@ def reshard(array: jnp.ndarray) -> np.ndarray:
                     (num_devices, batch_size // num_devices) + array.shape[1:])
 
 
-def extract_prefixed_keys_from_nested_map(node: Any, prefix: str = '') -> Any:
+def extract_prefixed_keys_from_nested_map(node: Any,
+                                          prefix: str = '',
+                                          left_separator: str = '[',
+                                          right_separator: str = ']') -> Any:
   """Extracts a NestedMap with the nested prefix keys from its NestedMap node."""
+
+  def extract_keys(n, p):
+    """Alias long function call with fixed separators."""
+    return extract_prefixed_keys_from_nested_map(
+        n, p, left_separator=left_separator, right_separator=right_separator)
+
   if isinstance(node, dict):  # NestedMap inherits from dict.
     result = {}
     for key, value in node.items():
@@ -83,13 +92,21 @@ def extract_prefixed_keys_from_nested_map(node: Any, prefix: str = '') -> Any:
         path = f'{prefix}/{key}'
       else:
         path = key
-      result[key] = extract_prefixed_keys_from_nested_map(value, path)
+      result[key] = extract_keys(value, path)
     # Convert back to dict or NestedMap.
     return type(node)(result)
   elif isinstance(node, (list, tuple)):
+    # Check if it is a NamedTuple.
+    if hasattr(node, '_fields'):
+      if prefix:
+        prefix += '/'
+      return type(node)(**{
+          field: extract_keys(getattr(node, field), f'{prefix}{field}')
+          for field in node._fields
+      })
     # Convert back to list or tuple.
     return type(node)(
-        extract_prefixed_keys_from_nested_map(v, f'{prefix}[{i}]')
+        extract_keys(v, f'{prefix}{left_separator}{i}{right_separator}')
         for i, v in enumerate(node))
   if not prefix:
     return None

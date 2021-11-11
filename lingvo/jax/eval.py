@@ -24,7 +24,6 @@ from absl import logging
 import jax
 from jax.experimental import maps
 from lingvo.jax import base_model_params
-from lingvo.jax import checkpoints
 from lingvo.jax import model_utils
 from lingvo.jax import partitioning
 from lingvo.jax import py_utils
@@ -33,6 +32,8 @@ from lingvo.jax import summary_utils
 from lingvo.jax import train_states
 from lingvo.jax import trainer_lib
 import tensorflow.compat.v2 as tf
+
+from lingvo.jax import checkpoints
 
 BaseModelParamsT = base_model_params.BaseModelParamsT
 InstantiableParams = py_utils.InstantiableParams
@@ -43,14 +44,19 @@ TrainState = train_states.TrainState
 SummaryWriter = tf.summary.SummaryWriter
 
 
-def evaluate(model_name: str, job_log_dir: Optional[str],
-             multi_host_checkpointing: Optional[bool]) -> None:
+def evaluate(
+    model_name: str,
+    job_log_dir: Optional[str],
+    multi_host_checkpointing: Optional[bool],
+    checkpoint_type: checkpoints.CheckpointType,
+) -> None:
   """Runs the evaluation loop on the entire eval data set.
 
   Args:
     model_name: The name of the model from the registry to evaluate.
     job_log_dir: The directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
+    checkpoint_type: Type of model checkpointing method to use.
   """
   model_config = model_utils.get_model(model_name)()
   model_p = model_config.task()
@@ -60,20 +66,24 @@ def evaluate(model_name: str, job_log_dir: Optional[str],
     inp.infeed_host_index = jax.process_index()
   if model_p.device_mesh is not None:
     evaluate_spmd_model(model_p, eval_input_p, job_log_dir,
-                        multi_host_checkpointing)
+                        multi_host_checkpointing, checkpoint_type)
   else:
-    evaluate_pmap_model(model_p, eval_input_p, job_log_dir)
+    evaluate_pmap_model(model_p, eval_input_p, job_log_dir, checkpoint_type)
 
 
-def evaluate_pmap_model(model_p: InstantiableParams,
-                        eval_input_p: List[InstantiableParams],
-                        job_log_dir: Optional[str]) -> None:
+def evaluate_pmap_model(
+    model_p: InstantiableParams,
+    eval_input_p: List[InstantiableParams],
+    job_log_dir: Optional[str],
+    checkpoint_type: checkpoints.CheckpointType,
+) -> None:
   """Runs the evaluation loop on the entire test dataset for PMAP model.
 
   Args:
     model_p: Params for the data parallel model.
     eval_input_p: List of params for the eval data input pipeline.
     job_log_dir: Directory for the job logs.
+    checkpoint_type: Type of model checkpointing method to use.
   """
   logging.info('Using pmap for data parallelism.')
   jax_model = model_p.Instantiate()
@@ -84,7 +94,8 @@ def evaluate_pmap_model(model_p: InstantiableParams,
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
   model_states = trainer_lib.initialize_model_state(jax_model, init_key)
-  model_states = checkpoints.restore_checkpoint(model_states, checkpoint_dir)
+  model_states = checkpoints.restore_checkpoint(
+      model_states, checkpoint_dir, checkpoint_type=checkpoint_type)
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   logging.info('replicated_model_states: %s',
                jax.tree_map(lambda x: x.shape, replicated_model_states))
@@ -149,15 +160,19 @@ def evaluate_pmap_model(model_p: InstantiableParams,
       new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
     # There must be a new checkpoint here.
     logging.info('Found new checkpoint: %s', new_checkpoint)
-    model_states = checkpoints.restore_checkpoint(model_states, checkpoint_dir)
+    model_states = checkpoints.restore_checkpoint(
+        model_states, checkpoint_dir, checkpoint_type=checkpoint_type)
     replicated_model_states = trainer_lib.replicate_model_state(model_states)
     last_checkpoint = new_checkpoint
 
 
-def evaluate_spmd_model(model_p: InstantiableParams,
-                        eval_input_p: InstantiableParams,
-                        job_log_dir: Optional[str],
-                        multi_host_checkpointing: bool) -> None:
+def evaluate_spmd_model(
+    model_p: InstantiableParams,
+    eval_input_p: InstantiableParams,
+    job_log_dir: Optional[str],
+    multi_host_checkpointing: bool,
+    checkpoint_type: checkpoints.CheckpointType,
+) -> None:
   """Runs the evaluation loop on the entire test dataset for SPMD model.
 
   Args:
@@ -165,6 +180,7 @@ def evaluate_spmd_model(model_p: InstantiableParams,
     eval_input_p: Params for the eval data pipeline.
     job_log_dir: Directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
+    checkpoint_type: Type of model checkpointing method to use.
   """
   logging.info('Using SPMD sharding for model parallelism.')
   eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
@@ -190,10 +206,13 @@ def evaluate_spmd_model(model_p: InstantiableParams,
   device_mesh = partitioning.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
-    partitioned_train_state, _, _, eval_step, _, _, _ = (
+    partitioned_train_state, partitioned_specs, _, eval_step, _, _, _ = (
         trainer_lib.partition_spmd_model(model_p, init_key, inputs_shape))
     partitioned_train_state = checkpoints.restore_checkpoint(
-        partitioned_train_state, checkpoint_task_dir)
+        partitioned_train_state,
+        checkpoint_task_dir,
+        checkpoint_type=checkpoint_type,
+        state_specs=partitioned_specs)
     logging.info('partitioned_train_state: %s',
                  jax.tree_map(lambda x: x.shape, partitioned_train_state))
     if multi_host_checkpointing:
@@ -244,7 +263,10 @@ def evaluate_spmd_model(model_p: InstantiableParams,
       # There must be a new checkpoint here.
       logging.info('Found new checkpoint: %s', new_checkpoint)
       partitioned_train_state = checkpoints.restore_checkpoint(
-          partitioned_train_state, checkpoint_task_dir)
+          partitioned_train_state,
+          checkpoint_task_dir,
+          checkpoint_type=checkpoint_type,
+          state_specs=partitioned_specs)
       if multi_host_checkpointing:
         py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
       last_checkpoint = new_checkpoint

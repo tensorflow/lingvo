@@ -33,6 +33,7 @@ from absl import logging
 from clu import platform
 import jax
 from jax import prng
+from lingvo.jax import checkpoints
 from lingvo.jax import eval as continuous_eval
 from lingvo.jax import train
 import tensorflow.compat.v2 as tf
@@ -56,6 +57,10 @@ flags.DEFINE_bool(
     'multi_host_checkpointing', False,
     'Whether to use multi-host checkpointing or not. Only useful for '
     'multi-host SPMD models.')
+flags.DEFINE_enum_class(
+    'checkpoint_type', checkpoints.CheckpointType.FLAX,
+    checkpoints.CheckpointType,
+    'The type of model checkpointing method to use in ["flax", "persistence"].')
 flags.DEFINE_string(
     'restore_checkpoint_dir', None,
     'If set, the directory from which to restore checkpoint. If unset, the '
@@ -139,6 +144,7 @@ def main(argv: Sequence[str]) -> None:
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
+        checkpoint_type=FLAGS.checkpoint_type,
         restore_checkpoint_dir=FLAGS.restore_checkpoint_dir,
         restore_checkpoint_step=FLAGS.restore_checkpoint_step,
         eval_on_test=FLAGS.eval_on_test)
@@ -146,7 +152,8 @@ def main(argv: Sequence[str]) -> None:
     continuous_eval.evaluate(
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
-        multi_host_checkpointing=FLAGS.multi_host_checkpointing)
+        multi_host_checkpointing=FLAGS.multi_host_checkpointing,
+        checkpoint_type=FLAGS.checkpoint_type)
   else:
     raise ValueError(f'Invalid mode: {FLAGS.mode}, mode must be train or eval.')
 
@@ -154,6 +161,18 @@ def main(argv: Sequence[str]) -> None:
 if __name__ == '__main__':
   # Provide access to --jax_backend_target and --jax_xla_backend flags.
   jax.config.config_with_absl()
+
   # TODO(shafey): Make `job_log_dir` mandatory?
   flags.mark_flags_as_required(['model'])
+
+  @flags.multi_flags_validator(
+      ['multi_host_checkpointing', 'checkpoint_type'],
+      message='Multi-host checkpointing only supported with Flax checkpointing.'
+  )
+  def _validate_checkpoints(flags_dict):
+    if (flags_dict['multi_host_checkpointing'] and
+        flags_dict['checkpoint_type'] != checkpoints.CheckpointType.FLAX):
+      return False
+    return True
+
   app.run(main)

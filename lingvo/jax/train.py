@@ -24,7 +24,6 @@ from absl import logging
 import jax
 from jax.experimental import maps
 from lingvo.jax import base_input
-from lingvo.jax import checkpoints
 from lingvo.jax import model_utils
 from lingvo.jax import partitioning
 from lingvo.jax import py_utils
@@ -32,11 +31,14 @@ from lingvo.jax import summary_utils
 from lingvo.jax import trainer_lib
 import tensorflow.compat.v2 as tf
 
+from lingvo.jax import checkpoints
+
 InstantiableParams = py_utils.InstantiableParams
 
 
 def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
                        multi_host_checkpointing: Optional[bool],
+                       checkpoint_type: checkpoints.CheckpointType,
                        restore_checkpoint_dir: Optional[str],
                        restore_checkpoint_step: Optional[int],
                        eval_on_test: Optional[bool]) -> None:
@@ -46,6 +48,7 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
     model_name: The name of the model from the registry to train.
     job_log_dir: The directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
+    checkpoint_type: Type of model checkpointing method to use.
     restore_checkpoint_dir: If set, the directory from which to restore
       checkpoint. If unset, use job_log_dir's `checkpoints` subdirectory
       instead.
@@ -87,18 +90,19 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
                  train_input_p.bucket_batch_limit)
   if model_p.device_mesh is not None:
     train_and_evaluate_spmd_model(model_p, train_input_p, job_log_dir,
-                                  multi_host_checkpointing,
+                                  multi_host_checkpointing, checkpoint_type,
                                   restore_checkpoint_dir,
                                   restore_checkpoint_step, eval_input_p)
   else:
     train_and_evaluate_pmap(model_p, train_input_p, job_log_dir,
-                            restore_checkpoint_dir, restore_checkpoint_step,
-                            eval_input_p)
+                            checkpoint_type, restore_checkpoint_dir,
+                            restore_checkpoint_step, eval_input_p)
 
 
 def train_and_evaluate_pmap(
     model_p: InstantiableParams, train_input_p: InstantiableParams,
-    job_log_dir: Optional[str], restore_checkpoint_dir: Optional[str],
+    job_log_dir: Optional[str], checkpoint_type: checkpoints.CheckpointType,
+    restore_checkpoint_dir: Optional[str],
     restore_checkpoint_step: Optional[int],
     eval_input_p: Optional[List[InstantiableParams]]) -> None:
   """Runs the training and evaluation loop.
@@ -107,6 +111,7 @@ def train_and_evaluate_pmap(
     model_p: Params for the data parallel model.
     train_input_p: Params for the train data input pipeline.
     job_log_dir: Directory for the job logs.
+    checkpoint_type: Type of model checkpointing method to use.
     restore_checkpoint_dir: If set, the directory from which to restore
       checkpoint. If unset, use job_log_dir's `checkpoints` subdirectory
       instead.
@@ -129,7 +134,10 @@ def train_and_evaluate_pmap(
   restore_checkpoint_dir = restore_checkpoint_dir or checkpoint_dir
   model_states = trainer_lib.initialize_model_state(jax_model, init_key)
   model_states = checkpoints.restore_checkpoint(
-      model_states, restore_checkpoint_dir, step=restore_checkpoint_step)
+      model_states,
+      restore_checkpoint_dir,
+      step=restore_checkpoint_step,
+      checkpoint_type=checkpoint_type)
   total_num_params = jax_model.total_num_vars
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   # Unreplicated model states are not needed anymore at that point.
@@ -218,6 +226,7 @@ def train_and_evaluate_pmap(
         checkpoints.save_checkpoint(
             replicated_model_states,
             checkpoint_dir,
+            checkpoint_type=checkpoint_type,
             max_checkpoints=train_p.save_max_to_keep)
 
       if step_i <= 5:
@@ -302,6 +311,7 @@ def train_and_evaluate_pmap(
 def train_and_evaluate_spmd_model(
     model_p: InstantiableParams, train_input_p: InstantiableParams,
     job_log_dir: Optional[str], multi_host_checkpointing: bool,
+    checkpoint_type: checkpoints.CheckpointType,
     restore_checkpoint_dir: Optional[str],
     restore_checkpoint_step: Optional[int],
     eval_input_p: Optional[InstantiableParams]) -> None:
@@ -312,6 +322,7 @@ def train_and_evaluate_spmd_model(
     train_input_p: Params for the train data pipeline.
     job_log_dir: Directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
+    checkpoint_type: Type of model checkpointing method to use.
     restore_checkpoint_dir: If set, the directory from which to restore
       checkpoint. If unset, use job_log_dir's `checkpoints` subdirectory
       instead.
@@ -362,13 +373,15 @@ def train_and_evaluate_spmd_model(
   device_mesh = partitioning.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
-    (partitioned_train_state, _, train_step, eval_step, _, _,
+    (partitioned_train_state, partitioned_specs, train_step, eval_step, _, _,
      total_num_params) = trainer_lib.partition_spmd_model(
          model_p, init_key, inputs_shape)
 
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
         restore_checkpoint_task_dir,
+        checkpoint_type=checkpoint_type,
+        state_specs=partitioned_specs,
         step=restore_checkpoint_step)
     logging.info('partitioned_train_state shapes: %s',
                  jax.tree_map(lambda x: x.shape, partitioned_train_state))
@@ -439,6 +452,8 @@ def train_and_evaluate_spmd_model(
             checkpoints.save_checkpoint(
                 partitioned_train_state,
                 checkpoint_task_dir,
+                checkpoint_type=checkpoint_type,
+                state_specs=partitioned_specs,
                 max_checkpoints=train_p.save_max_to_keep,
                 unreplicate=False)
           if multi_host_checkpointing:

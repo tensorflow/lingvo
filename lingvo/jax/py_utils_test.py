@@ -15,6 +15,8 @@
 # ==============================================================================
 """Tests for Python utils."""
 
+import collections
+
 from absl.testing import absltest
 import jax
 from jax import test_util
@@ -32,6 +34,20 @@ class PyUtilsTest(test_util.JaxTestCase):
     num_devices = jax.local_device_count()
     self.assertEqual(sharded_inputs.shape,
                      (num_devices, batch_size // num_devices, 0))
+
+  def test_extract_prefixed_keys_from_nested_map(self):
+    Point = collections.namedtuple('Point', ['x', 'y'])
+
+    inputs = {'a': [1, 2, Point(x=3, y=4), (5, 6)], 'b': ('c', 'd')}
+    outputs = py_utils.extract_prefixed_keys_from_nested_map(inputs)
+    self.assertEqual(
+        {
+            'a': [
+                'a[0]', 'a[1]',
+                Point(x='a[2]/x', y='a[2]/y'), ('a[3][0]', 'a[3][1]')
+            ],
+            'b': ('b[0]', 'b[1]')
+        }, outputs)
 
   def test_sync_global_devices(self):
     py_utils.sync_global_devices('sync')
