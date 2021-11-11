@@ -1389,10 +1389,12 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
 class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
   """Test local causual self attention."""
 
-  def _LocalCasualPadding(self, b, t, l, r):
-    padding = np.ones((b, t, t))
-    for i in range(t):
-      padding[:, i, max(0, i - l + 1):i + r + 1] = 0
+  def _LocalCasualPadding(self, b, t, l, r, query_stride):
+    s = t // query_stride
+    padding = np.ones((b, s, t))
+    for i in range(s):
+      j = i * query_stride
+      padding[:, i, max(0, j - l + 1):j + r + query_stride] = 0
     return tf.constant(padding, dtype=tf.float32)
 
   @parameterized.named_parameters(
@@ -1445,6 +1447,12 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           'right_context': 2,
           'pos_emb_dim': 8,
           'skip_term_b': True,
+      }, {
+          'testcase_name': 'funnel_pool',
+          'block_size': None,
+          'left_context': 3,
+          'right_context': 2,
+          'query_stride': 2,
       })
   def testFPropAgainstReference(self,
                                 block_size,
@@ -1455,6 +1463,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
                                 input_dim=4,
                                 hidden_dim=4,
                                 skip_term_b=False,
+                                query_stride=1,
                                 use_additional_per_step_padding=False):
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
@@ -1484,6 +1493,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           block_size=block_size,
           left_context=left_context,
           right_context=right_context,
+          query_stride=query_stride,
           force_consistent_probs_shape=True)
       expected_p = expected_p_cls.Params().Set(
           name='expected_self_atten',
@@ -1498,11 +1508,15 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       l = p.Instantiate()
       expected_l = expected_p.Instantiate()
+      funnel_pool = attention.FunnelPoolingLayer.Params().Set(
+          name='funnel_pool', stride=query_stride).Instantiate()
 
       tf.global_variables_initializer().run()
+      pooled_query_vec, pooled_paddings = funnel_pool.FProp(
+          funnel_pool.theta, query_vec, paddings)
       ctx_vec, probs = l.FProp(
           l.theta,
-          query_vec,
+          pooled_query_vec,
           query_vec,
           query_vec,
           paddings,
@@ -1510,20 +1524,20 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           per_step_padding=additional_per_step_padding)
       context_vec_out, probs_out = sess.run([ctx_vec, probs])
       per_step_padding = self._LocalCasualPadding(6, 6, left_context,
-                                                  right_context)
+                                                  right_context, query_stride)
       if additional_per_step_padding is not None:
         per_step_padding += additional_per_step_padding
       expected_ctx_vec, expected_probs = expected_l.FProp(
-          expected_l.theta, query_vec, query_vec, query_vec, paddings, None,
-          per_step_padding)
+          expected_l.theta, pooled_query_vec, query_vec, query_vec, paddings,
+          None, per_step_padding)
       expected_context_vec_out, expected_probs_out = sess.run(
           [expected_ctx_vec, expected_probs])
 
       # Don't compare if the query position is padded, or if all key positions
       # are padded.
-      paddings_val = sess.run(paddings)
+      pooled_paddings_val, paddings_val = sess.run([pooled_paddings, paddings])
       per_step_padding_val = sess.run(per_step_padding)
-      per_step_padding_val += paddings_val[:, :, np.newaxis]
+      per_step_padding_val += pooled_paddings_val[:, :, np.newaxis]
       per_step_padding_val += paddings_val[:, np.newaxis, :]
 
       dont_compare = np.sum(
@@ -1635,6 +1649,7 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
     right_context = kwargs['right_context']
 
     p_cls = kwargs.get('p_cls', attention.LocalSelfAttention)
+    query_stride = kwargs.get('query_stride', 1)
     use_3d_recurrent_state = kwargs.get('use_3d_recurrent_state', False)
     inference_step_max_length = kwargs.get('inference_step_max_length', None)
     minimize_state_size = kwargs.get('minimize_state_size', False)
@@ -1645,7 +1660,8 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
         input_dim=input_dim,
         hidden_dim=hidden_dim,
         left_context=left_context,
-        right_context=right_context)
+        right_context=right_context,
+        query_stride=query_stride)
     if p_cls == attention.LocalSelfAttentionXL:
       p.Set(rel_pos_emb_dim=input_dim)
     p.minimize_state_size = minimize_state_size
@@ -1654,10 +1670,24 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
     return p
 
   def _FProp(self, layer, inputs, paddings):
-    return layer.FProp(layer.theta, inputs, inputs, inputs, paddings)
+    funnel_pool = attention.FunnelPoolingLayer.Params().Set(
+        name='funnel_pool', stride=layer.params.query_stride).Instantiate()
+    query_vec, query_paddings = funnel_pool.FProp(funnel_pool.theta, inputs,
+                                                  paddings)
+    return layer.FProp(layer.theta, query_vec, inputs, inputs,
+                       paddings)[0], query_paddings
+
+  def _StreamStep(self, layer, step_inputs, step_paddings, state):
+    funnel_pool = attention.FunnelPoolingLayer.Params().Set(
+        name='funnel_pool', stride=layer.params.query_stride).Instantiate()
+    query_vec, query_paddings = funnel_pool.StreamStep(funnel_pool.theta,
+                                                       step_inputs,
+                                                       step_paddings)
+    return layer.StreamStep(layer.theta, query_vec, query_paddings, step_inputs,
+                            step_paddings, state)
 
   def _GetFPropOutput(self, fprop_out):
-    return fprop_out[0]
+    return fprop_out[0], fprop_out[1]
 
   @parameterized.named_parameters(
       ('Basic',),
@@ -1683,6 +1713,9 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
       ('SkipNormS2XL', attention.LocalSelfAttentionXL, True, 2, 2),
       ('SkipNormDynamicXL', attention.LocalSelfAttentionXL, True, 1, None),
       ('SkipNormS2DynamicXL', attention.LocalSelfAttentionXL, True, 2, None),
+      ('FunnelS2', attention.LocalSelfAttention, False, 2, 2, False, False, 2),
+      ('FunnelS2Dynamic', attention.LocalSelfAttention, False, 2, None, False,
+       False, 2),
   )
   def testLeftContext(self,
                       p_cls=attention.LocalSelfAttention,
@@ -1690,7 +1723,8 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
                       stride=1,
                       inference_step_max_length=1,
                       use_3d_recurrent_state=False,
-                      minimize_state_size=False):
+                      minimize_state_size=False,
+                      query_stride=1):
     tf.random.set_seed(2021)
     kwargs = dict(
         stride=stride,
@@ -1699,6 +1733,7 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
         hidden_dim=4,
         left_context=3,
         right_context=0,
+        query_stride=query_stride,
         p_cls=p_cls,
         minimize_state_size=minimize_state_size,
         use_3d_recurrent_state=use_3d_recurrent_state,
@@ -2199,6 +2234,163 @@ class TransformerAttentionLayerTest(test_utils.TestCase,
         out = sess.run([output])
         res.append(out)
       self.assertNotAllClose(res[0], res[1])
+
+
+class FunnelTransformerAttentionLayerTest(test_utils.TestCase,
+                                          parameterized.TestCase):
+  """Tests for FunnelTransformerAttentionLayer."""
+
+  # MultiHeadedAttention and LocalSelfAttention must return same values.
+  def testBasic(self):
+    batch_size, max_seqlen, input_dim = 2, 32, 4
+    query_stride = 2
+    num_heads = 2
+    out_seqlen = max_seqlen // query_stride
+
+    # Prepares inputs.
+    np.random.seed(None)
+    inputs = np.random.normal(
+        0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=max_seqlen // 2,
+        high=max_seqlen + 1,
+        size=(batch_size,),
+        dtype=np.int32)
+    print(f'seqlen: {repr(seqlen)}')
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+
+    # Builds graph.
+    left_context = None
+    base_p = attention.FunnelTransformerAttentionLayer.CommonParams(
+        input_dim=input_dim,
+        num_heads=num_heads,
+        is_masked=True,
+        left_context=left_context,
+        right_context=0,
+        query_stride=query_stride)
+    base_p.name = 'base_funnel'
+
+    left_context = max_seqlen + 1
+    local_p = attention.FunnelTransformerAttentionLayer.CommonParams(
+        input_dim=input_dim,
+        num_heads=num_heads,
+        is_masked=True,
+        left_context=left_context,
+        right_context=0,
+        query_stride=query_stride)
+    local_p.name = 'local_funnel'
+
+    base_l = base_p.Instantiate()
+    local_l = local_p.Instantiate()
+
+    def _CopyVariables(a_vars, b_vars):
+      for a, b in zip(a_vars.Flatten(), b_vars.Flatten()):
+        tf.assign(a, b).eval()
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(tf.global_variables_initializer())
+
+      _CopyVariables(local_l.vars, base_l.vars)
+      base_outputs, base_paddings, _ = base_l.FProp(base_l.theta, inputs, None,
+                                                    paddings)
+      base_outputs *= tf.reshape(1. - base_paddings,
+                                 [batch_size, out_seqlen, 1])
+      local_outputs, local_paddings, _ = local_l.FProp(local_l.theta, inputs,
+                                                       None, paddings)
+      local_outputs *= tf.reshape(1. - local_paddings,
+                                  [batch_size, out_seqlen, 1])
+      expected, actual = sess.run([base_outputs, local_outputs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+      self.assertEqual(
+          tuple(expected.shape), (batch_size, out_seqlen, input_dim))
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicR2', 2, 2, 2),
+      ('BasicS4', 4, 2),
+  )
+  def testStreamStep(self, stride=2, query_stride=2, right_context=0):
+    batch_size, max_seqlen, input_dim = 2, 32, 4
+    num_heads = 2
+    left_context = 3
+    out_seqlen = max_seqlen // query_stride
+    query_right_context = right_context // query_stride
+
+    # Prepares inputs.
+    np.random.seed(None)
+    inputs = np.random.normal(
+        0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=max_seqlen // 2,
+        high=max_seqlen + 1,
+        size=(batch_size,),
+        dtype=np.int32)
+    print(f'seqlen: {repr(seqlen)}')
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+
+    # Builds graph.
+    p = attention.FunnelTransformerAttentionLayer.CommonParams(
+        input_dim=input_dim,
+        num_heads=num_heads,
+        is_masked=True,
+        left_context=left_context,
+        right_context=right_context,
+        query_stride=query_stride)
+    p.name = 'transformer_atten'
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    base_outputs, out_paddings, _ = l.FProp(l.theta, inputs, None, paddings)
+    base_outputs *= tf.reshape(1. - out_paddings, [batch_size, out_seqlen, 1])
+
+    state = l.zero_state(batch_size)
+    outputs = []
+    out_paddings = []
+    assert max_seqlen % stride == 0
+    for i in range(max_seqlen // stride +
+                   int(math.ceil(right_context / stride))):
+      if i < max_seqlen // stride:
+        step_inputs = inputs[:, stride * i:stride * (i + 1)]
+        step_paddings = paddings[:, stride * i:stride * (i + 1)]
+      else:
+        step_inputs = tf.zeros_like(inputs[:, 0:stride])
+        step_paddings = tf.ones_like(paddings[:, 0:stride])
+      output, out_padding, state = l.StreamStep(l.theta, step_inputs,
+                                                step_paddings, state)
+      outputs.append(output)
+      out_paddings.append(out_padding)
+
+    outputs = tf.concat(outputs, axis=1)
+    outputs = outputs[:, query_right_context:][:, :out_seqlen]
+    out_paddings = tf.concat(out_paddings, axis=1)
+    out_paddings = out_paddings[:, query_right_context:][:, :out_seqlen]
+    outputs *= tf.reshape(1. - out_paddings, [batch_size, out_seqlen, 1])
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+
+      expected, actual = sess.run([base_outputs, outputs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+      self.assertEqual(
+          tuple(expected.shape), (batch_size, out_seqlen, input_dim))
 
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):

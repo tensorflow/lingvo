@@ -656,8 +656,11 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
   def _FProp(self, layer, inputs, paddings):
     return layer.FProp(layer.theta, inputs, paddings)
 
+  def _StreamStep(self, layer, step_inputs, step_paddings, state):
+    return layer.StreamStep(layer.theta, step_inputs, step_paddings, state)
+
   def _GetFPropOutput(self, fprop_out):
-    return fprop_out[0]
+    return fprop_out[0], fprop_out[1]
 
   @parameterized.named_parameters(
       ('Basic',),
@@ -771,8 +774,11 @@ class CausalConv2DLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
   def _FProp(self, layer, inputs, paddings):
     return layer.FProp(layer.theta, inputs, paddings)
 
+  def _StreamStep(self, layer, step_inputs, step_paddings, state):
+    return layer.StreamStep(layer.theta, step_inputs, step_paddings, state)
+
   def _GetFPropOutput(self, fprop_out):
-    return fprop_out[0]
+    return fprop_out[0], fprop_out[1]
 
   @parameterized.named_parameters(
       ('Basic',),

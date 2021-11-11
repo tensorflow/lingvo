@@ -108,25 +108,42 @@ def MakeLocalMask(seq_len,
                   block_size,
                   left_context,
                   right_context,
+                  query_stride=1,
                   dtype=tf.float32):
   """Makes the mask tensor for a full sequence.
 
   The returned mask reflects the given context sizes, where position i
   attends to tokens in the range [i - (left_context-1), i + right_context].
 
+  For example, given seq_len=4, block_size=2, left_context=3, right_context=0,
+  the result mask is
+  [[[0., 0., 1., 0.], 1st query in 1st block attends 1st key.
+  [0., 0., 1., 1.]],  2nd query in 1st block attends 2nd and left keys
+  [[1., 1., 1., 0.],  1st query in 2nd block attends 1st and left keys
+  [0., 1., 1., 1.]]]  2st query in 2nd block attends 2nd and left keys
+
+  The position i can move by stride, which means queries are pooled by stride.
+  For example, given same params and stride=2, the result mask is
+  [[[0., 0., 1., 1.]], The pooled query in 1st block attends 1st and 2nd keys
+  [[1., 1., 1., 1.]]]  The pooled query in 2st block attends 1st, 2nd and left
+
   Args:
     seq_len: int or scalar int tensor. Sequence length.
     block_size: int. Number of time frames in a block.
     left_context: int. Left context size.
     right_context: int. Right context size.
+    query_stride: int. Query stride for funnel pool.
     dtype: tf.dtype, default is tf.float32.
 
   Returns:
-    A tensor of [num_blocks, block_size, context_size] taking values in {0, 1},
-    where context_size = block_size + (left_context - 1) + right_context.
-    Element b, i, j is zero if in the b-th block, the i-th frame can access
+    A tensor of [num_blocks, block_size//stride, context_size] taking values in
+    {0, 1}, where context_size = block_size + (left_context - 1) + right_context
+    Element b, i, j is 1 if in the b-th block, the i-th frame can access
     the j-th frame in the context.
   """
+  assert block_size % query_stride == 0, (
+      f'block_size({block_size}) must be a multiple of '
+      f'query_stride({query_stride}).')
   seq_len = py_utils.with_dependencies([
       py_utils.assert_greater_equal(
           seq_len, 1, message='seq_len must be at least 1')
@@ -163,8 +180,15 @@ def MakeLocalMask(seq_len,
 
   valid_atten &= tf.math.logical_and(valid_src[:, :, tf.newaxis],
                                      valid_tgt[:, tf.newaxis, :])
+  valid_atten = tf.cast(valid_atten, dtype=dtype)
 
-  return tf.cast(valid_atten, dtype=dtype)
+  if query_stride:
+    valid_atten = tf.reshape(
+        valid_atten,
+        [num_blocks, block_size // query_stride, query_stride, context_size])
+    valid_atten = tf.reduce_max(valid_atten, axis=-2)
+
+  return valid_atten
 
 
 def RelShift(x):

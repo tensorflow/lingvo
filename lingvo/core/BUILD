@@ -1680,7 +1680,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":attention_util",
-        ":py_utils",
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",

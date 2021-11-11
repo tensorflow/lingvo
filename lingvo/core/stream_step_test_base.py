@@ -82,7 +82,10 @@ class StreamStepTestBase(test_utils.TestCase, parameterized.TestCase):
                                  paddings,
                                  right_context,
                                  max_seqlen,
-                                 num_layers=1):
+                                 num_layers=1,
+                                 query_funnel_pool_stride=1):
+    right_context = right_context // query_funnel_pool_stride
+    max_seqlen = max_seqlen // query_funnel_pool_stride
     # outputs has right_context * num_layers-frames delay from inputs.
     outputs = outputs[:, right_context * num_layers:]
     # later outputs corresponds to padded inputs to complete the last frame's
@@ -100,8 +103,12 @@ class StreamStepTestBase(test_utils.TestCase, parameterized.TestCase):
     """Returns layer fprop results."""
     raise NotImplementedError()
 
+  def _StreamStep(self, layer, step_inputs, step_paddings, state):
+    """Returns layer StreamStep results."""
+    raise NotImplementedError()
+
   def _GetFPropOutput(self, fprop_out):
-    """Returns key layer output (as opposed to other outputs, e.g. paddings)."""
+    """Returns key layer output and paddings."""
     raise NotImplementedError()
 
   def _TestStreamStepHelper(self, **kwargs):
@@ -113,6 +120,7 @@ class StreamStepTestBase(test_utils.TestCase, parameterized.TestCase):
     assert max_seqlen % stride == 0
 
     right_context = kwargs.get('right_context', 0)
+    query_stride = kwargs.get('query_stride', 1)
 
     # Prepares inputs.
     inputs, paddings = self._GetInputs(batch_size, max_seqlen, input_dim)
@@ -126,9 +134,9 @@ class StreamStepTestBase(test_utils.TestCase, parameterized.TestCase):
       init_op = tf.global_variables_initializer()
 
       fprop_out = self._FProp(l, inputs, paddings)
-      base_outputs = self._GetFPropOutput(fprop_out)
+      base_outputs, out_paddings = self._GetFPropOutput(fprop_out)
       out_rank = py_utils.GetRank(base_outputs)
-      base_outputs *= py_utils.AppendDims(1. - paddings, out_rank - 2)
+      base_outputs *= py_utils.AppendDims(1. - out_paddings, out_rank - 2)
 
       try:
         state = l.zero_state(batch_size)
@@ -143,13 +151,17 @@ class StreamStepTestBase(test_utils.TestCase, parameterized.TestCase):
         else:
           step_inputs = tf.zeros_like(inputs[:, 0:stride])
           step_paddings = tf.ones_like(paddings[:, 0:stride])
-        output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
-                                        state)
+        output, _, state = self._StreamStep(l, step_inputs, step_paddings,
+                                            state)
         outputs.append(output)
 
       outputs = tf.concat(outputs, axis=1)
-      outputs = self._NormalizeStreamStepOutput(outputs, paddings,
-                                                right_context, max_seqlen)
+      outputs = self._NormalizeStreamStepOutput(
+          outputs,
+          out_paddings,
+          right_context,
+          max_seqlen,
+          query_funnel_pool_stride=query_stride)
 
       sess.run(init_op)
 
@@ -165,7 +177,7 @@ class StreamStepTestBase(test_utils.TestCase, parameterized.TestCase):
     outputs = inputs
     for l in layers:
       fprop_out = self._FProp(l, outputs, paddings)
-      outputs = self._GetFPropOutput(fprop_out)
+      outputs, paddings = self._GetFPropOutput(fprop_out)
     # [b, t, -1]
     outputs *= tf.expand_dims(1. - paddings, -1)
     return outputs
@@ -189,8 +201,8 @@ class StreamStepTestBase(test_utils.TestCase, parameterized.TestCase):
       output, out_paddings = step_inputs, step_paddings
       new_states = []
       for l, state0 in zip(layers, states):
-        output, out_paddings, state1 = l.StreamStep(l.theta, output,
-                                                    out_paddings, state0)
+        output, out_paddings, state1 = self._StreamStep(l, output, out_paddings,
+                                                        state0)
         new_states.append(state1)
       states = new_states
       outputs.append(output)

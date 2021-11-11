@@ -83,8 +83,11 @@ class LConvLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
   def _FProp(self, layer, inputs, paddings):
     return layer.FProp(layer.theta, inputs, paddings)
 
+  def _StreamStep(self, layer, step_inputs, step_paddings, state):
+    return layer.StreamStep(layer.theta, step_inputs, step_paddings, state)
+
   def _GetFPropOutput(self, fprop_out):
-    return fprop_out[0]
+    return fprop_out[0], fprop_out[1]
 
   @parameterized.named_parameters(
       ('Basic',),
@@ -584,6 +587,7 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
     norm_type = kwargs.get('norm_type', 'gn')
     has_lconv = kwargs.get('has_lconv', 'conv2d')
     has_fflayer_start = kwargs.get('has_fflayer_start', True)
+    query_stride = kwargs.get('query_stride', 1)
     num_groups = kwargs.get('num_groups', 2)
 
     if layer_order == 'mhsa':
@@ -595,6 +599,7 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
         atten_left_context=left_context,
         atten_right_context=right_context,
         use_relative_atten=False,
+        query_stride=query_stride,
         fflayer_hidden_dim=ffn_dim,
         kernel_size=kernel,
         layer_order=layer_order)
@@ -620,8 +625,11 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
     return layer.FProp(layer.theta,
                        py_utils.NestedMap(features=inputs, paddings=paddings))
 
+  def _StreamStep(self, layer, step_inputs, step_paddings, state):
+    return layer.StreamStep(layer.theta, step_inputs, step_paddings, state)
+
   def _GetFPropOutput(self, fprop_out):
-    return fprop_out.features
+    return fprop_out.features, fprop_out.paddings
 
   @parameterized.named_parameters(
       {
@@ -724,12 +732,23 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
           'has_fflayer_start': False,
           'right_context': 2,
       },
+      {
+          'testcase_name': 'Funnel',
+          'stride': 2,
+          'query_stride': 2,
+      },
+      {
+          'testcase_name': 'FunnelStride4',
+          'stride': 4,
+          'query_stride': 2,
+      },
   )
   def testCommon(self,
                  testonly_skip_norm_layers=False,
                  norm_type='ln',
                  num_groups=2,
                  stride=1,
+                 query_stride=1,
                  layer_order='conv_before_mhsa',
                  has_lconv='depthwise',
                  has_fflayer_start=True,
@@ -744,6 +763,7 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
         right_context=right_context,
         ffn_dim=4,
         stride=stride,
+        query_stride=query_stride,
         norm_type=norm_type,
         has_lconv=has_lconv,
         has_fflayer_start=has_fflayer_start,

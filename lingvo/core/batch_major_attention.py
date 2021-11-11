@@ -1655,21 +1655,26 @@ class LocalSelfAttention(MultiHeadedAttention):
   We use the following capital letters to denote certain
   tensor parameters.
 
-    B = batch size
-    S=T= length of the key/value (source) and query (target)
-    D = model dimension
-    N = number of attention heads
-    H = dimensions of each attention head
-    W = block size
-    L = left context size, including left L-1 positions and self
-    R = right context size
+    B = batch size.
+    P = query stride (default to 1, see below).
+    T(target) = length of the query.
+    S(source) = length of the key/value, S == T * P.
+
+    W = key block size. query block size is W // P.
+    L = left context size in key, including left L-1 positions and self.
+    R = right context size in key.
     F = L + R = context size of one position.
     C = L + R + W - 1 = context size of a block of W positions.
     U = ceiling(T/W).
 
-  For each position, its attention range includes from the left
-  L-1 tokens before it (up to the beginning of the sequence),
-  the self, and the right R tokens after it (up to the end of the
+    D = model dimension.
+    N = number of attention heads.
+    H = dimensions of each attention head.
+
+  Canonical attention:
+  For each query position, its attended position range in the key sequence
+  includes from the left L-1 tokens before it (up to the beginning of the
+  sequence), the self, and the right R tokens after it (up to the end of the
   sequence). This is not affected by the block size.
 
   Causality is enabled when right context size R=0.
@@ -1687,11 +1692,19 @@ class LocalSelfAttention(MultiHeadedAttention):
   sliding window attention from O(S * T) to O(S * C). In practice we observe
   reduced HBM usage on TPU but no speed gains.
 
+  Strided attention:
+  For canonical attention, P is 1 and S == T. When query_stride (P) is not 1,
+  query(target) and key/value(source) have different lengths: S is expected
+  to be a multiple T.
+
+  The attention semantics also change, in that, position i in the query will
+  attend to the same range in the key sequence as covered by [i, i+P) in
+  the canonical attention.
+
   Note: Cross attention is not supported. As a result in speech models this
   class can only be used for encoder.
 
   TODO(weihan): add masking based local attention to the base class.
-
   """
 
   @classmethod
@@ -1701,6 +1714,12 @@ class LocalSelfAttention(MultiHeadedAttention):
     p.Define(
         'block_size', None, 'Size of a processing block, if unset, default to '
         'max(1, left_context-1).')
+    p.Define(
+        'query_stride', 1,
+        'Query stride for strided attention. If set to 1, regress to '
+        'canonical self attention. Else, key/value(source) sequence '
+        'length must be equal to query_stride * query length. '
+        'See "Strided attention" in the docstring for more information.')
     p.Define(
         'left_context', None, 'Number of left positions to attend '
         '(including current position).')
@@ -1742,6 +1761,12 @@ class LocalSelfAttention(MultiHeadedAttention):
       p.block_size = max(1, p.left_context - 1)
       tf.logging.warning('block_size not set, use default value {}'.format(
           p.block_size))
+    assert p.block_size % p.query_stride == 0, (
+        f'block_size({p.block_size}) must be a multiple of '
+        f'query_stride({p.query_stride}).')
+    assert not p.right_context or p.right_context % p.query_stride == 0, (
+        f'right_context({p.right_context}) must be a multiple of '
+        f'query_stride({p.query_stride}).')
 
     assert not p.packed_input, 'Packed input not implemented yet.'
 
@@ -1766,8 +1791,8 @@ class LocalSelfAttention(MultiHeadedAttention):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       query:    [B, T, N, H].
-      key:      [B, S=T, N, H].
-      paddings: [B, T].
+      key:      [B, S, N, H].
+      paddings: [B, S].
       segment_mask: [B, 1, T, S] not used right now.
       per_step_padding: Not used.
 
@@ -1780,7 +1805,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     key = py_utils.HasRank(key, 4)
     b, t, n, h = py_utils.GetShape(key, 4)
     paddings = py_utils.HasShape(paddings, [b, t])
-    query = py_utils.HasShape(query, [b, t, n, h])
+    query = py_utils.HasShape(query, [b, -1, n, h])
 
     # -> [B, U, C, N, H]
     key_block_context = attention_util.ExtractBlockContext(
@@ -1792,7 +1817,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # -> [B, U, W, N, H]
     query_blocks = attention_util.ConvertToBlocks(
-        query, block_size=p.block_size)
+        query, block_size=(p.block_size // p.query_stride))
     _, _, w, _, _ = py_utils.GetShape(query_blocks)
 
     # -> [B, U, C]
@@ -1815,6 +1840,7 @@ class LocalSelfAttention(MultiHeadedAttention):
         block_size=p.block_size,
         left_context=p.left_context,
         right_context=p.right_context,
+        query_stride=p.query_stride,
         dtype=mask.dtype)
     mask = mask * local_causal_mask
     paddings = 1. - mask
@@ -1867,7 +1893,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     # Remove the extra time padding introduced by converting to blocks.
     # Note: t0 works presently only for self-attention.
     # For cross-atten, needs query[1] which'll be different.
-    t0 = py_utils.GetShape(value)[1]
+    t0 = (py_utils.GetShape(value)[1] + p.query_stride - 1) // p.query_stride
     encoded = encoded[:, :t0, ...]
     return encoded
 
@@ -1900,12 +1926,15 @@ class LocalSelfAttention(MultiHeadedAttention):
     Raises:
       ValueError: If value projection is disabled.
     """
-    b, t, d = py_utils.GetShape(query_vec, 3)
-    # LocalSelfAttention doesn't support cross-attention at the moment.
-    # Verify T == S, for query and value vector.
-    value_vec = py_utils.HasShape(value_vec, [b, t, d])
-    key_vec = py_utils.HasShape(key_vec, [b, t, d])
-    paddings = py_utils.HasShape(paddings, [b, t])
+    p = self.params
+    b, s, d = py_utils.GetShape(key_vec, 3)
+    t = py_utils.GetShape(query_vec, 2)[1]
+    query_vec = py_utils.HasShape(query_vec, [b, s // p.query_stride, d])
+    query_vec = py_utils.with_dependencies(
+        [py_utils.assert_even_divide(s, p.query_stride)], query_vec)
+
+    value_vec = py_utils.HasShape(value_vec, [b, s, d])
+    paddings = py_utils.HasShape(paddings, [b, s])
     encoded, probs = super().FProp(
         theta,
         query_vec,
@@ -1914,29 +1943,30 @@ class LocalSelfAttention(MultiHeadedAttention):
         paddings,
         segment_mask=segment_mask,
         per_step_padding=per_step_padding)
-    p = self.params
     if not p.force_consistent_probs_shape:
       return encoded, probs
 
     # We turn 'probs' into shape [B, N, T, S] before turning it.
     # probs has shape [B N U W C].
     _, n, u, w, _ = py_utils.GetShape(probs, 5)
+    # l == w * query_stride
+    l = p.block_size
     # shape [B N W U C]
     probs = tf.transpose(probs, [0, 1, 3, 2, 4])
     # Maximum length needed to keep track of probs along the T axis.
-    m = t + p.left_context - 1 + p.right_context
-    # shape [B N W U M+W], where M = (L-1) + T + R
-    probs = py_utils.PadOrTrimTo(probs, [b, n, w, u, m + w])
-    probs = tf.reshape(probs, [b, n, w, u * (m + w)])
+    m = s + p.left_context - 1 + p.right_context
+    # shape [B N W U M+L], where M = (L-1) + S + R
+    probs = py_utils.PadOrTrimTo(probs, [b, n, w, u, m + l])
+    probs = tf.reshape(probs, [b, n, w, u * (m + l)])
     # Now each row is shifted by W from its previous row. This recovers
     # the true position of the C axis into the now expanded T axis.
     probs = tf.reshape(probs[:, :, :, :u * m], [b, n, w, u, m])
     # Shape [B N U W M]
     probs = tf.transpose(probs, [0, 1, 3, 2, 4])
-    # Shape [B N U W T]
+    # Shape [B N U W S]
     probs = probs[:, :, :, :, p.left_context - 1:m - p.right_context]
-    probs = tf.reshape(probs, [b, n, w * u, t])
-    # Truncate to shape [B N T T]
+    probs = tf.reshape(probs, [b, n, w * u, s])
+    # Truncate to shape [B N T S]
     probs = probs[:, :, :t, :]
     return encoded, probs
 
@@ -2118,20 +2148,22 @@ class LocalSelfAttention(MultiHeadedAttention):
     masks = tf.zeros([batch_size, context_len], tf.bool)
     state0 = py_utils.NestedMap(key=key_state, value=value_state, masks=masks)
     if p.right_context > 0:
+      query_right = p.right_context // p.query_stride
       state0.query = tf.zeros(
-          [batch_size, p.right_context, p.num_heads, per_head_dim], dtype)
-      state0.out_masks = tf.zeros([batch_size, p.right_context], tf.bool)
+          [batch_size, query_right, p.num_heads, per_head_dim], dtype)
+      state0.out_masks = tf.zeros([batch_size, query_right], tf.bool)
       # This is used only if the caller of the layer uses skip_connection in
       # the layer's client code.
-      state0.skip_conn_input = tf.zeros(
-          [batch_size, p.right_context, p.hidden_dim], dtype)
+      state0.skip_conn_input = tf.zeros([batch_size, query_right, p.hidden_dim],
+                                        dtype)
     return state0
 
   def IsInferenceStepStatic(self):
     p = self.params
     return p.inference_step_max_length is not None and p.inference_step_max_length > 0
 
-  def StreamStep(self, theta, inputs, paddings, state0):
+  def StreamStep(self, theta, query_vec, query_paddings, key_vec, key_paddings,
+                 state0):
     """Computes the value vector given the query of the current step.
 
     This differs from ExtendStep() which requires key/value seq lengths being
@@ -2139,13 +2171,15 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     Args:
       theta: A NestedMap of layer params.
-      inputs: An input vector of shape [B, Q, D].
-      paddings: A 0/1 valued tensor of shape [B, Q].
+      query_vec: An input vector of shape [B, Q, D].
+      query_paddings: A 0/1 valued tensor of shape [B, Q].
+      key_vec: An input vector of shape [B, K, D].
+      key_paddings: A 0/1 valued tensor of shape [B, K].
       state0: A NestedMap of the same structure as returned by zero_state().
 
     Returns:
       output: Output of the given query vector with shape [B, Q, D].
-      padding: the same as input paddings.
+      padding: the same as input query_paddings.
       state1: Updated state of the same structure as state0.
     """
     p = self.params
@@ -2156,9 +2190,11 @@ class LocalSelfAttention(MultiHeadedAttention):
         assert p.right_context == 0, (
             'StreamStep() does not yet support look ahead with '
             'inference_step_max_length set.')
-        return self._StreamStepStaticLength(theta, inputs, paddings, state0)
+        return self._StreamStepStaticLength(theta, query_vec, query_paddings,
+                                            key_vec, key_paddings, state0)
       else:
-        return self._StreamStepDynamicLength(theta, inputs, paddings, state0)
+        return self._StreamStepDynamicLength(theta, query_vec, query_paddings,
+                                             key_vec, key_paddings, state0)
 
   def StreamStepAddSkipConnection(self, input_to_add, output, state0, state1):
     p = self.params
@@ -2381,7 +2417,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     state1.masks = new_masks
     return key, value, state1
 
-  def _StreamStepStaticLength(self, theta, query_vec, paddings, state0):
+  def _StreamStepStaticLength(self, theta, query_vec, query_paddings, key_vec,
+                              key_paddings, state0):
     """query_vec length is staticly known."""
     p = self.params
     dims = self._StreamStepDimensions(query_vec)
@@ -2391,8 +2428,11 @@ class LocalSelfAttention(MultiHeadedAttention):
         f'q: {q} should be less than p.inference_step_max_length: '
         f'{p.inference_step_max_length}')
 
-    query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
-    paddings = py_utils.HasShape(paddings, [b, q])
+    b, k = py_utils.GetShape(key_vec, 2)
+    q = (k + p.query_stride - 1) // p.query_stride
+    query_vec = py_utils.HasShape(query_vec, [b, q, p.input_dim])
+    query_paddings = py_utils.HasShape(query_paddings, [b, q])
+    key_paddings = py_utils.HasShape(key_paddings, [b, k])
 
     with tf.name_scope('static_length'):
       # query projection.
@@ -2405,7 +2445,7 @@ class LocalSelfAttention(MultiHeadedAttention):
           query_proj *= h**-0.5
 
       key, value, state1 = self._StreamStepStaticComputeKeyValue(
-          theta, query_vec, paddings, state0)
+          theta, key_vec, key_paddings, state0)
 
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query_proj, key)
@@ -2413,7 +2453,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       with tf.name_scope('compute_padding'):
         # Generate local atten mask.
         # [Q, 1]
-        rows = tf.expand_dims(tf.range(q), -1)
+        rows = tf.expand_dims(tf.range(q) * p.query_stride, -1)
         # [1, S]
         cols = tf.expand_dims(tf.range(s), 0)
         # 1s are masked positions.
@@ -2427,11 +2467,12 @@ class LocalSelfAttention(MultiHeadedAttention):
           shifted_distance = tf.math.floormod(
               tf.expand_dims(distance, 0) - tf.expand_dims(head, -1), s)
         else:
-          # [Q, S]
-          shifted_distance = distance - (p.inference_step_max_length - q)
+          shifted_distance = distance - (p.inference_step_max_length - k)
+        stride_margin = p.query_stride - 1
+        effective_left_context = p.left_context - 1 + stride_margin
         # [B, Q, S] or [Q, S]
         local_atten_per_step_masks = tf.logical_and(
-            shifted_distance <= p.left_context - 1, shifted_distance >= 0)
+            shifted_distance <= effective_left_context, shifted_distance >= 0)
         # [1, Q, S] or [B, Q, S]
         if py_utils.GetRank(local_atten_per_step_masks) < 3:
           local_atten_per_step_masks = tf.expand_dims(
@@ -2457,18 +2498,20 @@ class LocalSelfAttention(MultiHeadedAttention):
       # Post projection.
       # [B, Q, D]
       output = self.post.FProp(theta.post, output)
-      return output, paddings, state1
+      return output, query_paddings, state1
 
-  def _StreamStepDynamicLength(self, theta, query_vec, paddings, state0):
+  def _StreamStepDynamicLength(self, theta, query_vec, query_paddings, key_vec,
+                               key_paddings, state0):
     """query_vec length is dynamic."""
     p = self.params
     # Sanity checks.
-    b, q = py_utils.GetShape(query_vec, 2)
+    b, k = py_utils.GetShape(key_vec, 2)
+    q = (k + p.query_stride - 1) // p.query_stride
     h = p.hidden_dim // p.num_heads
     context_len = p.left_context - 1 + p.right_context
-
-    query_vec = py_utils.HasShape(query_vec, [-1, -1, p.input_dim])
-    paddings = py_utils.HasShape(paddings, [b, q])
+    query_vec = py_utils.HasShape(query_vec, [b, q, p.input_dim])
+    query_paddings = py_utils.HasShape(query_paddings, [b, q])
+    key_paddings = py_utils.HasShape(key_paddings, [b, k])
 
     with tf.name_scope('dynamic_length'):
       # query projection.
@@ -2480,34 +2523,34 @@ class LocalSelfAttention(MultiHeadedAttention):
         else:
           query_proj *= h**-0.5
 
-      input_masks = tf.logical_not(tf.cast(paddings, tf.bool))
+      input_masks = tf.logical_not(tf.cast(query_paddings, tf.bool))
       if p.right_context == 0:
         # [B, Q, N, H]
         query = query_proj
-        out_masks = input_masks
-        out_paddings = paddings
+        out_paddings = query_paddings
       else:
-        # [B, R + Q, N, H]
+        # [B, QR + Q, N, H]
         concat_query = tf.concat([state0.query, query_proj], axis=1)
         # [B, Q, N, H]
         query = concat_query[:, :q]
         concat_out_masks = tf.concat([state0.out_masks, input_masks], axis=1)
         out_masks = concat_out_masks[:, :q]
-        out_paddings = tf.cast(tf.logical_not(out_masks), paddings.dtype)
+        out_paddings = tf.cast(tf.logical_not(out_masks), query_paddings.dtype)
 
       # key, value, mask.
       # [B, T, N, H].
       key = tf.concat(
-          [state0.key, self.key.FProp(theta.key, query_vec)],
+          [state0.key, self.key.FProp(theta.key, key_vec)],
           axis=1,
           name='concat_key')
       # [B, T, N, H]
       value = tf.concat(
-          [state0.value, self.value.FProp(theta.value, query_vec)],
+          [state0.value, self.value.FProp(theta.value, key_vec)],
           axis=1,
           name='concat_value')
       # [B, T]
-      state_masks = tf.concat([state0.masks, input_masks],
+      key_masks = tf.logical_not(tf.cast(key_paddings, tf.bool))
+      state_masks = tf.concat([state0.masks, key_masks],
                               axis=1,
                               name='concat_masks')
 
@@ -2518,15 +2561,18 @@ class LocalSelfAttention(MultiHeadedAttention):
         # Generate local atten mask.
         # [Q, 1]
         # Assuming the current query index starts from 0
+        query_right = p.right_context // p.query_stride
         query_indices = tf.expand_dims(
-            tf.range(-p.right_context, -p.right_context + q), -1)
+            tf.range(-query_right, -query_right + q) * p.query_stride, -1)
         # [1, T]
-        target_indices = tf.expand_dims(tf.range(-context_len, q), 0)
+        target_indices = tf.expand_dims(tf.range(-context_len, k), 0)
         # 1s are masked positions.
         # [Q, T]
         distance = query_indices - target_indices
+        effective_right_context = p.right_context + p.query_stride - 1
         local_atten_per_step_masks = tf.logical_and(
-            distance <= p.left_context - 1, distance >= -p.right_context)
+            distance <= p.left_context - 1,
+            distance >= -effective_right_context)
         # [1, Q, T]
         local_atten_per_step_masks = tf.expand_dims(local_atten_per_step_masks,
                                                     0)
@@ -2554,9 +2600,9 @@ class LocalSelfAttention(MultiHeadedAttention):
       output = self.post.FProp(theta.post, output)
 
       state1 = py_utils.NestedMap(
-          key=key[:, q:, :, :],
-          value=value[:, q:, :, :],
-          masks=state_masks[:, q:])
+          key=key[:, k:, :, :],
+          value=value[:, k:, :, :],
+          masks=state_masks[:, k:])
       if p.right_context > 0:
         state1.query = concat_query[:, q:]
         state1.out_masks = concat_out_masks[:, q:]
@@ -2589,6 +2635,9 @@ class LocalSelfAttentionXL(LocalSelfAttention):
     if params.use_3d_recurrent_state:
       # Rel pos emb relies on the shape of query and key.
       raise ValueError('Rel pos emb does not support 3d recurrent state.')
+
+    if params.query_stride != 1:
+      raise ValueError('Query stride not supported yet.')
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
         embedding_dim=params.rel_pos_emb_dim)
@@ -2731,7 +2780,8 @@ class LocalSelfAttentionXL(LocalSelfAttention):
                  use_short_seq_opt=False):
     raise NotImplementedError
 
-  def StreamStep(self, theta, query_vec, paddings, state0):
+  def StreamStep(self, theta, query_vec, query_paddings, key_vec, key_paddings,
+                 state0):
     """Computes the value vector given the query of the current step.
 
     Note: Rel pos emb relies on the shape of key. It expects the seq length
@@ -2741,13 +2791,15 @@ class LocalSelfAttentionXL(LocalSelfAttention):
 
     Args:
       theta: A NestedMap of layer params.
-      query_vec: A query vector of shape [B, Q, D].
-      paddings: A 0/1 valued tensor of shape [B, Q].
+      query_vec: An input vector of shape [B, Q, D].
+      query_paddings: A 0/1 valued tensor of shape [B, Q].
+      key_vec: An input vector of shape [B, K, D].
+      key_paddings: A 0/1 valued tensor of shape [B, K].
       state0: A NestedMap of the same structure as returned by zero_state().
 
     Returns:
       output: Output of the given query vector with shape [B, Q, D].
-      padding: the same as input paddings.
+      padding: the same as input query_paddings.
       state1: Updated state of the same structure as state0.
     """
     if self.IsInferenceStepStatic():
@@ -2756,7 +2808,8 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       # Rel pos emb expects the seq length of key is `q.length + left - 1`.
       assert q == p.inference_step_max_length, (
           'inference_step_max_length must be same to the seq length of query.')
-    return super().StreamStep(theta, query_vec, paddings, state0)
+    return super().StreamStep(theta, query_vec, query_paddings, key_vec,
+                              key_paddings, state0)
 
 
 class RoutingAttention(MultiHeadedAttention):
@@ -3914,12 +3967,12 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     """
     return py_utils.NestedMap(atten=self.atten.zero_state(batch_size))
 
-  def StreamStep(self, theta, query_vec, paddings, state0):
+  def StreamStep(self, theta, input_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
 
     Args:
       theta: a NestedMap with layer weights.
-      query_vec: A query vector of shape [B, T, D].
+      input_vec: A query vector of shape [B, T, D].
       paddings: A 0/1 valued tensor of shape [B, T].
       state0: A `.NestedMap` of the same structure as returned by zero_state().
 
@@ -3931,26 +3984,230 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p = self.params
     assert p.is_masked
     with tf.name_scope(f'{p.name}/StreamStep'):
-      query_vec, paddings = self._CastToFPropDtype((query_vec, paddings))
-      unnormalized_query_vec = query_vec
+      input_vec, paddings = self._CastToFPropDtype((input_vec, paddings))
+      unnormalized_input_vec = input_vec
 
       if p.ln_tpl:
-        query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
-        query_vec = self._CastToFPropDtype(query_vec)
+        input_vec = self.layer_norm.FProp(theta.layer_norm, input_vec)
+        input_vec = self._CastToFPropDtype(input_vec)
 
       output, paddings, atten_state1 = self.atten.StreamStep(
-          theta.atten, query_vec, paddings, state0.atten)
+          theta.atten, input_vec, paddings, input_vec, paddings, state0.atten)
 
       output = self.residual_dropout.FProp(theta.residual_dropout, output)
 
       # Residual connection.
       input_to_add = (
-          unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+          unnormalized_input_vec if p.add_unnormalized_input else input_vec)
 
       if p.add_skip_connection:
         output, atten_state1 = self.atten.StreamStepAddSkipConnection(
             input_to_add, output, state0.atten, atten_state1)
       return output, paddings, py_utils.NestedMap(atten=atten_state1)
+
+
+class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
+  """Multiheaded attention sub-layer with funnel pool.
+
+  It's same to TransformerAttentionLayer except for funnel pool for query. It
+  lets funnel_pool pool query before self-attention, which causes query seq len
+  reduction by query_stride. It feeds the pooled query and key to the attention
+  layer, which returns value as long as pooled query.
+
+  All attention layers don't need to know it, as it lets query attend keys and
+  return value per query. However, LocalSelfAttention(XL) needs to know because:
+  1. Local causal mask must take it into account.
+  2. The length of the state of query in StreamStep depends on it.
+
+  TODO(b/202530591): we don't support funnel for LocalSelfAttentionXL as there
+  are not any usages yet and relative position computation is complicated.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('funnel_tpl',
+             FunnelPoolingLayer.Params().Set(stride=1, pooling_type='MAX'),
+             'Funnel pool params template. When p.stride==1, it is no-op.')
+    return p
+
+  @classmethod
+  def CommonParams(
+      cls,
+      input_dim,
+      num_heads,
+      is_masked=False,
+      use_relative_atten=False,
+      relative_pos_emb_dim=None,
+      local_context=None,
+      left_context=None,
+      right_context=None,
+      dropout_prob=0.,
+      query_stride=1,
+  ):
+    p = super(FunnelTransformerAttentionLayer,
+              cls).CommonParams(input_dim, num_heads, is_masked,
+                                use_relative_atten, relative_pos_emb_dim,
+                                local_context, left_context, right_context,
+                                dropout_prob)
+    is_local = left_context or right_context
+    if is_local:
+      p.atten_tpl.Set(query_stride=query_stride)
+    p.funnel_tpl.Set(stride=query_stride)
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self.CreateChild('funnel_pool', p.funnel_tpl)
+
+    # TODO(b/202530591): implement strided rel pos if needed.
+    if isinstance(self.atten, LocalSelfAttentionXL):
+      raise ValueError('LocalSelfAttentionXL is not yet supported.')
+
+  def FProp(self,
+            theta,
+            query_vec,
+            source_vecs,
+            paddings,
+            per_step_padding_override=None,
+            segment_mask=None):
+    """Compute the result of Transformer attention layer.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec:   [B, T, D].
+      source_vecs: [B, S, D] (cross_attention) or None (self-attention).
+      paddings:    [B, S].
+      per_step_padding_override: [B, T, S].
+      segment_mask: [B, 1, T, S].
+
+    Returns:
+      output: [B, T, D].
+      atten_probs: [B, N, T, S].
+    """
+    p = self.params
+
+    (query_vec, source_vecs, paddings, per_step_padding_override,
+     segment_mask) = self._CastToFPropDtype(
+         (query_vec, source_vecs, paddings, per_step_padding_override,
+          segment_mask))
+
+    b, t, _ = py_utils.GetShape(query_vec, 3)
+    unnormalized_query_vec = query_vec
+
+    # Layer normalization.
+    if p.pre_layer_norm and p.ln_tpl:
+      query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+      query_vec = self._CastToFPropDtype(query_vec)
+
+    # For self-attention: keys = queries.
+    if source_vecs is None:
+      source_vecs = query_vec
+
+    # Generates mask, with shape [b, t, s].
+    if per_step_padding_override is None:
+      if p.is_masked and segment_mask is None:
+        # causal padding.
+        query_stride = p.funnel_tpl.stride
+        causal_padding = CausalPadding(t, dtype=query_vec.dtype)
+        causal_padding = causal_padding[query_stride - 1::query_stride]
+        per_step_padding = tf.tile(tf.expand_dims(causal_padding, 0), [b, 1, 1])
+      else:
+        per_step_padding = None
+    else:
+      per_step_padding = per_step_padding_override
+
+    pooled_query_vec, pooled_paddings = self.funnel_pool.FProp(
+        theta.funnel_pool, query_vec, paddings)
+
+    with tf.name_scope('atten'):
+      assert not isinstance(self.atten,
+                            list), ('Listed attention are not supported.')
+      ctx_vec, atten_probs = self.atten.FProp(
+          theta.atten,
+          pooled_query_vec,  # query
+          source_vecs,  # key
+          source_vecs,  # value
+          paddings,
+          segment_mask=segment_mask,
+          per_step_padding=per_step_padding)
+
+    # Residual connection.
+    ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
+    input_to_add = (
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+    if p.add_skip_connection:
+      input_to_add, _ = self.funnel_pool.FProp(theta.funnel_pool, input_to_add,
+                                               paddings)
+      if p.residual_droppath_prob:
+        ctx_vec = self.residual_droppath.FProp(
+            theta.residual_droppath,
+            input_to_add,
+            ctx_vec,
+        )
+      else:
+        ctx_vec += input_to_add
+    if not p.pre_layer_norm and p.ln_tpl:
+      ctx_vec = self.layer_norm.FProp(theta.layer_norm, ctx_vec)
+      ctx_vec = self._CastToFPropDtype(ctx_vec)
+    return ctx_vec, pooled_paddings, atten_probs
+
+  def ExtendStep(self,
+                 theta,
+                 query_vec,
+                 cached_states,
+                 time_step,
+                 use_short_seq_opt=False,
+                 per_step_padding=None,
+                 segment_mask=None):
+    raise ValueError(
+        'ExtendStep should be used only by masked/causal self-attention.')
+
+  def StreamStep(self, theta, input_vec, paddings, state0):
+    """Computes the value vector given the query of the current step.
+
+    Args:
+      theta: a NestedMap with layer weights.
+      input_vec: A query vector of shape [B, T, D].
+      paddings: A 0/1 valued tensor of shape [B, T].
+      state0: A `.NestedMap` of the same structure as returned by zero_state().
+
+    Returns:
+      output: Output of the given query vector with shape [B, T, D].
+      padding: the same as input paddings.
+      state: updated state.
+    """
+    p = self.params
+    assert p.is_masked
+    with tf.name_scope(f'{p.name}/StreamStep'):
+      input_vec, paddings = self._CastToFPropDtype((input_vec, paddings))
+      unnormalized_input_vec = input_vec
+
+      if p.ln_tpl:
+        input_vec = self.layer_norm.FProp(theta.layer_norm, input_vec)
+        input_vec = self._CastToFPropDtype(input_vec)
+
+      pooled_query_vec, pooled_paddings = self.funnel_pool.StreamStep(
+          theta.funnel_pool, input_vec, paddings)
+      key_vec = input_vec
+      output, pooled_paddings, atten_state1 = self.atten.StreamStep(
+          theta.atten, pooled_query_vec, pooled_paddings, key_vec, paddings,
+          state0.atten)
+
+      output = self.residual_dropout.FProp(theta.residual_dropout, output)
+
+      # Residual connection.
+      input_to_add = (
+          unnormalized_input_vec if p.add_unnormalized_input else input_vec)
+      input_to_add, _ = self.funnel_pool.StreamStep(theta.funnel_pool,
+                                                    input_to_add, paddings)
+
+      if p.add_skip_connection:
+        output, atten_state1 = self.atten.StreamStepAddSkipConnection(
+            input_to_add, output, state0.atten, atten_state1)
+      return output, pooled_paddings, py_utils.NestedMap(atten=atten_state1)
 
 
 class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
@@ -5557,6 +5814,11 @@ class FunnelPoolingLayer(StrideLayer):
         'implementation does not consider this.')
     return p
 
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    p.pool_window = p.pool_window or p.stride
+
   def FProp(
       self,
       theta: py_utils.NestedMap,
@@ -5646,10 +5908,9 @@ class FunnelPoolingLayer(StrideLayer):
         # Fill 0 in padded positions.
         inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis], inputs)
 
-    pool_window = p.pool_window or p.stride
     pooled_tensor = tf.nn.pool(
         inputs,
-        window_shape=[pool_window],
+        window_shape=[p.pool_window],
         pooling_type=p.pooling_type,
         strides=[p.stride],
         padding=p.padding_algorithm)
@@ -5660,7 +5921,7 @@ class FunnelPoolingLayer(StrideLayer):
       in_mask = tf.cast(1.0 - paddings, dtype=pooled_tensor.dtype)
       non_padding_ratio = tf.nn.pool(
           in_mask[:, :, tf.newaxis],
-          window_shape=[pool_window],
+          window_shape=[p.pool_window],
           pooling_type='AVG',
           strides=[p.stride],
           padding=p.padding_algorithm)
@@ -5708,6 +5969,40 @@ class FunnelPoolingLayer(StrideLayer):
 
     out_paddings = tshape.Shape(paddings[0:p.axis] + [out_seq_len])
     return py_utils.NestedMap(flops=1, out_shapes=(out_x_shape, out_paddings))
+
+  def StreamStep(
+      self,
+      theta: py_utils.NestedMap,
+      inputs: tf.Tensor,
+      paddings: Optional[tf.Tensor] = None,
+  ) -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
+    """Computes the pooled vector given the query of the current step.
+
+    This supports only the case query step is a multiple of stride.
+    A few features are not supported for streaming, such as begin_intact and
+    first_n.
+
+    Args:
+      theta: a NestedMap with layer weights.
+      inputs: A tensor of shape [B, T, D].
+      paddings: A 0/1 valued tensor of shape [B, T].
+
+    Returns:
+      output: The pooled input tensor with shape [B, T//P, D].
+      padding: Optional, A 0/1 valued tensor of shape [B, T//P].
+    """
+    p = self.params
+    if p.begin_intact != 0:
+      raise ValueError(f'begin_intact is not supported: {p.begin_intact}')
+    if p.first_n is not None:
+      raise ValueError(f'first_n is not supported: {p.first_n}')
+
+    max_seqlen = py_utils.GetShape(inputs)[1]
+    # It's a strong restriction during streaming inference. b/202530591#comment4
+    inputs = py_utils.with_dependencies([
+        py_utils.assert_even_divide(max_seqlen, p.pool_window),
+    ], inputs)
+    return self.FProp(theta, inputs, paddings)
 
 
 class FunnelUpsampleLayer(base_layer.BaseLayer):

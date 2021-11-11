@@ -535,6 +535,7 @@ class ConformerLayer(base_layer.BaseLayer):
                    atten_right_context=None,
                    atten_logit_cap=0.0,
                    use_relative_atten=True,
+                   query_stride=1,
                    kernel_size=None,
                    fflayer_hidden_dim=None,
                    fflayer_activation='SWISH',
@@ -624,15 +625,24 @@ class ConformerLayer(base_layer.BaseLayer):
       assert atten_right_context is None
       assert use_relative_atten is None
       assert atten_num_heads is None
+      assert query_stride == 1
       p.trans_atten_tpl = trans_atten_tpl
     else:
       atten_tpl = cls._ConfigSelfAttenContext(
           atten_left_context,
           atten_right_context,
           use_relative_atten=use_relative_atten,
+          query_stride=query_stride,
           relative_pos_emb_dim=input_dim)
-      p.trans_atten_tpl = attention_lib.TransformerAttentionLayer.Params().Set(
-          atten_tpl=atten_tpl, num_heads=atten_num_heads)
+      if query_stride == 1:
+        p.trans_atten_tpl = attention_lib.TransformerAttentionLayer.Params(
+        ).Set(
+            atten_tpl=atten_tpl, num_heads=atten_num_heads)
+      else:
+        p.trans_atten_tpl = attention_lib.FunnelTransformerAttentionLayer.Params(
+        ).Set(
+            atten_tpl=atten_tpl, num_heads=atten_num_heads)
+        p.trans_atten_tpl.funnel_tpl.stride = query_stride
     # Set the convolution module.
     if lconv_tpl is not None:
       p.lconv_tpl = lconv_tpl
@@ -648,8 +658,15 @@ class ConformerLayer(base_layer.BaseLayer):
     return p
 
   @classmethod
+  def Stride(cls, params):
+    if 'funnel_tpl' in params.trans_atten_tpl:
+      return params.trans_atten_tpl.funnel_tpl.stride
+    return 1
+
+  @classmethod
   def _ConfigSelfAttenContext(cls, atten_left_context, atten_right_context, *,
-                              use_relative_atten, relative_pos_emb_dim):
+                              use_relative_atten, query_stride,
+                              relative_pos_emb_dim):
     # TODO(jamesqin): add an attention factory in batch_major_attention.
     if not _AttenCtxIsSet(atten_left_context) and not _AttenCtxIsSet(
         atten_right_context):
@@ -671,10 +688,13 @@ class ConformerLayer(base_layer.BaseLayer):
       atten_tpl = attention_lib.LocalSelfAttentionXL.Params().Set(
           left_context=atten_left_context,
           right_context=atten_right_context,
-          rel_pos_emb_dim=relative_pos_emb_dim)
+          rel_pos_emb_dim=relative_pos_emb_dim,
+          query_stride=query_stride)
     elif atten_type == 'local':
       atten_tpl = attention_lib.LocalSelfAttention.Params().Set(
-          left_context=atten_left_context, right_context=atten_right_context)
+          left_context=atten_left_context,
+          right_context=atten_right_context,
+          query_stride=query_stride)
     else:
       # No op for 'global' atten
       assert atten_type in ('global', 'global_causal'), (
@@ -807,11 +827,19 @@ class ConformerLayer(base_layer.BaseLayer):
     return moe_p
 
   def _SelfAtten(self, theta, inputs, paddings):
-    inputs, atten_probs = self.trans_atten.FProp(
-        theta.trans_atten,
-        query_vec=inputs,
-        source_vecs=None,
-        paddings=paddings)
+    if isinstance(self.trans_atten,
+                  attention_lib.FunnelTransformerAttentionLayer):
+      inputs, paddings, atten_probs = self.trans_atten.FProp(
+          theta.trans_atten,
+          query_vec=inputs,
+          source_vecs=None,
+          paddings=paddings)
+    else:
+      inputs, atten_probs = self.trans_atten.FProp(
+          theta.trans_atten,
+          query_vec=inputs,
+          source_vecs=None,
+          paddings=paddings)
     return inputs, paddings, atten_probs
 
   def _LConv(self, theta, inputs, paddings):

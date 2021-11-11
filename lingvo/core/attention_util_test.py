@@ -190,20 +190,23 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_val, actual_val)
 
   def _getReferenceCausalPadding(self, seq_len, block_size, left_context,
-                                 right_context):
+                                 right_context, query_stride):
+    strided_block_size = block_size // query_stride
     num_blocks = int(np.ceil(seq_len / float(block_size)))
     context_size = block_size + left_context - 1 + right_context
-    padding = np.ones((num_blocks, block_size, context_size))
+    padding = np.ones((num_blocks, strided_block_size, context_size))
 
     for i in range(num_blocks):
-      for j in range(block_size):
-        actual_src_pos = j + i * block_size
+      for j in range(strided_block_size):
+        actual_src_pos = (j * query_stride) + (i * block_size)
         if actual_src_pos < seq_len:
           for k in range(context_size):
             actual_tgt_pos = k + i * block_size - (left_context - 1)
             if 0 <= actual_tgt_pos and actual_tgt_pos < seq_len:
               diff = actual_src_pos - actual_tgt_pos
-              if -right_context <= diff and diff < left_context:
+              stride_margin = query_stride - 1
+              effective_right_context = right_context + stride_margin
+              if -effective_right_context <= diff and diff < left_context:
                 padding[i, j, k] = 0
 
     return padding
@@ -214,17 +217,29 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
       ('single_frame_context', 6, 1, 1, 0),
       ('other_case_1', 6, 3, 4, 1),
       ('other_case_2', 6, 4, 2, 4),
+      ('stride_block', 6, 2, 3, 0, 2),
+      ('stride_block_right', 6, 2, 3, 2, 2),
   )
-  def testMakeLocalMask(self, seq_len, block_size, left_context, right_context):
+  def testMakeLocalMask(self,
+                        seq_len,
+                        block_size,
+                        left_context,
+                        right_context,
+                        query_stride=1):
     with self.session() as sess:
       seq_len_t = tf.convert_to_tensor(seq_len)
-      mask = attention_util.MakeLocalMask(seq_len_t, block_size, left_context,
-                                          right_context)
+      mask = attention_util.MakeLocalMask(
+          seq_len_t,
+          block_size,
+          left_context,
+          right_context,
+          query_stride=query_stride)
       padding = 1.0 - mask
       padding_val = sess.run(padding)
 
     ref_padding = self._getReferenceCausalPadding(seq_len, block_size,
-                                                  left_context, right_context)
+                                                  left_context, right_context,
+                                                  query_stride)
     self.assertAllEqual(ref_padding, padding_val)
 
 
