@@ -41,6 +41,7 @@ REQUIRED_PACKAGES = [
     'model-pruning-google-research',
     'Pillow',
     'protobuf',
+    'sentencepiece',
     'sklearn',
     'sympy',
     'tensorflow-datasets',

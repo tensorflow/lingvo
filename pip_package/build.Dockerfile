@@ -32,6 +32,7 @@ RUN for python in python3.6 python3.7 python3.8 python3.9; do \
         mock \
         model-pruning-google-research \
         numpy \
+        sentencepiece \
         sympy \
         twine && \
       $python -m pip install tensorflow tensorflow-datasets tensorflow-text; \
