@@ -4027,8 +4027,11 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
   def Params(cls):
     p = super().Params()
     p.Define('funnel_tpl',
+             FunnelPoolingLayer.Params().Set(stride=1, pooling_type='AVG'),
+             'Funnel pool params template for query. When p.stride==1, no-op.')
+    p.Define('res_funnel_tpl',
              FunnelPoolingLayer.Params().Set(stride=1, pooling_type='MAX'),
-             'Funnel pool params template. When p.stride==1, it is no-op.')
+             'Funnel pool params template for residual connection.')
     return p
 
   @classmethod
@@ -4054,12 +4057,14 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
     if is_local:
       p.atten_tpl.Set(query_stride=query_stride)
     p.funnel_tpl.Set(stride=query_stride)
+    p.res_funnel_tpl.Set(stride=query_stride)
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
     self.CreateChild('funnel_pool', p.funnel_tpl)
+    self.CreateChild('res_funnel_pool', p.res_funnel_tpl)
 
     # TODO(b/202530591): implement strided rel pos if needed.
     if isinstance(self.atten, LocalSelfAttentionXL):
@@ -4139,8 +4144,8 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
     if p.add_skip_connection:
-      input_to_add, _ = self.funnel_pool.FProp(theta.funnel_pool, input_to_add,
-                                               paddings)
+      input_to_add, _ = self.res_funnel_pool.FProp(theta.res_funnel_pool,
+                                                   input_to_add, paddings)
       if p.residual_droppath_prob:
         ctx_vec = self.residual_droppath.FProp(
             theta.residual_droppath,
@@ -4201,8 +4206,8 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
       # Residual connection.
       input_to_add = (
           unnormalized_input_vec if p.add_unnormalized_input else input_vec)
-      input_to_add, _ = self.funnel_pool.StreamStep(theta.funnel_pool,
-                                                    input_to_add, paddings)
+      input_to_add, _ = self.res_funnel_pool.StreamStep(theta.res_funnel_pool,
+                                                        input_to_add, paddings)
 
       if p.add_skip_connection:
         output, atten_state1 = self.atten.StreamStepAddSkipConnection(

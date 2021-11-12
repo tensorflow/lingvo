@@ -643,6 +643,7 @@ class ConformerLayer(base_layer.BaseLayer):
         ).Set(
             atten_tpl=atten_tpl, num_heads=atten_num_heads)
         p.trans_atten_tpl.funnel_tpl.stride = query_stride
+        p.trans_atten_tpl.res_funnel_tpl.stride = query_stride
     # Set the convolution module.
     if lconv_tpl is not None:
       p.lconv_tpl = lconv_tpl
