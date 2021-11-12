@@ -148,6 +148,8 @@ class MetricsTest(test_utils.TestCase):
     self.assertEqual(3, summary.value[1].simple_value)
 
   def testAUCMetric(self):
+    if not metrics.HAS_SKLEARN:
+      self.skipTest('sklearn is not installed.')
     m = metrics.AUCMetric()
     m.Update(label=[1, 1], prob=[0.1, 0.2], weight=[1.0, 1.0])
     # No meaningful AUC yet, since all(labels==1) and function needs 2 types of
@@ -158,6 +160,8 @@ class MetricsTest(test_utils.TestCase):
     self.assertEqual(0.5, m.value)
 
   def testMultiClassAUCMetric(self):
+    if not metrics.HAS_SKLEARN:
+      self.skipTest('sklearn is not installed.')
     m = metrics.MultiClassAUCMetric(num_classes=3)
     class_labels = [[1, 1], [1, 1], [1, 1]]
     class_probs = [[0.1, 0.2], [0.7, 0.9], [0.4, 0.6]]
