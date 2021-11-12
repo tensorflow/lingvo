@@ -1097,6 +1097,11 @@ class DecodeProgram(BaseProgram):
         future.wait()
     num_examples_metric = dec_metrics['num_samples_in_batch']
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
+    summaries['cumulative_num_examples'] = tf.Summary(value=[
+        tf.Summary.Value(
+            tag='cumulative_num_examples',
+            simple_value=num_examples_metric.total_value)
+    ])
     elapsed_secs = time.time() - start_time
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = tf.Summary(
