@@ -380,6 +380,46 @@ class BaseProgram:
     return self._model
 
 
+class InputBenchmark(BaseProgram):
+  """Measures input generation steps/sec depending on the params below."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('warmup_loops', 1,
+             'How many loops to warmup before measuring elapsed time.')
+    p.Define('measurement_loops', 5, 'How many loops to measure across.')
+    return p
+
+  def __init__(self, params, shared_model=None, **kwargs):
+    super().__init__(
+        params, shared_model=shared_model, input_benchmark_only=True, **kwargs)
+    self._program_name = 'InputBenchmark'
+
+  def BuildTpuSubgraph(self):
+    with py_utils.OpportunisticVariableReuseScope(True):
+      self._model = self._InstantiateTaskModel(self._task_params)
+    self._task = self._model.GetTask()
+    self._task.input.CreateTpuEnqueueOps(benchmark_only=True)
+
+  def Run(self, sess=None):
+    p = self.params
+    # Input benchmark doesn't work with eager yet.
+    assert not py_utils.IsEagerMode()
+
+    for _ in range(p.warmup_loops):
+      self._InfeedLoop(sess)
+
+    start_time = time.time()
+    for _ in range(p.measurement_loops):
+      self._InfeedLoop(sess)
+    elapsed_secs = time.time() - start_time
+
+    steps_per_sec = p.measurement_loops * self._steps_per_loop / elapsed_secs
+    tf.logging.info('Input benchmark: steps/sec %f', steps_per_sec)
+    return True
+
+
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
@@ -1646,7 +1686,6 @@ class SimpleProgramSchedule:
           eval_program.Run(sess, threadpool)
         else:
           eval_program.Run(sess)
-
     eval_time_in_secs = time.time() - train_finish_time
     tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
     should_exit = (p.train_executions_per_eval == 0) or evals_done

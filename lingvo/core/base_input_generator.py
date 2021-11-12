@@ -315,7 +315,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
       shards = shards // self.cluster.num_devices_per_split
     return shards
 
-  def CreateTpuEnqueueOps(self, job_name=None, skip_enqueue=False):
+  def CreateTpuEnqueueOps(self,
+                          job_name=None,
+                          skip_enqueue=False,
+                          benchmark_only=False):
     """Create the host-side enqueue ops.
 
     This should be called in an outer non-TPU context.
@@ -324,6 +327,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       job_name: the name of the job on which the enqueue operations run.
       skip_enqueue: if True, only create the tpu queues, but skip the enqueue
         call. To be used in eager mode to setup tpu queues.
+      benchmark_only: If true, don't wire it up to the TPU infeed.
     """
     if not py_utils.IsEagerMode():
       assert not self._tpu_queues, (
@@ -442,6 +446,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
             py_utils.Transform(lambda x: (x.shape, x.dtype), batch[0]))
         self._per_host_batches.append(batch)
 
+        if benchmark_only:
+          continue
+
         for b in batch:
           for k, x in b.FlattenItems():
             assert x.shape.is_fully_defined(), (
@@ -533,8 +540,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
                 device_assignment=py_utils.GetTpuDeviceAssignment(job_name))
           input_ops_list += input_ops
 
-    tf.logging.info('input_ops_list %s', input_ops_list)
-    grouped_infeed_op = tf.group(*input_ops_list)
+    if benchmark_only:
+      grouped_infeed_op = tf.group(*self._per_host_batches)
+    else:
+      tf.logging.info('input_ops_list %s', input_ops_list)
+      grouped_infeed_op = tf.group(*input_ops_list)
+
     self._tpu_infeed_op = []
     for _ in range(p.tpu_infeed_parallelism):
       self._tpu_infeed_op.append(grouped_infeed_op)
