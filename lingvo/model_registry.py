@@ -51,6 +51,9 @@ tf.flags.DEFINE_integer(
     'executor_decode_steps_per_loop', None,
     'To override ProgramSchedule.decode_steps_per_loop, '
     '-1 indicate decode_until_out_of_range.')
+tf.flags.DEFINE_string(
+    'decode_summary_emails', None,
+    'Semi-colon separated list of email addresses to send Decode summary to.')
 
 FLAGS = tf.flags.FLAGS
 
@@ -294,11 +297,14 @@ class _ModelRegistryHelper:
     datasets_to_eval = None
     if FLAGS.executor_datasets_to_eval is not None:
       datasets_to_eval = FLAGS.executor_datasets_to_eval.split(';')
+    decode_summary_emails = []
+    if FLAGS.decode_summary_emails is not None:
+      decode_summary_emails = FLAGS.decode_summary_emails.split(';')
     program_schedule_cfg = program.UpdateProgramSchedule(
         program_schedule_cfg, datasets_to_eval,
         FLAGS.executor_train_executions_per_eval,
         FLAGS.executor_eval_steps_per_loop,
-        FLAGS.executor_decode_steps_per_loop)
+        FLAGS.executor_decode_steps_per_loop, decode_summary_emails)
     return program_schedule_cfg
 
   @classmethod

@@ -459,7 +459,7 @@ py_library(
     ],
 )
 
-py_library(
+pytype_library(
     name = "base_model",
     srcs = ["base_model.py"],
     srcs_version = "PY3",

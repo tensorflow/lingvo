@@ -16,6 +16,7 @@
 """Base model."""
 
 import collections
+import dataclasses
 import re
 
 import lingvo.compat as tf
@@ -48,6 +49,16 @@ class DecodeFinalizeArgs(
    decode_out: A list of key value pairs aggregated from return values of.
      PostProcessDecodeOut().
   """
+
+
+@dataclasses.dataclass
+class DecodeEmailOptions:
+  """Options for BaseTask.EmailDecodeSummary()."""
+  # Name of the decode job.
+  job_name: str
+  # TPU Executor schedule param  for number of train loops per eval loop. 0
+  # indicates eval only.
+  train_executions_per_eval: int
 
 
 def _VariablesForEMA(params, model_var_list):
@@ -857,6 +868,18 @@ class BaseTask(base_layer.BaseLayer):
     decode_out = decode_finalize_args.decode_out
     if decode_out:
       decoder_lib.WriteKeyValuePairs(decode_out_path, decode_out)
+
+  def EmailDecodeSummary(self, summaries, emails, options):
+    """Email decode result summaries to a list of emails.
+
+    Args:
+      summaries: A dictionary of summary results to be emailed.
+      emails: A list of emails (strings) to send email to.
+      options: A DecodeEmailOptions object with configs/options, such as how
+        many times training is run (or not), that may be useful to trigger or
+        customize the email.
+    """
+    raise NotImplementedError('Abstract method')
 
   @property
   def loss(self):

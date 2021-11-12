@@ -127,6 +127,9 @@ class BaseProgram:
     self._compile_op = None
     self._status_msg_fn = None
 
+    # Same param as in the TPU executor program schedule.
+    # Used mainly for each program to check if training is scheduled.
+    self.train_executions_per_eval = None
     # Set input repeat_steps to steps_per_loop, if repeat_steps was undefined
     # but available, and also 'resettable' is False.
     # This allows a repeating input TF Dataset (without reset) to take, for each
@@ -928,6 +931,8 @@ class DecodeProgram(BaseProgram):
         'and passed to PostProcess to run only once at the end. Note that'
         ' the PostProcess of the Task should define logic for aggregating'
         'data from the list of decode_out_dict.')
+    p.Define('emails', [],
+             'The list of email addresses to send result summaries to.')
     return p
 
   def __init__(self, params, shared_model=None, **kwargs):
@@ -1107,6 +1112,18 @@ class DecodeProgram(BaseProgram):
 
     # Result is not returned as a signal for "done", unlike for training.
     self._ReportVizierMetrics(global_step, dec_metrics)
+
+    # Provide train_executions_per_eval as a possible option for email.
+    options = base_model.DecodeEmailOptions(
+        job_name=os.path.basename(self._program_dir),
+        train_executions_per_eval=self.train_executions_per_eval)
+    if self.params.emails:
+      try:
+        self._task.EmailDecodeSummary(summaries, self.params.emails, options)
+      except NotImplementedError:
+        tf.logging.error('EmailDecodeSummary is not implemented yet.')
+      except Exception as e:  # pylint: disable=broad-except
+        tf.logging.error('Exception sending email %r', e)
 
   def Run(self, sess=None, threadpool=None):
     """Setup and execute Decode program."""
@@ -1669,6 +1686,7 @@ class SimpleProgramSchedule:
     # for ML Perf
     evals_done = False
     for eval_program in self.eval_programs:
+      eval_program.train_executions_per_eval = p.train_executions_per_eval
       tf.logging.info(p.ml_perf)
       tf.logging.info(self._ml_perf)
       if self._ml_perf:
@@ -1719,7 +1737,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  eval_program_cls=EvalProgram,
                                  async_postprocess=True,
                                  decode_until_out_of_range=False,
-                                 postprocess_all_at_once=False):
+                                 postprocess_all_at_once=False,
+                                 emails=None):
   """Convenient helper method for common case.
 
   Args:
@@ -1757,6 +1776,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       should define the logic of aggregating across steps/batches. Can be a
       single value or a list of values corresponding to the entries in
       eval_dataset_names.
+    emails: list. List of emails to email decode/scoring summaries.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -1804,6 +1824,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
           _CreateProgramParams(eval_program_cls, 'eval_tpu', dataset_name,
                                eval_steps_per_loop[idx]))
 
+    decoder_param = None
     if decode_until_out_of_range:
       if decode_steps_per_loop is not None:
         tf.logging.warning('decode_until_out_of_range set to True, ignoring '
@@ -1814,15 +1835,16 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       decoder_param = _CreateProgramParams(DecodeProgram, 'decode_tpu',
                                            dataset_name, -1)
       decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
-      program_schedule_params.eval_programs.append(decoder_param)
     elif decode_steps_per_loop[idx] > 0:
       decoder = (
           ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
       decoder_param = _CreateProgramParams(decoder, 'decode_tpu', dataset_name,
                                            decode_steps_per_loop[idx])
       decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
+    if decoder_param is not None:
+      if emails:
+        decoder_param.emails = emails
       program_schedule_params.eval_programs.append(decoder_param)
-
   return program_schedule_params
 
 
@@ -1849,8 +1871,12 @@ def _ClearSpecifiedProgram(program_list, program_cls_to_clear):
   return ret_programs
 
 
-def UpdateProgramSchedule(ps_params, dataset_list, train_executions_per_eval,
-                          eval_steps_per_loop, decode_steps_per_loop):
+def UpdateProgramSchedule(ps_params,
+                          dataset_list,
+                          train_executions_per_eval,
+                          eval_steps_per_loop,
+                          decode_steps_per_loop,
+                          decode_summary_emails=None):
   """Update ProgramSchedule params with the given new configs.
 
   Currently this override only support EvalProgram and DecodeProgram.
@@ -1866,6 +1892,7 @@ def UpdateProgramSchedule(ps_params, dataset_list, train_executions_per_eval,
     decode_steps_per_loop: Optional[int], if not None, it will override all the
       decode programs steps_per_loop. If set to -1, it will set
       decode_until_out_of_range=True. Currently list not supported.
+    decode_summary_emails: List of emails to send Decode summary to.
 
   Returns:
     ps_params after overriden.
@@ -1927,6 +1954,11 @@ def UpdateProgramSchedule(ps_params, dataset_list, train_executions_per_eval,
       for eval_program in ps_params.eval_programs:
         if issubclass(eval_program.cls, DecodeProgram):
           _SetDecodeStepsPerLoop(eval_program, decode_steps_per_loop)
+
+  if decode_summary_emails:
+    for eval_program in ps_params.eval_programs:
+      if issubclass(eval_program.cls, DecodeProgram):
+        eval_program.emails = decode_summary_emails
 
   return ps_params
 
