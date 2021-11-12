@@ -3035,6 +3035,7 @@ class UniTransformer(base_model.BaseTask):
         'fixed tgt_labels tensor size.')
 
     p.Define('aux_loss_coef', 0.01, 'Multiplier for GShard aux_loss.')
+    p.Define('enable_tpu_summary', True, 'Enables GetTpuSummaryTensors().')
     p.Define('label_smoothing', 0.1, 'Label smoothing.')
     p.Define('logits_abs_max', None, 'Logits clipping.')
     p.Define(
@@ -3384,7 +3385,7 @@ class UniTransformer(base_model.BaseTask):
         eval_metrics['log_pplx_per_word'] = (
             tf.reduce_sum(entropy * non_padding) / num_words, num_words)
       # During training, the tpu summary tensors are added in _BPropGenTrainOps.
-      if self.do_eval:
+      if self.do_eval and p.enable_tpu_summary:
         for key, (val, wgt) in six.iteritems(py_utils.GetTpuSummaryTensors()):
           tf.logging.info('TpuSummaryTensor=>EvalMetric %r %r', key, (val, wgt))
           eval_metrics[key] = (val, wgt)
@@ -3396,10 +3397,12 @@ class UniTransformer(base_model.BaseTask):
   def _BPropGenTrainOps(self, vmap):
     """Constructs the backward graph."""
     train_ops = super()._BPropGenTrainOps(vmap)
-    for key, (value, weight) in six.iteritems(py_utils.GetTpuSummaryTensors()):
-      tf.logging.info('TpuSummaryTensor=>EvalMetric %r %r', key,
-                      (value, weight))
-      self.AddEvalMetric(key, value, weight)
+    if self.params.enable_tpu_summary:
+      for key, (value,
+                weight) in six.iteritems(py_utils.GetTpuSummaryTensors()):
+        tf.logging.info('TpuSummaryTensor=>EvalMetric %r %r', key,
+                        (value, weight))
+        self.AddEvalMetric(key, value, weight)
     return train_ops
 
   def ProcessFPropResults(self, sess, global_step, metrics, per_step):
