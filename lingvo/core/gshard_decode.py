@@ -108,7 +108,9 @@ def infinite_repeat(body_fn, infeed_queue):
     return [i + 1] + to_list(body_fn(*args))
 
   outputs = training_loop.while_loop(
-      lambda i, *args: tf.constant(True),  # infinite loop
+      # Infinite loop. Using only tf.constant(True) causes the XLA graph to
+      # appear to be stateful.
+      lambda i, *args: tf.logical_or(tf.constant(True), i < 10000),
       body_fn_wrapper,
       inputs=[0],
       infeed_queue=infeed_queue)
