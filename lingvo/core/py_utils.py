@@ -4370,6 +4370,8 @@ def PadOrTrimTo(x, shape, pad_val=0, pad_after_contents=True):
 
 def ExpandTo(x, target_rank):
   """Expands the last dimension of x until it has rank target_rank."""
+  if x is None:
+    return None
   shape = GetShape(x)
   rank = GetRank(x)
   rank_diff = target_rank - rank
@@ -4379,7 +4381,10 @@ def ExpandTo(x, target_rank):
   else:
     new_shape = shape + [1] * rank_diff
 
-  return tf.reshape(x, new_shape)
+  new_x = tf.reshape(x, new_shape)
+  if not isinstance(target_rank, tf.Tensor):
+    new_x.shape.with_rank(target_rank)
+  return new_x
 
 
 def ExpandAndPadOrTrimTo(x, target_shape, pad_val=0):
@@ -4397,6 +4402,8 @@ def ExpandAndPadOrTrimTo(x, target_shape, pad_val=0):
   Returns:
     A tensor which is broadcast compatible with target_shape.
   """
+  if x is None:
+    return None
   target_rank = None
   if isinstance(target_shape, tf.Tensor):
     target_rank = GetShape(target_shape)[0]
@@ -4406,13 +4413,13 @@ def ExpandAndPadOrTrimTo(x, target_shape, pad_val=0):
   x = ExpandTo(x, target_rank)
   x_shape = GetShape(x)
 
-  if not isinstance(x_shape, tf.Tensor):
-    masked_target_shape = []
-    for i, n in enumerate(x_shape):
-      if n != 1:
-        masked_target_shape.append(target_shape[i])
-      else:
-        masked_target_shape.append(1)
+  is_static = (not isinstance(x_shape, tf.Tensor) and
+               all(not isinstance(d, tf.Tensor) for d in x_shape))
+
+  if is_static:
+    masked_target_shape = [
+        1 if x_shape[i] == 1 else target_shape[i] for i in range(len(x_shape))
+    ]
   else:
     masked_target_shape = tf.where(
         tf.equal(x_shape, 1), tf.ones_like(target_shape), target_shape)
