@@ -6035,7 +6035,19 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
         'Truncate sequence for efficiency. This is only effective when '
         '`begin_intact > 0`')
     p.Define('upsample_type', 'REPEAT', 'upsample type: REPEAT|DECONV')
+    p.Define(
+        'shortcut_index', None,
+        'Layer index of the hidden states which will be used to provide '
+        'an additional low-level features. Will be used to index `all_hiddens` '
+        'to retrieve the corresponding hidden state.')
+    p.Define('decoder_stack', None, 'Params for decoder layer stack.')
     return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.decoder_stack is not None:
+      self.CreateChild('decoder_stack', p.decoder_stack)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -6048,12 +6060,15 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('weight', pc)
 
-  def FProp(self, theta, x):
+  def FProp(self, theta, x, all_hiddens=None):
     """Upsample to the inputs.
 
     Args:
       theta: weights defined in this layer.
       x: input tensor, [batch, time, dim] upsampling is applied to the time dim.
+      all_hiddens: None or the list of hiddens states from all encoder layers,
+        where each hidden state is a NestedMap with 'vec' and 'padding' keys.
+        See the Builder class below for more details.
 
     Returns:
       Upsampled tensor, with the upsampling applied to the second dim in x.
@@ -6080,9 +6095,9 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
       upsampled = tf.repeat(hid, repeats=p.upsample_rate, axis=1)
     elif p.upsample_type == 'DECONV':
       upsampled = tf.einsum('BLD,DNH->BLNH', hid, theta.weight)
-      upsampled = tf.reshape(
-          upsampled,
-          [hid.shape[0], p.upsample_rate * hid.shape[1], p.hidden_dim])
+      bsz, seq_len = py_utils.GetShape(hid, 3)[:2]
+      upsampled = tf.reshape(upsampled,
+                             [bsz, p.upsample_rate * seq_len, p.hidden_dim])
 
     if p.begin_intact > 0:
       sep_len = 1
@@ -6094,6 +6109,19 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
       upsampled = tf.concat([intact, upsampled],
                             axis=1,
                             name='concat_upsampled')
+
+    if p.shortcut_index is not None:
+      assert all_hiddens, 'all_hiddens must be provided for shortcut.'
+      upsampled_shape = tf.shape(upsampled)
+      shortcut_shape = tf.shape(all_hiddens[p.shortcut_index].vec)
+      upsampled = py_utils.with_dependencies(
+          [py_utils.assert_shape_match(upsampled_shape, shortcut_shape)],
+          upsampled + all_hiddens[p.shortcut_index].vec)
+
+      if p.decoder_stack is not None:
+        decoder_input = py_utils.NestedMap(
+            vec=upsampled, paddings=all_hiddens[p.shortcut_index].paddings)
+        upsampled = self.decoder_stack(decoder_input).vec
 
     return upsampled
 
@@ -6854,9 +6882,21 @@ class Builder(builder.Base):
                                first_n=first_n, num_heads=num_heads),
         self.Feedforward('ff', ff_hidden_dim=ff_hidden_dim)))
 
-  def Stack(self, name, blocks):
+  def Stack(self, name, blocks, output_all_layer_hiddens=False):
     """Returns a stack of sequential layers."""
-    return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
+    if output_all_layer_hiddens:
+      graph_inputs = ['input']
+      graph_outputs = []
+      graph_modules = []
+      layer_input = 'input'
+      for idx, block in enumerate(blocks):
+        layer_output = 'output_{}'.format(idx)
+        graph_modules.append((f'{layer_input}->{layer_output}', block))
+        graph_outputs.append(layer_output)
+        layer_input = layer_output
+      return self._Graph(name, graph_inputs, graph_outputs, *graph_modules)
+    else:
+      return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
 
   def TransformerEncoderStack(self, name, num_layers=1):
     """Returns a stack of num_layers self-attention layers."""

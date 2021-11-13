@@ -4175,6 +4175,69 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
       self.assertAllEqual([bs, sl, d], actual_upsample_out.shape)
 
+  def testFunnelTransformerWithDecoderUpsampling(self,
+                                                 upsample_type='REPEAT',
+                                                 upsample_shortcut_idx=0,
+                                                 num_decoder_layers=1):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder_params = attention.Builder.Params().Set(
+          model_dim=d, num_heads=2, ff_hidden_dim=5)
+      atten_builder = atten_builder_params.Instantiate()
+      layers = []
+      strides = [1, 2]
+      accumulate_stride = 1
+      for layer_i, stride in enumerate(strides):
+        accumulate_stride *= stride
+        layers.append(
+            atten_builder.FunnelEncoderLayer(
+                name='atten_{}'.format(layer_i), stride=stride))
+      if upsample_shortcut_idx is not None:
+        p = atten_builder.Stack('stack', layers, output_all_layer_hiddens=True)
+      else:
+        p = atten_builder.Stack('stack', layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      upsample_p = attention.FunnelUpsampleLayer.Params().Set(
+          name='funnel_upsample',
+          upsample_rate=accumulate_stride,
+          upsample_type=upsample_type,
+          shortcut_index=upsample_shortcut_idx)
+      if num_decoder_layers:
+        decoder_layers = []
+        for i in range(num_decoder_layers):
+          decoder_layers.append(
+              atten_builder.TransformerEncoderLayer(
+                  name='iter_{:0>3d}'.format(i), num_heads=2, ff_hidden_dim=5))
+        upsample_p.decoder_stack = atten_builder.Stack('stack', decoder_layers)
+
+      l_upsample = upsample_p.Instantiate()
+
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+
+      if upsample_shortcut_idx is not None:
+        l_out = l.FPropDefaultTheta(
+            py_utils.NestedMap(vec=input_embs, paddings=paddings))
+        enc_out = l_out[-1].vec
+        upsampled_out = l_upsample.FPropDefaultTheta(enc_out, all_hiddens=l_out)
+      else:
+        l_out = l.FPropDefaultTheta(
+            py_utils.NestedMap(vec=input_embs, paddings=paddings))
+        enc_out = l_out.vec
+        upsampled_out = l_upsample.FPropDefaultTheta(enc_out)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out, actual_upsample_out = sess.run([enc_out, upsampled_out])
+      seq_len = sl // accumulate_stride
+      self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
+      self.assertAllEqual([bs, sl, d], actual_upsample_out.shape)
+
   def testFunnelEncoderLayerWithPerLayerFfns(self):
     with self.session(use_gpu=False) as sess:
       bs = 2
