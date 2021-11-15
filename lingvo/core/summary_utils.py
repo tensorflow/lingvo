@@ -280,9 +280,13 @@ def AddNormSummary(name, vs_gs):
   """
   flatten = py_utils.Flatten(vs_gs)
   v_norm = tf.sqrt(py_utils.SumSquared([v for (v, _) in flatten]))
-  scalar('var_norm/%s' % name, v_norm)
   g_norm = tf.sqrt(py_utils.SumSquared([g for (_, g) in flatten]))
-  scalar('grad_norm/%s' % name, g_norm)
+  if py_utils.IsEagerMode():
+    scalar_v2(f'var_norm/{name}', v_norm)
+    scalar_v2(f'grad_norm/{name}', g_norm)
+  else:
+    scalar(f'var_norm/{name}', v_norm)
+    scalar(f'grad_norm/{name}', g_norm)
   return v_norm, g_norm
 
 
@@ -299,8 +303,12 @@ def CollectVarHistogram(vs_gs):
         var = tf.abs(var)
         grad = tf.abs(grad)
 
-    histogram('var_hist/' + name, var)
-    histogram('grad_hist/' + name, grad)
+    if py_utils.IsEagerMode():
+      histogram_v2(f'var_hist/{name}', var)
+      histogram_v2(f'grad_hist/{name}', grad)
+    else:
+      histogram(f'var_hist/{name}', var)
+      histogram(f'grad_hist/{name}', grad)
 
 
 def PrepareSequenceForPlot(tensor, padding, name):

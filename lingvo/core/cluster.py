@@ -518,7 +518,7 @@ class _Cluster:
   def add_summary(self):
     p = self.params
     if p.add_summary is None:
-      return self.job in ['controller', 'evaler', 'decoder']
+      return self.job in ['controller', 'train_summaries', 'evaler', 'decoder']
     else:
       return p.add_summary
 
