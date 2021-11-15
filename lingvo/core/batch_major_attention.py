@@ -6074,7 +6074,7 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
       Upsampled tensor, with the upsampling applied to the second dim in x.
     """
     p = self.params
-    if x.shape.ndims != 3:
+    if x.shape.ndims is not None and x.shape.ndims != 3:
       raise ValueError('FunnelUpsampleLayer expects input to be rank 3, but '
                        'got %d' % (x.shape.ndims))
     if p.upsample_type not in ['REPEAT', 'DECONV']:
