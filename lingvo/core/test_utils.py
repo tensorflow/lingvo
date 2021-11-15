@@ -58,7 +58,7 @@ class TestCase(tf.test.TestCase):
       global_step = py_utils.GetOrCreateGlobalStepVar()
       sess.run(
           tf.cond(
-              tf.is_variable_initialized(global_step), tf.no_op,
+              tf.compat.v1.is_variable_initialized(global_step), tf.no_op,
               lambda: tf.variables_initializer([global_step])))
     return sess
 

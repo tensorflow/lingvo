@@ -13,41 +13,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""The compatible tensorflow library."""
+"""Compatibility layer for TF2 migration."""
 
 import os
 
-# pylint: disable=g-bad-import-order, unused-import, g-import-not-at-top
+# pylint: disable=g-bad-import-order, unused-import, g-import-not-at-top, undefined-variable
 import tensorflow.compat.v1 as tf1
 import tensorflow.compat.v2 as tf2
 from tensorflow.compat.v2 import *  # pylint: disable=wildcard-import
 
-# Import absl.flags and absl.logging to overwrite the Tensorflow ones.
+# Import absl.app, absl.flags and absl.logging to overwrite the Tensorflow ones.
 # This is the intended behavior in TF 2.0.
+from absl import app
 from absl import flags
 from absl import logging
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.core.protobuf import config_pb2
-from tensorflow.python.data.ops import dataset_ops
-from tensorflow.python.data.util import random_seed
-from tensorflow.python.framework import function as _function_lib
+# pylint: disable=g-direct-tensorflow-import, line-too-long
+from tensorflow.core.protobuf import config_pb2  # tf.compat.v1.ConfigProto
+from tensorflow.python.data.ops import dataset_ops  # Used in this file only
+from tensorflow.python.data.util import random_seed  # Used in this file only
+from tensorflow.python.framework import function as _function_lib  # Used in this file only
+# tf.ops.colocate_with, tf.ops.get_resource_handle_data, tf.ops.register_tensor_conversion_function
 from tensorflow.python.framework import ops
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import check_ops
-from tensorflow.python.ops import embedding_ops
-from tensorflow.python.ops import functional_ops
-from tensorflow.python.ops import gen_dataset_ops
-from tensorflow.python.ops import gen_io_ops
-from tensorflow.python.ops import inplace_ops
-from tensorflow.python.ops import math_ops
-from tensorflow.python.tf2 import enabled as tf2_enabled
-from tensorflow.python.util import module_wrapper as _module_wrapper
+from tensorflow.python.ops import array_ops  # tf.array_ops.batch_gather
+from tensorflow.python.ops import check_ops  # tf.check_ops.assert_equal
+from tensorflow.python.ops import embedding_ops  # Used in this file only
+from tensorflow.python.ops import functional_ops  # Used in this file only
+from tensorflow.python.ops import gen_dataset_ops  # Used in this file only
+from tensorflow.python.ops import gen_io_ops  # Used in this file only
+from tensorflow.python.ops import inplace_ops  # Used in this file only
+from tensorflow.python.ops import math_ops  # tf.math_ops.bucketize
+from tensorflow.python.tf2 import enabled as tf2_enabled  # Used in this file only
+from tensorflow.python.util import module_wrapper as _module_wrapper  # Used in this file only
 # For determining if we are running with --define=tf_api_version=1 or 2.
-from tensorflow import _major_api_version
-# pylint: enable=g-direct-tensorflow-import
+from tensorflow import _major_api_version  # Used in this file only
+# pylint: enable=g-direct-tensorflow-import, line-too-long
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
-if tf2.executing_eagerly():
+if executing_eagerly():
   logging.info(
       "Lingvo with eager execution is in early development. "
       "Please reach out to go/lingvo-eager-migration with bugs. "
@@ -88,7 +90,7 @@ InplaceUpdate = inplace_ops.alias_inplace_update
 Empty = inplace_ops.empty
 EmptyLike = inplace_ops.empty_like
 
-# pylint: disable=undefined-variable, used-before-assignment
+# pylint: disable=used-before-assignment
 # Move this V2 symbol here to avoid being overwritten by its following V1
 # version.
 where_v2 = where
@@ -97,7 +99,6 @@ while_loop_v2 = while_loop
 # Import the local V2 module to maker sure the following V1 overwritting never
 # applies to the global module and symbol.
 data = _clone_module(data)
-graph_util = _clone_module(graph_util)
 image = _clone_module(image)
 io = _clone_module(io)
 losses = _clone_module(keras.losses)
@@ -115,7 +116,7 @@ train = _clone_module(train)
 # `tf.data.Dataset.list_files()`. which is not compatible with
 # `tf.data.make_one_shot_iterator` in TF2 (see b/162270607).
 # Here is a stateless implementation of `shuffle`, `cache` and
-# `list_files` to resolve the TF2 imcompatibility issue.
+# `list_files` to resolve the TF2 incompatibility issue.
 
 # Note that, these methods are meant for internal use only. Please don't use
 # it unless you know exactly what you do.
@@ -276,14 +277,14 @@ def stateless_list_files(file_pattern, shuffle=None, seed=None):
       # Use stateless shuffled dataset
       dataset = dataset.apply(stateless_shuffle_dataset(buffer_size, seed=seed))
     return dataset
-# pylint: enable=undefined-variable, used-before-assignment
+# pylint: enable=used-before-assignment
 
 
 class variable_scope(tf1.variable_scope):  # pylint: disable=invalid-name
   """Override tf.compat.v1.variable_scope with an additional error message."""
 
   def __init__(self, *args, **kwargs):
-    if tf2.executing_eagerly():
+    if executing_eagerly():
       # In eager mode, the reuse arg to variable_scope is silently overwritten
       # to AUTO_REUSE. We opt to raise an error instead.
       # https://github.com/tensorflow/tensorflow/blob/9345aee6988f50b7c571295a9e70e40e47221a64/tensorflow/python/ops/variable_scope.py#L1166
@@ -297,12 +298,10 @@ class variable_scope(tf1.variable_scope):  # pylint: disable=invalid-name
 # TF 1.x symbols used in the codebase.
 # To keep this list short, please use TF 2.x API whenever applicable.
 # Only use TF 1.x API if it has no 2.x equivalent.
-# pylint: disable=undefined-variable
 add_to_collection = tf1.add_to_collection
 all_variables = tf1.global_variables
 # The following asserts can be directly replaced with TF2 `tf.debugging.*`
 # after TF2/eager is enabled.
-app = tf1.app
 assert_integer = tf1.assert_integer
 assert_positive = tf1.assert_positive
 assert_type = tf1.assert_type
@@ -318,39 +317,32 @@ device = tf1.device
 Dimension = tf1.Dimension
 disable_eager_execution = tf1.disable_eager_execution
 disable_v2_behavior = tf1.disable_v2_behavior
-div = tf1.div
+div = tf1.div  # tf.math.divide?
 enable_eager_execution = tf1.enable_eager_execution
 executing_eagerly_outside_functions = tf1.executing_eagerly_outside_functions
-floor_div = tf1.floor_div
+floor_div = tf1.floor_div  # tf.math.floordiv?
 get_collection = tf1.get_collection
 get_collection_ref = tf1.get_collection_ref
 get_default_graph = tf1.get_default_graph
-get_local_variable = tf1.get_local_variable
-get_seed = tf1.get_seed
+get_local_variable = tf1.get_local_variable  # Only used in single file.
 get_variable = tf1.get_variable
 get_variable_scope = tf1.get_variable_scope
 global_variables = tf1.global_variables
 global_variables_initializer = tf1.global_variables_initializer
 gradients = tf1.gradients
-graph_util.convert_variables_to_constants = (
-    tf1.graph_util.convert_variables_to_constants)
-graph_util.extract_sub_graph = tf1.graph_util.extract_sub_graph
 GraphDef = tf1.GraphDef
 GraphKeys = tf1.GraphKeys
 GraphOptions = tf1.GraphOptions
-group = tf1.group
+# tf.image.resize(method=ResizeMethod.BLAH)
 image.resize_bilinear = tf1.image.resize_bilinear
 image.resize_images = tf1.image.resize_images
 image.resize_nearest_neighbor = tf1.image.resize_nearest_neighbor
 initialize_all_tables = tf1.initialize_all_tables
-InteractiveSession = tf1.InteractiveSession
 io.tf_record_iterator = tf1.io.tf_record_iterator
-is_variable_initialized = tf1.is_variable_initialized
-layers = tf1.layers
+layers = tf1.layers  # tf.layers.dense, tf.layers.max_pooling2d
 local_variables_initializer = tf1.local_variables_initializer
 losses.absolute_difference = tf1.losses.absolute_difference
 losses.add_loss = tf1.losses.add_loss
-losses.compute_weighted_loss = tf1.losses.compute_weighted_loss
 losses.get_regularization_loss = tf1.losses.get_regularization_loss
 losses.huber_loss = tf1.losses.huber_loss
 losses.mean_squared_error = tf1.losses.mean_squared_error
@@ -358,8 +350,7 @@ losses.Reduction.MEAN = tf1.losses.Reduction.MEAN
 losses.Reduction.SUM = tf1.losses.Reduction.SUM
 losses.sigmoid_cross_entropy = tf1.losses.sigmoid_cross_entropy
 losses.softmax_cross_entropy = tf1.losses.softmax_cross_entropy
-losses.sparse_softmax_cross_entropy = (tf1.losses.sparse_softmax_cross_entropy)
-make_template = tf1.make_template
+losses.sparse_softmax_cross_entropy = tf1.losses.sparse_softmax_cross_entropy
 metrics.accuracy = tf1.metrics.accuracy
 metrics.auc = tf1.metrics.auc
 metrics.precision = tf1.metrics.precision
@@ -411,6 +402,11 @@ tables_initializer = tf1.tables_initializer
 test.compute_gradient_error = tf1.test.compute_gradient_error
 test.get_temp_dir = tf1.test.get_temp_dir
 test.mock = tf1.test.mock
+# tf.tpu.outside_compilation, tf.tpu.cross_replica_sum,
+# tf.tpu.experimental.Topology, tf.tpu.initialize_system, tf.tpu.core,
+# tf.tpu.rewrite, tf.tpu.shutdown_system, tf.tpu.XLAOptions, tf.tpu.replicate,
+# tf.tpu.shard, tf.tpu.experimental.DeviceAssignment,
+# tf.tpu.experimental.initialize_tpu_system, tf.tpu.batch_parallel
 tpu = tf1.tpu
 train.AdadeltaOptimizer = tf1.train.AdadeltaOptimizer
 train.AdagradOptimizer = tf1.train.AdagradOptimizer
@@ -420,7 +416,6 @@ train.get_or_create_global_step = tf1.train.get_or_create_global_step
 train.get_global_step = tf1.train.get_global_step
 train.GradientDescentOptimizer = tf1.train.GradientDescentOptimizer
 train.MomentumOptimizer = tf1.train.MomentumOptimizer
-train.MonitoredTrainingSession = tf1.train.MonitoredTrainingSession
 train.NewCheckpointReader = tf1.train.NewCheckpointReader
 train.Optimizer = tf1.train.Optimizer
 train.RMSPropOptimizer = tf1.train.RMSPropOptimizer
@@ -434,7 +429,6 @@ VariableScope = tf1.VariableScope
 variance_scaling_initializer = tf1.variance_scaling_initializer
 where = tf1.where
 while_loop = tf1.while_loop
-wrap_function = tf1.wrap_function
 convert_to_tensor_or_indexed_slices = tf1.convert_to_tensor_or_indexed_slices
 
 # Explicit 1.x symbol import.
@@ -446,4 +440,3 @@ data.make_one_shot_iterator = dataset_ops.make_one_shot_iterator
 # Keep this for now.
 nn.embedding_lookup = embedding_ops.embedding_lookup
 nn.embedding_lookup_sparse = embedding_ops.embedding_lookup_sparse
-# pylint: enable=undefined-variable

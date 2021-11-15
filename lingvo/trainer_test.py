@@ -20,6 +20,7 @@ import pathlib
 import random
 import re
 import shutil
+from unittest import mock
 
 from absl.testing import flagsaver
 from absl.testing import parameterized
@@ -337,7 +338,7 @@ class TrainerWithTrialTest(BaseTrainerTest):
 
   @flagsaver.flagsaver
   def testControllerTrainerEvaler(self):
-    trial = tf.test.mock.create_autospec(base_trial.Trial, instance=True)
+    trial = mock.create_autospec(base_trial.Trial, instance=True)
     self._trial = trial
 
     logdir = os.path.join(tf.test.get_temp_dir(),

@@ -228,9 +228,9 @@ def GetOutputOpNames(graph,
   # inference/embedding_lookup/Read/ReadVariableOp is not pruned.
   #
   # TODO(zhifengc): It's possible that it's better to fix in
-  # tf.graph_util.extract_sub_graph.
-  graph_def = tf.graph_util.extract_sub_graph(graph.as_graph_def(),
-                                              list(output_op_names))
+  # tf.compat.v1.graph_util.extract_sub_graph.
+  graph_def = tf.compat.v1.graph_util.extract_sub_graph(graph.as_graph_def(),
+                                                        list(output_op_names))
   reachable_vars = [node.name for node in graph_def.node]
 
   for node in graph.get_operations():
@@ -273,7 +273,7 @@ def _FreezeGraphFromCheckpoint(graph, saver, checkpoint, output_op_names):
   """
   sess = tf.Session(graph=graph, config=py_utils.SessionConfig())
   saver.restore(sess, checkpoint)
-  return tf.graph_util.convert_variables_to_constants(
+  return tf.compat.v1.graph_util.convert_variables_to_constants(
       sess, graph.as_graph_def(), output_op_names)
 
 
@@ -289,9 +289,8 @@ def _FreezeDefaults(graph, output_op_names):
   """
   with tf.Session(graph=graph, config=py_utils.SessionConfig()) as sess:
     sess.run(graph.get_operation_by_name('init_all_variables'))
-    return tf.graph_util.convert_variables_to_constants(sess,
-                                                        graph.as_graph_def(),
-                                                        output_op_names)
+    return tf.compat.v1.graph_util.convert_variables_to_constants(
+        sess, graph.as_graph_def(), output_op_names)
 
 
 class InferenceGraphExporter:
@@ -546,7 +545,8 @@ class InferenceGraphExporter:
           output_op_names.append('tpu_init_op')
 
         tf.logging.info('Pruning graph to output ops: %r', output_op_names)
-        graph_def = tf.graph_util.extract_sub_graph(graph_def, output_op_names)
+        graph_def = tf.compat.v1.graph_util.extract_sub_graph(
+            graph_def, output_op_names)
 
     if not device_options.retain_device_placement:
       # Clear the device so that the runtime can choose.
