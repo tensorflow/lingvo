@@ -569,6 +569,7 @@ class DotProductAttention(base_layer.BaseLayer):
           kernel_size=p.dconv_kernel_size,
           hidden_dims=[p.num_heads, dim_per_head],
       )
+      causal_dconv_p.weight_split_dims_mapping.wt = wp.wt
       self.create_child('dconv_q', causal_dconv_p)
       self.create_child('dconv_k', causal_dconv_p)
       self.create_child('dconv_v', causal_dconv_p)
