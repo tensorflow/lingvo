@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""N-grammer layers."""
+"""N-grammer layers from https://openreview.net/forum?id=GxjCYmQAody."""
 from typing import Optional, Tuple
 
 import jax
@@ -366,3 +366,93 @@ class Ngrammer(base_layer.BaseLayer):
     if paddings is not None:
       input_embs *= (1 - paddings_3d)
     return input_embs
+
+
+class VQNgrammer(base_layer.BaseLayer):
+  """Implements a VQ based ngrammer layer which looks up latent ngram id.
+
+  We use the following capital letters to denote shape parameters:
+    B = batch size
+    L = length of the input sequence (referred to as S or T elsewhere)
+    N = number of attention heads
+    H = dimensions of each attention head
+    K = number of clusters
+    D = total dimension which is H * N
+  """
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    """Params."""
+    p = super().Params()
+    p.Define('ngram_vocab_size', 768 * 256, 'Size of the ngram vocabulary.')
+    p.Define('ngram_emb_dim', 8, 'Size of the ngram dimension per head.')
+    p.Define('concat_ngrams', False, 'If True, then concat ngrams.')
+    p.Define('num_clusters', 0, 'Number of clusters.')
+    p.Define('num_heads', 0, 'Number of attention heads.')
+    p.Define('decay', 0.999, 'The decay with which to update centroids.')
+    p.Define('epsilon', 1e-6, 'Tiny value to guard against divide by 0.')
+    p.Define(
+        'dim_per_head', 0, 'The last dimension of the inputs on which to'
+        'apply Vector Quantization.')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    """Constructs a VQ layer and an N-grammer layer."""
+    super().__init__(params)
+    p = self.params
+
+    # If not concatenating ngram embeddings, check the dims are compatible.
+    if not p.concat_ngrams:
+      assert p.ngram_emb_dim == p.dim_per_head
+    else:
+      # Other-wise the ngram_emb_dim must be smaller than dim_per_head.
+      assert p.ngram_emb_dim <= p.dim_per_head
+
+    # Create VQ layer.
+    vq_layer_p = VectorQuantization.Params().Set(
+        num_clusters=p.num_clusters,
+        num_heads=p.num_heads,
+        dim_per_head=p.dim_per_head,
+        decay=p.decay,
+        epsilon=p.epsilon)
+    self.create_child('vq_layer', vq_layer_p)
+
+    # Create N-gram lookup layer.
+    ngram_layer_p = Ngrammer.Params().Set(
+        ngram_vocab_size=p.ngram_vocab_size,
+        unigram_vocab_size=p.num_clusters,
+        ngram_emb_dim=p.ngram_emb_dim,
+        concat_ngrams=p.concat_ngrams,
+        num_heads=p.num_heads,
+        dim_per_head=p.dim_per_head,
+    )
+    self.create_child('ngram_layer', ngram_layer_p)
+
+  def fprop(self,
+            theta: NestedMap,
+            inputs: JTensor,
+            paddings: Optional[JTensor] = None,
+            segment_pos: Optional[JTensor] = None) -> JTensor:
+    """Augments the input embeddings with VQ ngram layer embeddings.
+
+    Args:
+      theta: A `.NestedMap` of weights' values of this layer.
+      inputs: Input unigram embedding tensor of shape [B, L, D].
+      paddings: If not None, a tensor of shape [B, L] corresponding to padding.
+      segment_pos: If not None, a tensor of shape [B, L] corresponding to the
+        position of an id in a packed sequence.
+
+    Returns:
+      outputs: Input embedding with the VQ ngram added of shape [B, L, D].
+    """
+    # Distances of shape [B, L, N, K].
+    distances, _ = self.vq_layer.fprop(
+        theta.vq_layer, inputs, paddings=paddings)
+
+    # [B, L, N].
+    cluster_ids = jnp.argmin(distances, -1)
+
+    # [B, L, D].
+    output_embs = self.ngram_layer.fprop(theta.ngram_layer, cluster_ids, inputs,
+                                         paddings, segment_pos)
+    return output_embs
