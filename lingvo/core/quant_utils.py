@@ -599,14 +599,10 @@ class QuantizableLayer(base_layer.BaseLayer):
       qdparams = p.qdomain.default
     return qdparams
 
-  def QRAct(self,
-            act,
-            dist: QDistribution,
-            domain: str = 'default',
-            narrow_to_asym_bit_depth: bool = False):
+  def QRAct(self, act, dist: QDistribution, domain: str = 'default'):
     """Quantizes act according to its distribution."""
     qd = self.GetQDomain(domain)
-    return act if qd is None else qd.QRAct(act, dist, narrow_to_asym_bit_depth)
+    return act if qd is None else qd.QRAct(act, dist)
 
   def _AddQuantizationFunctions(self):
     """Adds standard quantization functions against the given layer."""
@@ -619,7 +615,6 @@ class QuantizableLayer(base_layer.BaseLayer):
                   qmin=None,
                   qmax=None,
                   qdomain=None,
-                  narrow_to_asym_bit_depth=False,
                   **op_kwargs):
         """Wraps a native op."""
         if (qout_name is None and (qmin is None or qmax is None) and
@@ -643,7 +638,7 @@ class QuantizableLayer(base_layer.BaseLayer):
           if qd:
             y = qd.QuantizeNaturalRange(y, qmin, qmax)
         else:
-          y = self.QRAct(y, dist, qdomain, narrow_to_asym_bit_depth)
+          y = self.QRAct(y, dist, qdomain)
         return y
 
       self.AddFunction(op_name, Wrapped)
@@ -692,8 +687,8 @@ class QDomain(base_layer.BaseLayer):
     """
     return w
 
-  def QRAct(self, act, dist: QDistribution, narrow_to_asym_bit_depth: bool):
-    del dist, narrow_to_asym_bit_depth
+  def QRAct(self, act, dist: QDistribution):
+    del dist
     return act
 
   def ToAqtConv(self,
@@ -953,6 +948,8 @@ class FakeQDomain(QDomain):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define('narrow_to_asym_bit_depth', True,
+             "Match TFLite's softmax and tanh bound calculations.")
     p.Define(
         'log_softmax_range', None,
         'Manual range for quantizing logsoftmax activations. Should be '
@@ -966,12 +963,13 @@ class FakeQDomain(QDomain):
       raise ValueError(f'p.log_softmax_range={p.log_softmax_range} should be '
                        'None or a sequence of two numbers')
 
-  def _NarrowToAsymBitDepth(self, qmin, qmax):
-    qrange = qmax - qmin
-    qmax = qmin + qrange * (2**self.bits - 1) / (2**self.bits)
+  def _MaybeNarrowToAsymBitDepth(self, qmin, qmax):
+    if self.params.narrow_to_asym_bit_depth:
+      qrange = qmax - qmin
+      qmax = qmin + qrange * (2**self.bits - 1) / (2**self.bits)
     return qmin, qmax
 
-  def QRAct(self, act, dist: QDistribution, narrow_to_asym_bit_depth: bool):
+  def QRAct(self, act, dist: QDistribution):
     p = self.params
     if dist == QDistribution.LOG_SOFTMAX:
       if p.log_softmax_range is None:
@@ -989,14 +987,10 @@ class FakeQDomain(QDomain):
     elif dist == QDistribution.SIGMOID:
       return self.QuantizeNaturalRange(act, 0.0, 1.0)
     elif dist == QDistribution.SOFTMAX:
-      qmin, qmax = 0.0, 1.0
-      if narrow_to_asym_bit_depth:
-        qmin, qmax = self._NarrowToAsymBitDepth(qmin, qmax)
+      qmin, qmax = self._MaybeNarrowToAsymBitDepth(0.0, 1.0)
       return self.QuantizeNaturalRange(act, qmin, qmax)
     elif dist == QDistribution.TANH:
-      qmin, qmax = -1.0, 1.0
-      if narrow_to_asym_bit_depth:
-        qmin, qmax = self._NarrowToAsymBitDepth(qmin, qmax)
+      qmin, qmax = self._MaybeNarrowToAsymBitDepth(-1.0, 1.0)
       return self.QuantizeNaturalRange(act, qmin, qmax)
     elif dist == QDistribution.RANDOM_UNIFORM:
       return self.QuantizeNaturalRange(act, 0.0, 1.0)

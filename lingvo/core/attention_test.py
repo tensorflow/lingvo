@@ -1430,7 +1430,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
             start_cap=8.0,
             end_cap=1.0)
         qdomain = quant_utils.SymmetricScheduledClipQDomain.Params().Set(
-            cc_schedule=cc_schedule.Copy())
+            cc_schedule=cc_schedule.Copy(), narrow_to_asym_bit_depth=True)
         params.qdomain.default = qdomain.Copy()
         params.qdomain.atten_context = qdomain.Copy()
 

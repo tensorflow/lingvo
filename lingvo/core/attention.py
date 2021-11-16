@@ -373,7 +373,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     self._source_init_done = True
     self._packed_src = new_init_state.DeepCopy()
 
-  def _PaddedSoftmax(self, logits, padding, narrow_to_asym_bit_depth=False):
+  def _PaddedSoftmax(self, logits, padding):
     """Performs a softmax as if padding were applied after exponentiation.
 
     The default implementation uses numerical techniques to approximate this
@@ -384,9 +384,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     Args:
       logits: Logits.
       padding: Padding (must be the same shape as logits).
-      narrow_to_asym_bit_depth: Narrows the bit depth, removing the upper limit
-        value. This is to accommodate certain interpreters that would cover a 0
-        .... 2**bits - 1 range for quantization.
 
     Returns:
       Result of the softmax.
@@ -405,10 +402,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     padded_logits = tf.where(padding > 0.0, very_negative_logits, logits)
     # TFLite hardcodes the range of qsoftmax, setting explicitly to avoid
     # incompatible concats.
-    return fns.qsoftmax(
-        padded_logits,
-        qdomain='softmax',
-        narrow_to_asym_bit_depth=narrow_to_asym_bit_depth)
+    return fns.qsoftmax(padded_logits, qdomain='softmax')
 
   def _UpdatePaddingWithPackedInputMask(self, padding, source_segment_ids,
                                         query_segment_ids):
@@ -2112,8 +2106,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # softmax to compute the probabilities.
       logits = tf.transpose(tf.reshape(logits, [-1, tb]))
       source_padding = tf.transpose(tf.reshape(source_padding, [-1, tb]))
-      probs = self._PaddedSoftmax(
-          logits, source_padding, narrow_to_asym_bit_depth=True)
+      probs = self._PaddedSoftmax(logits, source_padding)
       # Reshape probs to be of shape [tb/sb, sb, sl].
       probs_reshaped = tf.reshape(probs, [multiplier, sb, -1])
       # Transpose probs to be of shape [sb, tb/sb, sl]
@@ -2161,8 +2154,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # softmax to compute the probabilities.
       logits = tf.transpose(logits)
       source_padding = tf.transpose(source_padding)
-      probs = self._PaddedSoftmax(
-          logits, source_padding, narrow_to_asym_bit_depth=True)
+      probs = self._PaddedSoftmax(logits, source_padding)
       summed = fns.qbatchmatmul(
           tf.cast(tf.expand_dims(probs, 1), concated_source_contexts.dtype),
           concated_source_contexts,
@@ -2395,10 +2387,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       cum_prob_index = p.location_features.index('CUMULATIVE_PROBS')
       cum_probs = tf.add(prob, attention_state[:, cum_prob_index, :])
       cum_probs = self.QRAct(
-          cum_probs,
-          quant_utils.QDistribution.SOFTMAX,
-          domain='softmax',
-          narrow_to_asym_bit_depth=True)
+          cum_probs, quant_utils.QDistribution.SOFTMAX, domain='softmax')
       new_feats['CUMULATIVE_PROBS'] = cum_probs
     new_attention_state = tf.stack([new_feats[f] for f in p.location_features],
                                    axis=1)
