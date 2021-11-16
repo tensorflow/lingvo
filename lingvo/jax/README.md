@@ -20,6 +20,8 @@ More specifically:
 
 *   [NumPy](http://github.com/numpy/numpy)
 
+*   [Sympy](https://github.com/sympy/sympy)
+
 *   [flax](http://github.com/google/flax)
 
 *   [optax](http://github.com/deepmind/optax)

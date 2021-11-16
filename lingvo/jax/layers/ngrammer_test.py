@@ -1,0 +1,190 @@
+# Lint as: python3
+# Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+"""Tests for ngrammer."""
+
+from absl.testing import absltest
+from absl.testing import parameterized
+import jax
+from jax import test_util
+import jax.numpy as jnp
+from lingvo.core import attention_util
+from lingvo.jax import base_layer
+from lingvo.jax import test_utils
+from lingvo.jax.layers import ngrammer
+import numpy as np
+import tensorflow as tf
+
+to_np = test_utils.to_np
+
+
+class NgrammerTest(test_util.JaxTestCase):
+
+  def setUp(self):
+    super().setUp()
+    np.random.seed(123456)
+
+  @parameterized.parameters(
+      (10000),
+      (1000),
+      (320000),
+      (500),
+  )
+  def test_get_bigram_ids(self, vocab_size):
+    ids = np.random.randint(vocab_size, size=(2, 16), dtype=np.int64)
+    ngram_ids = ngrammer.get_bigram_ids(ids, vocab_size)
+    np_ngram_ids = to_np(ngram_ids)
+    self.assertLess(np.max(np_ngram_ids), vocab_size**2)
+
+  @parameterized.parameters(
+      (10000),
+      (1000),
+      (320000),
+      (500),
+  )
+  def test_get_bigram_ids_with_packing(self, vocab_size):
+    ids = np.random.randint(vocab_size, size=(2, 8), dtype=np.int64)
+    segment_ids = np.array([[0, 1, 2, 3, 0, 1, 2, 3], [0, 1, 2, 0, 1, 2, 3, 4]])
+    ngram_ids = ngrammer.get_bigram_ids(ids, vocab_size, segment_ids)
+    np_ngram_ids = to_np(ngram_ids)
+    self.assertLess(np.max(np_ngram_ids), vocab_size**2)
+    self.assertEqual(np_ngram_ids[0, 0], ids[0, 0])
+    self.assertEqual(np_ngram_ids[1, 0], ids[1, 0])
+    self.assertEqual(np_ngram_ids[0, 4], ids[0, 4])
+    self.assertEqual(np_ngram_ids[1, 3], ids[1, 3])
+
+  @parameterized.parameters(
+      (16, 8, 32),
+      (24, 4, 16),
+      (32, 16, 8),
+      (25, 2, 16),
+  )
+  def test_vq_layer_equivalence_with_tf(self, num_clusters, num_heads,
+                                        dim_per_head):
+    inputs = np.random.normal(1.5, 2.0, (2, 32, num_heads, dim_per_head))
+    prng_key = jax.random.PRNGKey(seed=123)
+    prng_key, init_key = jax.random.split(prng_key)
+    vq_layer_p = ngrammer.VectorQuantization.Params().Set(
+        name='jax_vq_layer',
+        num_clusters=num_clusters,
+        num_heads=num_heads,
+        dim_per_head=dim_per_head,
+    )
+    vq_layer = vq_layer_p.Instantiate()
+    initial_vars = vq_layer.instantiate_variables(init_key)
+    global_step = jnp.array(0, dtype=jnp.uint64)
+    prng_key, compute_key = jax.random.split(prng_key)
+
+    # comppute vq function is fully functional.
+    @jax.jit
+    def compute_vq(theta, prng_key, global_step, inputs):
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step):
+        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        vq_layer.prepare_fprop()
+        output = vq_layer.fprop(theta, inputs)
+        return output
+
+    jax_dists, _ = compute_vq(initial_vars, compute_key, global_step, inputs)
+    # Now run TF based computation.
+    tf_vq_layer_p = attention_util.KMeansClusteringForAtten.Params().Set(
+        name='tf_vq_layer',
+        num_clusters=num_clusters,
+        num_heads=num_heads,
+        dim_per_head=dim_per_head,
+        apply_layer_norm=False)
+    tf_vq_layer = tf_vq_layer_p.Instantiate()
+    tf_dists, _ = tf_vq_layer.FProp(initial_vars, tf.constant(inputs))
+    self.assertAllClose(to_np(jax_dists), to_np(tf_dists), atol=1e-5)
+
+  @parameterized.parameters(
+      (16, 8, 2, 32, True),
+      (24, 4, 4, 16, True),
+      (32, 16, 1, 64, True),
+      (25, 4, 2, 8, True),
+      (16, 8, 2, 8, False),
+      (24, 4, 4, 4, False),
+      (32, 16, 1, 16, False),
+      (25, 4, 2, 4, False),
+  )
+  def test_ngrammer_layer_exact_bigram(self, unigram_vocab_size, ngram_emb_dim,
+                                       num_heads, dim_per_head, concat_ngrams):
+    batch_size = 2
+    seq_len = 8
+    inputs = np.random.randint(
+        unigram_vocab_size,
+        size=[batch_size, seq_len, num_heads],
+        dtype=np.int32)
+    paddings = np.random.randint(1, size=[batch_size, seq_len])
+    input_embs = np.random.normal(
+        1.5, 2.0, (batch_size, seq_len, num_heads * dim_per_head))
+    prng_key = jax.random.PRNGKey(seed=123)
+    prng_key, init_key = jax.random.split(prng_key)
+    ngrammer_layer_p = ngrammer.Ngrammer.Params().Set(
+        name='jax_ngrammer_layer',
+        unigram_vocab_size=unigram_vocab_size,
+        ngram_vocab_size=num_heads * unigram_vocab_size**2,
+        ngram_emb_dim=ngram_emb_dim,
+        num_heads=num_heads,
+        dim_per_head=dim_per_head,
+        concat_ngrams=concat_ngrams,
+    )
+    ngrammer_layer = ngrammer_layer_p.Instantiate()
+    initial_vars = ngrammer_layer.instantiate_variables(init_key)
+    global_step = jnp.array(0, dtype=jnp.uint64)
+    prng_key, compute_key = jax.random.split(prng_key)
+
+    # comppute ngrammer layer function is fully functional.
+    @jax.jit
+    def compute_ngrams(theta, prng_key, global_step, inputs, input_embs):
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step):
+        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        ngrammer_layer.prepare_fprop()
+        output = ngrammer_layer.fprop(theta, inputs, input_embs, paddings)
+        return output
+
+    ngram_embs = compute_ngrams(initial_vars, compute_key, global_step, inputs,
+                                input_embs)
+    ngram_embs = np.reshape(ngram_embs,
+                            [batch_size, seq_len, num_heads, dim_per_head])
+    input_embs = np.reshape(input_embs,
+                            [batch_size, seq_len, num_heads, dim_per_head])
+    for i in range(num_heads):
+      input_ids_per_head = inputs[:, :, i]
+      ngram_ids_per_head = ngrammer.get_bigram_ids(input_ids_per_head,
+                                                   unigram_vocab_size)
+      ngram_ids_per_head *= (i + 1)
+      ngram_ids_per_head += (i + 1)
+      ngram_embs_expected = ngrammer_layer.ngram_table[i].fprop(
+          initial_vars.ngram_table[i], np.reshape(ngram_ids_per_head, [-1]))
+      ngram_embs_expected = ngrammer_layer.ngram_layer_norm[i].fprop(
+          initial_vars.ngram_layer_norm[i], ngram_embs_expected)
+      ngram_embs_expected = jnp.reshape(ngram_embs_expected,
+                                        [batch_size, seq_len, ngram_emb_dim])
+      ngram_embs_expected *= (1 - paddings[:, :, np.newaxis])
+      if concat_ngrams:
+        ngram_embs_slice = ngram_embs[:, :, i, -ngram_emb_dim:]
+      else:
+        input_embs_ln = ngrammer_layer.emb_layer_norm[i].fprop(
+            initial_vars.emb_layer_norm[i], input_embs[:, :, i, :])
+        ngram_embs_slice = ngram_embs[:, :, i, :] - input_embs_ln
+      self.assertAllClose(to_np(ngram_embs_slice), to_np(ngram_embs_expected))
+
+
+if __name__ == '__main__':
+  absltest.main()

@@ -21,6 +21,7 @@ pytype_strict_library(
         ":embedding_softmax",
         ":flax_wrapper",
         ":linears",
+        ":ngrammer",
         ":normalizations",
         ":poolings",
         ":recurrent",
@@ -122,6 +123,21 @@ pytype_strict_library(
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
+    ],
+)
+
+pytype_strict_library(
+    name = "ngrammer",
+    srcs = ["ngrammer.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":embedding_softmax",
+        ":normalizations",
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+        # Implicit sympy dependency.
     ],
 )
 
@@ -314,6 +330,24 @@ py_strict_test(
         # Implicit jax dependency.
         "//lingvo/core:layers",
         "//lingvo/jax:py_utils",
+        "//lingvo/jax:test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "ngrammer_test",
+    srcs = ["ngrammer_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":ngrammer",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+        "//lingvo/core:attention_util",
+        "//lingvo/jax:base_layer",
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.

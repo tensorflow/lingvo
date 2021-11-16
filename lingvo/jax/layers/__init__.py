@@ -42,6 +42,10 @@ from lingvo.jax.layers.linears import FeedForward
 from lingvo.jax.layers.linears import Linear
 from lingvo.jax.layers.linears import project_last_dim
 
+from lingvo.jax.layers.ngrammer import get_bigram_ids
+from lingvo.jax.layers.ngrammer import Ngrammer
+from lingvo.jax.layers.ngrammer import VectorQuantization
+
 from lingvo.jax.layers.normalizations import BatchNorm
 from lingvo.jax.layers.normalizations import compute_moments
 from lingvo.jax.layers.normalizations import LayerNorm
