@@ -220,6 +220,9 @@ class MatplotlibFigureSummary:
 
   def FinalizeImage(self):
     """Finishes creation of the overall figure, returning the image tensor."""
+    if not self._subplots:
+      raise ValueError('No subplots created!')
+
     subplot_grid_shape = self._subplot_grid_shape
     if subplot_grid_shape is None:
       subplot_grid_shape = (len(self._subplots), 1)
