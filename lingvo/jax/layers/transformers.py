@@ -1485,8 +1485,9 @@ class TransformerLm(base_layer.BaseLayer):
     xformer_p.tr_atten_tpl.weight_split_dims_mapping.proj = [
         data_axis, mdl_axis, None
     ]
-    xformer_p.tr_atten_tpl.weight_split_dims_mapping.wt = [mdl_axis, None]
-
+    # Sharding for depth-wise conv weights. Depth-wise conv weights are of shape
+    # [num_heads, dim_per_head].
+    xformer_p.tr_atten_tpl.weight_split_dims_mapping.dconv = [mdl_axis, None]
     # TODO(zhangqiaorjc): Set weight_split_dims_mapping and
     # activation_split_dims_mapping for MoE layer.
     ffw_wp = xformer_p.tr_fflayer_tpl.weight_split_dims_mapping
