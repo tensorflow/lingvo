@@ -346,7 +346,9 @@ class BatchMajorLanguageModel(LanguageModel):
         'num_predictions': (num_preds, 1),
         'num_words': (num_words, 1),
         'num_sentences': (tf.reduce_sum(num_sentences), 1),
-    }, {}
+    }, {
+        'loss': xent_output.per_sequence_xent,
+    }
 
   def _InferenceSubgraph_Default(self):
     """Default inference subgraph."""
