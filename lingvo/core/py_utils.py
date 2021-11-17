@@ -660,6 +660,9 @@ def GetTpuDeviceAssignment(job=None):
 _IS_EAGER_MODE = False
 
 
+# If you get an error "tf.enable_eager_execution must be called at program
+# startup." but you are calling this function at the start, check if your change
+# adds type hints for "tf.data" and wrap those type hints in quotes.
 def SetEagerMode(eager_mode=True):
   global _IS_EAGER_MODE
   _IS_EAGER_MODE = eager_mode

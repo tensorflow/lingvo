@@ -96,9 +96,21 @@ EmptyLike = inplace_ops.empty_like
 where_v2 = where
 while_loop_v2 = while_loop
 
-# Import the local V2 module to maker sure the following V1 overwritting never
+
+# Switch between V1 and V2 symbol depending on whether eager mode is enabled.
+# First remove the imported symbols.
+del data
+
+
+# Then delegate to a runtime function.
+def __getattr__(name):  # pylint: disable=invalid-name
+  if name == "data":
+    return tf2.data if executing_eagerly_outside_functions() else tf1.data
+  raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+# Import the local V2 module to make sure the following V1 overwriting never
 # applies to the global module and symbol.
-data = _clone_module(data)
 image = _clone_module(image)
 io = _clone_module(io)
 losses = _clone_module(keras.losses)
@@ -270,7 +282,7 @@ def stateless_list_files(file_pattern, shuffle=None, seed=None):
     with control_dependencies([assert_not_empty]):
       matching_files = identity(matching_files)
 
-    dataset = data.Dataset.from_tensor_slices(matching_files)
+    dataset = tf1.data.Dataset.from_tensor_slices(matching_files)
     if shuffle:
       buffer_size = math_ops.maximum(
           shape(matching_files, out_type=dtypes.int64)[0], 1)
@@ -311,8 +323,6 @@ assign_add = tf1.assign_add
 assign_sub = tf1.assign_sub
 AUTO_REUSE = tf1.AUTO_REUSE
 container = tf1.container
-data.Dataset = tf1.data.Dataset
-data.TFRecordDataset = tf1.data.TFRecordDataset
 device = tf1.device
 Dimension = tf1.Dimension
 disable_eager_execution = tf1.disable_eager_execution
@@ -432,8 +442,6 @@ while_loop = tf1.while_loop
 convert_to_tensor_or_indexed_slices = tf1.convert_to_tensor_or_indexed_slices
 
 # Explicit 1.x symbol import.
-data.make_initializable_iterator = dataset_ops.make_initializable_iterator
-data.make_one_shot_iterator = dataset_ops.make_one_shot_iterator
 # For `nn.embedding_lookup` and `nn.embedding_lookup_sparse`, v2 doesn't have
 # the arg 'partition_strategy' in the API, and uses 'partition_strategy="div"'
 # by default; while v1 uses 'partition_strategy="mod"' by default.
