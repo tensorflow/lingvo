@@ -56,8 +56,8 @@ class NgrammerTest(test_util.JaxTestCase):
   )
   def test_get_bigram_ids_with_packing(self, vocab_size):
     ids = np.random.randint(vocab_size, size=(2, 8), dtype=np.int64)
-    segment_ids = np.array([[0, 1, 2, 3, 0, 1, 2, 3], [0, 1, 2, 0, 1, 2, 3, 4]])
-    ngram_ids = ngrammer.get_bigram_ids(ids, vocab_size, segment_ids)
+    segment_pos = np.array([[0, 1, 2, 3, 0, 1, 2, 3], [0, 1, 2, 0, 1, 2, 3, 4]])
+    ngram_ids = ngrammer.get_bigram_ids(ids, vocab_size, segment_pos)
     np_ngram_ids = to_np(ngram_ids)
     self.assertLess(np.max(np_ngram_ids), vocab_size**2)
     self.assertEqual(np_ngram_ids[0, 0], ids[0, 0])
@@ -186,6 +186,80 @@ class NgrammerTest(test_util.JaxTestCase):
       self.assertAllClose(to_np(ngram_embs_slice), to_np(ngram_embs_expected))
 
   @parameterized.parameters(
+      (16, 8, 2, 32, True),
+      (24, 4, 4, 16, True),
+      (32, 16, 1, 64, True),
+      (25, 4, 2, 8, True),
+      (16, 8, 2, 8, False),
+      (24, 4, 4, 4, False),
+      (32, 16, 1, 16, False),
+      (25, 4, 2, 4, False),
+  )
+  def test_ngrammer_layer_exact_bigram_2d(self, unigram_vocab_size,
+                                          ngram_emb_dim, num_heads,
+                                          dim_per_head, concat_ngrams):
+    batch_size = 2
+    seq_len = 8
+    inputs = np.random.randint(
+        unigram_vocab_size, size=[batch_size, seq_len], dtype=np.int32)
+    paddings = np.random.randint(1, size=[batch_size, seq_len])
+    input_embs = np.random.normal(
+        1.5, 2.0, (batch_size, seq_len, num_heads * dim_per_head))
+    prng_key = jax.random.PRNGKey(seed=123)
+    prng_key, init_key = jax.random.split(prng_key)
+    ngrammer_layer_p = ngrammer.Ngrammer.Params().Set(
+        name='jax_ngrammer_layer',
+        unigram_vocab_size=unigram_vocab_size,
+        ngram_vocab_size=num_heads * unigram_vocab_size**2,
+        ngram_emb_dim=ngram_emb_dim,
+        num_heads=num_heads,
+        dim_per_head=dim_per_head,
+        concat_ngrams=concat_ngrams,
+    )
+    ngrammer_layer = ngrammer_layer_p.Instantiate()
+    initial_vars = ngrammer_layer.instantiate_variables(init_key)
+    global_step = jnp.array(0, dtype=jnp.uint64)
+    prng_key, compute_key = jax.random.split(prng_key)
+
+    # compute ngrams function is fully functional.
+    @jax.jit
+    def compute_ngrams(theta, prng_key, global_step, inputs, input_embs):
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step):
+        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
+        base_layer.reset_prng_key(per_step_prng_key, global_step)
+        ngrammer_layer.prepare_fprop()
+        output = ngrammer_layer.fprop(theta, inputs, input_embs, paddings)
+        return output
+
+    ngram_embs = compute_ngrams(initial_vars, compute_key, global_step, inputs,
+                                input_embs)
+    ngram_embs = np.reshape(ngram_embs,
+                            [batch_size, seq_len, num_heads, dim_per_head])
+    input_embs = np.reshape(input_embs,
+                            [batch_size, seq_len, num_heads, dim_per_head])
+    for i in range(num_heads):
+      input_ids_per_head = inputs
+      ngram_ids_per_head = ngrammer.get_bigram_ids(input_ids_per_head,
+                                                   unigram_vocab_size)
+      ngram_ids_per_head *= (i + 1)
+      ngram_ids_per_head += (i + 1)
+      ngram_embs_expected = ngrammer_layer.ngram_table[i].fprop(
+          initial_vars.ngram_table[i], np.reshape(ngram_ids_per_head, [-1]))
+      ngram_embs_expected = ngrammer_layer.ngram_layer_norm[i].fprop(
+          initial_vars.ngram_layer_norm[i], ngram_embs_expected)
+      ngram_embs_expected = jnp.reshape(ngram_embs_expected,
+                                        [batch_size, seq_len, ngram_emb_dim])
+      ngram_embs_expected *= (1 - paddings[:, :, np.newaxis])
+      if concat_ngrams:
+        ngram_embs_slice = ngram_embs[:, :, i, -ngram_emb_dim:]
+      else:
+        input_embs_ln = ngrammer_layer.emb_layer_norm[i].fprop(
+            initial_vars.emb_layer_norm[i], input_embs[:, :, i, :])
+        ngram_embs_slice = ngram_embs[:, :, i, :] - input_embs_ln
+      self.assertAllClose(to_np(ngram_embs_slice), to_np(ngram_embs_expected))
+
+  @parameterized.parameters(
       (8, 2, 4, 32, True),
       (4, 4, 32, 16, True),
       (16, 2, 8, 64, True),
@@ -220,32 +294,25 @@ class NgrammerTest(test_util.JaxTestCase):
     prng_key, compute_key = jax.random.split(prng_key)
 
     # compute vq ngrams function is fully functional.
+    context_params = base_layer.JaxContext.Params().Set(do_eval=True)
     @jax.jit
     def compute_vq_ngrams(theta, prng_key, global_step, input_embs):
       with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
+          params=context_params, prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
         vq_ngrammer_layer.prepare_fprop()
-        output = vq_ngrammer_layer.fprop(theta, input_embs, paddings)
-        return output
+        output = vq_ngrammer_layer.fprop(theta, None, input_embs, paddings)
+        distances, _ = vq_ngrammer_layer.vq_layer.fprop(theta.vq_layer,
+                                                        input_embs)
+        return output, distances
 
-    ngram_embs = compute_vq_ngrams(initial_vars, compute_key, global_step,
-                                   input_embs)
+    ngram_embs, dists = compute_vq_ngrams(initial_vars, compute_key,
+                                          global_step, input_embs)
     ngram_embs = np.reshape(ngram_embs,
                             [batch_size, seq_len, num_heads, dim_per_head])
     input_embs = jnp.reshape(input_embs,
                              [batch_size, seq_len, num_heads, dim_per_head])
-    dists = -2 * jnp.einsum('BLNH, NKH -> BLNK', input_embs,
-                            initial_vars.vq_layer.means)
-    # [B, L, N, 1]
-    inputs_norm_sq = jnp.sum(jnp.square(input_embs), axis=-1, keepdims=True)
-    # [N, K]
-    means_norm_sq = jnp.sum(
-        jnp.square(initial_vars.vq_layer.means), axis=-1, keepdims=False)
-    # [1, 1, N, K]
-    means_norm_sq = means_norm_sq[jnp.newaxis, jnp.newaxis, :, :]
-    dists += inputs_norm_sq + means_norm_sq
 
     # [B, L, N].
     cluster_ids = jnp.argmin(dists, -1)

@@ -29,6 +29,7 @@ from lingvo.jax.layers import activations as activations_lib
 from lingvo.jax.layers import attentions
 from lingvo.jax.layers import embedding_softmax
 from lingvo.jax.layers import linears
+from lingvo.jax.layers import ngrammer
 from lingvo.jax.layers import normalizations
 from lingvo.jax.layers import recurrent
 from lingvo.jax.layers import repeats
@@ -1406,6 +1407,11 @@ class TransformerLm(base_layer.BaseLayer):
     p.Define('packed_input', False, 'Whether the inputs are packed.')
     p.Define('aux_loss_weight', 0.0, 'Weight of the aux loss for MoE layers.')
     p.Define('masked_lm', False, 'Whether this is BERT style masked LM.')
+    p.Define('use_ngrammer', False, 'Whether to use n-grammer embeddings.')
+    p.Define(
+        'ngrammer_tpl', ngrammer.Ngrammer.Params(),
+        'Params for the N-Grammer layer. This param is shared between'
+        'the Ngrammer layer as well as the VQNgrammer layer.')
     return p
 
   @classmethod
@@ -1510,6 +1516,10 @@ class TransformerLm(base_layer.BaseLayer):
       params = p.position_emb_tpl.Copy()
       params.embedding_dims = p.model_dims
       self.create_child('position_emb', params)
+
+    # Ngrammer layer.
+    if p.use_ngrammer:
+      self.create_child('ngrammer', p.ngrammer_tpl)
 
     # Transformer layers
     params = p.stacked_transformer_tpl.Copy()
@@ -1646,6 +1656,15 @@ class TransformerLm(base_layer.BaseLayer):
         segment_pos = jnp.tile(
             jnp.arange(seq_length, dtype=jnp.int32)[None, :], [batch, 1])
 
+      # Add ngrams.
+      if p.use_ngrammer:
+        input_emb = self.ngrammer.fprop(
+            theta.ngrammer,
+            input_ids=inputs,
+            input_embs=input_emb,
+            paddings=paddings,
+            segment_pos=segment_pos)
+
       if p.position_emb_tpl is not None:
         position_emb = self.position_emb.fprop(
             theta.position_emb, seq_length=seq_length, position=segment_pos)
@@ -1683,23 +1702,37 @@ class TransformerLm(base_layer.BaseLayer):
         cached_states.transformer.x_layers is a list corresponding to
         self.transformer.x_layers with key - [T, B, N, H]. value - [T, B, N, H].
         cached_states.step corresponds to the current time step being decoded.
-      inputs: Target sequence of shape [B] corresponding to target sequence at
-        index time_step.
+      inputs: Target sequence of shape [B] or [B, P] corresponding to target
+        sequence at index time_step. Note that the shape [B, P] corresponds to
+        a prefix which is useful for decoding in some special architectures
+        such as Primer or Ngrammer.
 
     Returns:
       cached_states: A `.NestedMap` object containing the updated states. The
         cached_states.step is incremented to the next time step, and
         cached_states.transformer is updated with the keys and values of the
         current time step.
-        xent_output: A `.NestedMap` object containing the log probabilities and
+      xent_output: A `.NestedMap` object containing the log probabilities and
         probabilities.
     """
-    input_emb = self.softmax.emb_lookup(theta.softmax, inputs[:, jnp.newaxis])
-    # During autoregressive decoding inputs are not packed
+    if len(inputs.shape) == 1:
+      inputs = inputs[:, jnp.newaxis]
+
+    input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
     time_step = cached_states.step
+
+    # Add Ngrammer layer if applicable.
+    if self.params.use_ngrammer:
+      input_emb = self.ngrammer.fprop(
+          theta.ngrammer, inputs, input_emb, paddings=None, segment_pos=None)
+      inputs = inputs[:, -1][:, jnp.newaxis]
+      input_emb = input_emb[:, -1, :][:, jnp.newaxis, :]
+
+    # During autoregressive decoding inputs are not packed.
     segment_pos = jnp.zeros((inputs.shape[0], 1)) + time_step
     position_emb = self.position_emb.fprop(
         theta.position_emb, seq_length=1, position=segment_pos)
+
     inputs = input_emb + position_emb
     updated_cache, outputs = self.transformer.extend_step(
         theta.transformer,

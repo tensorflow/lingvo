@@ -28,6 +28,7 @@ from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import test_utils
 from lingvo.jax.layers import attentions
+from lingvo.jax.layers import ngrammer
 from lingvo.jax.layers import transformers
 import numpy as np
 import tensorflow.compat.v2 as tf
@@ -744,6 +745,65 @@ class TransformersTest(test_util.JaxTestCase):
         global_step=jnp.array(0, dtype=jnp.uint32)):
       outputs = ffwd.fprop(initial_vars, inputs, input_paddings)
       logging.info('outputs: %s', outputs)
+
+  @parameterized.parameters((8, 2, 4, 4, 8, False), (8, 2, 4, 4, 8, True))
+  def test_ngrammer_lm_extendstep(self, vocab_size, num_layers, num_heads,
+                                  ngram_emb_dim, dim_per_head, use_vq_ngrams):
+    if use_vq_ngrams:
+      ngrammer_params = ngrammer.VQNgrammer.Params().Set(
+          ngram_vocab_size=64,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          num_clusters=2,
+          dim_per_head=dim_per_head)
+    else:
+      ngrammer_params = ngrammer.Ngrammer.Params().Set(
+          ngram_vocab_size=64,
+          unigram_vocab_size=vocab_size,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          dim_per_head=dim_per_head)
+    p = transformers.TransformerLm.Params().Set(
+        name='jax_ngrammer_layer',
+        model_dims=num_heads * dim_per_head,
+        hidden_dims=4 * num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_layers=num_layers,
+        masked_lm=False,
+        packed_input=False,
+        use_ngrammer=True,
+        ngrammer_tpl=ngrammer_params,
+        vocab_size=vocab_size)
+    seq_len = 8
+    batch_size = 2
+    transformer_lm = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_lm.instantiate_variables(prng_key)
+    initial_states = transformer_lm.init_states(initial_vars, batch_size,
+                                                seq_len)
+    npy_inputs = np.random.randint(
+        vocab_size, size=(batch_size, seq_len)).astype('int32')
+    inputs = jnp.asarray(npy_inputs)
+    context_params = base_layer.JaxContext.Params().Set(do_eval=True)
+    with base_layer.JaxContext.new_context(
+        params=context_params,
+        prng_key=prng_key,
+        global_step=jnp.array(0, dtype=jnp.uint32)):
+      transformer_lm.prepare_fprop()
+      fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
+                                           jnp.zeros_like(inputs))
+      logits = fprop_outputs.logits
+      cached_states = initial_states
+      for t in range(seq_len):
+        if t > 0:
+          inputs_prefix = inputs[:, t - 1:t + 1]
+        else:
+          inputs_prefix = inputs[:, t]
+        cached_states, xent_output = transformer_lm.extend_step(
+            initial_vars, cached_states, inputs_prefix)
+        self.assertAllClose(logits[:, t, :], xent_output.logits)
 
 
 if __name__ == '__main__':

@@ -33,13 +33,13 @@ JTensor = pytypes.JTensor
 
 def get_bigram_ids(ids: JTensor,
                    vocab_size: int,
-                   segment_ids: Optional[JTensor] = None) -> JTensor:
+                   segment_pos: Optional[JTensor] = None) -> JTensor:
   """Generate bi-gram ids from uni-gram ids.
 
   Args:
     ids: An int32 JTensor of shape [B, L].
     vocab_size: Vocabulary size of `ids`, must be > 0.
-    segment_ids: If not None (meaning `ids` is packed, i.e. each example
+    segment_pos: If not None (meaning `ids` is packed, i.e. each example
       containing multiple segments), an int32 tensor of shape [B, L], containing
       the position of each id in `ids` in a segment.
 
@@ -59,10 +59,10 @@ def get_bigram_ids(ids: JTensor,
   ids_0 = jnp.concatenate([ids, pad], 1)  # [batch, time+1]
   ids_1 = jnp.concatenate([pad, ids], 1)  # [batch, 1+time]
 
-  if segment_ids is not None:
+  if segment_pos is not None:
     # If input is packed, mask out the parts that cross the segment
     # boundaries.
-    mask = jnp.array(jnp.equal(segment_ids, 0), dtype=ids_0.dtype)
+    mask = jnp.array(jnp.equal(segment_pos, 0), dtype=ids_0.dtype)
     mask = 1 - mask
     mask = jnp.concatenate([mask, pad], 1)
     ids_1 *= mask
@@ -306,7 +306,9 @@ class Ngrammer(base_layer.BaseLayer):
       input_ids_per_head = [input_ids] * p.num_heads
     else:
       input_ids_per_head = jnp.split(input_ids, p.num_heads, axis=-1)
-      input_ids_per_head = [jnp.squeeze(ids) for ids in input_ids_per_head]
+      input_ids_per_head = [
+          jnp.squeeze(ids, axis=-1) for ids in input_ids_per_head
+      ]
 
     # Reshape to [B, L, N, H].
     input_embs = jnp.reshape(input_embs,
@@ -430,14 +432,18 @@ class VQNgrammer(base_layer.BaseLayer):
 
   def fprop(self,
             theta: NestedMap,
-            inputs: JTensor,
+            input_ids: JTensor,
+            input_embs: JTensor,
             paddings: Optional[JTensor] = None,
             segment_pos: Optional[JTensor] = None) -> JTensor:
     """Augments the input embeddings with VQ ngram layer embeddings.
 
     Args:
       theta: A `.NestedMap` of weights' values of this layer.
-      inputs: Input unigram embedding tensor of shape [B, L, D].
+      input_ids: Input unigram id tensor of shape [B, L] or [B, L, N]. This is
+        unused and is added here to be consistent with the Ngrammger API.
+      input_embs: Input unigram embedding tensor of shape [B, L, D] to which to
+        add the ngram embedding.
       paddings: If not None, a tensor of shape [B, L] corresponding to padding.
       segment_pos: If not None, a tensor of shape [B, L] corresponding to the
         position of an id in a packed sequence.
@@ -445,14 +451,16 @@ class VQNgrammer(base_layer.BaseLayer):
     Returns:
       outputs: Input embedding with the VQ ngram added of shape [B, L, D].
     """
+    del input_ids
+
     # Distances of shape [B, L, N, K].
     distances, _ = self.vq_layer.fprop(
-        theta.vq_layer, inputs, paddings=paddings)
+        theta.vq_layer, input_embs, paddings=paddings)
 
     # [B, L, N].
     cluster_ids = jnp.argmin(distances, -1)
 
     # [B, L, D].
-    output_embs = self.ngram_layer.fprop(theta.ngram_layer, cluster_ids, inputs,
-                                         paddings, segment_pos)
+    output_embs = self.ngram_layer.fprop(theta.ngram_layer, cluster_ids,
+                                         input_embs, paddings, segment_pos)
     return output_embs

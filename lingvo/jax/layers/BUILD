@@ -248,6 +248,7 @@ pytype_strict_library(
         ":attentions",
         ":embedding_softmax",
         ":linears",
+        ":ngrammer",
         ":normalizations",
         ":recurrent",
         ":repeats",
@@ -428,10 +429,11 @@ py_strict_test(
     name = "transformers_test",
     srcs = ["transformers_test.py"],
     python_version = "PY3",
-    shard_count = 4,
+    shard_count = 6,
     srcs_version = "PY3",
     deps = [
         ":attentions",
+        ":ngrammer",
         ":transformers",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
