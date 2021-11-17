@@ -955,16 +955,8 @@ class DecodeProgram(BaseProgram):
       # Run the infeed loop in the same function that runs the training loop
       # so that infeed enqueue/dequeue ops are created by the same
       # InfeedQueue.
-      def InfeedBody(i):
-        self._task.input.CreateTpuEnqueueOps()
-        self._task.input.CreateCpuPassthroughEnqueueOps()
-        # Auto control dependency may not support TPU infeed ops, so add the
-        # dependency manually.
-        with tf.control_dependencies(self._task.input.tpu_infeed_op):
-          return i + 1
-
-      tf.while_loop(
-          cond=lambda i: i < 1, body=InfeedBody, loop_vars=[tf.constant(0)])
+      self._task.input.CreateTpuEnqueueOps()
+      self._task.input.CreateCpuPassthroughEnqueueOps()
 
     self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
         _DecodeFn,
