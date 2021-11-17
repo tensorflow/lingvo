@@ -526,13 +526,20 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       assert p.weight_split_dims_mapping is not None
       assert p.activation_split_dims_mapping is not None
 
+    if isinstance(p.weight_split_dims_mapping, dict):
+      qkv_weight_split_dims_mapping = p.weight_split_dims_mapping['qkv']
+      post_weight_split_dims_mapping = p.weight_split_dims_mapping['post']
+    else:
+      qkv_weight_split_dims_mapping = p.weight_split_dims_mapping
+      post_weight_split_dims_mapping = p.weight_split_dims_mapping
+
     def ProjectInput(input_dim):
       return p.proj_tpl.Copy().Set(
           input_dim=input_dim,
           num_heads=p.num_heads,
           use_bias=p.use_bias,
           device_mesh=p.device_mesh,
-          weight_split_dims_mapping=p.weight_split_dims_mapping,
+          weight_split_dims_mapping=qkv_weight_split_dims_mapping,
           make_output_proj_no_op=False)
 
     if isinstance(p.input_dim, dict):
@@ -567,7 +574,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             is_output_projection=True,
             use_bias=p.use_bias,
             device_mesh=p.device_mesh,
-            weight_split_dims_mapping=p.weight_split_dims_mapping))
+            weight_split_dims_mapping=post_weight_split_dims_mapping))
 
   @property
   def dim_per_head(self):
