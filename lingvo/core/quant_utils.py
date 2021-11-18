@@ -205,7 +205,7 @@ class QuantizableLayer(base_layer.BaseLayer):
       *t_names: Positional parameters are taken to be QTensor names to create.
       domain: name of the qdomain to use
     """
-    qd = self.GetQDomain(domain)
+    qd = self._GetQDomain(domain)
     for t_name in t_names:
       self._tracked_tensors[t_name] = qd
       if qd:
@@ -230,7 +230,7 @@ class QuantizableLayer(base_layer.BaseLayer):
       domain: Custom domain to match (defaults to 'weight').
       legacy_aqt_w_name: Used for compatibility with old checkpoints.
     """
-    qd = self.GetQDomain(domain)
+    qd = self._GetQDomain(domain)
     self._aqt_weights[w_name] = qd
     if qd:
       qd.CreateTensorWithShape(w_name, shape, feature_axis, legacy_aqt_w_name)
@@ -248,47 +248,14 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       The tensor, quantized.
     """
-    return self.QTensorMulti(t_name, t, eval_only=eval_only)[0]
-
-  def QTensorMulti(self, t_name, *ts, eval_only=False):
-    """Quantizes multiple tensors simultaneously.
-
-    t_name must have been previously created via TrackQTensor.
-
-    This is different from multiple calls to QTensor because each of the
-    tensors will contribute to the min/max of the same constraint.
-    Typically used for tensors that are being added together.
-
-    Args:
-      t_name: Previously created QTensor t_name to quantize to.
-      *ts: Tensor to quantize.
-      eval_only: Whether to only apply quantization pressure at eval time.
-    Returns:
-      Tuple of quantized tensors.
-    """
     assert t_name in self._tracked_tensors, (
         ('Call to QTensor without first calling TrackQTensor: %s '
          '(all known = %r)') % (t_name, list(self._tracked_tensors.keys())))
     qd = self._tracked_tensors[t_name]
     if not qd:
-      return ts
-    return qd.QuantizeTensors(t_name, ts, eval_only=eval_only)
-
-  def GetQTensorRange(self, t_name, ts):
-    """Returns the range for a quantized tensor.
-
-    t_name must have been previously create via TrackQTensor and t should be
-    previously quantized.
-
-    Args:
-      t_name: Preivously created QTensor t_name to fetch range from.
-      ts: Tensor to retrieve range from.
-
-    Returns:
-      The (min, max) range of the quantized tensor.
-    """
-    qd = self._tracked_tensors[t_name]
-    return qd.GetTensorRange(t_name, ts)
+      return t
+    else:
+      return qd.QuantizeTensors(t_name, [t], eval_only=eval_only)[0]
 
   def QWeight(self, w, domain='weight'):
     """Quantizes a weight.
@@ -299,43 +266,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       The weights quantized.
     """
-    qd = self.GetQDomain(domain)
+    qd = self._GetQDomain(domain)
     return qd.QuantizeWeight(w) if qd else w
-
-  # TODO(shivaniagrawal): This helper function is not being used anywhere. We
-  # are keeping here since it is fast-and easy way to assert model quality
-  # after AQT weights quantization. But note that using it is likely to be less
-  # performant than using ToAqt and FromAqt around matmul
-  # (compare existing code).
-  def FqWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
-    """AQT Quantized weight FQ style.
-
-    This is analogous to QWeight; either AqtWeight or QWeight should be identity
-    for all domains. AqtQDomain additionally supports per channel quantization.
-
-    w_name must have been previously created via CreateAqtWeight.
-
-    Args:
-      w_name: Previously created w_name QWeight to quantize weight.
-      w: The weight tensor.
-      feature_axis: axis corresponding to output channel/feature for weights.
-      expected_scale_shape: Optional shape to verify if scale shape is as
-        expected. Defaults to None.
-
-    Returns:
-      Quantized weights.
-    """
-    assert w_name in self._aqt_weights, (
-        ('Call to AqtWeight without first calling CreateAqtWeight: %s '
-         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
-    qd = self._aqt_weights[w_name]
-    if not qd:
-      return w
-    return qd.FqWeight(
-        w_name,
-        w,
-        feature_axis=feature_axis,
-        expected_scale_shape=expected_scale_shape)
 
   def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
     """Quantized integer weight AQT style.
@@ -541,7 +473,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Quantized activations corresponding to act_lhs and act_rhs.
     """
-    qd = self.GetQDomain(domain)
+    qd = self._GetQDomain(domain)
     if not qd:
       return act_lhs, act_rhs
 
@@ -561,13 +493,13 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Rescaled output.
     """
-    qd = self.GetQDomain(domain)
+    qd = self._GetQDomain(domain)
     if not qd:
       return output
 
     return qd.FromAqtActActMatmul(output)
 
-  def GetQDomain(self, domain):
+  def _GetQDomain(self, domain):
     """Gets the QDomain matching a given domain name.
 
     Args:
@@ -601,7 +533,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
   def QRAct(self, act, dist: QDistribution, domain: str = 'default'):
     """Quantizes act according to its distribution."""
-    qd = self.GetQDomain(domain)
+    qd = self._GetQDomain(domain)
     return act if qd is None else qd.QRAct(act, dist)
 
   def _AddQuantizationFunctions(self):
@@ -634,7 +566,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         if qout_name is not None:
           y = self.QTensor(qout_name, y)
         elif qmin is not None:
-          qd = self.GetQDomain(qdomain)
+          qd = self._GetQDomain(qdomain)
           if qd:
             y = qd.QuantizeNaturalRange(y, qmin, qmax)
         else:
@@ -775,21 +707,6 @@ class QDomain(base_layer.BaseLayer):
     del w_name
     return output
 
-  def FqWeight(self, w_name, w, feature_axis, expected_scale_shape):
-    """AQT Quantized weight FQ style .
-
-    Args:
-      w_name: weight name.
-      w: The weight tensor.
-      feature_axis: axis corresponding to output channel/feature for weights.
-      expected_scale_shape: Optional shape to verify if scale shape is expected.
-
-    Returns:
-      Quantized weights.
-    """
-    del feature_axis, expected_scale_shape, w_name
-    return w
-
   def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape):
     """Quantized weight AQT style.
 
@@ -924,22 +841,6 @@ class QDomain(base_layer.BaseLayer):
       Quantized tensors.
     """
     return ts
-
-  def GetTensorRange(self, t_name, ts):
-    """Retrieves the range of a tensor given the t_name used by CreateTensor.
-
-    Note, this computes the batch range across the list of tensors at training
-    time but fetches the stored tensor over time. This depends on
-    QuantizeTensors updating the appropriate value.
-
-    Args:
-      t_name: Tensor name.
-      ts: Tensor to determine the range for.
-
-    Returns:
-      A min-max pair that represents the tensor range.
-    """
-    raise NotImplementedError('Abstract method: NormalizeTensors')
 
 
 class FakeQDomain(QDomain):
@@ -1623,20 +1524,6 @@ class PassiveAsymQDomain(FakeQDomain):
         summary_utils.histogram(
             '%s/%s_%d' % (self._qvars_scope.name, t_name, i), t)
       return ts_out
-
-  def GetTensorRange(self, t_name, ts):
-    # Always straddle a real zero point.
-    if self.do_eval:
-      # At eval/inference time, use the memorized range.
-      # Important: Don't capture these variables in training mode so as to
-      # avoid extra/unnecessary captures.
-      min_var = tf.stop_gradient(self._GetQStateVar(t_name, 'min'))
-      max_var = tf.stop_gradient(self._GetQStateVar(t_name, 'max'))
-      return (min_var, max_var)
-    # Calculate min/max for all tensors.
-    batch_min = tf.minimum(tf.reduce_min(ts), 0.0)
-    batch_max = tf.maximum(tf.reduce_max(ts), 0.0)
-    return (tf.stop_gradient(batch_min), tf.stop_gradient(batch_max))
 
   def PostTrainingStepUpdate(self):
     ops = [super().PostTrainingStepUpdate()]
