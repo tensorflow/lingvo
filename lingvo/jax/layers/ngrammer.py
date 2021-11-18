@@ -239,12 +239,12 @@ class Ngrammer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
-    # If not concatenating ngram embeddings, check the dims are compatible.
-    if not p.concat_ngrams:
-      assert p.ngram_emb_dim == p.dim_per_head
-    else:
-      # Other-wise the ngram_emb_dim must be smaller than dim_per_head.
+    if p.concat_ngrams:
+      # The ngram_emb_dim must be smaller than dim_per_head.
       assert p.ngram_emb_dim <= p.dim_per_head
+    else:
+      # If not concatenating ngram embeddings, check the dims are compatible.
+      assert p.ngram_emb_dim == p.dim_per_head
 
     # Create a separate layer norm per head for embedding normalization.
     # Create a separate layer norm per head for ngram embedding normalization.
@@ -403,12 +403,12 @@ class VQNgrammer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
-    # If not concatenating ngram embeddings, check the dims are compatible.
-    if not p.concat_ngrams:
-      assert p.ngram_emb_dim == p.dim_per_head
-    else:
-      # Other-wise the ngram_emb_dim must be smaller than dim_per_head.
+    if p.concat_ngrams:
+      # The ngram_emb_dim must be smaller than dim_per_head.
       assert p.ngram_emb_dim <= p.dim_per_head
+    else:
+      # If not concatenating ngram embeddings, check the dims are compatible.
+      assert p.ngram_emb_dim == p.dim_per_head
 
     # Create VQ layer.
     vq_layer_p = VectorQuantization.Params().Set(
