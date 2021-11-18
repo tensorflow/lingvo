@@ -89,7 +89,8 @@ tf.flags.DEFINE_string(
     'shell: an interactive shell for development; '
     'inspect_evaler: print evaler dataset names; '
     'inspect_decoder: print decoder dataset names; '
-    'inspect_model: print the model params name and shape; '
+    'inspect_model: print the names and shapes of variables for this model; '
+    'inspect_params: print the model params corresponding to each dataset; '
     'write_inference_graph: write inference graphs to logdir.',
     allow_hide_cpp=True)
 
