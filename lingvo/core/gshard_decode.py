@@ -181,6 +181,7 @@ class GShardDecode:
     self.decode_loop = None
     self.saver = None
     self.num_batches = None
+    self.session_timeout_in_ms = None
 
     self._heartbeat = False
     self._saver_reshape = True
@@ -322,7 +323,11 @@ class GShardDecode:
     def run_heartbeat_loop():
       count = 0
       # Set a timeout of 30 seconds for each heartbeat.
-      run_options = tf.RunOptions(timeout_in_ms=30 * 1000)
+      if self.session_timeout_in_ms:
+        timeout_in_ms = self.session_timeout_in_ms
+      else:
+        timeout_in_ms = 30 * 1000
+      run_options = tf.RunOptions(timeout_in_ms=self.session_timeout_in_ms)
       while True:
         try:
           if count % 100 == 0:
