@@ -4049,5 +4049,74 @@ class DivideNoNanTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose([0.5, 0., 0.0, 0.], dy)
 
 
+class MergeDuplicateIdsTest(test_utils.TestCase):
+
+  def testWithDuplicateIds(self):
+    ids_p = tf.placeholder(tf.int32, (None, None))
+    paddings_p = tf.placeholder(tf.float32, (None, None))
+    f_p = tf.placeholder(tf.float32, (None, None, None))
+    ret_ids, ret_paddings, ret_tensors = py_utils.MergeDuplicateIds(
+        ids_p, paddings_p, py_utils.NestedMap(f=f_p))
+    with self.session() as sess:
+      ids = np.array([[1, 2, 2, 3, 9, 9, 5, 6, 2, 0, 0],
+                      [2, 9, 9, 9, 1, 4, 7, 7, 0, 0, 0]],
+                     dtype=np.int32)
+      paddings = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                           [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]],
+                          dtype=np.float32)
+      expected_ids = np.array([[1, 2, 3, 9, 5, 6, 2, 0, 0, 0, 0],
+                               [2, 9, 1, 4, 7, 0, 0, 0, 0, 0, 0]],
+                              dtype=np.int32)
+      expected_paddings = np.array([[0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                                    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]],
+                                   dtype=np.float32)
+      f = np.random.rand(2, 11, 2)
+      indices = np.array([[0, 0], [0, 1], [0, 3], [0, 4], [0, 6], [0, 7],
+                          [0, 8], [1, 0], [1, 1], [1, 4], [1, 5], [1, 6]])
+      new_indices = np.array([[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5],
+                              [0, 6], [1, 0], [1, 1], [1, 2], [1, 3], [1, 4]])
+      expected_f = np.zeros((2, 11, 2))
+      expected_f[new_indices[:, 0], new_indices[:, 1], :] = f[indices[:, 0],
+                                                              indices[:, 1], :]
+      ret_ids, ret_paddings, ret_tensors = sess.run(
+          [ret_ids, ret_paddings, ret_tensors],
+          feed_dict={
+              ids_p: ids,
+              paddings_p: paddings,
+              f_p: f
+          })
+      self.assertAllEqual(ret_ids, expected_ids)
+      self.assertAllClose(ret_paddings, expected_paddings)
+      self.assertAllClose(ret_tensors['f'], expected_f)
+
+  def testWithoutDuplicateIds(self):
+    ids_p = tf.placeholder(tf.int32, (None, None))
+    paddings_p = tf.placeholder(tf.float32, (None, None))
+    f_p = tf.placeholder(tf.float32, (None, None, None))
+    ret_ids, ret_paddings, ret_tensors = py_utils.MergeDuplicateIds(
+        ids_p, paddings_p, py_utils.NestedMap(f=f_p))
+    with self.session() as sess:
+      ids = np.array([[1, 2, 3, 4, 5, 4, 5, 6, 2, 0, 0],
+                      [2, 9, 3, 2, 1, 4, 7, 8, 0, 0, 0]],
+                     dtype=np.int32)
+      paddings = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                           [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1]],
+                          dtype=np.float32)
+      expected_ids = ids
+      expected_paddings = paddings
+      f = np.random.rand(2, 11, 2)
+      expected_f = f * np.expand_dims(1 - paddings, -1)
+      ret_ids, ret_paddings, ret_tensors = sess.run(
+          [ret_ids, ret_paddings, ret_tensors],
+          feed_dict={
+              ids_p: ids,
+              paddings_p: paddings,
+              f_p: f
+          })
+      self.assertAllEqual(ret_ids, expected_ids)
+      self.assertAllClose(ret_paddings, expected_paddings)
+      self.assertAllClose(ret_tensors['f'], expected_f)
+
+
 if __name__ == '__main__':
   test_utils.main()

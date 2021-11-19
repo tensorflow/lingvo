@@ -2558,7 +2558,6 @@ def OverrideVarsFromCheckpoint(all_vars, checkpoint_path,
   load_var_names = '\n'.join(sorted([v.name for _, v in vars_to_load]))
   tf.logging.info(f'Overriding {len(vars_to_load)} vars from '
                   f'{checkpoint_path}:\n{load_var_names}')
-
   savers = []
   while vars_to_load:
     # When restoring, it's possible the same value in the checkpoint
@@ -6590,3 +6589,50 @@ def MergeDictsWithValueCheck(dict1, dict2):
 
   dict1.update(dict2)
   return dict1
+
+
+def MergeDuplicateIds(ids, paddings, extra_tensors=None):
+  """Merge consecutive duplicated ids.
+
+  Given ids = [4, 4, 5, 6, 6, 5, 0, 0] and paddings =[0, 0, 0, 0, 0, 0, 1, 1],
+  this function returns ret_ids = [4, 5, 6, 5, 0, 0, 0, 0] and paddings = [
+  0, 0, 0, 0, 1, 1, 1, 1] by merging consecutive duplicated ids.
+
+  Args:
+    ids: A non-negative tensor of shape [batch, time].
+    paddings: A padding tensor of shape [batch, time] with "0" non padded, and
+      "1" as padded..
+    extra_tensors: A `.NestedMap` containing tensors that need to be
+      deduplicated according to ids, each tensor at least has two dimensions.
+
+  Returns:
+    ret_ids: same as ids.
+    ret_paddings: same as paddings.
+    ret_tensors: same as extra_tensors.
+  """
+  ids = with_dependencies([assert_greater_equal(ids, 0)], ids)
+  prev_ids = tf.pad(ids, [[0, 0], [1, 0]], constant_values=-1)[:, :-1]
+  keep = tf.cast(tf.math.not_equal(ids, prev_ids), tf.int32) * tf.cast(
+      1 - paddings, tf.int32)
+  b, t = GetShape(ids)
+
+  # Generate descend_keep in descending order for each row and set elements in
+  # the matrix to 0 if they are duplicated ids.
+  descend_keep = keep * tf.range(t, 0, -1, dtype=tf.int32)
+  # Get the indices of non-duplicated ids along the time axis.
+  sorted_indices = tf.argsort(descend_keep, stable=True, direction='DESCENDING')
+  # Get the batch indices.
+  batch_indices = tf.tile(tf.expand_dims(tf.range(b), -1), [1, t])
+  # Stack them to get 2-d indices.
+  ids_indices = tf.stack([batch_indices, sorted_indices], axis=2)
+
+  seq_mask = tf.sequence_mask(tf.reduce_sum(keep, axis=-1), t, paddings.dtype)
+  ret_paddings = 1. - seq_mask
+  ret_ids = tf.gather_nd(ids, ids_indices) * tf.cast(seq_mask, ids.dtype)
+  ret_tensors = NestedMap()
+  if extra_tensors:
+    for key, tensor in extra_tensors.items():
+      tensor_mask = ExpandTo(seq_mask, GetRank(tensor))
+      ret_tensors[key] = tf.gather_nd(tensor, ids_indices) * tf.cast(
+          tensor_mask, tensor.dtype)
+  return ret_ids, ret_paddings, ret_tensors
