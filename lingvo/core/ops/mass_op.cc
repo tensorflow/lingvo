@@ -223,7 +223,7 @@ void MassOp::Compute(OpKernelContext* ctx) {
     Ttgt_weights(i, 0) = 1.0;
 
     std::uniform_int_distribution<> vocabdistr(first_unreserved_id_,
-                                               vocab_size_);
+                                               vocab_size_ - 1);
 
     // mask source and target tokens.
     if (std::accumulate(mask.begin(), mask.end(), 0) > 0) {
