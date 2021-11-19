@@ -652,6 +652,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
           enqueue_ops += tpu_embedding.generate_enqueue_ops(
               enqueue_data, mode_override=self._tpu_embedding_mode)
 
+    if p.tpu_infeed_parallelism > 1:
+      raise ValueError(
+          f'TPU infeed parallelism {p.tpu_infeed_parallelism} is not supported '
+          'when TPU embedding is used, as it may cause mismatch between '
+          'regular input batch and TPU embedding input batch.')
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
   def _GetTpuEmbeddingEnqueueData(self, tpu_embedding, input_batch, num_splits):
@@ -775,6 +780,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
         self._host_queues[task_id] = host_queue
         if not skip_enqueue:
           enqueue_ops += [host_queue.enqueue(py_utils.Flatten(batch))]
+
+    if p.tpu_infeed_parallelism > 1:
+      raise ValueError(
+          f'TPU infeed parallelism {p.tpu_infeed_parallelism} is not supported '
+          'when cpu passthrough queue is used, as it may cause mismatch '
+          'between regular input batch and the passthrough batch.')
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
   def DequeueCpuPassthrough(self, concat=True):
