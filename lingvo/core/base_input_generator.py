@@ -58,6 +58,27 @@ DEFAULT_TOKENIZER_KEY = 'default'
 INPUT_DATA_STATS_SUMMARIES_COLLECTION = 'INPUT_DATA_STATS_SUMMARIES'
 
 
+# TODO(ylc/zhifengc): Add this to a policy module and test it.
+def _PerHostInfeedTPUOrdinalFunction(use_per_core_infeed, task_id,
+                                     shard_index_in_host):
+  """Get the TPU ordinal for an input shard generated for the given task."""
+  tpu_ordinal = -1
+  if use_per_core_infeed:
+    tpu_ordinal = shard_index_in_host
+  else:
+    device_assignment = py_utils.GetTpuDeviceAssignment()
+    if device_assignment:
+      # We put both enqueue/dequeue ops at core 0 in each replica.
+      replica = device_assignment.lookup_replicas(task_id,
+                                                  0)[shard_index_in_host]
+      tpu_ordinal = device_assignment.tpu_ordinal(replica=replica)
+    else:
+      tpu_ordinal = shard_index_in_host
+  tf.logging.info(f'shard_index_in_host ({shard_index_in_host}) -> '
+                  f'tpu_ordinal ({tpu_ordinal})')
+  return tpu_ordinal
+
+
 class BaseInputGenerator(base_layer.BaseLayer):
   """The abstract base input generator."""
 
@@ -499,40 +520,29 @@ class BaseInputGenerator(base_layer.BaseLayer):
             assert len(batch) == 1
             input_ops = q.generate_enqueue_ops([batch[0].Flatten()])
           elif p.use_per_host_infeed:
-            # TODO(ylc/zhifengc): Add this to a policy module and test it.
-            def TPUOrdinalFunction(task_id, shard_index_in_host):
-              if p.use_per_core_infeed:
-                return shard_index_in_host
-              device_assignment = py_utils.GetTpuDeviceAssignment()
-              if device_assignment:
-                # We put both enqueue/dequeue ops at core 0 in each replica.
-                replica = device_assignment.lookup_replicas(
-                    task_id, 0)[shard_index_in_host]
-                return device_assignment.tpu_ordinal(replica=replica)
-              else:
-                return shard_index_in_host
-
             def HostPlacementFunction(host_device, x):
               del x  # Unused.
               return host_device
 
             if len(batch) > 1:
               # In this case, the `shard_index_in_host` argument of
-              # `TPUOrdinalFunction` is the index of a sharded batch in the
-              # `batch` list.
+              # `_PerHostInfeedTPUOrdinalFunction` is the index of a sharded
+              # batch in the `batch` list.
               input_ops = q.generate_enqueue_ops(
                   [b.Flatten() for b in batch],
                   placement_function=functools.partial(HostPlacementFunction,
                                                        host_device),
                   tpu_ordinal_function=functools.partial(
-                      TPUOrdinalFunction, task_id))
+                      _PerHostInfeedTPUOrdinalFunction, p.use_per_core_infeed,
+                      task_id))
             else:
               input_ops = q.split_inputs_and_generate_enqueue_ops(
                   batch[0].Flatten(),
                   placement_function=functools.partial(HostPlacementFunction,
                                                        host_device),
                   tpu_ordinal_function=functools.partial(
-                      TPUOrdinalFunction, task_id))
+                      _PerHostInfeedTPUOrdinalFunction, p.use_per_core_infeed,
+                      task_id))
           else:
             assert len(batch) == 1
             input_ops = q.split_inputs_and_generate_enqueue_ops(
@@ -649,6 +659,15 @@ class BaseInputGenerator(base_layer.BaseLayer):
           tf.logging.info('host_device: %s, batch: %r', host_device, batch)
           enqueue_data = self._GetTpuEmbeddingEnqueueData(
               tpu_embedding, batch, tpu_embedding.num_cores_per_host)
+          if p.use_per_host_infeed:
+            # Need to match the ordinal selection mechanism used by
+            # CreateTpuEnqueueOps.
+            ordinal_indexed_enqueue_data = [None] * len(enqueue_data)
+            for i, data in enumerate(enqueue_data):
+              tpu_ordinal = _PerHostInfeedTPUOrdinalFunction(
+                  p.use_per_core_infeed, task_id, i)
+              ordinal_indexed_enqueue_data[tpu_ordinal] = data
+            enqueue_data = ordinal_indexed_enqueue_data
           enqueue_ops += tpu_embedding.generate_enqueue_ops(
               enqueue_data, mode_override=self._tpu_embedding_mode)
 
