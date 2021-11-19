@@ -364,7 +364,10 @@ class NestedMap(Dict[str, Any]):
 
   def Pack(self: NestedMapT, lst: Sequence[Any]) -> NestedMapT:
     """Returns a copy of this with each value replaced by a value in lst."""
-    assert len(self.FlattenItems()) == len(lst)
+    if len(self.FlattenItems()) != len(lst):
+      raise ValueError(
+          f'Template contains keys {[k for k, _ in self.FlattenItems()]} that '
+          f'does not match length of values to pack {lst}.')
     v_iter = iter(lst)
     return self._RecursiveMap(lambda unused_k, unused_v: next(v_iter))
 

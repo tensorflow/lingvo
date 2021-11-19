@@ -963,7 +963,10 @@ class DecodeProgram(BaseProgram):
         num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())
 
-    decode_tensors = self.decode_nm.Pack(batch_parallel_res)
+    if self.decode_nm:
+      decode_tensors = self.decode_nm.Pack(batch_parallel_res)
+    else:
+      decode_tensors = py_utils.NestedMap()
     cpu_pt = self._task.input.DequeueCpuPassthrough()
     return decode_tensors, cpu_pt
 
@@ -1170,6 +1173,10 @@ class DecodeProgram(BaseProgram):
             self._InfeedLoop, args=(sess,))
 
     dec_metrics = self._task.CreateDecoderMetrics()
+    if not dec_metrics:
+      tf.logging.info('Empty decoder metrics')
+      return
+
     dec_metrics.update({
         'decode_secs': metrics.AverageMetric(),
         'postprocess_secs': metrics.AverageMetric(),
