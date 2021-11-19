@@ -79,15 +79,16 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
     if issubclass(train_cfg.cls, base_model.MultiTaskModel):
       multi_task_train_cfg = train_cfg
 
-      if multi_task_train_cfg.train.ema_decay > 0:
-        # Check that all subtasks use the same ema settings.
-        for task_name, task_params in (
-            multi_task_train_cfg.task_params.IterParams()):
-          for field in ['ema_decay', 'ema_decay_moving_vars']:
-            if (task_params.train.Get(field) !=
-                multi_task_train_cfg.train.Get(field)):
-              raise ValueError('Params did not match for field %s in task %s' %
-                               (field, task_name))
+      # Check that all subtasks use the same ema settings.
+      for task_name, task_params in (
+          multi_task_train_cfg.task_params.IterParams()):
+        for field in ['ema_decay', 'ema_decay_moving_vars']:
+          model_value = multi_task_train_cfg.train.Get(field)
+          task_value = task_params.train.Get(field)
+          if task_value != model_value:
+            raise ValueError(
+                f'Params {field} does not match. Value in model: '
+                f'{model_value}, value in task {task_name}: {task_value}')
 
       for k, _ in multi_task_train_cfg.task_params.IterParams():
         if multi_task_train_cfg.share_model_object:
