@@ -250,6 +250,19 @@ pytype_strict_library(
     ],
 )
 
+py_strict_test(
+    name = "partitioning_test",
+    srcs = ["partitioning_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":partitioning",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+    ],
+)
+
 pytype_strict_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
