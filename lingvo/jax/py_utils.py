@@ -15,6 +15,7 @@
 # ==============================================================================
 """Python utility functions for JAX which contains minimal TF lingvo deps."""
 
+import functools
 from typing import Any
 import zlib
 
@@ -64,6 +65,11 @@ def _unzip2(xys):
 jax.tree_util.register_pytree_node(NestedMap,
                                    lambda xs: _unzip2(sorted(xs.items()))[::-1],
                                    lambda keys, xs: NestedMap(zip(keys, xs)))
+
+
+@functools.partial(functools.partial, jax.tree_map)
+def assert_same_shape_and_dtype(x, y):
+  assert x.shape == y.shape and x.dtype == y.dtype
 
 
 def reshard(array: jnp.ndarray) -> np.ndarray:

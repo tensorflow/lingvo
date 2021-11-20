@@ -23,6 +23,7 @@ pytype_strict_library(
         ":linears",
         ":ngrammer",
         ":normalizations",
+        ":pipeline",
         ":poolings",
         ":recurrent",
         ":repeats",
@@ -146,6 +147,19 @@ pytype_strict_library(
     srcs = ["normalizations.py"],
     srcs_version = "PY3",
     deps = [
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+    ],
+)
+
+pytype_strict_library(
+    name = "pipeline",
+    srcs = ["pipeline.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":recurrent",
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",

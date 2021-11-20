@@ -51,6 +51,8 @@ from lingvo.jax.layers.normalizations import BatchNorm
 from lingvo.jax.layers.normalizations import compute_moments
 from lingvo.jax.layers.normalizations import LayerNorm
 
+from lingvo.jax.layers.pipeline import LayerwiseShardablePipelined
+
 from lingvo.jax.layers.poolings import GlobalPooling
 from lingvo.jax.layers.poolings import Pooling
 
