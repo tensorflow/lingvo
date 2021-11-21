@@ -263,7 +263,6 @@ pytype_strict_library(
         ":attentions",
         ":embedding_softmax",
         ":linears",
-        ":ngrammer",
         ":normalizations",
         ":recurrent",
         ":repeats",

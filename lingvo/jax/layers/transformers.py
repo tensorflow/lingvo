@@ -29,7 +29,6 @@ from lingvo.jax.layers import activations as activations_lib
 from lingvo.jax.layers import attentions
 from lingvo.jax.layers import embedding_softmax
 from lingvo.jax.layers import linears
-from lingvo.jax.layers import ngrammer
 from lingvo.jax.layers import normalizations
 from lingvo.jax.layers import recurrent
 from lingvo.jax.layers import repeats
@@ -1410,11 +1409,11 @@ class TransformerLm(base_layer.BaseLayer):
     p.Define('packed_input', False, 'Whether the inputs are packed.')
     p.Define('aux_loss_weight', 0.0, 'Weight of the aux loss for MoE layers.')
     p.Define('masked_lm', False, 'Whether this is BERT style masked LM.')
-    p.Define('use_ngrammer', False, 'Whether to use n-grammer embeddings.')
     p.Define(
-        'ngrammer_tpl', ngrammer.Ngrammer.Params(),
-        'Params for the N-Grammer layer. This param is shared between'
-        'the Ngrammer layer as well as the VQNgrammer layer.')
+        'ngrammer_tpl', None,
+        'Params for the Ngrammer layer. This param is shared between'
+        'the Ngrammer layer as well as the VQNgrammer layer. If this is None'
+        'then the Ngrammer layer is not used.')
     return p
 
   @classmethod
@@ -1522,7 +1521,7 @@ class TransformerLm(base_layer.BaseLayer):
       self.create_child('position_emb', params)
 
     # Ngrammer layer.
-    if p.use_ngrammer:
+    if p.ngrammer_tpl is not None:
       self.create_child('ngrammer', p.ngrammer_tpl)
 
     # Transformer layers
@@ -1661,7 +1660,7 @@ class TransformerLm(base_layer.BaseLayer):
             jnp.arange(seq_length, dtype=jnp.int32)[None, :], [batch, 1])
 
       # Add ngrams.
-      if p.use_ngrammer:
+      if p.ngrammer_tpl is not None:
         input_emb = self.ngrammer.fprop(
             theta.ngrammer,
             input_ids=inputs,
@@ -1730,7 +1729,7 @@ class TransformerLm(base_layer.BaseLayer):
     time_step = cached_states.step
 
     # Add Ngrammer layer if applicable.
-    if p.use_ngrammer:
+    if p.ngrammer_tpl is not None:
       input_emb = self.ngrammer.fprop(
           theta.ngrammer, inputs, input_emb, paddings=None, segment_pos=None)
       inputs = inputs[:, -1][:, jnp.newaxis]

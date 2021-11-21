@@ -781,7 +781,6 @@ class TransformersTest(test_util.JaxTestCase):
         num_layers=num_layers,
         masked_lm=False,
         packed_input=False,
-        use_ngrammer=True,
         ngrammer_tpl=ngrammer_params,
         vocab_size=vocab_size)
     # Rotary position embedding.
@@ -831,7 +830,6 @@ class TransformersTest(test_util.JaxTestCase):
         num_layers=num_layers,
         masked_lm=False,
         packed_input=False,
-        use_ngrammer=False,
         vocab_size=vocab_size)
     seq_len = 16
     batch_size = 3
@@ -898,7 +896,6 @@ class TransformersTest(test_util.JaxTestCase):
         num_layers=num_layers,
         masked_lm=False,
         packed_input=False,
-        use_ngrammer=True,
         ngrammer_tpl=ngrammer_params,
         vocab_size=vocab_size)
     seq_len = 8
