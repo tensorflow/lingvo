@@ -755,13 +755,16 @@ class Transformer(base_layer.BaseLayer):
       self.create_child('cross_layer_norm', params)
 
       params = p.tr_atten_tpl.Copy()
-      params.name = 'multihead_self_atten'
+      params.name = 'multihead_cross_atten'
       params.input_dim = p.input_dims
       params.hidden_dim = p.input_dims
       params.num_heads = p.num_heads
       params.atten_dropout_prob = p.atten_dropout_prob
       # Note that cross attention should not use any position embeddings.
       params.use_rotary_position_emb = False
+      # Note that cross attention currently does not support dconv.
+      # TODO(aurkor): Extend dconv for the cross attention case.
+      params.dconv_qkv = False
       self.create_child('cross_attention', params)
 
     # Initialize feed-forward layer
@@ -1716,6 +1719,10 @@ class TransformerLm(base_layer.BaseLayer):
       xent_output: A `.NestedMap` object containing the log probabilities and
         probabilities.
     """
+    p = self.params
+    # Extend step should only be called with causal LM.
+    assert not p.masked_lm
+
     if len(inputs.shape) == 1:
       inputs = inputs[:, jnp.newaxis]
 
@@ -1723,18 +1730,22 @@ class TransformerLm(base_layer.BaseLayer):
     time_step = cached_states.step
 
     # Add Ngrammer layer if applicable.
-    if self.params.use_ngrammer:
+    if p.use_ngrammer:
       input_emb = self.ngrammer.fprop(
           theta.ngrammer, inputs, input_emb, paddings=None, segment_pos=None)
       inputs = inputs[:, -1][:, jnp.newaxis]
       input_emb = input_emb[:, -1, :][:, jnp.newaxis, :]
 
-    # During autoregressive decoding inputs are not packed.
-    segment_pos = jnp.zeros((inputs.shape[0], 1)) + time_step
-    position_emb = self.position_emb.fprop(
-        theta.position_emb, seq_length=1, position=segment_pos)
+    if p.position_emb_tpl is not None:
+      # During autoregressive decoding inputs are not packed.
+      segment_pos = jnp.zeros((inputs.shape[0], 1)) + time_step
+      position_emb = self.position_emb.fprop(
+          theta.position_emb, seq_length=1, position=segment_pos)
 
-    inputs = input_emb + position_emb
+      inputs = input_emb + position_emb
+    else:
+      inputs = input_emb
+
     updated_cache, outputs = self.transformer.extend_step(
         theta.transformer,
         cached_states.transformer,

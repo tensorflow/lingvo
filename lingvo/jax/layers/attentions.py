@@ -14,7 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Attention layers."""
-
 import functools
 import string
 from typing import Optional, Tuple, Union
@@ -453,7 +452,8 @@ class DotProductAttention(base_layer.BaseLayer):
              'projection layer.')
     p.Define(
         'dconv_qkv', False, 'If True then apply a depth-wise convolution of '
-        '`dconv_kernel_size`x1 after the key, query and value projection.')
+        '`dconv_kernel_size`x1 after the key, query and value projection. Note'
+        'that this is currently only supported for self-attention.')
     p.Define(
         'dconv_kernel_size', 3, 'Size of the kernel window over the sequence '
         'dimension in the depth-wise convolution.')
@@ -821,6 +821,7 @@ class DotProductAttention(base_layer.BaseLayer):
       key_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
                                                 key_proj)
 
+    # Apply depth-wise convolution as in Primer.
     if p.dconv_qkv:
       query_proj = self.dconv_q.fprop(theta.dconv_q, query_proj, axis=1)
       key_proj = self.dconv_k.fprop(theta.dconv_k, key_proj, axis=1)
@@ -838,7 +839,20 @@ class DotProductAttention(base_layer.BaseLayer):
 
   def init_states(self, theta: NestedMap, target_batch_size: int,
                   target_max_length: int) -> NestedMap:
-    """Initializes cache for autoregressive cached decoding."""
+    """Initializes cache for autoregressive cached decoding.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      target_batch_size: The batch size of the target to be decoded.
+      target_max_length: The sequence length of the target to be decoded.
+
+    Returns:
+      The cache as a `.NestedMap` with key and value initialized. In
+      addition if we are using depth-wise convolution as in Primer, then we also
+      cache the query, as well as the queries, keys and values post application
+      of depth-wise convolution.
+    """
     p = self.params
     num_heads = p.num_heads
     atten_dim = p.hidden_dim
@@ -851,9 +865,31 @@ class DotProductAttention(base_layer.BaseLayer):
     value = jnp.zeros(
         shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
         dtype=dtype)
-    key = self._shard_lbnh(key)
-    value = self._shard_lbnh(value)
-    return NestedMap(key=key, value=value)
+    cache = NestedMap(key=key, value=value)
+    if p.dconv_qkv:
+      # If using depth-wise convolution, we need to cache the query.
+      query = jnp.zeros(
+          shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
+          dtype=dtype)
+      cache.query = query
+      # Additionally, we also cache the post depth-wise convolution queries,
+      # keys and values, so that we don't need to compute the convolution for
+      # previous time steps in the sequence.
+      query_post_dconv = jnp.zeros(
+          shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
+          dtype=dtype)
+      cache.query_post_dconv = query_post_dconv
+      key_post_dconv = jnp.zeros(
+          shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
+          dtype=dtype)
+      cache.key_post_dconv = key_post_dconv
+      value_post_dconv = jnp.zeros(
+          shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
+          dtype=dtype)
+      cache.value_post_dconv = value_post_dconv
+    # Add sharding annotations for all elements in the cache.
+    cache = jax.tree_map(self._shard_lbnh, cache)
+    return cache
 
   def extend_step(self, theta: NestedMap, cached_states: NestedMap,
                   query_vec: JTensor, *, atten_mask: JTensor,
@@ -868,67 +904,86 @@ class DotProductAttention(base_layer.BaseLayer):
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for fast decoding. Contains key of
         shape [T, B, N, H] and value of shape [T, B, N, H].
-      query_vec: JTensor of shape [B, D] or [B, P, D] where P corresponds to a
-        prefix of previous P queries. Such a formulation may be convenient when
-        we want to apply a convolution on the queries over a window of size P,
-        e.g., in convolution augmented Transformer or Primer.
+      query_vec: JTensor of shape [B, D] corresponding to query vector
+        at index time_step.
       atten_mask: JTensor of shape [B, 1, T, S]. atten_mask should have already
         taken care of causal masking for decoding, plus other maskings
         necessary.
       time_step: A scalar or JTensor. Current time-step, 0-based.
 
     Returns:
-      updated_cache_states: A `.NestedMap` of key and value pair.
-      encoded: JTensor of shape [B, D].
+      updated_states: A `.NestedMap` of key and value pair updated at
+        `time_step`. In addition if we are using depth-wise convolution as in
+        Primer, then we also update the query, as well as the queries, keys and
+        values post application of depth-wise convolution at `time_step`.
+      encoded: JTensor of shape [B, D] which returns the attention output at
+        `time_step`.
     """
     p = self.params
     time_step = jnp.array(time_step)
     assert time_step.ndim == 0
-
     if p.combine_qkv:
       # Project inputs to key, value and query using a combined weight for
       # faster performance on TPU.
-      query_proj, new_key_proj, new_value_proj = self.combined_qkv.fprop(
+      new_query_proj, new_key_proj, new_value_proj = self.combined_qkv.fprop(
           theta.combined_qkv, query_vec)
     else:
       # Project inputs to key, value and query. Each has shape [B, N, H].
-      # If the query has a prefix, e.g., in decoding with depth-wise convolution
-      # then each tensor has shape [B, P, N, H].
       new_key_proj = self.key.fprop(theta.key, query_vec)
       new_value_proj = self.value.fprop(theta.value, query_vec)
-      query_proj = self.query.fprop(theta.query, query_vec)
+      new_query_proj = self.query.fprop(theta.query, query_vec)
 
     # Apply position embeddings if present.
     if p.use_rotary_position_emb:
-      query_proj = self.rotary_position_emb.extend_step(
-          theta.rotary_position_emb, query_proj, time_step)
+      new_query_proj = self.rotary_position_emb.extend_step(
+          theta.rotary_position_emb, new_query_proj, time_step)
       new_key_proj = self.rotary_position_emb.extend_step(
           theta.rotary_position_emb, new_key_proj, time_step)
 
+    updated_state = NestedMap()
+    updated_state.key = cached_states.key.at[time_step].set(new_key_proj)
+    updated_state.value = cached_states.value.at[time_step].set(new_value_proj)
+    # Add sharding annotations for all elements in the updated state.
+    updated_state = jax.tree_map(self._shard_lbnh, updated_state)
+    extended_key = updated_state.key
+    extended_value = updated_state.value
+
+    # Apply depth-wise convolution as in Primer.
     if p.dconv_qkv:
+      # Assert that the queries are also cached.
+      assert 'query' in cached_states
+
+      # Assert that queries, keys and values post dconv are also cached.
+      assert 'query_post_dconv' in cached_states
+      assert 'key_post_dconv' in cached_states
+      assert 'value_post_dconv' in cached_states
+
+      # Update query in cache.
+      updated_state.query = cached_states.query.at[time_step].set(
+          new_query_proj)
+
       # Aggregate depth-wise convolution for keys and values at time step.
-      window_size = new_key_proj.shape[1]
-      assert window_size == p.dconv_kernel_size
-      # The step here is the step in the prefix window (kernel size) and is not
-      # related to `time_step`, since the `query_vec` is the same size as the
-      # convolution window and the current position being decoded is always the
-      # last one (due to causal window).
-      step = window_size - 1
+      new_query_proj = self.dconv_q.extend_step(
+          theta.dconv_q, updated_state.query, axis=0, step=time_step)
       new_key_proj = self.dconv_k.extend_step(
-          theta.dconv_k, new_key_proj, axis=1, step=step)
+          theta.dconv_k, updated_state.key, axis=0, step=time_step)
       new_value_proj = self.dconv_v.extend_step(
-          theta.dconv_v, new_value_proj, axis=1, step=step)
-      query_proj = self.dconv_q.extend_step(
-          theta.dconv_q, query_proj, axis=1, step=step)
+          theta.dconv_v, updated_state.value, axis=0, step=time_step)
 
-    extended_key = cached_states.key.at[time_step].set(new_key_proj)
-    extended_value = cached_states.value.at[time_step].set(new_value_proj)
+      # Update queries, keys and values post dconv in cache.
+      updated_state.query_post_dconv = cached_states.query_post_dconv.at[
+          time_step].set(new_query_proj)
+      updated_state.key_post_dconv = cached_states.key_post_dconv.at[
+          time_step].set(new_key_proj)
+      updated_state.value_post_dconv = cached_states.value_post_dconv.at[
+          time_step].set(new_value_proj)
 
-    extended_key = self._shard_lbnh(extended_key)
-    extended_value = self._shard_lbnh(extended_value)
-    updated_state = NestedMap(key=extended_key, value=extended_value)
+      # Add sharding annotations for all elements in the updated state.
+      updated_state = jax.tree_map(self._shard_lbnh, updated_state)
+      extended_key = updated_state.key_post_dconv
+      extended_value = updated_state.value_post_dconv
 
-    encoded, atten_prob = self._dot_atten_one_step(theta, query_proj,
+    encoded, atten_prob = self._dot_atten_one_step(theta, new_query_proj,
                                                    extended_key, extended_value,
                                                    atten_mask)
     # TODO(yonghui): return atten_probs back to the caller.

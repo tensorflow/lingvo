@@ -147,9 +147,11 @@ class TransformersTest(test_util.JaxTestCase):
     tf_np_outputs = test_utils.to_np(tf_output)
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-5)
 
-  @parameterized.parameters((True, True), (False, True), (True, False),
-                            (False, False))
-  def test_transformer_layer_extendstep(self, packed_input, cross_attention):
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
+  def test_transformer_layer_extendstep(self, packed_input, cross_attention,
+                                        dconv_qkv):
+    # Note that cross attention will automatically switch off dconv_qkv for the
+    # cross attention part.
     p = transformers.Transformer.Params().Set(
         name='jax_transformer_layer',
         input_dims=8,
@@ -158,7 +160,9 @@ class TransformersTest(test_util.JaxTestCase):
         mask_self_attention=True,
         packed_input=packed_input,
         cross_attention=cross_attention)
-    seq_len = 5
+    p.tr_atten_tpl.dconv_qkv = dconv_qkv
+    p.tr_atten_tpl.dconv_kernel_size = 2
+    seq_len = 16
     batch_size = 4
     transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
@@ -170,6 +174,7 @@ class TransformersTest(test_util.JaxTestCase):
     inputs = jnp.asarray(npy_inputs)
     npy_paddings = np.random.randint(0, 1,
                                      [batch_size, seq_len]).astype('float32')
+    # npy_paddings = np.zeros([batch_size, seq_len])
     paddings = jnp.asarray(npy_paddings)
     attention_mask = attentions.convert_paddings_to_mask(paddings)
     segment_mask = None
@@ -302,10 +307,7 @@ class TransformersTest(test_util.JaxTestCase):
         np.var(atten_output_normalized),
         atol=5e-3)
 
-  @parameterized.parameters((True, True, True), (True, False, True),
-                            (True, True, False), (False, True, True),
-                            (True, False, False), (False, True, False),
-                            (False, False, True), (False, False, False))
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
   def test_stacked_transformer_layer(self, mask_self_attention, packed_input,
                                      cross_attention):
     p = transformers.StackedTransformer.Params().Set(
@@ -498,11 +500,12 @@ class TransformersTest(test_util.JaxTestCase):
           cross_segment_mask=cross_segment_mask)
       self.assertAllClose(outputs, outputs_repeated, atol=1e-5)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=5)))
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=6)))
   def test_stacked_transformer_layer_extendstep(self, packed_input,
                                                 cross_attention,
                                                 enable_while_loop,
-                                                use_repeat_layer, combine_qkv):
+                                                use_repeat_layer, combine_qkv,
+                                                dconv_qkv):
     if cross_attention and combine_qkv:
       self.skipTest('combine_qkv optimization only works for self-attention')
     if use_repeat_layer:
@@ -521,6 +524,7 @@ class TransformersTest(test_util.JaxTestCase):
         num_layers=2,
         enable_while_loop=enable_while_loop)
     p.transformer_layer_params_tpl.tr_atten_tpl.combine_qkv = combine_qkv
+    p.transformer_layer_params_tpl.tr_atten_tpl.dconv_qkv = dconv_qkv
     seq_len = 5
     batch_size = 4
     stacked_transformer_layer = p.Instantiate()
@@ -746,9 +750,130 @@ class TransformersTest(test_util.JaxTestCase):
       outputs = ffwd.fprop(initial_vars, inputs, input_paddings)
       logging.info('outputs: %s', outputs)
 
-  @parameterized.parameters((8, 2, 4, 4, 8, False), (8, 2, 4, 4, 8, True))
-  def test_ngrammer_lm_extendstep(self, vocab_size, num_layers, num_heads,
-                                  ngram_emb_dim, dim_per_head, use_vq_ngrams):
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=2)))
+  def test_ngrammer_lm_extendstep(self, use_vq_ngrams, use_rotary_position_emb):
+    vocab_size = 8
+    num_layers = 2
+    num_heads = 2
+    dim_per_head = 8
+    ngram_emb_dim = 4
+    if use_vq_ngrams:
+      ngrammer_params = ngrammer.VQNgrammer.Params().Set(
+          ngram_vocab_size=64,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          num_clusters=2,
+          dim_per_head=dim_per_head)
+    else:
+      ngrammer_params = ngrammer.Ngrammer.Params().Set(
+          ngram_vocab_size=64,
+          unigram_vocab_size=vocab_size,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          dim_per_head=dim_per_head)
+    p = transformers.TransformerLm.Params().Set(
+        name='jax_ngrammer_layer',
+        model_dims=num_heads * dim_per_head,
+        hidden_dims=4 * num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_layers=num_layers,
+        masked_lm=False,
+        packed_input=False,
+        use_ngrammer=True,
+        ngrammer_tpl=ngrammer_params,
+        vocab_size=vocab_size)
+    # Rotary position embedding.
+    params = p.stacked_transformer_tpl.transformer_layer_params_tpl
+    params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
+    seq_len = 8
+    batch_size = 2
+    transformer_lm = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_lm.instantiate_variables(prng_key)
+    initial_states = transformer_lm.init_states(initial_vars, batch_size,
+                                                seq_len)
+    npy_inputs = np.random.randint(
+        vocab_size, size=(batch_size, seq_len)).astype('int32')
+    inputs = jnp.asarray(npy_inputs)
+    context_params = base_layer.JaxContext.Params().Set(do_eval=True)
+    with base_layer.JaxContext.new_context(
+        params=context_params,
+        prng_key=prng_key,
+        global_step=jnp.array(0, dtype=jnp.uint32)):
+      transformer_lm.prepare_fprop()
+      fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
+                                           jnp.zeros_like(inputs))
+      logits = fprop_outputs.logits
+      cached_states = initial_states
+      for t in range(seq_len):
+        if t > 0:
+          inputs_prefix = inputs[:, t - 1:t + 1]
+        else:
+          inputs_prefix = inputs[:, t]
+        cached_states, xent_output = transformer_lm.extend_step(
+            initial_vars, cached_states, inputs_prefix)
+        self.assertAllClose(logits[:, t, :], xent_output.logits)
+
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=1)))
+  def test_primer_lm_extendstep(self, use_rotary_position_emb):
+    vocab_size = 8
+    num_layers = 2
+    num_heads = 2
+    dim_per_head = 4
+    dconv_kernel_size = 3
+    p = transformers.TransformerLm.Params().Set(
+        name='jax_primer_layer',
+        model_dims=num_heads * dim_per_head,
+        hidden_dims=2 * num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_layers=num_layers,
+        masked_lm=False,
+        packed_input=False,
+        use_ngrammer=False,
+        vocab_size=vocab_size)
+    seq_len = 16
+    batch_size = 3
+    # Turn on dconv as in Primer.
+    params = p.stacked_transformer_tpl.transformer_layer_params_tpl
+    params.tr_atten_tpl.dconv_qkv = True
+    # Rotary position embedding.
+    params = p.stacked_transformer_tpl.transformer_layer_params_tpl
+    params.tr_atten_tpl.dconv_kernel_size = dconv_kernel_size
+    params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
+    transformer_lm = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_lm.instantiate_variables(prng_key)
+    initial_states = transformer_lm.init_states(initial_vars, batch_size,
+                                                seq_len)
+    npy_inputs = np.random.randint(
+        vocab_size, size=(batch_size, seq_len)).astype('int32')
+    inputs = jnp.asarray(npy_inputs)
+    context_params = base_layer.JaxContext.Params().Set(do_eval=True)
+    with base_layer.JaxContext.new_context(
+        params=context_params,
+        prng_key=prng_key,
+        global_step=jnp.array(0, dtype=jnp.uint32)):
+      transformer_lm.prepare_fprop()
+      fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
+                                           jnp.zeros_like(inputs))
+      logits = fprop_outputs.logits
+      cached_states = initial_states
+      for t in range(seq_len):
+        cached_states, xent_output = transformer_lm.extend_step(
+            initial_vars, cached_states, inputs[:, t])
+        self.assertAllClose(logits[:, t, :], xent_output.logits)
+
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=2)))
+  def test_ngrammer_primer_lm_extendstep(self, use_vq_ngrams,
+                                         use_rotary_position_emb):
+    vocab_size = 8
+    num_layers = 2
+    num_heads = 2
+    dim_per_head = 8
+    ngram_emb_dim = 4
+    dconv_kernel_size = 3
     if use_vq_ngrams:
       ngrammer_params = ngrammer.VQNgrammer.Params().Set(
           ngram_vocab_size=64,
@@ -778,6 +903,13 @@ class TransformersTest(test_util.JaxTestCase):
         vocab_size=vocab_size)
     seq_len = 8
     batch_size = 2
+    # Turn on dconv as in Primer.
+    params = p.stacked_transformer_tpl.transformer_layer_params_tpl
+    params.tr_atten_tpl.dconv_qkv = True
+    params.tr_atten_tpl.dconv_kernel_size = dconv_kernel_size
+    # Rotary position embedding.
+    params = p.stacked_transformer_tpl.transformer_layer_params_tpl
+    params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
     transformer_lm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = transformer_lm.instantiate_variables(prng_key)

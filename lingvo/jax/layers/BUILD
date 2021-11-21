@@ -52,6 +52,7 @@ pytype_strict_library(
     deps = [
         ":embedding_softmax",
         ":stochastics",
+        # Implicit absl.logging dependency.
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
@@ -443,7 +444,7 @@ py_strict_test(
     name = "transformers_test",
     srcs = ["transformers_test.py"],
     python_version = "PY3",
-    shard_count = 6,
+    shard_count = 12,
     srcs_version = "PY3",
     deps = [
         ":attentions",

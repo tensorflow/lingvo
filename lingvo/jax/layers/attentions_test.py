@@ -282,19 +282,10 @@ class AttentionsTest(test_util.JaxTestCase):
           shape=[target_max_length, target_batch_size, mdl_dim])
       atten_states = initial_states
       for t in range(target_max_length):
-        if dconv_qkv:
-          start = max(0, t + 1 - dconv_kernel_size)
-          end = t + 1
-          query_vec_prefix = query_vec[:, start:end, :]
-          pad_width = dconv_kernel_size - end + start
-          paddings = [(0, 0), (pad_width, 0), (0, 0)]
-          query_vec_prefix = jnp.pad(query_vec_prefix, paddings)
-        else:
-          query_vec_prefix = query_vec[:, t, :]
         atten_states, encoded = layer.extend_step(
             initial_vars,
             atten_states,
-            query_vec=query_vec_prefix,
+            query_vec=query_vec[:, t, :],
             atten_mask=atten_mask[:, :, t, :],
             time_step=t)
         decoder_output = decoder_output.at[t].set(encoded)
