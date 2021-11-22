@@ -28,7 +28,6 @@ from lingvo.jax.layers import embedding_softmax
 from lingvo.jax.layers import stochastics
 import numpy as np
 
-
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
 weight_params = py_utils.weight_params
@@ -452,8 +451,9 @@ class DotProductAttention(base_layer.BaseLayer):
              'projection layer.')
     p.Define(
         'dconv_qkv', False, 'If True then apply a depth-wise convolution of '
-        '`dconv_kernel_size`x1 after the key, query and value projection. Note'
-        'that this is currently only supported for self-attention.')
+        '`dconv_kernel_size`x1 after the key, query and value projection as in'
+        'Primer https://arxiv.org/abs/2109.08668. Note that this is currently'
+        'only supported for self-attention.')
     p.Define(
         'dconv_kernel_size', 3, 'Size of the kernel window over the sequence '
         'dimension in the depth-wise convolution.')
@@ -480,7 +480,7 @@ class DotProductAttention(base_layer.BaseLayer):
     p.Define(
         'use_rotary_position_emb', False, 'Whether to add rotary position'
         'embedding to the queries and keys before computing self attention'
-        'scores.')
+        'scores. This was proposed in https://arxiv.org/abs/2104.09864.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -814,18 +814,20 @@ class DotProductAttention(base_layer.BaseLayer):
       key_proj = self.key.fprop(theta.key, key_vec)
       value_proj = self.value.fprop(theta.value, value_vec)
 
-    # Apply position embeddings if present.
+    # Apply depth-wise convolution as in Primer.
+    # Paper: https://arxiv.org/abs/2109.08668.
+    if p.dconv_qkv:
+      query_proj = self.dconv_q.fprop(theta.dconv_q, query_proj, axis=1)
+      key_proj = self.dconv_k.fprop(theta.dconv_k, key_proj, axis=1)
+      value_proj = self.dconv_v.fprop(theta.dconv_v, value_proj, axis=1)
+
+    # Apply rotary position embeddings.
+    # Paper: https://arxiv.org/abs/2104.09864.
     if p.use_rotary_position_emb:
       query_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
                                                   query_proj)
       key_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
                                                 key_proj)
-
-    # Apply depth-wise convolution as in Primer.
-    if p.dconv_qkv:
-      query_proj = self.dconv_q.fprop(theta.dconv_q, query_proj, axis=1)
-      key_proj = self.dconv_k.fprop(theta.dconv_k, key_proj, axis=1)
-      value_proj = self.dconv_v.fprop(theta.dconv_v, value_proj, axis=1)
 
     encoded, atten_probs = self._dot_atten(theta, query_proj, key_proj,
                                            value_proj, atten_mask)
@@ -866,6 +868,9 @@ class DotProductAttention(base_layer.BaseLayer):
         shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
         dtype=dtype)
     cache = NestedMap(key=key, value=value)
+
+    # Apply depth-wise convolution as in Primer.
+    # Paper: https://arxiv.org/abs/2109.08668.
     if p.dconv_qkv:
       # If using depth-wise convolution, we need to cache the query.
       query = jnp.zeros(
@@ -887,6 +892,17 @@ class DotProductAttention(base_layer.BaseLayer):
           shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
           dtype=dtype)
       cache.value_post_dconv = value_post_dconv
+
+    # Apply rotary position embeddings.
+    # Paper: https://arxiv.org/abs/2104.09864.
+    if p.use_rotary_position_emb:
+      # We only need to cache the key, since query is only needed for that
+      # particular time step.
+      key_post_rotary_pos_emb = jnp.zeros(
+          shape=(target_max_length, target_batch_size, num_heads, dim_per_head),
+          dtype=dtype)
+      cache.key_post_rotary_pos_emb = key_post_rotary_pos_emb
+
     # Add sharding annotations for all elements in the cache.
     cache = jax.tree_map(self._shard_lbnh, cache)
     return cache
@@ -904,8 +920,8 @@ class DotProductAttention(base_layer.BaseLayer):
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for fast decoding. Contains key of
         shape [T, B, N, H] and value of shape [T, B, N, H].
-      query_vec: JTensor of shape [B, D] corresponding to query vector
-        at index time_step.
+      query_vec: JTensor of shape [B, D] corresponding to query vector at index
+        time_step.
       atten_mask: JTensor of shape [B, 1, T, S]. atten_mask should have already
         taken care of causal masking for decoding, plus other maskings
         necessary.
@@ -933,13 +949,6 @@ class DotProductAttention(base_layer.BaseLayer):
       new_value_proj = self.value.fprop(theta.value, query_vec)
       new_query_proj = self.query.fprop(theta.query, query_vec)
 
-    # Apply position embeddings if present.
-    if p.use_rotary_position_emb:
-      new_query_proj = self.rotary_position_emb.extend_step(
-          theta.rotary_position_emb, new_query_proj, time_step)
-      new_key_proj = self.rotary_position_emb.extend_step(
-          theta.rotary_position_emb, new_key_proj, time_step)
-
     updated_state = NestedMap()
     updated_state.key = cached_states.key.at[time_step].set(new_key_proj)
     updated_state.value = cached_states.value.at[time_step].set(new_value_proj)
@@ -949,6 +958,7 @@ class DotProductAttention(base_layer.BaseLayer):
     extended_value = updated_state.value
 
     # Apply depth-wise convolution as in Primer.
+    # Paper: https://arxiv.org/abs/2109.08668.
     if p.dconv_qkv:
       # Assert that the queries are also cached.
       assert 'query' in cached_states
@@ -966,9 +976,9 @@ class DotProductAttention(base_layer.BaseLayer):
       new_query_proj = self.dconv_q.extend_step(
           theta.dconv_q, updated_state.query, axis=0, step=time_step)
       new_key_proj = self.dconv_k.extend_step(
-          theta.dconv_k, updated_state.key, axis=0, step=time_step)
+          theta.dconv_k, extended_key, axis=0, step=time_step)
       new_value_proj = self.dconv_v.extend_step(
-          theta.dconv_v, updated_state.value, axis=0, step=time_step)
+          theta.dconv_v, extended_value, axis=0, step=time_step)
 
       # Update queries, keys and values post dconv in cache.
       updated_state.query_post_dconv = cached_states.query_post_dconv.at[
@@ -983,6 +993,22 @@ class DotProductAttention(base_layer.BaseLayer):
       extended_key = updated_state.key_post_dconv
       extended_value = updated_state.value_post_dconv
 
+    # Apply rotary position embeddings.
+    # Paper: https://arxiv.org/abs/2104.09864.
+    if p.use_rotary_position_emb:
+      new_query_proj = self.rotary_position_emb.extend_step(
+          theta.rotary_position_emb, new_query_proj, time_step)
+      new_key_proj = self.rotary_position_emb.extend_step(
+          theta.rotary_position_emb, new_key_proj, time_step)
+
+      # Update key post rotary position embedding in the cache.
+      updated_state.key_post_rotary_pos_emb = (
+          cached_states.key_post_rotary_pos_emb.at[time_step].set(new_key_proj))
+
+      # Add sharding annotations for all elements in the updated state.
+      updated_state = jax.tree_map(self._shard_lbnh, updated_state)
+      extended_key = updated_state.key_post_rotary_pos_emb
+
     encoded, atten_prob = self._dot_atten_one_step(theta, new_query_proj,
                                                    extended_key, extended_value,
                                                    atten_mask)
@@ -995,7 +1021,10 @@ class DotProductAttention(base_layer.BaseLayer):
 
 
 class CausalDepthwiseConv1D(base_layer.BaseLayer):
-  """Causal depth-wise convolution applied to a 1-d sequence."""
+  """Causal depth-wise convolution applied to a 1-d sequence as in Primer.
+
+  See https://arxiv.org/abs/2109.08668 for more details.
+  """
 
   @classmethod
   def Params(cls) -> InstantiableParams:
