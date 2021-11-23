@@ -404,6 +404,20 @@ class TFDatasetSource(DataSource):
     self._InitIterator()
     if py_utils.GetUnitTestSession():
       self.Initialize(py_utils.GetUnitTestSession())
+    # This piece of code must be run in Eager trainer and `tf.function`
+    if py_utils.IsEagerMode() and not tf.executing_eagerly(
+    ) and py_utils.IsExperimentalIteratorCapture():
+      tf.logging.info('Using calltime capture for the iterator')
+      # TODO(jiaweix): we should consider replacing calltime capture with
+      # explicit iterator arguments to the `tf.function`. (related: b/207421666)
+      # This is because
+      # (1) the current approach relies on a private api;
+      # (2) `capture_call_time_value` does not work well with complex ops e.g.
+      # while_loop - the decode program happens to not rely on while_loop.
+      iter_spec = self._iterator[self.host_id]._type_spec  # pylint: disable=protected-access
+      captured_it = tf.compat.v1.get_default_graph().capture_call_time_value(
+          lambda: self._iterator[self.host_id], iter_spec)
+      return next(captured_it)
     return self._iterator[self.host_id].get_next()
 
 

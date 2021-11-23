@@ -677,6 +677,29 @@ def IsEagerMode():
   return _IS_EAGER_MODE
 
 
+_EXPERIMENTAL_CAPTURE = False
+
+
+def SetExperimentalIteratorCapture(experimental_capture=True):
+  global _EXPERIMENTAL_CAPTURE
+  _EXPERIMENTAL_CAPTURE = experimental_capture
+
+
+def IsExperimentalIteratorCapture():
+  return _EXPERIMENTAL_CAPTURE
+
+
+class ExperimentalIteratorCapture:
+
+  def __enter__(self):
+    global _EXPERIMENTAL_CAPTURE
+    _EXPERIMENTAL_CAPTURE = True
+
+  def __exit__(self, *args):
+    global _EXPERIMENTAL_CAPTURE
+    _EXPERIMENTAL_CAPTURE = False
+
+
 # Maintains a tf.GradientTape stack.
 _GRADIENT_TAPE_STACK = ThreadLocalStack()
 

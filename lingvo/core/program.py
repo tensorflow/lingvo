@@ -753,6 +753,12 @@ class EvalProgram(BaseProgram):
       return self._eval_metrics.FinalizeMetrics(loop_result)
 
     if py_utils.IsEagerMode():
+      if self._task.input.params.resettable:
+        tf.logging.info('Resetting input_generator.')
+        # Reset the iterator within `EvalFunc` to ensure it gets run everytime
+        # the `tf.function` is executed in Eager mode.
+        self._task.input.Reset()
+
       # Run the infeed loop in the same function that runs the training loop
       # so that infeed enqueue/dequeue ops are created by the same
       # InfeedQueue.
@@ -807,18 +813,9 @@ class EvalProgram(BaseProgram):
       mlp_log.mlperf_print(
           'eval_start', None, metadata={'epoch_num': mlperf_epoch_num})
 
-    if self._task.input.params.resettable:
+    if self._task.input.params.resettable and not py_utils.IsEagerMode():
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
-      if py_utils.IsEagerMode():
-        # In eager mode, after resetting the input generator, we need to
-        # re-trace the tf.function to ensure it uses the new iterator.
-        # See TFDatasetSource::Reset().
-        # TODO(b/202289733): How to reset the iterator in-place to avoid needing
-        # to re-trace tf.function which can be expensive (results in a TPU
-        # recompile each time)?
-        self.tpu_outs = (
-            tf.function(autograph=False)(self.EvalFunc).get_concrete_function())
 
     if py_utils.IsEagerMode():
       values = self.tpu_outs()
@@ -1009,12 +1006,15 @@ class DecodeProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
+      # We likely still need to initialize them, otherwise there is no way to
+      # know the tensor_spec of the iterators for capturing
       self._task.input.TpuSetup(cpu_passthrough=True)
 
       if py_utils.IsEagerMode():
-        self.tpu_outs = (
-            tf.function(autograph=False)(
-                self.DecodeFunc).get_concrete_function())
+        with py_utils.ExperimentalIteratorCapture():
+          self.tpu_outs = (
+              tf.function(autograph=False)(
+                  self.DecodeFunc).get_concrete_function())
       else:
         self.tpu_outs = self.DecodeFunc()
 
@@ -1138,16 +1138,6 @@ class DecodeProgram(BaseProgram):
     if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
-      if py_utils.IsEagerMode():
-        # In eager mode, after resetting the input generator, we need to
-        # re-trace the tf.function to ensure it uses the new iterator.
-        # See TFDatasetSource::Reset().
-        # TODO(b/202289733): How to reset the iterator in-place to avoid needing
-        # to re-trace tf.function which can be expensive (results in a TPU
-        # recompile each time)?
-        self.tpu_outs = (
-            tf.function(autograph=False)(
-                self.DecodeFunc).get_concrete_function())
 
     # The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop
     # (that runs _DecodeStep). As an input batch is successfully fed through
