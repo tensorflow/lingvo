@@ -404,9 +404,9 @@ class StepRateTracker:
       history = 1000
     else:
       history = 10000
-    while (self._time_steps[-1][1] - self._time_steps[0][1] > history or
-           (len(self._time_steps) > 1 and
-            self._time_steps[0][1] == self._time_steps[1][1])):
+    while len(self._time_steps) > 2 and (
+        self._time_steps[-1][1] - self._time_steps[0][1] > history or
+        self._time_steps[0][1] == self._time_steps[1][1]):
       del self._time_steps[0]
     (t0, s0, e0), (t1, s1, e1) = self._time_steps[0], self._time_steps[-1]
     rate = 0.0
