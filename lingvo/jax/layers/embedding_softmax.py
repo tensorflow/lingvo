@@ -368,8 +368,11 @@ class RotaryPositionalEmbedding(PositionalEmbedding):
       inputs = inputs[:, jnp.newaxis, :, :]
     seq_length = inputs.shape[1]
     # Adjust the position with the time step.
-    position = jnp.arange(time_step - seq_length + 1, time_step + 1)
-    position = jnp.asarray([max(x, 0) for x in position])
+    # Note that time_step may be a tracer rather than an int, and so we must
+    # use jax.lax.iota, rather than jnp.arange.
+    position = jax.lax.iota(dtype=jnp.int32, size=seq_length)
+    position = time_step - jnp.flip(position)
+    position = jnp.where(position < 0, jnp.zeros_like(position), position)
     output = self.fprop(theta, inputs, position=position[jnp.newaxis, :])
     if len(inputs_shape) == 3:
       output = jnp.squeeze(output, axis=1)

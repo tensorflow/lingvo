@@ -712,6 +712,11 @@ class Transformer(base_layer.BaseLayer):
     p.Define('mask_self_attention', False, 'If True, use causal mask.')
     p.Define('cross_attention', False, 'If True, perform cross'
              'encoder-decoder attention.')
+    p.Define(
+        'cross_atten_tpl', None, 'Optional cross attention params template'
+        'that can be set when cross attention is enabled. If cross'
+        'attention is enabled and this is set to None, then cross'
+        'attention params will be inherited from tr_atten_tpl.')
     p.Define('ln_tpl', normalizations.LayerNorm.Params(), 'Layer norm params.')
     p.Define('tr_atten_tpl',
              attentions.DotProductAttention.Params().Set(),
@@ -753,17 +758,23 @@ class Transformer(base_layer.BaseLayer):
       params.input_dims = p.input_dims
       self.create_child('cross_layer_norm', params)
 
-      params = p.tr_atten_tpl.Copy()
+      if p.cross_atten_tpl is not None:
+        params = p.cross_atten_tpl.Copy()
+      else:
+        params = p.tr_atten_tpl.Copy()
       params.name = 'multihead_cross_atten'
       params.input_dim = p.input_dims
       params.hidden_dim = p.input_dims
       params.num_heads = p.num_heads
       params.atten_dropout_prob = p.atten_dropout_prob
       # Note that cross attention should not use any position embeddings.
-      params.use_rotary_position_emb = False
-      # Note that cross attention currently does not support dconv.
-      # TODO(aurkor): Extend dconv for the cross attention case.
-      params.dconv_qkv = False
+      if params.use_rotary_position_emb:
+        raise ValueError('Rotary position embedding should not be enabled for '
+                         'cross attention.')
+      # Note that cross attention should not use depth-wise convolution.
+      if params.dconv_qkv:
+        raise ValueError('Depth-wise convolution should not be enabled for '
+                         'cross attention.')
       self.create_child('cross_attention', params)
 
     # Initialize feed-forward layer

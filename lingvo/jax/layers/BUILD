@@ -443,7 +443,7 @@ py_strict_test(
     name = "transformers_test",
     srcs = ["transformers_test.py"],
     python_version = "PY3",
-    shard_count = 12,
+    shard_count = 16,
     srcs_version = "PY3",
     deps = [
         ":attentions",

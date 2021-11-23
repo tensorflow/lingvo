@@ -147,11 +147,9 @@ class TransformersTest(test_util.JaxTestCase):
     tf_np_outputs = test_utils.to_np(tf_output)
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-5)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=4)))
   def test_transformer_layer_extendstep(self, packed_input, cross_attention,
-                                        dconv_qkv):
-    # Note that cross attention will automatically switch off dconv_qkv for the
-    # cross attention part.
+                                        dconv_qkv, use_rotary_position_emb):
     p = transformers.Transformer.Params().Set(
         name='jax_transformer_layer',
         input_dims=8,
@@ -161,6 +159,14 @@ class TransformersTest(test_util.JaxTestCase):
         packed_input=packed_input,
         cross_attention=cross_attention)
     p.tr_atten_tpl.dconv_qkv = dconv_qkv
+    p.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
+    if cross_attention:
+      p.cross_atten_tpl = p.tr_atten_tpl.Copy()
+      # Cross attention should not have depth-wise convolution.
+      p.cross_atten_tpl.dconv_qkv = False
+      # Cross attention should not have rotary position embedding.
+      p.cross_atten_tpl.use_rotary_position_emb = False
+
     p.tr_atten_tpl.dconv_kernel_size = 2
     seq_len = 16
     batch_size = 4
@@ -306,6 +312,36 @@ class TransformersTest(test_util.JaxTestCase):
         (1.0 + initial_vars.cross_layer_norm.scale)**2,
         np.var(atten_output_normalized),
         atol=5e-3)
+
+  def test_transformer_layer_cross_attention_dconv_value_error(self):
+    p = transformers.Transformer.Params().Set(
+        name='jax_transformer_layer',
+        input_dims=8,
+        hidden_dims=32,
+        num_heads=4,
+        cross_attention=True,
+        mask_self_attention=True)
+    # Enable cross attention.
+    p.cross_atten_tpl = p.tr_atten_tpl.Copy()
+    # Enable depth-wise convolution.
+    p.cross_atten_tpl.dconv_qkv = True
+    with self.assertRaises(ValueError):
+      p.Instantiate()
+
+  def test_transformer_layer_cross_attention_pos_emb_value_error(self):
+    p = transformers.Transformer.Params().Set(
+        name='jax_transformer_layer',
+        input_dims=8,
+        hidden_dims=32,
+        num_heads=4,
+        cross_attention=True,
+        mask_self_attention=True)
+    # Enable cross attention.
+    p.cross_atten_tpl = p.tr_atten_tpl.Copy()
+    # Enable rotary position embedding.
+    p.cross_atten_tpl.use_rotary_position_emb = True
+    with self.assertRaises(ValueError):
+      p.Instantiate()
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
   def test_stacked_transformer_layer(self, mask_self_attention, packed_input,
@@ -500,14 +536,12 @@ class TransformersTest(test_util.JaxTestCase):
           cross_segment_mask=cross_segment_mask)
       self.assertAllClose(outputs, outputs_repeated, atol=1e-5)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=6)))
-  def test_stacked_transformer_layer_extendstep(self, packed_input,
-                                                cross_attention,
-                                                enable_while_loop,
-                                                use_repeat_layer, combine_qkv,
-                                                dconv_qkv):
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=7)))
+  def test_stacked_transformer_layer_extendstep(
+      self, packed_input, cross_attention, enable_while_loop, use_repeat_layer,
+      combine_qkv, dconv_qkv, use_rotary_position_emb):
     if cross_attention and combine_qkv:
-      self.skipTest('combine_qkv optimization only works for self-attention')
+      self.skipTest('combine_qkv optimization only works for self-attention.')
     if use_repeat_layer:
       layer_params = transformers.StackedTransformerRepeated.Params()
     else:
@@ -525,6 +559,16 @@ class TransformersTest(test_util.JaxTestCase):
         enable_while_loop=enable_while_loop)
     p.transformer_layer_params_tpl.tr_atten_tpl.combine_qkv = combine_qkv
     p.transformer_layer_params_tpl.tr_atten_tpl.dconv_qkv = dconv_qkv
+    p.transformer_layer_params_tpl.tr_atten_tpl.use_rotary_position_emb = (
+        use_rotary_position_emb)
+    if cross_attention:
+      p.transformer_layer_params_tpl.cross_atten_tpl = (
+          p.transformer_layer_params_tpl.tr_atten_tpl.Copy())
+      # Cross attention should not have depth-wise convolution.
+      p.transformer_layer_params_tpl.cross_atten_tpl.dconv_qkv = False
+      # Cross attention should not have rotary position embedding.
+      p.transformer_layer_params_tpl.cross_atten_tpl.use_rotary_position_emb = (
+          False)
     seq_len = 5
     batch_size = 4
     stacked_transformer_layer = p.Instantiate()
