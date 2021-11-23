@@ -1887,10 +1887,23 @@ def Top2GatingOnLogits(inputs,
   if raw_gates.dtype != fprop_dtype:
     raw_gates = tf.cast(raw_gates, fprop_dtype)
 
-  if capacity_factor is not None:
-    # Determine expert capacity automatically depedning on the input size.
+  has_capacity_factor = (capacity_factor is not None and capacity_factor > 0)
+  if not has_capacity_factor or (expert_capacity_dim != 0):
+    tf.logging.warning(
+        'Please set expert_capacity_dim=0 '
+        'and non-zero capacity_factor '
+        'expert_capacity_dim=%s '
+        'capacity_factor=%s', expert_capacity_dim, capacity_factor)
+  if has_capacity_factor:
+    # Determine expert capacity automatically depending on the input size
     group_size_dim = int(logits.shape[1])
     auto_expert_capacity = int((group_size_dim * capacity_factor) / experts_dim)
+
+    if auto_expert_capacity == 0:
+      auto_expert_capacity = 4
+      tf.logging.info('Setting min value to auto_expert_capacity=%s',
+                      auto_expert_capacity)
+
     if expert_capacity_dim < auto_expert_capacity:
       expert_capacity_dim = auto_expert_capacity
       # Round up to a multiple of 4 to avoid possible padding.
