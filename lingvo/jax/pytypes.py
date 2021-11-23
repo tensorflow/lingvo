@@ -46,3 +46,5 @@ NestedShapeDtypeStruct = Nested[jax.ShapeDtypeStruct]
 # are all valid sharding annoations for a particular tensor axis.
 DimShardingAnnotation = Optional[Union[Sequence[Union[int, str]], int, str]]
 SplitDimsMapping = Optional[Sequence[DimShardingAnnotation]]
+
+Metrics = Dict[str, Tuple[JTensor, JTensor]]
