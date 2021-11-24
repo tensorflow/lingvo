@@ -236,9 +236,10 @@ def train_and_evaluate_pmap(
                                            train_input_pipeline.get_next())
       logging.debug('  Retrieved inputs.')
       logging.debug('  Performing train_step().')
-      (replicated_model_states, loss, metrics, per_example_out,
-       summary_tensors) = p_train_step(replicated_model_states, train_prng_seed,
-                                       model_inputs)
+      with jax.profiler.StepTraceAnnotation('train', step_num=step_i):
+        (replicated_model_states, loss, metrics, per_example_out,
+         summary_tensors) = p_train_step(replicated_model_states,
+                                         train_prng_seed, model_inputs)
       logging.debug('  Completed train_step().')
 
       logging.debug('  Writing summaries (attempt).')
@@ -468,9 +469,10 @@ def train_and_evaluate_spmd_model(
         logging.debug('  Retrieved inputs.')
 
         logging.debug('  Performing train_step().')
-        (partitioned_train_state, loss, metrics, per_example_out,
-         summary_tensors) = train_step(partitioned_train_state, train_key,
-                                       model_inputs)
+        with jax.profiler.StepTraceAnnotation('train', step_num=step_i):
+          (partitioned_train_state, loss, metrics, per_example_out,
+           summary_tensors) = train_step(partitioned_train_state, train_key,
+                                         model_inputs)
         logging.debug('  Completed train_step().')
 
         logging.debug('  Writing summaries (attempt).')

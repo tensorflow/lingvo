@@ -234,6 +234,21 @@ class LmCloudSpmd(SyntheticDataset):
 
 
 @model_registry.register_model
+class LmCloudSpmdTest(LmCloudSpmd):
+  r"""SPMD model with small params for local CPU test run.
+
+  Global batch size = 1 * 1 * 1 * 4 = 4
+  """
+  PERCORE_BATCH_SIZE = 4
+
+  NUM_LAYERS = 2
+  MODEL_DIMS = 64
+
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  MESH_SHAPE = [1, 1, 1]
+
+
+@model_registry.register_model
 class LmCloudSpmd2B(LmCloudSpmd):
   r"""SPMD model with 2B params.
 
@@ -261,3 +276,78 @@ class LmCloudSpmd32B(LmCloudSpmd):
 
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
   MESH_SHAPE = [1, 16, 4]
+
+
+@model_registry.register_model
+class LmCloudSpmd64B(LmCloudSpmd):
+  r"""SPMD model with 64B params.
+
+  Global batch size = 4 * 4 * 8 * 8 = 1024
+  """
+  PERCORE_BATCH_SIZE = 8
+
+  NUM_LAYERS = 51
+  MODEL_DIMS = 10240
+
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  MESH_SHAPE = [1, 16, 8]
+
+
+@model_registry.register_model
+class LmCloudSpmd128B(LmCloudSpmd):
+  r"""SPMD model with 128B params.
+
+  Global batch size = 4 * 8 * 8 * 4 = 1024
+  """
+  PERCORE_BATCH_SIZE = 4
+
+  NUM_LAYERS = 71
+  MODEL_DIMS = 12288
+
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  MESH_SHAPE = [1, 64, 4]
+
+
+@model_registry.register_model
+class LmCloudSpmd256B(LmCloudSpmd):
+  r"""SPMD model with 256B params.
+
+  Global batch size = 4 * 8 * 8 * 8 = 2048
+  """
+  PERCORE_BATCH_SIZE = 4
+
+  NUM_LAYERS = 80
+  MODEL_DIMS = 16384
+
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  MESH_SHAPE = [1, 64, 8]
+
+
+@model_registry.register_model
+class LmCloudSpmd512B(LmCloudSpmd):
+  r"""SPMD model with 512B params.
+
+  Global batch size = 4 * 8 * 8 * 16 = 4096
+  """
+  PERCORE_BATCH_SIZE = 4
+
+  NUM_LAYERS = 102
+  MODEL_DIMS = 20480
+
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  MESH_SHAPE = [1, 64, 16]
+
+
+@model_registry.register_model
+class LmCloudSpmd1024B(LmCloudSpmd):
+  r"""SPMD model with 1024B params.
+
+  Global batch size = 2 * 8 * 16 * 16 = 4096
+  """
+  PERCORE_BATCH_SIZE = 2
+
+  NUM_LAYERS = 142
+  MODEL_DIMS = 24576
+
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  MESH_SHAPE = [1, 256, 8]
