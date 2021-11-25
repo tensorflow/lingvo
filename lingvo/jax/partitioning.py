@@ -141,9 +141,8 @@ def _jax_devices_order_normalized(
   local_topology = _bounds_from_last_device(
       jax_local_devices_from_process_0[-1])
   # h_x, h_y can be 2x2 or 1x1 depending on tasks_per_host=4 or 1
-  h_x, h_y, h_z, cores_per_chip = local_topology
+  h_x, h_y, _, cores_per_chip = local_topology
   assert cores_per_chip == 1
-  assert h_z == 1
   physical_topology = _bounds_from_last_device(jax_devices[-1])
   g_x, g_y, g_z, cores_per_chip = physical_topology
   assert cores_per_chip == 1
