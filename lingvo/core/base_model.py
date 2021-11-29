@@ -59,6 +59,8 @@ class DecodeEmailOptions:
   # TPU Executor schedule param  for number of train loops per eval loop. 0
   # indicates eval only.
   train_executions_per_eval: int
+  # Global Step in the training.
+  global_step: int
 
 
 def _VariablesForEMA(params, model_var_list):

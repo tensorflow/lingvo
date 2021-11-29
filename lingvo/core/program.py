@@ -1116,7 +1116,8 @@ class DecodeProgram(BaseProgram):
     # Provide train_executions_per_eval as a possible option for email.
     options = base_model.DecodeEmailOptions(
         job_name=os.path.basename(self._program_dir),
-        train_executions_per_eval=self.train_executions_per_eval)
+        train_executions_per_eval=self.train_executions_per_eval,
+        global_step=global_step)
     if self.params.emails:
       try:
         self._task.EmailDecodeSummary(summaries, self.params.emails, options)
