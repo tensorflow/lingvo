@@ -35,7 +35,7 @@ class Activation(base_layer.BaseLayer):
     p.Define(
         'activation', 'RELU', 'Activation function to use. '
         'Options are RELU, RELU6, RELU^2, RELU^3, SIGMOID, TANH,'
-        'GELU, SILU, NONE.')
+        'GELU, SILU, SWISH, NONE.')
     return p
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
@@ -59,6 +59,8 @@ class Activation(base_layer.BaseLayer):
       outputs = jax.nn.gelu(inputs)
     elif p.activation == 'SILU':
       outputs = jax.nn.silu(inputs)
+    elif p.activation == 'SWISH':
+      outputs = jax.nn.swish(inputs)
     else:  # 'NONE'
       outputs = inputs
     return outputs

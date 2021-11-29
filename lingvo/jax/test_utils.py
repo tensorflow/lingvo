@@ -217,3 +217,50 @@ def replace_jax_res_net_vars_to_tf(jax_initial_vars: NestedMap) -> NestedMap:
     block_id = 0
     block = f'stage_{stage_id}_block_{block_id}'
   return tf_initial_vars
+
+
+def replace_jax_light_conv_vars_to_tf(jax_initial_vars: NestedMap) -> NestedMap:
+  """Replace the JAX LightConv vars to TF compatible vars.
+
+  Args:
+    jax_initial_vars: JAX LightConv vars.
+
+  Returns:
+    tf_initial_vars which is TF compatible with LightConv.
+  """
+  tf_initial_vars = py_utils.NestedMap()
+
+  tf_initial_vars.ln = py_utils.NestedMap()
+  tf_initial_vars.ln.bias = jax_initial_vars.ln.bias
+  tf_initial_vars.ln.scale = jax_initial_vars.ln.scale
+
+  tf_initial_vars.norm = py_utils.NestedMap()
+  tf_initial_vars.norm.beta = jax_initial_vars.conv_norm.beta
+  tf_initial_vars.norm.gamma = jax_initial_vars.conv_norm.gamma
+  tf_initial_vars.norm.moving_mean = jax_initial_vars.conv_norm.moving_mean
+  tf_initial_vars.norm.moving_variance = jax_initial_vars.conv_norm.moving_variance
+
+  tf_initial_vars.dropout = [py_utils.NestedMap(), py_utils.NestedMap()]
+
+  tf_initial_vars.depthwise_conv1d = py_utils.NestedMap()
+  tf_initial_vars.depthwise_conv1d.w = np.expand_dims(
+      jax_initial_vars.depthwise_conv1d.w, axis=-1)
+
+  tf_initial_vars.linear_end = py_utils.NestedMap()
+  tf_initial_vars.linear_end.w = jax_initial_vars.linear_end.linear.w
+  tf_initial_vars.linear_end.b = jax_initial_vars.linear_end.bias.b
+
+  tf_initial_vars.linear_start = py_utils.NestedMap()
+  tf_initial_vars.linear_start.w = np.concatenate([
+      jax_initial_vars.linear_start_gated.linear.w,
+      jax_initial_vars.linear_start_act.linear.w
+  ],
+                                                  axis=-1)
+  tf_initial_vars.linear_start.b = np.concatenate([
+      jax_initial_vars.linear_start_gated.bias.b,
+      jax_initial_vars.linear_start_act.bias.b
+  ],
+                                                  axis=-1)
+
+  tf_initial_vars = to_tf_nmap(tf_initial_vars)
+  return tf_initial_vars

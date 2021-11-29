@@ -79,7 +79,9 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":activations",
+        ":linears",
         ":normalizations",
+        ":stochastics",
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
