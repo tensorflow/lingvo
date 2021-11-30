@@ -293,9 +293,9 @@
   <span class="c1"># inference/embedding_lookup/Read/ReadVariableOp is not pruned.</span>
   <span class="c1">#</span>
   <span class="c1"># TODO(zhifengc): It&#39;s possible that it&#39;s better to fix in</span>
-  <span class="c1"># tf.graph_util.extract_sub_graph.</span>
-  <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span>
-                                              <span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
+  <span class="c1"># tf.compat.v1.graph_util.extract_sub_graph.</span>
+  <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span>
+                                                        <span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
   <span class="n">reachable_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">node</span><span class="p">]</span>
 
   <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">():</span>
@@ -338,7 +338,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">())</span>
   <span class="n">saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span><span class="p">(</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span><span class="p">(</span>
       <span class="n">sess</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="n">output_op_names</span><span class="p">)</span></div>
 
 
@@ -354,9 +354,8 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">())</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span>
-                                                        <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span>
-                                                        <span class="n">output_op_names</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span><span class="p">(</span>
+        <span class="n">sess</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="n">output_op_names</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="InferenceGraphExporter"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.InferenceGraphExporter">[docs]</a><span class="k">class</span> <span class="nc">InferenceGraphExporter</span><span class="p">:</span>
@@ -611,7 +610,8 @@
           <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
 
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Pruning graph to output ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
-        <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
+        <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span>
+            <span class="n">graph_def</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">device_options</span><span class="o">.</span><span class="n">retain_device_placement</span><span class="p">:</span>
       <span class="c1"># Clear the device so that the runtime can choose.</span>

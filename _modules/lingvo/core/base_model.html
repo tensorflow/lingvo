@@ -81,6 +81,7 @@
 <span class="sd">&quot;&quot;&quot;Base model.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -113,6 +114,18 @@
 <span class="sd">   decode_out: A list of key value pairs aggregated from return values of.</span>
 <span class="sd">     PostProcessDecodeOut().</span>
 <span class="sd">  &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="DecodeEmailOptions"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DecodeEmailOptions">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="k">class</span> <span class="nc">DecodeEmailOptions</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Options for BaseTask.EmailDecodeSummary().&quot;&quot;&quot;</span>
+  <span class="c1"># Name of the decode job.</span>
+  <span class="n">job_name</span><span class="p">:</span> <span class="nb">str</span>
+  <span class="c1"># TPU Executor schedule param  for number of train loops per eval loop. 0</span>
+  <span class="c1"># indicates eval only.</span>
+  <span class="n">train_executions_per_eval</span><span class="p">:</span> <span class="nb">int</span>
+  <span class="c1"># Global Step in the training.</span>
+  <span class="n">global_step</span><span class="p">:</span> <span class="nb">int</span></div>
 
 
 <div class="viewcode-block" id="_VariablesForEMA"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model._VariablesForEMA">[docs]</a><span class="k">def</span> <span class="nf">_VariablesForEMA</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">model_var_list</span><span class="p">):</span>
@@ -923,6 +936,18 @@
     <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
       <span class="n">decoder_lib</span><span class="o">.</span><span class="n">WriteKeyValuePairs</span><span class="p">(</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">decode_out</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseTask.EmailDecodeSummary"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.EmailDecodeSummary">[docs]</a>  <span class="k">def</span> <span class="nf">EmailDecodeSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">summaries</span><span class="p">,</span> <span class="n">emails</span><span class="p">,</span> <span class="n">options</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Email decode result summaries to a list of emails.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      summaries: A dictionary of summary results to be emailed.</span>
+<span class="sd">      emails: A list of emails (strings) to send email to.</span>
+<span class="sd">      options: A DecodeEmailOptions object with configs/options, such as how</span>
+<span class="sd">        many times training is run (or not), that may be useful to trigger or</span>
+<span class="sd">        customize the email.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No loss is defined. Call FProp first.&#39;</span><span class="p">)</span>
@@ -1219,7 +1244,8 @@
     <span class="sd">&quot;&quot;&quot;Returns a dict of variables from the model, excluding its children.&quot;&quot;&quot;</span>
     <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_GetSelfVariablesDict</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
-      <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ema_variables_dict</span><span class="p">)</span>
+      <span class="n">res</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MergeDictsWithValueCheck</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ema_variables_dict</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">res</span></div></div>
 
 

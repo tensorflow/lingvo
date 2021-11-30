@@ -169,7 +169,7 @@
     <span class="c1"># For added numeric range protection, the QRPadding decorator ensures</span>
     <span class="c1"># the correct range. This is mostly needed for cases where padding is</span>
     <span class="c1"># dynamic at inference time.</span>
-    <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">PADDING</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>  <span class="c1"># Broadcast to &#39;out&#39; size.</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">paddings</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">out</span><span class="p">),</span> <span class="n">out</span><span class="p">)</span>
 

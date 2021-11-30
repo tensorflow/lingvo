@@ -438,7 +438,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_packed_src</span> <span class="o">=</span> <span class="n">new_init_state</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseAttentionLayer._PaddedSoftmax"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._PaddedSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">_PaddedSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">narrow_to_asym_bit_depth</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseAttentionLayer._PaddedSoftmax"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._PaddedSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">_PaddedSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">padding</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs a softmax as if padding were applied after exponentiation.</span>
 
 <span class="sd">    The default implementation uses numerical techniques to approximate this</span>
@@ -449,9 +449,6 @@
 <span class="sd">    Args:</span>
 <span class="sd">      logits: Logits.</span>
 <span class="sd">      padding: Padding (must be the same shape as logits).</span>
-<span class="sd">      narrow_to_asym_bit_depth: Narrows the bit depth, removing the upper limit</span>
-<span class="sd">        value. This is to accommodate certain interpreters that would cover a 0</span>
-<span class="sd">        .... 2**bits - 1 range for quantization.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Result of the softmax.</span>
@@ -470,10 +467,7 @@
     <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
     <span class="c1"># TFLite hardcodes the range of qsoftmax, setting explicitly to avoid</span>
     <span class="c1"># incompatible concats.</span>
-    <span class="k">return</span> <span class="n">fns</span><span class="o">.</span><span class="n">qsoftmax</span><span class="p">(</span>
-        <span class="n">padded_logits</span><span class="p">,</span>
-        <span class="n">qdomain</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span>
-        <span class="n">narrow_to_asym_bit_depth</span><span class="o">=</span><span class="n">narrow_to_asym_bit_depth</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">fns</span><span class="o">.</span><span class="n">qsoftmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">qdomain</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseAttentionLayer._UpdatePaddingWithPackedInputMask"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._UpdatePaddingWithPackedInputMask">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdatePaddingWithPackedInputMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">source_segment_ids</span><span class="p">,</span>
                                         <span class="n">query_segment_ids</span><span class="p">):</span>
@@ -979,8 +973,8 @@
       <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtActActInputs</span><span class="p">(</span>
           <span class="n">act_lhs</span><span class="o">=</span><span class="n">concated_source_vecs</span><span class="p">,</span>
           <span class="n">act_rhs</span><span class="o">=</span><span class="n">query_vec</span><span class="p">,</span>
-          <span class="n">act_lhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
-          <span class="n">act_rhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">)</span>
+          <span class="n">act_lhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+          <span class="n">act_rhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">)</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtActActMatmul</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
 
@@ -1073,8 +1067,8 @@
       <span class="n">probs</span><span class="p">,</span> <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtActActInputs</span><span class="p">(</span>
           <span class="n">act_lhs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span>
           <span class="n">act_rhs</span><span class="o">=</span><span class="n">concated_source_contexts</span><span class="p">,</span>
-          <span class="n">act_lhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span>
-          <span class="n">act_rhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">InputDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">)</span>
+          <span class="n">act_lhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">POSITIVE</span><span class="p">,</span>
+          <span class="n">act_rhs_distribution</span><span class="o">=</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">)</span>
 
       <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">)</span>
       <span class="n">context_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtActActMatmul</span><span class="p">(</span><span class="n">context_vector</span><span class="p">)</span>
@@ -1864,9 +1858,10 @@
     <span class="c1"># explicitly name this tensor for potential future reference</span>
     <span class="n">multi_headed_atten_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">prob</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;multi_headed_atten_prob&#39;</span><span class="p">)</span>
-    <span class="c1"># TODO(laurenzo): Use a better named range function (we want to represent</span>
-    <span class="c1"># 0..1 probs).</span>
-    <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">multi_headed_atten_prob</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">multi_headed_atten_prob</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SOFTMAX</span><span class="p">,</span>
+        <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
       <span class="n">att_state</span> <span class="o">=</span> <span class="n">attention_state</span>
       <span class="k">if</span> <span class="s1">&#39;emit_probs&#39;</span> <span class="ow">in</span> <span class="n">attention_state</span><span class="p">:</span>
@@ -2168,16 +2163,15 @@
       <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
       <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">])</span>
-
-      <span class="n">source_padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">))</span>
+      <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">)</span>
+      <span class="n">source_padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span>
+                                  <span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">PADDING</span><span class="p">)</span>
 
       <span class="c1"># Reshape logits to a matrix of shape [tb, sl] and takes the</span>
       <span class="c1"># softmax to compute the probabilities.</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tb</span><span class="p">]))</span>
       <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tb</span><span class="p">]))</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedSoftmax</span><span class="p">(</span>
-          <span class="n">logits</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">narrow_to_asym_bit_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedSoftmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">)</span>
       <span class="c1"># Reshape probs to be of shape [tb/sb, sb, sl].</span>
       <span class="n">probs_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="c1"># Transpose probs to be of shape [sb, tb/sb, sl]</span>
@@ -2225,8 +2219,7 @@
       <span class="c1"># softmax to compute the probabilities.</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
       <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedSoftmax</span><span class="p">(</span>
-          <span class="n">logits</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">narrow_to_asym_bit_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedSoftmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">)</span>
       <span class="n">summed</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">concated_source_contexts</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
           <span class="n">concated_source_contexts</span><span class="p">,</span>
@@ -2382,7 +2375,8 @@
                    <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
       <span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
 
-      <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span>
+          <span class="n">state</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SOFTMAX</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">state</span></div>
 
 <div class="viewcode-block" id="LocationSensitiveAttention.ComputeContextVectorWithSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention.ComputeContextVectorWithSource">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -2456,9 +2450,10 @@
     <span class="k">if</span> <span class="s1">&#39;CUMULATIVE_PROBS&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">:</span>
       <span class="c1"># Quantization must match the _PaddedSoftmax method.</span>
       <span class="n">cum_prob_index</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;CUMULATIVE_PROBS&#39;</span><span class="p">)</span>
-      <span class="n">new_feats</span><span class="p">[</span><span class="s1">&#39;CUMULATIVE_PROBS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">[:,</span> <span class="n">cum_prob_index</span><span class="p">,</span> <span class="p">:]),</span>
-          <span class="n">narrow_to_asym_bit_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">cum_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">[:,</span> <span class="n">cum_prob_index</span><span class="p">,</span> <span class="p">:])</span>
+      <span class="n">cum_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span>
+          <span class="n">cum_probs</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SOFTMAX</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">)</span>
+      <span class="n">new_feats</span><span class="p">[</span><span class="s1">&#39;CUMULATIVE_PROBS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cum_probs</span>
     <span class="n">new_attention_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">new_feats</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">],</span>
                                    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">new_attention_state</span></div></div>

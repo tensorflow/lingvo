@@ -600,6 +600,7 @@
                    <span class="n">atten_right_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">atten_logit_cap</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                    <span class="n">use_relative_atten</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">query_stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                    <span class="n">kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">fflayer_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">fflayer_activation</span><span class="o">=</span><span class="s1">&#39;SWISH&#39;</span><span class="p">,</span>
@@ -689,15 +690,25 @@
       <span class="k">assert</span> <span class="n">atten_right_context</span> <span class="ow">is</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="n">use_relative_atten</span> <span class="ow">is</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="n">atten_num_heads</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">query_stride</span> <span class="o">==</span> <span class="mi">1</span>
       <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span> <span class="o">=</span> <span class="n">trans_atten_tpl</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">atten_tpl</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ConfigSelfAttenContext</span><span class="p">(</span>
           <span class="n">atten_left_context</span><span class="p">,</span>
           <span class="n">atten_right_context</span><span class="p">,</span>
           <span class="n">use_relative_atten</span><span class="o">=</span><span class="n">use_relative_atten</span><span class="p">,</span>
+          <span class="n">query_stride</span><span class="o">=</span><span class="n">query_stride</span><span class="p">,</span>
           <span class="n">relative_pos_emb_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">)</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">atten_tpl</span><span class="o">=</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="n">atten_num_heads</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">query_stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">atten_tpl</span><span class="o">=</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="n">atten_num_heads</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">FunnelTransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">atten_tpl</span><span class="o">=</span><span class="n">atten_tpl</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="n">atten_num_heads</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">funnel_tpl</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">query_stride</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">res_funnel_tpl</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">query_stride</span>
     <span class="c1"># Set the convolution module.</span>
     <span class="k">if</span> <span class="n">lconv_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">lconv_tpl</span> <span class="o">=</span> <span class="n">lconv_tpl</span>
@@ -712,9 +723,16 @@
       <span class="n">p</span><span class="o">.</span><span class="n">list_regex_dtypes</span> <span class="o">=</span> <span class="n">list_regex_dtypes</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+<div class="viewcode-block" id="ConformerLayer.Stride"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer.Stride">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Stride</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;funnel_tpl&#39;</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">params</span><span class="o">.</span><span class="n">trans_atten_tpl</span><span class="o">.</span><span class="n">funnel_tpl</span><span class="o">.</span><span class="n">stride</span>
+    <span class="k">return</span> <span class="mi">1</span></div>
+
 <div class="viewcode-block" id="ConformerLayer._ConfigSelfAttenContext"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._ConfigSelfAttenContext">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_ConfigSelfAttenContext</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">atten_left_context</span><span class="p">,</span> <span class="n">atten_right_context</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
-                              <span class="n">use_relative_atten</span><span class="p">,</span> <span class="n">relative_pos_emb_dim</span><span class="p">):</span>
+                              <span class="n">use_relative_atten</span><span class="p">,</span> <span class="n">query_stride</span><span class="p">,</span>
+                              <span class="n">relative_pos_emb_dim</span><span class="p">):</span>
     <span class="c1"># TODO(jamesqin): add an attention factory in batch_major_attention.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span><span class="n">atten_left_context</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_AttenCtxIsSet</span><span class="p">(</span>
         <span class="n">atten_right_context</span><span class="p">):</span>
@@ -736,10 +754,13 @@
       <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">left_context</span><span class="o">=</span><span class="n">atten_left_context</span><span class="p">,</span>
           <span class="n">right_context</span><span class="o">=</span><span class="n">atten_right_context</span><span class="p">,</span>
-          <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">relative_pos_emb_dim</span><span class="p">)</span>
+          <span class="n">rel_pos_emb_dim</span><span class="o">=</span><span class="n">relative_pos_emb_dim</span><span class="p">,</span>
+          <span class="n">query_stride</span><span class="o">=</span><span class="n">query_stride</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="s1">&#39;local&#39;</span><span class="p">:</span>
       <span class="n">atten_tpl</span> <span class="o">=</span> <span class="n">attention_lib</span><span class="o">.</span><span class="n">LocalSelfAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">left_context</span><span class="o">=</span><span class="n">atten_left_context</span><span class="p">,</span> <span class="n">right_context</span><span class="o">=</span><span class="n">atten_right_context</span><span class="p">)</span>
+          <span class="n">left_context</span><span class="o">=</span><span class="n">atten_left_context</span><span class="p">,</span>
+          <span class="n">right_context</span><span class="o">=</span><span class="n">atten_right_context</span><span class="p">,</span>
+          <span class="n">query_stride</span><span class="o">=</span><span class="n">query_stride</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># No op for &#39;global&#39; atten</span>
       <span class="k">assert</span> <span class="n">atten_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;global&#39;</span><span class="p">,</span> <span class="s1">&#39;global_causal&#39;</span><span class="p">),</span> <span class="p">(</span>
@@ -872,11 +893,19 @@
     <span class="k">return</span> <span class="n">moe_p</span></div>
 
 <div class="viewcode-block" id="ConformerLayer._SelfAtten"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._SelfAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_SelfAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
-    <span class="n">inputs</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span>
-        <span class="n">query_vec</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
-        <span class="n">source_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span>
+                  <span class="n">attention_lib</span><span class="o">.</span><span class="n">FunnelTransformerAttentionLayer</span><span class="p">):</span>
+      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span>
+          <span class="n">query_vec</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+          <span class="n">source_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">inputs</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">trans_atten</span><span class="p">,</span>
+          <span class="n">query_vec</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+          <span class="n">source_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="ConformerLayer._LConv"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.ConformerLayer._LConv">[docs]</a>  <span class="k">def</span> <span class="nf">_LConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>

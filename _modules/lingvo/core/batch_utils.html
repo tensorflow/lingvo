@@ -105,6 +105,27 @@
     <span class="k">return</span> <span class="n">infeed_batch_size</span></div>
 
 
+<div class="viewcode-block" id="scale_global_to_infeed"><a class="viewcode-back" href="../../../lingvo.core.batch_utils.html#lingvo.core.batch_utils.scale_global_to_infeed">[docs]</a><span class="k">def</span> <span class="nf">scale_global_to_infeed</span><span class="p">(</span><span class="n">global_batch_size</span><span class="p">,</span> <span class="n">use_per_host_infeed</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Obtains infeed batch size from global batch size and cluster configs.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    global_batch_size: int: Global batch size.</span>
+<span class="sd">    use_per_host_infeed: bool: Whether to use an individual infeed for each</span>
+<span class="sd">      host.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    int: infeed batch size.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Scaling to TPU hosts without TPUs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">global_batch_size</span> <span class="o">//</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">global_batch_size</span></div>
+
+
 <div class="viewcode-block" id="scale_split_to_infeed"><a class="viewcode-back" href="../../../lingvo.core.batch_utils.html#lingvo.core.batch_utils.scale_split_to_infeed">[docs]</a><span class="k">def</span> <span class="nf">scale_split_to_infeed</span><span class="p">(</span><span class="n">split_batch_size</span><span class="p">,</span> <span class="n">use_per_host_infeed</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Obtains an infeed batch size from a split batch size and cluster configs.</span>
 

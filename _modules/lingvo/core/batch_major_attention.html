@@ -591,13 +591,20 @@
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+      <span class="n">qkv_weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">[</span><span class="s1">&#39;qkv&#39;</span><span class="p">]</span>
+      <span class="n">post_weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">[</span><span class="s1">&#39;post&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">qkv_weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+      <span class="n">post_weight_split_dims_mapping</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span>
+
     <span class="k">def</span> <span class="nf">ProjectInput</span><span class="p">(</span><span class="n">input_dim</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
           <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
           <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-          <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">,</span>
+          <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">qkv_weight_split_dims_mapping</span><span class="p">,</span>
           <span class="n">make_output_proj_no_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
@@ -632,7 +639,7 @@
             <span class="n">is_output_projection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
             <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-            <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="p">))</span>
+            <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">post_weight_split_dims_mapping</span><span class="p">))</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">dim_per_head</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1720,21 +1727,26 @@
 <span class="sd">  We use the following capital letters to denote certain</span>
 <span class="sd">  tensor parameters.</span>
 
-<span class="sd">    B = batch size</span>
-<span class="sd">    S=T= length of the key/value (source) and query (target)</span>
-<span class="sd">    D = model dimension</span>
-<span class="sd">    N = number of attention heads</span>
-<span class="sd">    H = dimensions of each attention head</span>
-<span class="sd">    W = block size</span>
-<span class="sd">    L = left context size, including left L-1 positions and self</span>
-<span class="sd">    R = right context size</span>
+<span class="sd">    B = batch size.</span>
+<span class="sd">    P = query stride (default to 1, see below).</span>
+<span class="sd">    T(target) = length of the query.</span>
+<span class="sd">    S(source) = length of the key/value, S == T * P.</span>
+
+<span class="sd">    W = key block size. query block size is W // P.</span>
+<span class="sd">    L = left context size in key, including left L-1 positions and self.</span>
+<span class="sd">    R = right context size in key.</span>
 <span class="sd">    F = L + R = context size of one position.</span>
 <span class="sd">    C = L + R + W - 1 = context size of a block of W positions.</span>
 <span class="sd">    U = ceiling(T/W).</span>
 
-<span class="sd">  For each position, its attention range includes from the left</span>
-<span class="sd">  L-1 tokens before it (up to the beginning of the sequence),</span>
-<span class="sd">  the self, and the right R tokens after it (up to the end of the</span>
+<span class="sd">    D = model dimension.</span>
+<span class="sd">    N = number of attention heads.</span>
+<span class="sd">    H = dimensions of each attention head.</span>
+
+<span class="sd">  Canonical attention:</span>
+<span class="sd">  For each query position, its attended position range in the key sequence</span>
+<span class="sd">  includes from the left L-1 tokens before it (up to the beginning of the</span>
+<span class="sd">  sequence), the self, and the right R tokens after it (up to the end of the</span>
 <span class="sd">  sequence). This is not affected by the block size.</span>
 
 <span class="sd">  Causality is enabled when right context size R=0.</span>
@@ -1752,11 +1764,19 @@
 <span class="sd">  sliding window attention from O(S * T) to O(S * C). In practice we observe</span>
 <span class="sd">  reduced HBM usage on TPU but no speed gains.</span>
 
+<span class="sd">  Strided attention:</span>
+<span class="sd">  For canonical attention, P is 1 and S == T. When query_stride (P) is not 1,</span>
+<span class="sd">  query(target) and key/value(source) have different lengths: S is expected</span>
+<span class="sd">  to be a multiple T.</span>
+
+<span class="sd">  The attention semantics also change, in that, position i in the query will</span>
+<span class="sd">  attend to the same range in the key sequence as covered by [i, i+P) in</span>
+<span class="sd">  the canonical attention.</span>
+
 <span class="sd">  Note: Cross attention is not supported. As a result in speech models this</span>
 <span class="sd">  class can only be used for encoder.</span>
 
 <span class="sd">  TODO(weihan): add masking based local attention to the base class.</span>
-
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LocalSelfAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1766,6 +1786,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;block_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Size of a processing block, if unset, default to &#39;</span>
         <span class="s1">&#39;max(1, left_context-1).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;query_stride&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;Query stride for strided attention. If set to 1, regress to &#39;</span>
+        <span class="s1">&#39;canonical self attention. Else, key/value(source) sequence &#39;</span>
+        <span class="s1">&#39;length must be equal to query_stride * query length. &#39;</span>
+        <span class="s1">&#39;See &quot;Strided attention&quot; in the docstring for more information.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of left positions to attend &#39;</span>
         <span class="s1">&#39;(including current position).&#39;</span><span class="p">)</span>
@@ -1807,6 +1833,12 @@
       <span class="n">p</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;block_size not set, use default value </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
           <span class="n">p</span><span class="o">.</span><span class="n">block_size</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">block_size</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;block_size(</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">block_size</span><span class="si">}</span><span class="s1">) must be a multiple of &#39;</span>
+        <span class="sa">f</span><span class="s1">&#39;query_stride(</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;right_context(</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="si">}</span><span class="s1">) must be a multiple of &#39;</span>
+        <span class="sa">f</span><span class="s1">&#39;query_stride(</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
 
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="s1">&#39;Packed input not implemented yet.&#39;</span>
 
@@ -1831,8 +1863,8 @@
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
 <span class="sd">      query:    [B, T, N, H].</span>
-<span class="sd">      key:      [B, S=T, N, H].</span>
-<span class="sd">      paddings: [B, T].</span>
+<span class="sd">      key:      [B, S, N, H].</span>
+<span class="sd">      paddings: [B, S].</span>
 <span class="sd">      segment_mask: [B, 1, T, S] not used right now.</span>
 <span class="sd">      per_step_padding: Not used.</span>
 
@@ -1845,7 +1877,7 @@
     <span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
-    <span class="n">query</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
 
     <span class="c1"># -&gt; [B, U, C, N, H]</span>
     <span class="n">key_block_context</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ExtractBlockContext</span><span class="p">(</span>
@@ -1857,7 +1889,7 @@
 
     <span class="c1"># -&gt; [B, U, W, N, H]</span>
     <span class="n">query_blocks</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ConvertToBlocks</span><span class="p">(</span>
-        <span class="n">query</span><span class="p">,</span> <span class="n">block_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">block_size</span><span class="p">)</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">block_size</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">block_size</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="p">))</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_blocks</span><span class="p">)</span>
 
     <span class="c1"># -&gt; [B, U, C]</span>
@@ -1880,6 +1912,7 @@
         <span class="n">block_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">block_size</span><span class="p">,</span>
         <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span>
         <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span>
+        <span class="n">query_stride</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">*</span> <span class="n">local_causal_mask</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">mask</span>
@@ -1932,7 +1965,7 @@
     <span class="c1"># Remove the extra time padding introduced by converting to blocks.</span>
     <span class="c1"># Note: t0 works presently only for self-attention.</span>
     <span class="c1"># For cross-atten, needs query[1] which&#39;ll be different.</span>
-    <span class="n">t0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">value</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">value</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span>
     <span class="n">encoded</span> <span class="o">=</span> <span class="n">encoded</span><span class="p">[:,</span> <span class="p">:</span><span class="n">t0</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">encoded</span></div>
 
@@ -1965,12 +1998,15 @@
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If value projection is disabled.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="c1"># LocalSelfAttention doesn&#39;t support cross-attention at the moment.</span>
-    <span class="c1"># Verify T == S, for query and value vector.</span>
-    <span class="n">value_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">value_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
-    <span class="n">key_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">key_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
-    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_even_divide</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="p">)],</span> <span class="n">query_vec</span><span class="p">)</span>
+
+    <span class="n">value_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">value_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">])</span>
     <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span>
         <span class="n">query_vec</span><span class="p">,</span>
@@ -1979,29 +2015,30 @@
         <span class="n">paddings</span><span class="p">,</span>
         <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
         <span class="n">per_step_padding</span><span class="o">=</span><span class="n">per_step_padding</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">force_consistent_probs_shape</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span>
 
     <span class="c1"># We turn &#39;probs&#39; into shape [B, N, T, S] before turning it.</span>
     <span class="c1"># probs has shape [B N U W C].</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="c1"># l == w * query_stride</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">block_size</span>
     <span class="c1"># shape [B N W U C]</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
     <span class="c1"># Maximum length needed to keep track of probs along the T axis.</span>
-    <span class="n">m</span> <span class="o">=</span> <span class="n">t</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
-    <span class="c1"># shape [B N W U M+W], where M = (L-1) + T + R</span>
-    <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">w</span><span class="p">])</span>
-    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span> <span class="o">*</span> <span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">w</span><span class="p">)])</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">s</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
+    <span class="c1"># shape [B N W U M+L], where M = (L-1) + S + R</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">m</span> <span class="o">+</span> <span class="n">l</span><span class="p">])</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span> <span class="o">*</span> <span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">l</span><span class="p">)])</span>
     <span class="c1"># Now each row is shifted by W from its previous row. This recovers</span>
     <span class="c1"># the true position of the C axis into the now expanded T axis.</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">u</span> <span class="o">*</span> <span class="n">m</span><span class="p">],</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">m</span><span class="p">])</span>
     <span class="c1"># Shape [B N U W M]</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
-    <span class="c1"># Shape [B N U W T]</span>
+    <span class="c1"># Shape [B N U W S]</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span><span class="n">m</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">]</span>
-    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">u</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
-    <span class="c1"># Truncate to shape [B N T T]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">])</span>
+    <span class="c1"># Truncate to shape [B N T S]</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
 
@@ -2183,20 +2220,22 @@
     <span class="n">masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">context_len</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
     <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key_state</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value_state</span><span class="p">,</span> <span class="n">masks</span><span class="o">=</span><span class="n">masks</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">query_right</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span>
       <span class="n">state0</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">per_head_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
-      <span class="n">state0</span><span class="o">.</span><span class="n">out_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">query_right</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">per_head_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">out_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">query_right</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
       <span class="c1"># This is used only if the caller of the layer uses skip_connection in</span>
       <span class="c1"># the layer&#39;s client code.</span>
-      <span class="n">state0</span><span class="o">.</span><span class="n">skip_conn_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">skip_conn_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">query_right</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
+                                        <span class="n">dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">state0</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.IsInferenceStepStatic"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.IsInferenceStepStatic">[docs]</a>  <span class="k">def</span> <span class="nf">IsInferenceStepStatic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
 
-<div class="viewcode-block" id="LocalSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span>
+                 <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
 
 <span class="sd">    This differs from ExtendStep() which requires key/value seq lengths being</span>
@@ -2204,13 +2243,15 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap of layer params.</span>
-<span class="sd">      inputs: An input vector of shape [B, Q, D].</span>
-<span class="sd">      paddings: A 0/1 valued tensor of shape [B, Q].</span>
+<span class="sd">      query_vec: An input vector of shape [B, Q, D].</span>
+<span class="sd">      query_paddings: A 0/1 valued tensor of shape [B, Q].</span>
+<span class="sd">      key_vec: An input vector of shape [B, K, D].</span>
+<span class="sd">      key_paddings: A 0/1 valued tensor of shape [B, K].</span>
 <span class="sd">      state0: A NestedMap of the same structure as returned by zero_state().</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      output: Output of the given query vector with shape [B, Q, D].</span>
-<span class="sd">      padding: the same as input paddings.</span>
+<span class="sd">      padding: the same as input query_paddings.</span>
 <span class="sd">      state1: Updated state of the same structure as state0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2221,9 +2262,11 @@
         <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
             <span class="s1">&#39;StreamStep() does not yet support look ahead with &#39;</span>
             <span class="s1">&#39;inference_step_max_length set.&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span>
+                                            <span class="n">key_vec</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDynamicLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDynamicLength</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span>
+                                             <span class="n">key_vec</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.StreamStepAddSkipConnection"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.StreamStepAddSkipConnection">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStepAddSkipConnection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_to_add</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">state1</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2446,7 +2489,8 @@
     <span class="n">state1</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="n">new_masks</span>
     <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span></div>
 
-<div class="viewcode-block" id="LocalSelfAttention._StreamStepStaticLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticLength">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStaticLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttention._StreamStepStaticLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepStaticLength">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStaticLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span>
+                              <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;query_vec length is staticly known.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepDimensions</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
@@ -2456,8 +2500,11 @@
         <span class="sa">f</span><span class="s1">&#39;q: </span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s1"> should be less than p.inference_step_max_length: &#39;</span>
         <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
-    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+    <span class="n">query_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
+    <span class="n">key_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">key_paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;static_length&#39;</span><span class="p">):</span>
       <span class="c1"># query projection.</span>
@@ -2470,7 +2517,7 @@
           <span class="n">query_proj</span> <span class="o">*=</span> <span class="n">h</span><span class="o">**-</span><span class="mf">0.5</span>
 
       <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStaticComputeKeyValue</span><span class="p">(</span>
-          <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
 
       <span class="c1"># [B, Q, N, T]</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamAttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
@@ -2478,7 +2525,7 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;compute_padding&#39;</span><span class="p">):</span>
         <span class="c1"># Generate local atten mask.</span>
         <span class="c1"># [Q, 1]</span>
-        <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># [1, S]</span>
         <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># 1s are masked positions.</span>
@@ -2492,11 +2539,12 @@
           <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">head</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">s</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="c1"># [Q, S]</span>
-          <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span>
+          <span class="n">shifted_distance</span> <span class="o">=</span> <span class="n">distance</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span> <span class="o">-</span> <span class="n">k</span><span class="p">)</span>
+        <span class="n">stride_margin</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">effective_left_context</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">stride_margin</span>
         <span class="c1"># [B, Q, S] or [Q, S]</span>
         <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">shifted_distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">shifted_distance</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">shifted_distance</span> <span class="o">&lt;=</span> <span class="n">effective_left_context</span><span class="p">,</span> <span class="n">shifted_distance</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># [1, Q, S] or [B, Q, S]</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">local_atten_per_step_masks</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
           <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
@@ -2522,18 +2570,20 @@
       <span class="c1"># Post projection.</span>
       <span class="c1"># [B, Q, D]</span>
       <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state1</span></div>
+      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">state1</span></div>
 
-<div class="viewcode-block" id="LocalSelfAttention._StreamStepDynamicLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDynamicLength">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepDynamicLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttention._StreamStepDynamicLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._StreamStepDynamicLength">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepDynamicLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span>
+                               <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;query_vec length is dynamic.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Sanity checks.</span>
-    <span class="n">b</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span>
     <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
     <span class="n">context_len</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
-
-    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
-    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+    <span class="n">query_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">q</span><span class="p">])</span>
+    <span class="n">key_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">key_paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;dynamic_length&#39;</span><span class="p">):</span>
       <span class="c1"># query projection.</span>
@@ -2545,34 +2595,34 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="n">query_proj</span> <span class="o">*=</span> <span class="n">h</span><span class="o">**-</span><span class="mf">0.5</span>
 
-      <span class="n">input_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
+      <span class="n">input_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">query_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># [B, Q, N, H]</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query_proj</span>
-        <span class="n">out_masks</span> <span class="o">=</span> <span class="n">input_masks</span>
-        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">paddings</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">query_paddings</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># [B, R + Q, N, H]</span>
+        <span class="c1"># [B, QR + Q, N, H]</span>
         <span class="n">concat_query</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># [B, Q, N, H]</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
         <span class="n">concat_out_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">out_masks</span><span class="p">,</span> <span class="n">input_masks</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">out_masks</span> <span class="o">=</span> <span class="n">concat_out_masks</span><span class="p">[:,</span> <span class="p">:</span><span class="n">q</span><span class="p">]</span>
-        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">out_masks</span><span class="p">),</span> <span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">out_masks</span><span class="p">),</span> <span class="n">query_paddings</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
       <span class="c1"># key, value, mask.</span>
       <span class="c1"># [B, T, N, H].</span>
       <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)],</span>
+          <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">)],</span>
           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_key&#39;</span><span class="p">)</span>
       <span class="c1"># [B, T, N, H]</span>
       <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)],</span>
+          <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">)],</span>
           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_value&#39;</span><span class="p">)</span>
       <span class="c1"># [B, T]</span>
-      <span class="n">state_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">input_masks</span><span class="p">],</span>
+      <span class="n">key_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">key_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">))</span>
+      <span class="n">state_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">state0</span><span class="o">.</span><span class="n">masks</span><span class="p">,</span> <span class="n">key_masks</span><span class="p">],</span>
                               <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_masks&#39;</span><span class="p">)</span>
 
@@ -2583,15 +2633,18 @@
         <span class="c1"># Generate local atten mask.</span>
         <span class="c1"># [Q, 1]</span>
         <span class="c1"># Assuming the current query index starts from 0</span>
+        <span class="n">query_right</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span>
         <span class="n">query_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">+</span> <span class="n">q</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="o">-</span><span class="n">query_right</span><span class="p">,</span> <span class="o">-</span><span class="n">query_right</span> <span class="o">+</span> <span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="c1"># [1, T]</span>
-        <span class="n">target_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="o">-</span><span class="n">context_len</span><span class="p">,</span> <span class="n">q</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">target_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="o">-</span><span class="n">context_len</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
         <span class="c1"># 1s are masked positions.</span>
         <span class="c1"># [Q, T]</span>
         <span class="n">distance</span> <span class="o">=</span> <span class="n">query_indices</span> <span class="o">-</span> <span class="n">target_indices</span>
+        <span class="n">effective_right_context</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-            <span class="n">distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">distance</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">)</span>
+            <span class="n">distance</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">distance</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">effective_right_context</span><span class="p">)</span>
         <span class="c1"># [1, Q, T]</span>
         <span class="n">local_atten_per_step_masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">local_atten_per_step_masks</span><span class="p">,</span>
                                                     <span class="mi">0</span><span class="p">)</span>
@@ -2619,9 +2672,9 @@
       <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
 
       <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span>
-          <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span>
-          <span class="n">masks</span><span class="o">=</span><span class="n">state_masks</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:])</span>
+          <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">[:,</span> <span class="n">k</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span>
+          <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">[:,</span> <span class="n">k</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:],</span>
+          <span class="n">masks</span><span class="o">=</span><span class="n">state_masks</span><span class="p">[:,</span> <span class="n">k</span><span class="p">:])</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="n">concat_query</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">out_masks</span> <span class="o">=</span> <span class="n">concat_out_masks</span><span class="p">[:,</span> <span class="n">q</span><span class="p">:]</span>
@@ -2654,6 +2707,9 @@
     <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">use_3d_recurrent_state</span><span class="p">:</span>
       <span class="c1"># Rel pos emb relies on the shape of query and key.</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Rel pos emb does not support 3d recurrent state.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Query stride not supported yet.&#39;</span><span class="p">)</span>
 
     <span class="n">emb_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">embedding_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
@@ -2796,7 +2852,8 @@
                  <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
-<div class="viewcode-block" id="LocalSelfAttentionXL.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttentionXL.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span>
+                 <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
 
 <span class="sd">    Note: Rel pos emb relies on the shape of key. It expects the seq length</span>
@@ -2806,13 +2863,15 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap of layer params.</span>
-<span class="sd">      query_vec: A query vector of shape [B, Q, D].</span>
-<span class="sd">      paddings: A 0/1 valued tensor of shape [B, Q].</span>
+<span class="sd">      query_vec: An input vector of shape [B, Q, D].</span>
+<span class="sd">      query_paddings: A 0/1 valued tensor of shape [B, Q].</span>
+<span class="sd">      key_vec: An input vector of shape [B, K, D].</span>
+<span class="sd">      key_paddings: A 0/1 valued tensor of shape [B, K].</span>
 <span class="sd">      state0: A NestedMap of the same structure as returned by zero_state().</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      output: Output of the given query vector with shape [B, Q, D].</span>
-<span class="sd">      padding: the same as input paddings.</span>
+<span class="sd">      padding: the same as input query_paddings.</span>
 <span class="sd">      state1: Updated state of the same structure as state0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">IsInferenceStepStatic</span><span class="p">():</span>
@@ -2821,7 +2880,8 @@
       <span class="c1"># Rel pos emb expects the seq length of key is `q.length + left - 1`.</span>
       <span class="k">assert</span> <span class="n">q</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;inference_step_max_length must be same to the seq length of query.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span>
+                              <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="RoutingAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention">[docs]</a><span class="k">class</span> <span class="nc">RoutingAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
@@ -3979,12 +4039,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">atten</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="TransformerAttentionLayer.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerAttentionLayer.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: a NestedMap with layer weights.</span>
-<span class="sd">      query_vec: A query vector of shape [B, T, D].</span>
+<span class="sd">      input_vec: A query vector of shape [B, T, D].</span>
 <span class="sd">      paddings: A 0/1 valued tensor of shape [B, T].</span>
 <span class="sd">      state0: A `.NestedMap` of the same structure as returned by zero_state().</span>
 
@@ -3996,26 +4056,235 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/StreamStep&#39;</span><span class="p">):</span>
-      <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">((</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">))</span>
-      <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
+      <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">((</span><span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">))</span>
+      <span class="n">unnormalized_input_vec</span> <span class="o">=</span> <span class="n">input_vec</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
-        <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
-        <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
+        <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">)</span>
+        <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">input_vec</span><span class="p">)</span>
 
       <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
 
       <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
 
       <span class="c1"># Residual connection.</span>
       <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
+          <span class="n">unnormalized_input_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">input_vec</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
         <span class="n">output</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">StreamStepAddSkipConnection</span><span class="p">(</span>
             <span class="n">input_to_add</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_state1</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">atten</span><span class="o">=</span><span class="n">atten_state1</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FunnelTransformerAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelTransformerAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">FunnelTransformerAttentionLayer</span><span class="p">(</span><span class="n">TransformerAttentionLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Multiheaded attention sub-layer with funnel pool.</span>
+
+<span class="sd">  It&#39;s same to TransformerAttentionLayer except for funnel pool for query. It</span>
+<span class="sd">  lets funnel_pool pool query before self-attention, which causes query seq len</span>
+<span class="sd">  reduction by query_stride. It feeds the pooled query and key to the attention</span>
+<span class="sd">  layer, which returns value as long as pooled query.</span>
+
+<span class="sd">  All attention layers don&#39;t need to know it, as it lets query attend keys and</span>
+<span class="sd">  return value per query. However, LocalSelfAttention(XL) needs to know because:</span>
+<span class="sd">  1. Local causal mask must take it into account.</span>
+<span class="sd">  2. The length of the state of query in StreamStep depends on it.</span>
+
+<span class="sd">  TODO(b/202530591): we don&#39;t support funnel for LocalSelfAttentionXL as there</span>
+<span class="sd">  are not any usages yet and relative position computation is complicated.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FunnelTransformerAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelTransformerAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;funnel_tpl&#39;</span><span class="p">,</span>
+             <span class="n">FunnelPoolingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pooling_type</span><span class="o">=</span><span class="s1">&#39;AVG&#39;</span><span class="p">),</span>
+             <span class="s1">&#39;Funnel pool params template for query. When p.stride==1, no-op.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;res_funnel_tpl&#39;</span><span class="p">,</span>
+             <span class="n">FunnelPoolingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pooling_type</span><span class="o">=</span><span class="s1">&#39;MAX&#39;</span><span class="p">),</span>
+             <span class="s1">&#39;Funnel pool params template for residual connection.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="FunnelTransformerAttentionLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelTransformerAttentionLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span>
+      <span class="bp">cls</span><span class="p">,</span>
+      <span class="n">input_dim</span><span class="p">,</span>
+      <span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">is_masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">use_relative_atten</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">relative_pos_emb_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">local_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">left_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">right_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+      <span class="n">query_stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+  <span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FunnelTransformerAttentionLayer</span><span class="p">,</span>
+              <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">CommonParams</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">is_masked</span><span class="p">,</span>
+                                <span class="n">use_relative_atten</span><span class="p">,</span> <span class="n">relative_pos_emb_dim</span><span class="p">,</span>
+                                <span class="n">local_context</span><span class="p">,</span> <span class="n">left_context</span><span class="p">,</span> <span class="n">right_context</span><span class="p">,</span>
+                                <span class="n">dropout_prob</span><span class="p">)</span>
+    <span class="n">is_local</span> <span class="o">=</span> <span class="n">left_context</span> <span class="ow">or</span> <span class="n">right_context</span>
+    <span class="k">if</span> <span class="n">is_local</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">query_stride</span><span class="o">=</span><span class="n">query_stride</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">funnel_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="n">query_stride</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">res_funnel_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">stride</span><span class="o">=</span><span class="n">query_stride</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;funnel_pool&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">funnel_tpl</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;res_funnel_pool&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">res_funnel_tpl</span><span class="p">)</span>
+
+    <span class="c1"># TODO(b/202530591): implement strided rel pos if needed.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">LocalSelfAttentionXL</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;LocalSelfAttentionXL is not yet supported.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FunnelTransformerAttentionLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelTransformerAttentionLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">query_vec</span><span class="p">,</span>
+            <span class="n">source_vecs</span><span class="p">,</span>
+            <span class="n">paddings</span><span class="p">,</span>
+            <span class="n">per_step_padding_override</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the result of Transformer attention layer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query_vec:   [B, T, D].</span>
+<span class="sd">      source_vecs: [B, S, D] (cross_attention) or None (self-attention).</span>
+<span class="sd">      paddings:    [B, S].</span>
+<span class="sd">      per_step_padding_override: [B, T, S].</span>
+<span class="sd">      segment_mask: [B, 1, T, S].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: [B, T, D].</span>
+<span class="sd">      atten_probs: [B, N, T, S].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">per_step_padding_override</span><span class="p">,</span>
+     <span class="n">segment_mask</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span>
+         <span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">per_step_padding_override</span><span class="p">,</span>
+          <span class="n">segment_mask</span><span class="p">))</span>
+
+    <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
+
+    <span class="c1"># Layer normalization.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
+
+    <span class="c1"># For self-attention: keys = queries.</span>
+    <span class="k">if</span> <span class="n">source_vecs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">query_vec</span>
+
+    <span class="c1"># Generates mask, with shape [b, t, s].</span>
+    <span class="k">if</span> <span class="n">per_step_padding_override</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span> <span class="ow">and</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># causal padding.</span>
+        <span class="n">query_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">funnel_tpl</span><span class="o">.</span><span class="n">stride</span>
+        <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">CausalPadding</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">causal_padding</span><span class="p">[</span><span class="n">query_stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">::</span><span class="n">query_stride</span><span class="p">]</span>
+        <span class="n">per_step_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">causal_padding</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">per_step_padding</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">per_step_padding</span> <span class="o">=</span> <span class="n">per_step_padding_override</span>
+
+    <span class="n">pooled_query_vec</span><span class="p">,</span> <span class="n">pooled_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funnel_pool</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">funnel_pool</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+                            <span class="nb">list</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Listed attention are not supported.&#39;</span><span class="p">)</span>
+      <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+          <span class="n">pooled_query_vec</span><span class="p">,</span>  <span class="c1"># query</span>
+          <span class="n">source_vecs</span><span class="p">,</span>  <span class="c1"># key</span>
+          <span class="n">source_vecs</span><span class="p">,</span>  <span class="c1"># value</span>
+          <span class="n">paddings</span><span class="p">,</span>
+          <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
+          <span class="n">per_step_padding</span><span class="o">=</span><span class="n">per_step_padding</span><span class="p">)</span>
+
+    <span class="c1"># Residual connection.</span>
+    <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+    <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
+      <span class="n">input_to_add</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_funnel_pool</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">res_funnel_pool</span><span class="p">,</span>
+                                                   <span class="n">input_to_add</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_droppath_prob</span><span class="p">:</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_droppath</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">residual_droppath</span><span class="p">,</span>
+            <span class="n">input_to_add</span><span class="p">,</span>
+            <span class="n">ctx_vec</span><span class="p">,</span>
+        <span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">ctx_vec</span> <span class="o">+=</span> <span class="n">input_to_add</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">pooled_paddings</span><span class="p">,</span> <span class="n">atten_probs</span></div>
+
+<div class="viewcode-block" id="FunnelTransformerAttentionLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelTransformerAttentionLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">query_vec</span><span class="p">,</span>
+                 <span class="n">cached_states</span><span class="p">,</span>
+                 <span class="n">time_step</span><span class="p">,</span>
+                 <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;ExtendStep should be used only by masked/causal self-attention.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunnelTransformerAttentionLayer.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelTransformerAttentionLayer.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: a NestedMap with layer weights.</span>
+<span class="sd">      input_vec: A query vector of shape [B, T, D].</span>
+<span class="sd">      paddings: A 0/1 valued tensor of shape [B, T].</span>
+<span class="sd">      state0: A `.NestedMap` of the same structure as returned by zero_state().</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: Output of the given query vector with shape [B, T, D].</span>
+<span class="sd">      padding: the same as input paddings.</span>
+<span class="sd">      state: updated state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/StreamStep&#39;</span><span class="p">):</span>
+      <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">((</span><span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">))</span>
+      <span class="n">unnormalized_input_vec</span> <span class="o">=</span> <span class="n">input_vec</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+        <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">)</span>
+        <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">input_vec</span><span class="p">)</span>
+
+      <span class="n">pooled_query_vec</span><span class="p">,</span> <span class="n">pooled_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funnel_pool</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">funnel_pool</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+      <span class="n">key_vec</span> <span class="o">=</span> <span class="n">input_vec</span>
+      <span class="n">output</span><span class="p">,</span> <span class="n">pooled_paddings</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">pooled_query_vec</span><span class="p">,</span> <span class="n">pooled_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span>
+          <span class="n">state0</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
+
+      <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+
+      <span class="c1"># Residual connection.</span>
+      <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">unnormalized_input_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">input_vec</span><span class="p">)</span>
+      <span class="n">input_to_add</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_funnel_pool</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">res_funnel_pool</span><span class="p">,</span>
+                                                        <span class="n">input_to_add</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">StreamStepAddSkipConnection</span><span class="p">(</span>
+            <span class="n">input_to_add</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_state1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">pooled_paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">atten</span><span class="o">=</span><span class="n">atten_state1</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerMultiSourceAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerMultiSourceAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerMultiSourceAttentionLayer</span><span class="p">(</span><span class="n">TransformerAttentionLayer</span><span class="p">):</span>
@@ -5622,6 +5891,11 @@
         <span class="s1">&#39;implementation does not consider this.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">pool_window</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pool_window</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span>
+
 <div class="viewcode-block" id="FunnelPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span>
       <span class="bp">self</span><span class="p">,</span>
       <span class="n">theta</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">,</span>
@@ -5711,10 +5985,9 @@
         <span class="c1"># Fill 0 in padded positions.</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
 
-    <span class="n">pool_window</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pool_window</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span>
     <span class="n">pooled_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span>
-        <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="n">pool_window</span><span class="p">],</span>
+        <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">pool_window</span><span class="p">],</span>
         <span class="n">pooling_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">],</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
@@ -5725,7 +5998,7 @@
       <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pooled_tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">non_padding_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
           <span class="n">in_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
-          <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="n">pool_window</span><span class="p">],</span>
+          <span class="n">window_shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">pool_window</span><span class="p">],</span>
           <span class="n">pooling_type</span><span class="o">=</span><span class="s1">&#39;AVG&#39;</span><span class="p">,</span>
           <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">stride</span><span class="p">],</span>
           <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
@@ -5772,7 +6045,41 @@
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_x_shape</span><span class="p">,))</span>
 
     <span class="n">out_paddings</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">out_seq_len</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_x_shape</span><span class="p">,</span> <span class="n">out_paddings</span><span class="p">))</span></div></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_x_shape</span><span class="p">,</span> <span class="n">out_paddings</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="FunnelPoolingLayer.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelPoolingLayer.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span>
+      <span class="n">theta</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">,</span>
+      <span class="n">inputs</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+      <span class="n">paddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Computes the pooled vector given the query of the current step.</span>
+
+<span class="sd">    This supports only the case query step is a multiple of stride.</span>
+<span class="sd">    A few features are not supported for streaming, such as begin_intact and</span>
+<span class="sd">    first_n.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: a NestedMap with layer weights.</span>
+<span class="sd">      inputs: A tensor of shape [B, T, D].</span>
+<span class="sd">      paddings: A 0/1 valued tensor of shape [B, T].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: The pooled input tensor with shape [B, T//P, D].</span>
+<span class="sd">      padding: Optional, A 0/1 valued tensor of shape [B, T//P].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;begin_intact is not supported: </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">first_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;first_n is not supported: </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">first_n</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">max_seqlen</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># It&#39;s a strong restriction during streaming inference. b/202530591#comment4</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_even_divide</span><span class="p">(</span><span class="n">max_seqlen</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pool_window</span><span class="p">),</span>
+    <span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FunnelUpsampleLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer">[docs]</a><span class="k">class</span> <span class="nc">FunnelUpsampleLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -5800,7 +6107,19 @@
         <span class="s1">&#39;Truncate sequence for efficiency. This is only effective when &#39;</span>
         <span class="s1">&#39;`begin_intact &gt; 0`&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;upsample_type&#39;</span><span class="p">,</span> <span class="s1">&#39;REPEAT&#39;</span><span class="p">,</span> <span class="s1">&#39;upsample type: REPEAT|DECONV&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;shortcut_index&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Layer index of the hidden states which will be used to provide &#39;</span>
+        <span class="s1">&#39;an additional low-level features. Will be used to index `all_hiddens` &#39;</span>
+        <span class="s1">&#39;to retrieve the corresponding hidden state.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_stack&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Params for decoder layer stack.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder_stack</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;decoder_stack&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder_stack</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FunnelUpsampleLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
@@ -5813,18 +6132,21 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="FunnelUpsampleLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<div class="viewcode-block" id="FunnelUpsampleLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.FunnelUpsampleLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">all_hiddens</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Upsample to the inputs.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: weights defined in this layer.</span>
 <span class="sd">      x: input tensor, [batch, time, dim] upsampling is applied to the time dim.</span>
+<span class="sd">      all_hiddens: None or the list of hiddens states from all encoder layers,</span>
+<span class="sd">        where each hidden state is a NestedMap with &#39;vec&#39; and &#39;padding&#39; keys.</span>
+<span class="sd">        See the Builder class below for more details.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Upsampled tensor, with the upsampling applied to the second dim in x.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FunnelUpsampleLayer expects input to be rank 3, but &#39;</span>
                        <span class="s1">&#39;got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;REPEAT&#39;</span><span class="p">,</span> <span class="s1">&#39;DECONV&#39;</span><span class="p">]:</span>
@@ -5845,9 +6167,9 @@
       <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">hid</span><span class="p">,</span> <span class="n">repeats</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_type</span> <span class="o">==</span> <span class="s1">&#39;DECONV&#39;</span><span class="p">:</span>
       <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLD,DNH-&gt;BLNH&#39;</span><span class="p">,</span> <span class="n">hid</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-      <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">upsampled</span><span class="p">,</span>
-          <span class="p">[</span><span class="n">hid</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span> <span class="o">*</span> <span class="n">hid</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">])</span>
+      <span class="n">bsz</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">hid</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">upsampled</span><span class="p">,</span>
+                             <span class="p">[</span><span class="n">bsz</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">upsample_rate</span> <span class="o">*</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">begin_intact</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">sep_len</span> <span class="o">=</span> <span class="mi">1</span>
@@ -5859,6 +6181,19 @@
       <span class="n">upsampled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">intact</span><span class="p">,</span> <span class="n">upsampled</span><span class="p">],</span>
                             <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concat_upsampled&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shortcut_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">all_hiddens</span><span class="p">,</span> <span class="s1">&#39;all_hiddens must be provided for shortcut.&#39;</span>
+      <span class="n">upsampled_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">upsampled</span><span class="p">)</span>
+      <span class="n">shortcut_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">all_hiddens</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">shortcut_index</span><span class="p">]</span><span class="o">.</span><span class="n">vec</span><span class="p">)</span>
+      <span class="n">upsampled</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">upsampled_shape</span><span class="p">,</span> <span class="n">shortcut_shape</span><span class="p">)],</span>
+          <span class="n">upsampled</span> <span class="o">+</span> <span class="n">all_hiddens</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">shortcut_index</span><span class="p">]</span><span class="o">.</span><span class="n">vec</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder_stack</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">decoder_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">vec</span><span class="o">=</span><span class="n">upsampled</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">all_hiddens</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">shortcut_index</span><span class="p">]</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+        <span class="n">upsampled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_stack</span><span class="p">(</span><span class="n">decoder_input</span><span class="p">)</span><span class="o">.</span><span class="n">vec</span>
 
     <span class="k">return</span> <span class="n">upsampled</span></div></div>
 
@@ -6231,7 +6566,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">norm_layer_tpl</span><span class="p">:</span>
       <span class="n">conv_builder_params</span><span class="o">.</span><span class="n">norm_layer_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">norm_layer_tpl</span>
     <span class="n">conv_builder</span> <span class="o">=</span> <span class="n">conv_builder_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">conv_builder</span><span class="o">.</span><span class="n">DepthwiseConv2D</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">conv_builder</span><span class="o">.</span><span class="n">DepthwiseConv2D</span><span class="p">(</span>  <span class="c1"># pytype: disable=attribute-error  # compare-and-match</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">in_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
         <span class="n">depth_multiplier</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -6247,7 +6582,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">conv_builder_params</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="o">.</span><span class="n">Builder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">conv_builder</span> <span class="o">=</span> <span class="n">conv_builder_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">conv_builder</span><span class="o">.</span><span class="n">NormalizedDepthwiseConv2D</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">conv_builder</span><span class="o">.</span><span class="n">NormalizedDepthwiseConv2D</span><span class="p">(</span>  <span class="c1"># pytype: disable=attribute-error  # compare-and-match</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
@@ -6619,9 +6954,21 @@
                                <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="n">ff_hidden_dim</span><span class="p">)))</span></div>
 
-<div class="viewcode-block" id="Builder.Stack"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Stack">[docs]</a>  <span class="k">def</span> <span class="nf">Stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder.Stack"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Stack">[docs]</a>  <span class="k">def</span> <span class="nf">Stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">,</span> <span class="n">output_all_layer_hiddens</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a stack of sequential layers.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">blocks</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">output_all_layer_hiddens</span><span class="p">:</span>
+      <span class="n">graph_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span>
+      <span class="n">graph_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">graph_modules</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">layer_input</span> <span class="o">=</span> <span class="s1">&#39;input&#39;</span>
+      <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">blocks</span><span class="p">):</span>
+        <span class="n">layer_output</span> <span class="o">=</span> <span class="s1">&#39;output_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="n">graph_modules</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">layer_input</span><span class="si">}</span><span class="s1">-&gt;</span><span class="si">{</span><span class="n">layer_output</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">block</span><span class="p">))</span>
+        <span class="n">graph_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_output</span><span class="p">)</span>
+        <span class="n">layer_input</span> <span class="o">=</span> <span class="n">layer_output</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">graph_inputs</span><span class="p">,</span> <span class="n">graph_outputs</span><span class="p">,</span> <span class="o">*</span><span class="n">graph_modules</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">blocks</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder.TransformerEncoderStack"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.TransformerEncoderStack">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerEncoderStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a stack of num_layers self-attention layers.&quot;&quot;&quot;</span>

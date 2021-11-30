@@ -137,6 +137,11 @@
     <span class="s1">&#39;since XLA does not fully respect the contract with respect to &#39;</span>
     <span class="s1">&#39;user-specified seeds, when using TensorFlow stateful RNGs.&#39;</span><span class="p">)</span>
 
+<span class="c1"># TODO(jiaweix): add the flag in launch.py</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;use_v2_checkpoints_in_eager&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Whether to use v2 object based checkpoints or v1 checkpoints.&#39;</span><span class="p">)</span>
+
 <span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
 <span class="c1">#</span>
 <span class="c1"># 1) They require app.run() or explicit flag parsing, preventing the use of</span>

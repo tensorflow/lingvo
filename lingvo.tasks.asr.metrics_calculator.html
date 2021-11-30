@@ -80,8 +80,39 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-tasks-asr-metrics-calculator-module">
-<h1>lingvo.tasks.asr.metrics_calculator module<a class="headerlink" href="#lingvo-tasks-asr-metrics-calculator-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.tasks.asr.metrics_calculator">
+<span id="lingvo-tasks-asr-metrics-calculator-module"></span><h1>lingvo.tasks.asr.metrics_calculator module<a class="headerlink" href="#module-lingvo.tasks.asr.metrics_calculator" title="Permalink to this headline"></a></h1>
+<p>Calculate and update metrics for Decode Post-Process.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.metrics_calculator.PostProcessInputs">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.metrics_calculator.</span></span><span class="sig-name descname"><span class="pre">PostProcessInputs</span></span><a class="headerlink" href="#lingvo.tasks.asr.metrics_calculator.PostProcessInputs" title="Permalink to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.metrics_calculator.postprocess_input</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.metrics_calculator.GetRefIds">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.metrics_calculator.</span></span><span class="sig-name descname"><span class="pre">GetRefIds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/metrics_calculator.html#GetRefIds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.metrics_calculator.GetRefIds" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.metrics_calculator.CalculateMetrics">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.metrics_calculator.</span></span><span class="sig-name descname"><span class="pre">CalculateMetrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">postprocess_inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">lingvo.tasks.asr.metrics_calculator.postprocess_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_tpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_utf8</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/metrics_calculator.html#CalculateMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.metrics_calculator.CalculateMetrics" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate and update metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>postprocess_inputs</strong> – namedtuple of Postprocess input objects/tensors.</p></li>
+<li><p><strong>dec_metrics_dict</strong> – A dictionary of metric names to metrics.</p></li>
+<li><p><strong>add_summary</strong> – Whether to add detailed summary logging for processing each
+utterance.</p></li>
+<li><p><strong>use_tpu</strong> – Whether TPU is used (for decoding).</p></li>
+<li><p><strong>log_utf8</strong> – DecoderMetrics param. If True, decode reference and hypotheses
+bytes to UTF-8 for logging.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 

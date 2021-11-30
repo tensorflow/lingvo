@@ -78,41 +78,43 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
-<span class="sd">&quot;&quot;&quot;The compatible tensorflow library.&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;Compatibility layer for TF2 migration.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 
-<span class="c1"># pylint: disable=g-bad-import-order, unused-import, g-import-not-at-top</span>
+<span class="c1"># pylint: disable=g-bad-import-order, unused-import, g-import-not-at-top, undefined-variable</span>
 <span class="kn">import</span> <span class="nn">tensorflow.compat.v1</span> <span class="k">as</span> <span class="nn">tf1</span>
 <span class="kn">import</span> <span class="nn">tensorflow.compat.v2</span> <span class="k">as</span> <span class="nn">tf2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compat.v2</span> <span class="kn">import</span> <span class="o">*</span>  <span class="c1"># pylint: disable=wildcard-import</span>
 
-<span class="c1"># Import absl.flags and absl.logging to overwrite the Tensorflow ones.</span>
+<span class="c1"># Import absl.app, absl.flags and absl.logging to overwrite the Tensorflow ones.</span>
 <span class="c1"># This is the intended behavior in TF 2.0.</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">app</span>
 <span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">flags</span>
 <span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
-<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
-<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.data.ops</span> <span class="kn">import</span> <span class="n">dataset_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.data.util</span> <span class="kn">import</span> <span class="n">random_seed</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span> <span class="k">as</span> <span class="n">_function_lib</span>
+<span class="c1"># pylint: disable=g-direct-tensorflow-import, line-too-long</span>
+<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>  <span class="c1"># tf.compat.v1.ConfigProto</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.data.ops</span> <span class="kn">import</span> <span class="n">dataset_ops</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.data.util</span> <span class="kn">import</span> <span class="n">random_seed</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span> <span class="k">as</span> <span class="n">_function_lib</span>  <span class="c1"># Used in this file only</span>
+<span class="c1"># tf.ops.colocate_with, tf.ops.get_resource_handle_data, tf.ops.register_tensor_conversion_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">array_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">check_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">embedding_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">functional_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">gen_dataset_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">gen_io_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">math_ops</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.tf2</span> <span class="kn">import</span> <span class="n">enabled</span> <span class="k">as</span> <span class="n">tf2_enabled</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">module_wrapper</span> <span class="k">as</span> <span class="n">_module_wrapper</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">array_ops</span>  <span class="c1"># tf.array_ops.batch_gather</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">check_ops</span>  <span class="c1"># tf.check_ops.assert_equal</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">embedding_ops</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">functional_ops</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">gen_dataset_ops</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">gen_io_ops</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">math_ops</span>  <span class="c1"># tf.math_ops.bucketize</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tf2</span> <span class="kn">import</span> <span class="n">enabled</span> <span class="k">as</span> <span class="n">tf2_enabled</span>  <span class="c1"># Used in this file only</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">module_wrapper</span> <span class="k">as</span> <span class="n">_module_wrapper</span>  <span class="c1"># Used in this file only</span>
 <span class="c1"># For determining if we are running with --define=tf_api_version=1 or 2.</span>
-<span class="kn">from</span> <span class="nn">tensorflow</span> <span class="kn">import</span> <span class="n">_major_api_version</span>
-<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow</span> <span class="kn">import</span> <span class="n">_major_api_version</span>  <span class="c1"># Used in this file only</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import, line-too-long</span>
 <span class="c1"># pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top</span>
 
-<span class="k">if</span> <span class="n">tf2</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+<span class="k">if</span> <span class="n">executing_eagerly</span><span class="p">():</span>
   <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
       <span class="s2">&quot;Lingvo with eager execution is in early development. &quot;</span>
       <span class="s2">&quot;Please reach out to go/lingvo-eager-migration with bugs. &quot;</span>
@@ -153,16 +155,27 @@
 <span class="n">Empty</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span>
 <span class="n">EmptyLike</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty_like</span>
 
-<span class="c1"># pylint: disable=undefined-variable, used-before-assignment</span>
+<span class="c1"># pylint: disable=used-before-assignment</span>
 <span class="c1"># Move this V2 symbol here to avoid being overwritten by its following V1</span>
 <span class="c1"># version.</span>
 <span class="n">where_v2</span> <span class="o">=</span> <span class="n">where</span>
 <span class="n">while_loop_v2</span> <span class="o">=</span> <span class="n">while_loop</span>
 
-<span class="c1"># Import the local V2 module to maker sure the following V1 overwritting never</span>
+
+<span class="c1"># Switch between V1 and V2 symbol depending on whether eager mode is enabled.</span>
+<span class="c1"># First remove the imported symbols.</span>
+<span class="k">del</span> <span class="n">data</span>
+
+
+<span class="c1"># Then delegate to a runtime function.</span>
+<span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf2</span><span class="o">.</span><span class="n">data</span> <span class="k">if</span> <span class="n">executing_eagerly_outside_functions</span><span class="p">()</span> <span class="k">else</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span>
+  <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;module </span><span class="si">{</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> has no attribute </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Import the local V2 module to make sure the following V1 overwriting never</span>
 <span class="c1"># applies to the global module and symbol.</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-<span class="n">graph_util</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">graph_util</span><span class="p">)</span>
 <span class="n">image</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 <span class="n">io</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">io</span><span class="p">)</span>
 <span class="n">losses</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="p">)</span>
@@ -180,7 +193,7 @@
 <span class="c1"># `tf.data.Dataset.list_files()`. which is not compatible with</span>
 <span class="c1"># `tf.data.make_one_shot_iterator` in TF2 (see b/162270607).</span>
 <span class="c1"># Here is a stateless implementation of `shuffle`, `cache` and</span>
-<span class="c1"># `list_files` to resolve the TF2 imcompatibility issue.</span>
+<span class="c1"># `list_files` to resolve the TF2 incompatibility issue.</span>
 
 <span class="c1"># Note that, these methods are meant for internal use only. Please don&#39;t use</span>
 <span class="c1"># it unless you know exactly what you do.</span>
@@ -334,21 +347,21 @@
     <span class="k">with</span> <span class="n">control_dependencies</span><span class="p">([</span><span class="n">assert_not_empty</span><span class="p">]):</span>
       <span class="n">matching_files</span> <span class="o">=</span> <span class="n">identity</span><span class="p">(</span><span class="n">matching_files</span><span class="p">)</span>
 
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">matching_files</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">matching_files</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">shuffle</span><span class="p">:</span>
       <span class="n">buffer_size</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
           <span class="n">shape</span><span class="p">(</span><span class="n">matching_files</span><span class="p">,</span> <span class="n">out_type</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
       <span class="c1"># Use stateless shuffled dataset</span>
       <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">stateless_shuffle_dataset</span><span class="p">(</span><span class="n">buffer_size</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">dataset</span></div>
-<span class="c1"># pylint: enable=undefined-variable, used-before-assignment</span>
+<span class="c1"># pylint: enable=used-before-assignment</span>
 
 
 <div class="viewcode-block" id="variable_scope"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat.variable_scope">[docs]</a><span class="k">class</span> <span class="nc">variable_scope</span><span class="p">(</span><span class="n">tf1</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="sd">&quot;&quot;&quot;Override tf.compat.v1.variable_scope with an additional error message.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">tf2</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">executing_eagerly</span><span class="p">():</span>
       <span class="c1"># In eager mode, the reuse arg to variable_scope is silently overwritten</span>
       <span class="c1"># to AUTO_REUSE. We opt to raise an error instead.</span>
       <span class="c1"># https://github.com/tensorflow/tensorflow/blob/9345aee6988f50b7c571295a9e70e40e47221a64/tensorflow/python/ops/variable_scope.py#L1166</span>
@@ -362,12 +375,10 @@
 <span class="c1"># TF 1.x symbols used in the codebase.</span>
 <span class="c1"># To keep this list short, please use TF 2.x API whenever applicable.</span>
 <span class="c1"># Only use TF 1.x API if it has no 2.x equivalent.</span>
-<span class="c1"># pylint: disable=undefined-variable</span>
 <span class="n">add_to_collection</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">add_to_collection</span>
 <span class="n">all_variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">global_variables</span>
 <span class="c1"># The following asserts can be directly replaced with TF2 `tf.debugging.*`</span>
 <span class="c1"># after TF2/eager is enabled.</span>
-<span class="n">app</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">app</span>
 <span class="n">assert_integer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assert_integer</span>
 <span class="n">assert_positive</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assert_positive</span>
 <span class="n">assert_type</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assert_type</span>
@@ -377,45 +388,36 @@
 <span class="n">assign_sub</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assign_sub</span>
 <span class="n">AUTO_REUSE</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
 <span class="n">container</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">container</span>
-<span class="n">data</span><span class="o">.</span><span class="n">Dataset</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span>
-<span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span>
 <span class="n">device</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">device</span>
 <span class="n">Dimension</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">Dimension</span>
 <span class="n">disable_eager_execution</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">disable_eager_execution</span>
 <span class="n">disable_v2_behavior</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">disable_v2_behavior</span>
-<span class="n">div</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">div</span>
+<span class="n">div</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">div</span>  <span class="c1"># tf.math.divide?</span>
 <span class="n">enable_eager_execution</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">enable_eager_execution</span>
 <span class="n">executing_eagerly_outside_functions</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">executing_eagerly_outside_functions</span>
-<span class="n">floor_div</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">floor_div</span>
+<span class="n">floor_div</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">floor_div</span>  <span class="c1"># tf.math.floordiv?</span>
 <span class="n">get_collection</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_collection</span>
 <span class="n">get_collection_ref</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_collection_ref</span>
 <span class="n">get_default_graph</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_default_graph</span>
-<span class="n">get_local_variable</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_local_variable</span>
-<span class="n">get_seed</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_seed</span>
+<span class="n">get_local_variable</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_local_variable</span>  <span class="c1"># Only used in single file.</span>
 <span class="n">get_variable</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_variable</span>
 <span class="n">get_variable_scope</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">get_variable_scope</span>
 <span class="n">global_variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">global_variables</span>
 <span class="n">global_variables_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">global_variables_initializer</span>
 <span class="n">gradients</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">gradients</span>
-<span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">tf1</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span><span class="p">)</span>
-<span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span>
 <span class="n">GraphDef</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">GraphDef</span>
 <span class="n">GraphKeys</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">GraphKeys</span>
 <span class="n">GraphOptions</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">GraphOptions</span>
-<span class="n">group</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">group</span>
+<span class="c1"># tf.image.resize(method=ResizeMethod.BLAH)</span>
 <span class="n">image</span><span class="o">.</span><span class="n">resize_bilinear</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_bilinear</span>
 <span class="n">image</span><span class="o">.</span><span class="n">resize_images</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_images</span>
 <span class="n">image</span><span class="o">.</span><span class="n">resize_nearest_neighbor</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_nearest_neighbor</span>
 <span class="n">initialize_all_tables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">initialize_all_tables</span>
-<span class="n">InteractiveSession</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">InteractiveSession</span>
 <span class="n">io</span><span class="o">.</span><span class="n">tf_record_iterator</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">tf_record_iterator</span>
-<span class="n">is_variable_initialized</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">is_variable_initialized</span>
-<span class="n">layers</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">layers</span>
+<span class="n">layers</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">layers</span>  <span class="c1"># tf.layers.dense, tf.layers.max_pooling2d</span>
 <span class="n">local_variables_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">local_variables_initializer</span>
 <span class="n">losses</span><span class="o">.</span><span class="n">absolute_difference</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">absolute_difference</span>
 <span class="n">losses</span><span class="o">.</span><span class="n">add_loss</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">add_loss</span>
-<span class="n">losses</span><span class="o">.</span><span class="n">compute_weighted_loss</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">compute_weighted_loss</span>
 <span class="n">losses</span><span class="o">.</span><span class="n">get_regularization_loss</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">get_regularization_loss</span>
 <span class="n">losses</span><span class="o">.</span><span class="n">huber_loss</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">huber_loss</span>
 <span class="n">losses</span><span class="o">.</span><span class="n">mean_squared_error</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">mean_squared_error</span>
@@ -423,8 +425,7 @@
 <span class="n">losses</span><span class="o">.</span><span class="n">Reduction</span><span class="o">.</span><span class="n">SUM</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">Reduction</span><span class="o">.</span><span class="n">SUM</span>
 <span class="n">losses</span><span class="o">.</span><span class="n">sigmoid_cross_entropy</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">sigmoid_cross_entropy</span>
 <span class="n">losses</span><span class="o">.</span><span class="n">softmax_cross_entropy</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">softmax_cross_entropy</span>
-<span class="n">losses</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy</span><span class="p">)</span>
-<span class="n">make_template</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">make_template</span>
+<span class="n">losses</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">sparse_softmax_cross_entropy</span>
 <span class="n">metrics</span><span class="o">.</span><span class="n">accuracy</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">accuracy</span>
 <span class="n">metrics</span><span class="o">.</span><span class="n">auc</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">auc</span>
 <span class="n">metrics</span><span class="o">.</span><span class="n">precision</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">precision</span>
@@ -476,6 +477,11 @@
 <span class="n">test</span><span class="o">.</span><span class="n">compute_gradient_error</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">compute_gradient_error</span>
 <span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span>
 <span class="n">test</span><span class="o">.</span><span class="n">mock</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">mock</span>
+<span class="c1"># tf.tpu.outside_compilation, tf.tpu.cross_replica_sum,</span>
+<span class="c1"># tf.tpu.experimental.Topology, tf.tpu.initialize_system, tf.tpu.core,</span>
+<span class="c1"># tf.tpu.rewrite, tf.tpu.shutdown_system, tf.tpu.XLAOptions, tf.tpu.replicate,</span>
+<span class="c1"># tf.tpu.shard, tf.tpu.experimental.DeviceAssignment,</span>
+<span class="c1"># tf.tpu.experimental.initialize_tpu_system, tf.tpu.batch_parallel</span>
 <span class="n">tpu</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">tpu</span>
 <span class="n">train</span><span class="o">.</span><span class="n">AdadeltaOptimizer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">AdadeltaOptimizer</span>
 <span class="n">train</span><span class="o">.</span><span class="n">AdagradOptimizer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">AdagradOptimizer</span>
@@ -485,7 +491,6 @@
 <span class="n">train</span><span class="o">.</span><span class="n">get_global_step</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_global_step</span>
 <span class="n">train</span><span class="o">.</span><span class="n">GradientDescentOptimizer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">GradientDescentOptimizer</span>
 <span class="n">train</span><span class="o">.</span><span class="n">MomentumOptimizer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">MomentumOptimizer</span>
-<span class="n">train</span><span class="o">.</span><span class="n">MonitoredTrainingSession</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">MonitoredTrainingSession</span>
 <span class="n">train</span><span class="o">.</span><span class="n">NewCheckpointReader</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">NewCheckpointReader</span>
 <span class="n">train</span><span class="o">.</span><span class="n">Optimizer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Optimizer</span>
 <span class="n">train</span><span class="o">.</span><span class="n">RMSPropOptimizer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">RMSPropOptimizer</span>
@@ -499,19 +504,15 @@
 <span class="n">variance_scaling_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">variance_scaling_initializer</span>
 <span class="n">where</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">where</span>
 <span class="n">while_loop</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">while_loop</span>
-<span class="n">wrap_function</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">wrap_function</span>
 <span class="n">convert_to_tensor_or_indexed_slices</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">convert_to_tensor_or_indexed_slices</span>
 
 <span class="c1"># Explicit 1.x symbol import.</span>
-<span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">make_initializable_iterator</span>
-<span class="n">data</span><span class="o">.</span><span class="n">make_one_shot_iterator</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">make_one_shot_iterator</span>
 <span class="c1"># For `nn.embedding_lookup` and `nn.embedding_lookup_sparse`, v2 doesn&#39;t have</span>
 <span class="c1"># the arg &#39;partition_strategy&#39; in the API, and uses &#39;partition_strategy=&quot;div&quot;&#39;</span>
 <span class="c1"># by default; while v1 uses &#39;partition_strategy=&quot;mod&quot;&#39; by default.</span>
 <span class="c1"># Keep this for now.</span>
 <span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup</span>
 <span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span>
-<span class="c1"># pylint: enable=undefined-variable</span>
 </pre></div>
 
            </div>

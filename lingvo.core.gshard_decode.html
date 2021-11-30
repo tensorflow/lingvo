@@ -80,8 +80,166 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-gshard-decode-module">
-<h1>lingvo.core.gshard_decode module<a class="headerlink" href="#lingvo-core-gshard-decode-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.gshard_decode">
+<span id="lingvo-core-gshard-decode-module"></span><h1>lingvo.core.gshard_decode module<a class="headerlink" href="#module-lingvo.core.gshard_decode" title="Permalink to this headline"></a></h1>
+<p>GShard decoder class.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.preload_zero">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_decode.</span></span><span class="sig-name descname"><span class="pre">preload_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#preload_zero"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.preload_zero" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the same structure as preload_unpacked but with zeros.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.get_zero_batch">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_decode.</span></span><span class="sig-name descname"><span class="pre">get_zero_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_tgt_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#get_zero_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.get_zero_batch" title="Permalink to this definition"></a></dt>
+<dd><p>Returns zero batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> – batch size.</p></li>
+<li><p><strong>max_len</strong> – max length.</p></li>
+<li><p><strong>key_size</strong> – key size.</p></li>
+<li><p><strong>return_tgt_mask</strong> – if to return tgt_mask.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Returns: a tuple of tensors</dt><dd><p>key: int32 tensor [batch_size, key_size]
+tgt_id: int32 tensor [batch_size, max_len]
+tgt_segment_id: float32 tensor [batch_size, max_len]
+tgt_segment_pos: int32 tensor [batch_size, max_len]
+tgt_labels: int32 tensor [batch_size, max_len]
+tgt_sample_temperature: float32 tensor [batch_size]
+tgt_mask: optional float32 tensor [batch_size, max_len, max_len]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.infinite_repeat">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_decode.</span></span><span class="sig-name descname"><span class="pre">infinite_repeat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">body_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infeed_queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#infinite_repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.infinite_repeat" title="Permalink to this definition"></a></dt>
+<dd><p>Builds infinite loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>body_fn</strong> – a Python function that builds the loop body.</p></li>
+<li><p><strong>infeed_queue</strong> – if not None, the infeed queue from which to append a tuple of
+arguments as inputs to condition.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The final values of the loop-carried tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.daemon">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_decode.</span></span><span class="sig-name descname"><span class="pre">daemon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">closure</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#daemon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.daemon" title="Permalink to this definition"></a></dt>
+<dd><p>Runs the closure in a background thread.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_decode.</span></span><span class="sig-name descname"><span class="pre">GShardDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tpu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_job_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix_max_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_cloud_tpu_node</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base decoder class.</p>
+<p>Implements the main computation loop.</p>
+<dl class="simple">
+<dt>Attrs:</dt><dd><p>tpu: name or addresss of the tpu node.
+worker_job_name: job name of tpu.
+prefix_max_len: Length of prefix.
+cluster_params: cluster params.
+cluster: cluster object.
+graph: a tf.Graph() in which ops are build.
+task: the task object.
+compile_op: tpu program compile op.
+init_vars_op: op to init vars randomly.
+infeed_op: the tf op to infeed data.
+infeed_args: a list of placeholder nodes.
+outfeed_op: the tf op to poll outfeed.
+outfeed: a list of outfeed tensors. used as structure reference.
+decode_loop: the op to start decode loop.
+saver: tf.train.Saver object.
+num_batches: num of decode steps to run. If None, run infinitely.
+spm: SentencePieceModel object</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode.load_spm">
+<span class="sig-name descname"><span class="pre">load_spm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spm</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode.load_spm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode.load_spm" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode.reset_tpu_cluster">
+<span class="sig-name descname"><span class="pre">reset_tpu_cluster</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode.reset_tpu_cluster"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode.reset_tpu_cluster" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode.get_session">
+<span class="sig-name descname"><span class="pre">get_session</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode.get_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode.get_session" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode._no_opt_sess_cfg">
+<span class="sig-name descname"><span class="pre">_no_opt_sess_cfg</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode._no_opt_sess_cfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode._no_opt_sess_cfg" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode.reset_session">
+<span class="sig-name descname"><span class="pre">reset_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode.reset_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode.reset_session" title="Permalink to this definition"></a></dt>
+<dd><p>Resets session on target worker with current graph.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode.run_init_sequence">
+<span class="sig-name descname"><span class="pre">run_init_sequence</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode.run_init_sequence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode.run_init_sequence" title="Permalink to this definition"></a></dt>
+<dd><p>Runs init sequences before decoding.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode._configure_cluster_params">
+<span class="sig-name descname"><span class="pre">_configure_cluster_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tpu_cores</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_hosts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode._configure_cluster_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode._configure_cluster_params" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize cluster params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode._start_heartbeat">
+<span class="sig-name descname"><span class="pre">_start_heartbeat</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode._start_heartbeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode._start_heartbeat" title="Permalink to this definition"></a></dt>
+<dd><p>Start the heartbeat.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode._config_infeed">
+<span class="sig-name descname"><span class="pre">_config_infeed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_partitions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_assignment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_tgt_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_partitioned_infeed_queue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode._config_infeed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode._config_infeed" title="Permalink to this definition"></a></dt>
+<dd><p>Config the infeed ops and args.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode._init_tpu">
+<span class="sig-name descname"><span class="pre">_init_tpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_partitions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_order_mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode._init_tpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode._init_tpu" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize tpu device assignment.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode.init_graph">
+<span class="sig-name descname"><span class="pre">init_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode.init_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode.init_graph" title="Permalink to this definition"></a></dt>
+<dd><p>Builds moe decode graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_params</strong> – the hyperparams of the specified model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_decode.GShardDecode._config_outfeed">
+<span class="sig-name descname"><span class="pre">_config_outfeed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xformer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infeed_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_decode.html#GShardDecode._config_outfeed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_decode.GShardDecode._config_outfeed" title="Permalink to this definition"></a></dt>
+<dd><p>Setup the outfeed ops.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

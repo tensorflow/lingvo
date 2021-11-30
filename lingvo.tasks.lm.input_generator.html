@@ -80,8 +80,181 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-tasks-lm-input-generator-module">
-<h1>lingvo.tasks.lm.input_generator module<a class="headerlink" href="#lingvo-tasks-lm-input-generator-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.tasks.lm.input_generator">
+<span id="lingvo-tasks-lm-input-generator-module"></span><h1>lingvo.tasks.lm.input_generator module<a class="headerlink" href="#module-lingvo.tasks.lm.input_generator" title="Permalink to this headline"></a></h1>
+<p>Language model input generator.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.LmInput">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.input_generator.</span></span><span class="sig-name descname"><span class="pre">LmInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#LmInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.LmInput" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="lingvo.core.base_input_generator.BaseSequenceInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseSequenceInputGenerator</span></code></a></p>
+<p>Reads tokenized plain text input such as from lm1b.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.LmInput.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#LmInput.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.LmInput.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Defaults params for <a class="reference internal" href="#lingvo.tasks.lm.input_generator.LmInput" title="lingvo.tasks.lm.input_generator.LmInput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LmInput</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.LmInput._DataSourceFromFilePattern">
+<span class="sig-name descname"><span class="pre">_DataSourceFromFilePattern</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_pattern</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#LmInput._DataSourceFromFilePattern"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.LmInput._DataSourceFromFilePattern" title="Permalink to this definition"></a></dt>
+<dd><p>Return a NestedMap containing an input batch from a string file_pattern.</p>
+<p>Subclasses should implement this function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_pattern</strong> – A string file pattern.</p></li>
+<li><p><strong>input_source_weights</strong> – A list of float input source weights to control
+input example mix in the batch. The records will be sampled from inputs
+proportionally to these weights. Defaults to None which should be
+treated as an empty list.</p></li>
+<li><p><strong>input_source_id_offset</strong> – All source_ids returned from datasource will be
+offset by this value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensors containing a batch of input data with shapes
+[batch, …].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.LmInput.BuildInputBatch">
+<span class="sig-name descname"><span class="pre">BuildInputBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bucket_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#LmInput.BuildInputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.LmInput.BuildInputBatch" title="Permalink to this definition"></a></dt>
+<dd><p>Builds an input batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> – batch size to use, defaults to infeed batch size.</p></li>
+<li><p><strong>features_list</strong> – Use this list to build the batch.</p></li>
+<li><p><strong>bucket_keys</strong> – If None, bucket_keys[i] is the bucketing key of the i-th
+sample.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>py_utils.NestedMap with feature names as keys and tensors as values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.input_generator.</span></span><span class="sig-name descname"><span class="pre">PackedTextInputGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="lingvo.core.base_input_generator.BaseSequenceInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseSequenceInputGenerator</span></code></a></p>
+<p>Input generator reading tf.Examples of texts with packing.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Defaults params for sequence input generators.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator._ProcessSingleExample">
+<span class="sig-name descname"><span class="pre">_ProcessSingleExample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator._ProcessSingleExample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._ProcessSingleExample" title="Permalink to this definition"></a></dt>
+<dd><p>Parses a serialized tf.Example record.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator._DatasetOfExamples">
+<span class="sig-name descname"><span class="pre">_DatasetOfExamples</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator._DatasetOfExamples"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._DatasetOfExamples" title="Permalink to this definition"></a></dt>
+<dd><p>Returns tf.data.Dataset of tf.Examples from p.file_pattern.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator._GetPaddingValues">
+<span class="sig-name descname"><span class="pre">_GetPaddingValues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">add_segment_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator._GetPaddingValues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._GetPaddingValues" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator._InputBatch">
+<span class="sig-name descname"><span class="pre">_InputBatch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator._InputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._InputBatch" title="Permalink to this definition"></a></dt>
+<dd><p>Returns tf.data.Dataset of unbatched NestedMap.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator._Pack">
+<span class="sig-name descname"><span class="pre">_Pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_in</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator._Pack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator._Pack" title="Permalink to this definition"></a></dt>
+<dd><p>Packs a given batch, which changes the batch size.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Reset">
+<span class="sig-name descname"><span class="pre">Reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tf_session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator.Reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the input-generator.</p>
+<p>Override so that the input_generator reproduces examples as if from a fresh
+instantiation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – A tensorflow session.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Initialize">
+<span class="sig-name descname"><span class="pre">Initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#PackedTextInputGenerator.Initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.PackedTextInputGenerator.Initialize" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize using a session.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.input_generator.</span></span><span class="sig-name descname"><span class="pre">TFRecordBertInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator" title="lingvo.core.base_input_generator.BaseInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseInputGenerator</span></code></a></p>
+<p>Input generator reading TFRecords of ids for MLPerf eval.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Defaults params for input generators.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput._ParseRecord">
+<span class="sig-name descname"><span class="pre">_ParseRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput._ParseRecord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput._ParseRecord" title="Permalink to this definition"></a></dt>
+<dd><p>Reads and parses a single record.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput._PadToBatchSize">
+<span class="sig-name descname"><span class="pre">_PadToBatchSize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput._PadToBatchSize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput._PadToBatchSize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput._InputBatch">
+<span class="sig-name descname"><span class="pre">_InputBatch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput._InputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput._InputBatch" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a batch with .ids, .masked_ids, and .masked_pos.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput._Pack">
+<span class="sig-name descname"><span class="pre">_Pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_in</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput._Pack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput._Pack" title="Permalink to this definition"></a></dt>
+<dd><p>Packs a given batch, which changes the batch size.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput.Reset">
+<span class="sig-name descname"><span class="pre">Reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tf_session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput.Reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput.Reset" title="Permalink to this definition"></a></dt>
+<dd><p>Reset the input-generator.</p>
+<p>Override so that the input_generator reproduces examples as if from a fresh
+instantiation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – A tensorflow session.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.lm.input_generator.TFRecordBertInput.Initialize">
+<span class="sig-name descname"><span class="pre">Initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/input_generator.html#TFRecordBertInput.Initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.input_generator.TFRecordBertInput.Initialize" title="Permalink to this definition"></a></dt>
+<dd><p>Initialize using a session.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

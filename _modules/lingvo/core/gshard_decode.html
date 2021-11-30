@@ -173,7 +173,9 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">to_list</span><span class="p">(</span><span class="n">body_fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">))</span>
 
   <span class="n">outputs</span> <span class="o">=</span> <span class="n">training_loop</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
-      <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># infinite loop</span>
+      <span class="c1"># Infinite loop. Using only tf.constant(True) causes the XLA graph to</span>
+      <span class="c1"># appear to be stateful.</span>
+      <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">10000</span><span class="p">),</span>
       <span class="n">body_fn_wrapper</span><span class="p">,</span>
       <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
       <span class="n">infeed_queue</span><span class="o">=</span><span class="n">infeed_queue</span><span class="p">)</span>
@@ -244,6 +246,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">decode_loop</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">saver</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">num_batches</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">session_timeout_in_ms</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_heartbeat</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver_reshape</span> <span class="o">=</span> <span class="kc">True</span>
@@ -385,7 +388,11 @@
     <span class="k">def</span> <span class="nf">run_heartbeat_loop</span><span class="p">():</span>
       <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="c1"># Set a timeout of 30 seconds for each heartbeat.</span>
-      <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">timeout_in_ms</span><span class="o">=</span><span class="mi">30</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_timeout_in_ms</span><span class="p">:</span>
+        <span class="n">timeout_in_ms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_timeout_in_ms</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">timeout_in_ms</span> <span class="o">=</span> <span class="mi">30</span> <span class="o">*</span> <span class="mi">1000</span>
+      <span class="n">run_options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span><span class="n">timeout_in_ms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">session_timeout_in_ms</span><span class="p">)</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
           <span class="k">if</span> <span class="n">count</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>

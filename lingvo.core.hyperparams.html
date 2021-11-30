@@ -80,8 +80,448 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-hyperparams-module">
-<h1>lingvo.core.hyperparams module<a class="headerlink" href="#lingvo-core-hyperparams-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.hyperparams">
+<span id="lingvo-core-hyperparams-module"></span><h1>lingvo.core.hyperparams module<a class="headerlink" href="#module-lingvo.core.hyperparams" title="Permalink to this headline"></a></h1>
+<p>Defines Params base class, used for defining class/function parameters.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._QuoteString">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">_QuoteString</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_QuoteString"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._QuoteString" title="Permalink to this definition"></a></dt>
+<dd><p>Quotes a string with appropriate quotes and escaping.</p>
+<p>This performs lite escaping by choosing enclosing quotation marks that would
+escape the least (either single or double quotes) and escaping those quotes
+and the backslash. Note that this does not escape newlines. If the string
+contains embedded newlines, they will be output verbatim.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>s</strong> – String to quote.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Quotes string (possibly multiline).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._UnquoteString">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">_UnquoteString</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quoted</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_UnquoteString"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._UnquoteString" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._EndsWithTerminalQuote">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">_EndsWithTerminalQuote</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quote_char</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_EndsWithTerminalQuote"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._EndsWithTerminalQuote" title="Permalink to this definition"></a></dt>
+<dd><p>Returns whether a string ends with a valid terminal quote.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._IsNamedTuple">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">_IsNamedTuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_IsNamedTuple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._IsNamedTuple" title="Permalink to this definition"></a></dt>
+<dd><p>Returns whether an object is an instance of a collections.namedtuple.</p>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">_IsNamedTuple</span><span class="p">((</span><span class="mi">42</span><span class="p">,</span> <span class="s1">&#39;hi&#39;</span><span class="p">))</span> <span class="o">==&gt;</span> <span class="kc">False</span>
+<span class="n">Foo</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Foo&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">])</span>
+<span class="n">_IsNamedTuple</span><span class="p">(</span><span class="n">Foo</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;hi&#39;</span><span class="p">))</span> <span class="o">==&gt;</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – The object to check.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._SortedDict">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">_SortedDict</span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_SortedDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._SortedDict" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>A dict with a __repr__ that is always sorted by key.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._Param">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">_Param</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Stores data for a single parameter.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._Param.ToString">
+<span class="sig-name descname"><span class="pre">ToString</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nested_depth</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param.ToString"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param.ToString" title="Permalink to this definition"></a></dt>
+<dd><p>Prints the parameter as a string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._Param.Set">
+<span class="sig-name descname"><span class="pre">Set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param.Set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param.Set" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._Param.Get">
+<span class="sig-name descname"><span class="pre">Get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param.Get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param.Get" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams._Param.GetDefault">
+<span class="sig-name descname"><span class="pre">GetDefault</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param.GetDefault"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param.GetDefault" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.CopyFieldsTo">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">CopyFieldsTo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_unknown_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#CopyFieldsTo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.CopyFieldsTo" title="Permalink to this definition"></a></dt>
+<dd><p>Copy fields from one Params to another, with optional skipped params.</p>
+<p>Preserves <code class="xref py py-obj docutils literal notranslate"><span class="pre">type(to_p.Instantiate())</span></code>. Use <code class="xref py py-obj docutils literal notranslate"><span class="pre">from_p.Copy()</span></code> instead if requiring
+a deep copy of <code class="xref py py-obj docutils literal notranslate"><span class="pre">from_p</span></code>, without updating <code class="xref py py-obj docutils literal notranslate"><span class="pre">to_p</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>from_p</strong> – Source params to copy from.</p></li>
+<li><p><strong>to_p</strong> – Destination params to copy to.</p></li>
+<li><p><strong>skip</strong> – A string, a list of strings or None. Param names to skip.
+Automatically skips InstantiableParams’ ‘cls’ parameter.</p></li>
+<li><p><strong>ignore_unknown_keys</strong> – if False: it will copy all keys and
+it will fail if from_p has a key that does not exist in to_p.
+If True: it will copy only keys which are common; it will not fail if
+there is no common keys at all; it will ignore keys which are different.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The updated to_p.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">Params</span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Stores data for a set of parameters.</p>
+<p>Provides attribute-based API, e.g. “params.foo = 5”.
+Uses internal {‘name’: _Param} dict for storing parameter data.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params._ToString">
+<span class="sig-name descname"><span class="pre">_ToString</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nested_depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params._ToString"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params._ToString" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params._SimilarKeys">
+<span class="sig-name descname"><span class="pre">_SimilarKeys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params._SimilarKeys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params._SimilarKeys" title="Permalink to this definition"></a></dt>
+<dd><p>Return a list of params keys that are similar to name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params._KeyErrorString">
+<span class="sig-name descname"><span class="pre">_KeyErrorString</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params._KeyErrorString"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params._KeyErrorString" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.Copy">
+<span class="sig-name descname"><span class="pre">Copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Copy" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a deep copy of self.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params._CopyTo">
+<span class="sig-name descname"><span class="pre">_CopyTo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params._CopyTo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params._CopyTo" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.MergeCommonKeysFrom">
+<span class="sig-name descname"><span class="pre">MergeCommonKeysFrom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.MergeCommonKeysFrom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.MergeCommonKeysFrom" title="Permalink to this definition"></a></dt>
+<dd><p>Merges common keys content from other with itself.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.Define">
+<span class="sig-name descname"><span class="pre">Define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Define"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Define" title="Permalink to this definition"></a></dt>
+<dd><p>Defines a parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The parameter name. Must only contain lowercase letters, numbers,
+and underscores. Must start with lowercase letter.</p></li>
+<li><p><strong>default_value</strong> – Default value for this parameter. May be None.</p></li>
+<li><p><strong>description</strong> – String description of this parameter.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#AttributeError" title="(in Python v3.7)"><strong>AttributeError</strong></a> – If parameter ‘name’ is already defined.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.Freeze">
+<span class="sig-name descname"><span class="pre">Freeze</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Freeze"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Freeze" title="Permalink to this definition"></a></dt>
+<dd><p>Marks this Params as immutable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.IsImmutable">
+<span class="sig-name descname"><span class="pre">IsImmutable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.IsImmutable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.IsImmutable" title="Permalink to this definition"></a></dt>
+<dd><p>Return whether this Params is immutable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params._GetNested">
+<span class="sig-name descname"><span class="pre">_GetNested</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">lingvo.core.hyperparams.ParamsT</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params._GetNested"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params._GetNested" title="Permalink to this definition"></a></dt>
+<dd><p>Returns nested param by its name.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.Set">
+<span class="sig-name descname"><span class="pre">Set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Set" title="Permalink to this definition"></a></dt>
+<dd><p>Sets multiple parameters.</p>
+<p>Dots in names indicate navigation into nested Params objects. We do not
+allow navigation into lists or dicts, and may ban these types altogether in
+favor of string representations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> – Name-value pairs to set.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>self</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.Get">
+<span class="sig-name descname"><span class="pre">Get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Get" title="Permalink to this definition"></a></dt>
+<dd><p>Get parameter.</p>
+<p>Dots in names indicate navigation into nested Params objects. We do not
+allow navigation into lists or dicts, and may ban these types altogether in
+favor of string representations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – (str) Name.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>value.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#AttributeError" title="(in Python v3.7)"><strong>AttributeError</strong></a> – if parameter is not found</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.Delete">
+<span class="sig-name descname"><span class="pre">Delete</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Delete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Delete" title="Permalink to this definition"></a></dt>
+<dd><p>Deletes multiple parameters.</p>
+<p>Dots in names indicate navigation into nested Params objects. We do not
+allow navigation into lists or dicts, and may ban these types altogether in
+favor of string representations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*args</strong> – List of names.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>self</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.IterParams">
+<span class="sig-name descname"><span class="pre">IterParams</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Generator</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.IterParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.IterParams" title="Permalink to this definition"></a></dt>
+<dd><p>Pythonic dict-like iteration.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.GetKeys">
+<span class="sig-name descname"><span class="pre">GetKeys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.GetKeys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.GetKeys" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.ToProto">
+<span class="sig-name descname"><span class="pre">ToProto</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="lingvo.core.hyperparams_pb2.html#lingvo.core.hyperparams_pb2.Hyperparam" title="lingvo.core.hyperparams_pb2.Hyperparam"><span class="pre">lingvo.core.hyperparams_pb2.Hyperparam</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToProto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToProto" title="Permalink to this definition"></a></dt>
+<dd><p>Writes to a Hyperparams proto.</p>
+<p>Serializes the Hyperparams into a proto that can be then written to disk or
+sent over the network. Note that serialization is not guaranteed to be
+unique or stable (this is a feature of protos themselves, not this code), so
+using it for fingerprinting for example may not be appropriate. Refer to the
+ToText() method for a serialization approach that Lingvo controls.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The serialized params as a Hyperparams proto.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.FromProto">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FromProto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_pb</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="lingvo.core.hyperparams_pb2.html#lingvo.core.hyperparams_pb2.Hyperparam" title="lingvo.core.hyperparams_pb2.Hyperparam"><span class="pre">lingvo.core.hyperparams_pb2.Hyperparam</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromProto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromProto" title="Permalink to this definition"></a></dt>
+<dd><p>Reads from a Hyperparams proto.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.Visit">
+<span class="sig-name descname"><span class="pre">Visit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">visit_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enter_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Visit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Visit" title="Permalink to this definition"></a></dt>
+<dd><p>Recursively visits objects within this Params instance.</p>
+<p>Visit can traverse Params, lists, tuples, dataclasses, and namedtuples.</p>
+<p>By default, visit_fn is called on any object we don’t know how to
+traverse into, like an integer or a string. enter_fn and exit_fn are
+called on objects we can traverse into, like Params, lists, tuples,
+dataclasses, and namedtuples. We call enter_fn before traversing the object,
+and exit_fn when we are finished.</p>
+<p>If enter_fn returns false, that means we shouldn’t traverse into the
+object; we call visit_fn on it instead and never call exit_fn.</p>
+<p>Keys are of the form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key</span><span class="o">.</span><span class="n">subkey</span> <span class="n">when</span> <span class="n">traversing</span> <span class="n">Params</span> <span class="n">objects</span>
+<span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="n">when</span> <span class="n">traversing</span> <span class="n">lists</span><span class="o">/</span><span class="n">tuples</span>
+<span class="n">key</span><span class="p">[</span><span class="n">subkey</span><span class="p">]</span> <span class="n">when</span> <span class="n">traversing</span> <span class="n">dataclasses</span> <span class="ow">or</span> <span class="n">namedtuples</span>
+</pre></div>
+</div>
+<p>Lists of (key, value) tuples are treated like namedtuples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>visit_fn</strong> – Called on every object that can’t be entered, or when enter_fn
+returns false.</p></li>
+<li><p><strong>enter_fn</strong> – Called on every enter-able function. If this function returns
+false, we call visit_fn and do not enter the object.</p></li>
+<li><p><strong>exit_fn</strong> – Called after an enter-able object has been traversed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.ToText">
+<span class="sig-name descname"><span class="pre">ToText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">':'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToText"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToText" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">ToText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">include_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">':'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Encodes params into a simple text format.</p>
+<p>Each param is represented as a single line in the output.  The param
+name and value is separated by a “:”.  The nest param name is
+separated by “.”.  For values of non-trivial types (types other than
+int, float, bool, str, and a few, etc.), we just print out the name
+of its type.</p>
+<p>Note that strings are enclosed in appropriate single or double quotes
+(whichever would involve the least escaping) and will have some characters
+backslash escaped. String properties can span multiple lines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>include_types</strong> – Should we return types of the values. If True, the types
+dict will be returned as a second val in a return tuple</p></li>
+<li><p><strong>separator</strong> – Punctuation symbol used to separate param name and value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The encoded text or (encoded text, types dict) if include_types is True.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.FromText">
+<span class="sig-name descname"><span class="pre">FromText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">type_overrides</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromText"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromText" title="Permalink to this definition"></a></dt>
+<dd><p>Merges params specified in ‘text’ into ‘params’.</p>
+<p>‘text’ follows the simple text format as produced by ToText.
+For a param specified in both ‘params’ and ‘text’, overwrites the value in
+‘params’ according to ‘text’. Params specified in ‘text’ but not in ‘params’
+are ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – A text representation of params.</p></li>
+<li><p><strong>type_overrides</strong> – Overrides for the types of the params.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>self</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#AttributeError" title="(in Python v3.7)"><strong>AttributeError</strong></a> – text contains invalid parameter key</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – text contains invalid parameter value, or the format is
+    wrong.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.ToTextWithTypes">
+<span class="sig-name descname"><span class="pre">ToTextWithTypes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToTextWithTypes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToTextWithTypes" title="Permalink to this definition"></a></dt>
+<dd><p>Same as ToText but encodes both params and their types.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.FromTextWithTypes">
+<span class="sig-name descname"><span class="pre">FromTextWithTypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromTextWithTypes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromTextWithTypes" title="Permalink to this definition"></a></dt>
+<dd><p>Same as FromText but expects to have types encoded in the text.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.Params.TextDiff">
+<span class="sig-name descname"><span class="pre">TextDiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.TextDiff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.TextDiff" title="Permalink to this definition"></a></dt>
+<dd><p>Return the differences between this object and another as a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> – The other Params object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A string of differences.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.InstantiableParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.hyperparams.</span></span><span class="sig-name descname"><span class="pre">InstantiableParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">lingvo.core.hyperparams.InstantiableParamsClsT</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#InstantiableParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.InstantiableParams" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.hyperparams.Params</span></code></a>, <a class="reference external" href="https://docs.python.org/3.7/library/typing.html#typing.Generic" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">lingvo.core.hyperparams.InstantiableParamsClsT</span></code>]</p>
+<p>Params which can be instantiated.</p>
+<p>When using InstantiableParams, callers must provide a class which supports
+initialization using a Params instance.</p>
+<p>This covers a common use case of Params to hold a configuration for a given
+class.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.InstantiableParams.Instantiate">
+<span class="sig-name descname"><span class="pre">Instantiate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.InstantiableParamsClsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#InstantiableParams.Instantiate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.InstantiableParams.Instantiate" title="Permalink to this definition"></a></dt>
+<dd><p>Instantiate an instance that this Params is configured for.</p>
+<p class="rubric">Example</p>
+<p>params = InstantiableParams(cls=MyObject)
+params.Define(‘weight’, 0.2, ‘Training weight.’)
+params.weight = 0.9
+obj = params.Instantiate()</p>
+<p>It’s common for classes to have a classmethod called Params that returns
+a pre-made InstantiableParams, like this:</p>
+<blockquote>
+<div><p>params = MyObject.Params()
+params.weight = 0.9
+obj = params.Instantiate()</p>
+</div></blockquote>
+<p>By convention, anything that parameterizes the behavior of your class
+should be stored in this Params object. However, your class may also use
+shared state objects which aren’t really parameters, like a shared lock.
+These can be passed as extra arguments to Instantiate.</p>
+<p class="rubric">Example</p>
+<p>lock = threading.Lock()
+params = MyObject.Params()
+obj_a = params.Instantiate(lock=lock)
+obj_b = params.Instantiate(lock=lock)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> – Additional keyword arguments to pass to the constructor in
+addition to this Params object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A constructed object where type(object) == cls.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.hyperparams.InstantiableParams.Copy">
+<span class="sig-name descname"><span class="pre">Copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">lingvo.core.hyperparams.ParamsT</span></span></span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#InstantiableParams.Copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.hyperparams.InstantiableParams.Copy" title="Permalink to this definition"></a></dt>
+<dd><p>See base class.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

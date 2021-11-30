@@ -80,8 +80,204 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-learner-module">
-<h1>lingvo.core.learner module<a class="headerlink" href="#lingvo-core-learner-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.learner">
+<span id="lingvo-core-learner-module"></span><h1>lingvo.core.learner module<a class="headerlink" href="#module-lingvo.core.learner" title="Permalink to this headline"></a></h1>
+<p>A learner optimizes a subset of variables according to a loss.</p>
+<p>It consists of a learning rate schedule, an optimizer, and gradient clipping
+mechanisms. A BaseTask can have multiple learners, each optimizing a (usually
+disjoint) subset of variables.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.learner.</span></span><span class="sig-name descname"><span class="pre">Learner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A training program layer.</p>
+<p>The layer takes a loss tensor as input and outputs a trainer op.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._CreateChildrenVariables">
+<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compatibility. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.GetVarGrads">
+<span class="sig-name descname"><span class="pre">GetVarGrads</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.GetVarGrads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.GetVarGrads" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.GetTrainableVariables">
+<span class="sig-name descname"><span class="pre">GetTrainableVariables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.GetTrainableVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.GetTrainableVariables" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ApplyPostTrainingLoop">
+<span class="sig-name descname"><span class="pre">ApplyPostTrainingLoop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ApplyPostTrainingLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ApplyPostTrainingLoop" title="Permalink to this definition"></a></dt>
+<dd><p>Applies any computation to run after each tpu trainining loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Ops to run after training loop ends.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.LearningRate">
+<span class="sig-name descname"><span class="pre">LearningRate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.LearningRate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.LearningRate" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.Apply">
+<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Apply" title="Permalink to this definition"></a></dt>
+<dd><p>Computes updates on ‘vmap’ to optimize ‘loss’.</p>
+<p>TODO(rpang): explore merging gradient_mask and gradient_adjuster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metrics</strong> – A Dict[str, (value, weight)], from which loss can be extracted
+according to p.loss_name.</p></li>
+<li><p><strong>vmap</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variables to optimize.</p></li>
+<li><p><strong>gradient_mask</strong> – if not None, a dict mapping variable names to a 0/1 scalar.</p></li>
+<li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>(losses, op, eval_metrics), where</dt><dd><ul class="simple">
+<li><p>losses is a list of scalar tensors;</p></li>
+<li><p>op is a tf.Operation to update variables;</p></li>
+<li><p>eval_metrics is a Dict[str, (value, weight)], where each value/weight
+is a scalar tensor.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ComputeActivationGradients">
+<span class="sig-name descname"><span class="pre">ComputeActivationGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activations_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ComputeActivationGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ComputeActivationGradients" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ComputeLosses">
+<span class="sig-name descname"><span class="pre">ComputeLosses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ComputeLosses"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ComputeLosses" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._CustomComputeGradientsFn">
+<span class="sig-name descname"><span class="pre">_CustomComputeGradientsFn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._CustomComputeGradientsFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._CustomComputeGradientsFn" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the compute_gradients_fn to use for py_utils.ComputeGradients.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._ComputeLossesAndGradients">
+<span class="sig-name descname"><span class="pre">_ComputeLossesAndGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._ComputeLossesAndGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._ComputeLossesAndGradients" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.AdjustGradients">
+<span class="sig-name descname"><span class="pre">AdjustGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_grads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.AdjustGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.AdjustGradients" title="Permalink to this definition"></a></dt>
+<dd><p>Adjusts gradients according to learner params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</p></li>
+<li><p><strong>gradient_mask</strong> – if not None, a dict mapping variable names to a 0/1 scalar.</p></li>
+<li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(var_grads, eval_metrics), where var_grads is a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values
+(var, grad) pairs representing adjusted gradients.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._GetGlobalGradScale">
+<span class="sig-name descname"><span class="pre">_GetGlobalGradScale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grad_norm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_nan_or_inf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._GetGlobalGradScale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._GetGlobalGradScale" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a scaling factor for all gradients according to their norm.</p>
+<p>In case there are NaN or Inf values the function will return 0.0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>all_grad_norm</strong> – A scalar represeting the total norm of all vars.</p></li>
+<li><p><strong>has_nan_or_inf</strong> – A scalar of 0 or 1, indicating whether there is any NaN or
+Inf in input gradients.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The gradient scale. 0 if gradient updates should be skipped for the step.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner.ScaleGradients">
+<span class="sig-name descname"><span class="pre">ScaleGradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_grads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_adjuster</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.ScaleGradients"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner.ScaleGradients" title="Permalink to this definition"></a></dt>
+<dd><p>Scales gradients according to training params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</p></li>
+<li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing</p>
+<ul class="simple">
+<li><p>final_var_grads: a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs,
+where gradients have already been scaled.</p></li>
+<li><p>grad_scale: the gradient scale. 0 if gradient updates should be skipped
+for the step. (Optional, only returned in case global norm clipping is
+used.)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.learner.Learner._AddEvalMetric">
+<span class="sig-name descname"><span class="pre">_AddEvalMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._AddEvalMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.Learner._AddEvalMetric" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.learner.ExtractLearnerFromLegacyParams">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.learner.</span></span><span class="sig-name descname"><span class="pre">ExtractLearnerFromLegacyParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls=&lt;class</span> <span class="pre">'lingvo.core.learner.Learner'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#ExtractLearnerFromLegacyParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.learner.ExtractLearnerFromLegacyParams" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts legacy learner params from ‘tp’ to a Learner params.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tp</strong> – BaseTask training params (p.train). Its legacy params will be cleared to
+be None after the conversion.</p></li>
+<li><p><strong>cls</strong> – Learner class where we set the params.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A params for Learner.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 

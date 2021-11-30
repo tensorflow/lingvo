@@ -135,6 +135,7 @@
   <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="kc">None</span>
   <span class="n">DEBUG</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">ATTEN_LOGIT_CAP</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">MODEL_DIM_RESHAPE_SEGMENTS</span> <span class="o">=</span> <span class="kc">None</span>
 
   <span class="n">GATED_GELU</span> <span class="o">=</span> <span class="kc">True</span>
   <span class="n">POSITIONAL_EMBEDDING</span> <span class="o">=</span> <span class="kc">False</span>
@@ -170,6 +171,7 @@
             <span class="n">attention_key_value_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ATTENTION_KEY_VALUE_DIM</span><span class="p">,</span>
             <span class="n">attention_extra_logit</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
             <span class="n">relative_attention_use_universal_1d_position</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MODEL_DIM_RESHAPE_SEGMENTS</span><span class="p">,</span>
             <span class="n">model_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MODEL_DIM</span><span class="p">,</span>
             <span class="n">attention_num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NUM_HEADS</span><span class="p">,</span>
             <span class="n">ff_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">HIDDEN_DIM</span><span class="p">,</span>
@@ -323,7 +325,7 @@
 <span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
 <span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm175B32x32DP \</span>
 <span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=1024 \</span>
-<span class="c1"># --ps_replicas=128 --job=executor_tpu --disable_tf2=true</span>
+<span class="c1"># --ps_replicas=256 --job=executor_tpu --disable_tf2=true</span>
 <div class="viewcode-block" id="DenseLm175B32x32DP"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm175B32x32DP">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
 <span class="k">class</span> <span class="nc">DenseLm175B32x32DP</span><span class="p">(</span><span class="n">DenseLm175B32x32</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;175B model running on v3-2048 with 2-way data parallelism.&quot;&quot;&quot;</span>
@@ -332,6 +334,19 @@
   <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
   <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span><span class="p">([</span><span class="mi">16</span><span class="p">,</span> <span class="mi">64</span><span class="p">],</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
   <span class="n">MODEL_DIM_RESHAPE_SEGMENTS</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span></div>
+
+
+<span class="c1"># On v4-2048:</span>
+<span class="c1"># bazel run -c opt //lingvo:trainer -- --mode=sync \</span>
+<span class="c1"># --alsologtostderr --model=lm.synthetic_packed_input.DenseLm175B1K \</span>
+<span class="c1"># --logdir=${LOGDIR} --tpu=${TPU_NAME} --worker_split_size=1024 \</span>
+<span class="c1"># --ps_replicas=256 --job=executor_tpu --disable_tf2=true</span>
+<div class="viewcode-block" id="DenseLm175B1K"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLm175B1K">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DenseLm175B1K</span><span class="p">(</span><span class="n">DenseLm175B32x32</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;175B model running on v4-2048.&quot;&quot;&quot;</span>
+  <span class="n">DEVICE_MESH_SHAPE</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+  <span class="n">DEVICE_MESH</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+      <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">DEVICE_MESH_SHAPE</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DenseLM13B32x32"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.synthetic_packed_input.html#lingvo.tasks.lm.params.synthetic_packed_input.DenseLM13B32x32">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>

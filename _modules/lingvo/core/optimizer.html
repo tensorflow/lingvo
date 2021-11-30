@@ -205,17 +205,19 @@
     <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">tf_optimizer</span><span class="o">.</span><span class="n">variables</span><span class="p">():</span>
       <span class="n">res</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
 
-    <span class="k">try</span><span class="p">:</span>
-      <span class="c1"># hyper params such as decay, beta_1, beta_2 in Adam optimizer.</span>
-      <span class="c1"># Not always applicable: V1 optimizers do not have them</span>
-      <span class="n">hyper_params</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">tf_optimizer</span><span class="p">,</span> <span class="s1">&#39;_hyper&#39;</span><span class="p">)</span>
-      <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-          <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">var</span>
-          <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">hyper_params</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span>
-      <span class="p">})</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-      <span class="k">pass</span>
+    <span class="c1"># hyper params such as beta_1, beta_2 in AdamV1 optimizer.</span>
+    <span class="c1"># V1 optimizers have &#39;_non_slot_dict&#39;</span>
+    <span class="c1"># V2 optimizers have &#39;_hyper&#39;</span>
+    <span class="k">for</span> <span class="n">param_var_str</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;_hyper&#39;</span><span class="p">,</span> <span class="s1">&#39;_non_slot_dict&#39;</span><span class="p">]:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">hyper_params</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">tf_optimizer</span><span class="p">,</span> <span class="n">param_var_str</span><span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">var</span>
+            <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">hyper_params</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span>
+        <span class="p">})</span>
+      <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="k">pass</span>
 
     <span class="k">return</span> <span class="n">res</span></div></div>
 

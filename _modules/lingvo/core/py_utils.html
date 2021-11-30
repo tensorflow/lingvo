@@ -725,6 +725,9 @@
 <span class="n">_IS_EAGER_MODE</span> <span class="o">=</span> <span class="kc">False</span>
 
 
+<span class="c1"># If you get an error &quot;tf.enable_eager_execution must be called at program</span>
+<span class="c1"># startup.&quot; but you are calling this function at the start, check if your change</span>
+<span class="c1"># adds type hints for &quot;tf.data&quot; and wrap those type hints in quotes.</span>
 <div class="viewcode-block" id="SetEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetEagerMode">[docs]</a><span class="k">def</span> <span class="nf">SetEagerMode</span><span class="p">(</span><span class="n">eager_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="k">global</span> <span class="n">_IS_EAGER_MODE</span>
   <span class="n">_IS_EAGER_MODE</span> <span class="o">=</span> <span class="n">eager_mode</span>
@@ -737,6 +740,29 @@
 
 <div class="viewcode-block" id="IsEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.IsEagerMode">[docs]</a><span class="k">def</span> <span class="nf">IsEagerMode</span><span class="p">():</span>
   <span class="k">return</span> <span class="n">_IS_EAGER_MODE</span></div>
+
+
+<span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="SetExperimentalIteratorCapture"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetExperimentalIteratorCapture">[docs]</a><span class="k">def</span> <span class="nf">SetExperimentalIteratorCapture</span><span class="p">(</span><span class="n">experimental_capture</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="k">global</span> <span class="n">_EXPERIMENTAL_CAPTURE</span>
+  <span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="n">experimental_capture</span></div>
+
+
+<div class="viewcode-block" id="IsExperimentalIteratorCapture"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.IsExperimentalIteratorCapture">[docs]</a><span class="k">def</span> <span class="nf">IsExperimentalIteratorCapture</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">_EXPERIMENTAL_CAPTURE</span></div>
+
+
+<div class="viewcode-block" id="ExperimentalIteratorCapture"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ExperimentalIteratorCapture">[docs]</a><span class="k">class</span> <span class="nc">ExperimentalIteratorCapture</span><span class="p">:</span>
+
+  <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">_EXPERIMENTAL_CAPTURE</span>
+    <span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">_EXPERIMENTAL_CAPTURE</span>
+    <span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 <span class="c1"># Maintains a tf.GradientTape stack.</span>
@@ -2620,7 +2646,6 @@
   <span class="n">load_var_names</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vars_to_load</span><span class="p">]))</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Overriding </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">vars_to_load</span><span class="p">)</span><span class="si">}</span><span class="s1"> vars from &#39;</span>
                   <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">checkpoint_path</span><span class="si">}</span><span class="s1">:</span><span class="se">\n</span><span class="si">{</span><span class="n">load_var_names</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-
   <span class="n">savers</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">while</span> <span class="n">vars_to_load</span><span class="p">:</span>
     <span class="c1"># When restoring, it&#39;s possible the same value in the checkpoint</span>
@@ -3229,7 +3254,8 @@
   <span class="p">]</span>
   <span class="n">filtered_vars</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">GetVar</span><span class="p">,</span> <span class="n">filtered_var_grads</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">filtered_vars</span><span class="p">:</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;AdjustGradientsWithLpLoss: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">v_name</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;[eager]&#39;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;AdjustGradientsWithLpLoss: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v_name</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mf">2.0</span><span class="p">:</span>
     <span class="n">lp_loss</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">lp_regularizer_weight</span> <span class="o">*</span> <span class="n">SumSquared</span><span class="p">(</span><span class="n">filtered_vars</span><span class="p">)</span>
@@ -4431,6 +4457,66 @@
   <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">slice_begin</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExpandTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ExpandTo">[docs]</a><span class="k">def</span> <span class="nf">ExpandTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">target_rank</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Expands the last dimension of x until it has rank target_rank.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">None</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">rank</span> <span class="o">=</span> <span class="n">GetRank</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">rank_diff</span> <span class="o">=</span> <span class="n">target_rank</span> <span class="o">-</span> <span class="n">rank</span>
+
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rank_diff</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">new_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">rank_diff</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">new_shape</span> <span class="o">=</span> <span class="n">shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">rank_diff</span>
+
+  <span class="n">new_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_rank</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">new_x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">with_rank</span><span class="p">(</span><span class="n">target_rank</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">new_x</span></div>
+
+
+<div class="viewcode-block" id="ExpandAndPadOrTrimTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ExpandAndPadOrTrimTo">[docs]</a><span class="k">def</span> <span class="nf">ExpandAndPadOrTrimTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">,</span> <span class="n">pad_val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Ensures that x is broadcast compatible with target_shape.</span>
+
+<span class="sd">  x is first expanded to the target rank. Thereafter, if x is not broadcast</span>
+<span class="sd">  compatible with target_shape the non-broadcast compatible dimensions are</span>
+<span class="sd">  either padded or trimmed to the target shape.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: A tensor.</span>
+<span class="sd">    target_shape: A tensor shape either as a list or Tensor.</span>
+<span class="sd">    pad_val: The value to pad.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor which is broadcast compatible with target_shape.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">None</span>
+  <span class="n">target_rank</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">target_rank</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">target_shape</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">target_rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_shape</span><span class="p">)</span>
+
+  <span class="n">x</span> <span class="o">=</span> <span class="n">ExpandTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">target_rank</span><span class="p">)</span>
+  <span class="n">x_shape</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+  <span class="n">is_static</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span>
+               <span class="nb">all</span><span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">x_shape</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="n">is_static</span><span class="p">:</span>
+    <span class="n">masked_target_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mi">1</span> <span class="k">if</span> <span class="n">x_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">target_shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_shape</span><span class="p">))</span>
+    <span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">masked_target_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">x_shape</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">target_shape</span><span class="p">),</span> <span class="n">target_shape</span><span class="p">)</span>
+
+  <span class="n">new_x</span> <span class="o">=</span> <span class="n">PadOrTrimTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">masked_target_shape</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_x</span><span class="p">,</span> <span class="n">masked_target_shape</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="RepeatDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.RepeatDim">[docs]</a><span class="k">def</span> <span class="nf">RepeatDim</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">multiple</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
@@ -6579,6 +6665,66 @@
   <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">processed_ckpts_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">processed_ckpts</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MergeDictsWithValueCheck"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MergeDictsWithValueCheck">[docs]</a><span class="k">def</span> <span class="nf">MergeDictsWithValueCheck</span><span class="p">(</span><span class="n">dict1</span><span class="p">,</span> <span class="n">dict2</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Merges two dictionaries with same-key values.&quot;&quot;&quot;</span>
+  <span class="n">common_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dict1</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">dict2</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+  <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">common_keys</span><span class="p">:</span>
+    <span class="c1"># The values must be the same object</span>
+    <span class="k">if</span> <span class="n">dict1</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">dict2</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The same key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> corresponds to different values &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;in the dictionaries: </span><span class="si">{</span><span class="n">dict1</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s1"> vs </span><span class="si">{</span><span class="n">dict2</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+  <span class="n">dict1</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dict2</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">dict1</span></div>
+
+
+<div class="viewcode-block" id="MergeDuplicateIds"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MergeDuplicateIds">[docs]</a><span class="k">def</span> <span class="nf">MergeDuplicateIds</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">extra_tensors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Merge consecutive duplicated ids.</span>
+
+<span class="sd">  Given ids = [4, 4, 5, 6, 6, 5, 0, 0] and paddings =[0, 0, 0, 0, 0, 0, 1, 1],</span>
+<span class="sd">  this function returns ret_ids = [4, 5, 6, 5, 0, 0, 0, 0] and paddings = [</span>
+<span class="sd">  0, 0, 0, 0, 1, 1, 1, 1] by merging consecutive duplicated ids.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    ids: A non-negative tensor of shape [batch, time].</span>
+<span class="sd">    paddings: A padding tensor of shape [batch, time] with &quot;0&quot; non padded, and</span>
+<span class="sd">      &quot;1&quot; as padded..</span>
+<span class="sd">    extra_tensors: A `.NestedMap` containing tensors that need to be</span>
+<span class="sd">      deduplicated according to ids, each tensor at least has two dimensions.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    ret_ids: same as ids.</span>
+<span class="sd">    ret_paddings: same as paddings.</span>
+<span class="sd">    ret_tensors: same as extra_tensors.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">ids</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">)],</span> <span class="n">ids</span><span class="p">)</span>
+  <span class="n">prev_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="n">constant_values</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">keep</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">prev_ids</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+
+  <span class="c1"># Generate descend_keep in descending order for each row and set elements in</span>
+  <span class="c1"># the matrix to 0 if they are duplicated ids.</span>
+  <span class="n">descend_keep</span> <span class="o">=</span> <span class="n">keep</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="c1"># Get the indices of non-duplicated ids along the time axis.</span>
+  <span class="n">sorted_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">descend_keep</span><span class="p">,</span> <span class="n">stable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;DESCENDING&#39;</span><span class="p">)</span>
+  <span class="c1"># Get the batch indices.</span>
+  <span class="n">batch_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+  <span class="c1"># Stack them to get 2-d indices.</span>
+  <span class="n">ids_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">batch_indices</span><span class="p">,</span> <span class="n">sorted_indices</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+  <span class="n">seq_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sequence_mask</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">keep</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">paddings</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">ret_paddings</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">seq_mask</span>
+  <span class="n">ret_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">ids_indices</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seq_mask</span><span class="p">,</span> <span class="n">ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">ret_tensors</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">extra_tensors</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">tensor</span> <span class="ow">in</span> <span class="n">extra_tensors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">tensor_mask</span> <span class="o">=</span> <span class="n">ExpandTo</span><span class="p">(</span><span class="n">seq_mask</span><span class="p">,</span> <span class="n">GetRank</span><span class="p">(</span><span class="n">tensor</span><span class="p">))</span>
+      <span class="n">ret_tensors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">ids_indices</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tensor_mask</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">ret_ids</span><span class="p">,</span> <span class="n">ret_paddings</span><span class="p">,</span> <span class="n">ret_tensors</span></div>
 </pre></div>
 
            </div>

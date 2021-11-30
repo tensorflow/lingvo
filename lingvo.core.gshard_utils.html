@@ -80,8 +80,217 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-gshard-utils-module">
-<h1>lingvo.core.gshard_utils module<a class="headerlink" href="#lingvo-core-gshard-utils-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.gshard_utils">
+<span id="lingvo-core-gshard-utils-module"></span><h1>lingvo.core.gshard_utils module<a class="headerlink" href="#module-lingvo.core.gshard_utils" title="Permalink to this headline"></a></h1>
+<p>Utilities for applying xla-sharding to a model.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.Split">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">Split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_dimension</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sharding_op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#Split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.Split" title="Permalink to this definition"></a></dt>
+<dd><p>Wrapper for xla_sharding.split.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Tensor to annotate.</p></li>
+<li><p><strong>split_dimension</strong> – xla_sharding.split arg.</p></li>
+<li><p><strong>num_devices</strong> – xla_sharding.split arg.</p></li>
+<li><p><strong>use_sharding_op</strong> – <p>If true, adds a sharding op to set the sharding: tensor =
+gen_xla_ops.xla_sharding(tensor)</p>
+<dl class="simple">
+<dt>hyouklee&#64;: use_sharding_op=False “It adds the sharding attribute to the op</dt><dd><p>itself. The outcome is that, that information could be lost by TF graph
+transformations. Also, directly attaching the sharding annotation to the
+op caused some compilation failures in the past (due to incompatible
+shardings), so the plan is to make use_sharding_op to be the default.”
+“The only case I would set it to False today is when annotating weights.
+Weight annotation does some special handling, so there may be some
+changes needed in that logic if we add separate sharding op.”</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>input_shape</strong> – The shape of the original tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Tensor conditionally annotated with sharding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.Replicate">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">Replicate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sharding_op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#Replicate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.Replicate" title="Permalink to this definition"></a></dt>
+<dd><p>Wrapper of xla_sharding.replicate.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.GetMeshSplitSharding">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">GetMeshSplitSharding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tensor_split_dims_mapping</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#GetMeshSplitSharding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.GetMeshSplitSharding" title="Permalink to this definition"></a></dt>
+<dd><p>Wrapper of xla_sharding.mesh_split_sharding().</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.MeshSplit">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">MeshSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tensor_split_dims_mapping</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sharding_op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unspecified_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#MeshSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.MeshSplit" title="Permalink to this definition"></a></dt>
+<dd><p>Wrapper of xla_sharding.mesh_split().</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.MeshSplitDimPrefixContext">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">MeshSplitDimPrefixContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefix_mesh_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#MeshSplitDimPrefixContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.MeshSplitDimPrefixContext" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a prefix mesh dim for tensor_split_dims_mapping in MeshSplit.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.GetMeshSplitDimPrefixContext">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">GetMeshSplitDimPrefixContext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#GetMeshSplitDimPrefixContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.GetMeshSplitDimPrefixContext" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.ManualMeshDimContext">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">ManualMeshDimContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#ManualMeshDimContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.ManualMeshDimContext" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a context where mesh_dim is used for manual sharding.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.ZigzagOrderOnDeviceMesh">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">ZigzagOrderOnDeviceMesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zigzag_mesh_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#ZigzagOrderOnDeviceMesh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.ZigzagOrderOnDeviceMesh" title="Permalink to this definition"></a></dt>
+<dd><p>Permutes device_mesh to form zigzag order along zigzag_mesh_dim.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.GetNonPod2dMesh">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">GetNonPod2dMesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_mesh_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physical_mesh_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#GetNonPod2dMesh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.GetNonPod2dMesh" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a 2D device mesh on slices smaller than a pod.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.ReshapeDim">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">ReshapeDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#ReshapeDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.ReshapeDim" title="Permalink to this definition"></a></dt>
+<dd><p>Reshapes tensor x according to dim_reshape_segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A input Tensor of shape […, x.shape[dim], …].</p></li>
+<li><p><strong>dim</strong> – The dim that needs to be reshaped.</p></li>
+<li><p><strong>dim_reshape_segments</strong> – The leading dim size of the reshaped dims.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape […, dim_reshape_segments,
+x.shape[dim] // dim_reshape_segments, …].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">TensorShardingSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">split_dims_mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uneven_padding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a sharding annotation for GShard/XLA.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.FromFullShape">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FromFullShape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_dims_mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.FromFullShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.FromFullShape" title="Permalink to this definition"></a></dt>
+<dd><p>Creates tiled sharding spec with uneven padding computed from shape.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.ApplyToTensor">
+<span class="sig-name descname"><span class="pre">ApplyToTensor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sharding_op</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.ApplyToTensor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.ApplyToTensor" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.ApplyToVariable">
+<span class="sig-name descname"><span class="pre">ApplyToVariable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.python.ops.variables.VariableV1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.python.ops.variables.VariableV1</span></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.ApplyToVariable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.ApplyToVariable" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.ShardShape">
+<span class="sig-name descname"><span class="pre">ShardShape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.ShardShape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.ShardShape" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the shape after applying this sharding to full_shape.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.ManualToAutoPartitioning">
+<span class="sig-name descname"><span class="pre">ManualToAutoPartitioning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.ManualToAutoPartitioning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.ManualToAutoPartitioning" title="Permalink to this definition"></a></dt>
+<dd><p>Converts manually sharded tensor to full-size for auto partitioning.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.AutoToManualPartitioning">
+<span class="sig-name descname"><span class="pre">AutoToManualPartitioning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.AutoToManualPartitioning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.AutoToManualPartitioning" title="Permalink to this definition"></a></dt>
+<dd><p>Converts full-size tensor (auto partitioning) to manually sharded.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.ToXlaOpSharding">
+<span class="sig-name descname"><span class="pre">ToXlaOpSharding</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tensorflow.compiler.xla.xla_data_pb2.OpSharding</span></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.ToXlaOpSharding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.ToXlaOpSharding" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.FromXlaOpSharding">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FromXlaOpSharding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op_sharding_proto</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.compiler.xla.xla_data_pb2.OpSharding</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.core.gshard_utils.TensorShardingSpec" title="lingvo.core.gshard_utils.TensorShardingSpec"><span class="pre">lingvo.core.gshard_utils.TensorShardingSpec</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.FromXlaOpSharding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.FromXlaOpSharding" title="Permalink to this definition"></a></dt>
+<dd><p>Parses from an XLA OpSharding proto.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.AddLeadingDims">
+<span class="sig-name descname"><span class="pre">AddLeadingDims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_dims</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.core.gshard_utils.TensorShardingSpec" title="lingvo.core.gshard_utils.TensorShardingSpec"><span class="pre">lingvo.core.gshard_utils.TensorShardingSpec</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.AddLeadingDims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.AddLeadingDims" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.RemoveLeadingDims">
+<span class="sig-name descname"><span class="pre">RemoveLeadingDims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_dims</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.core.gshard_utils.TensorShardingSpec" title="lingvo.core.gshard_utils.TensorShardingSpec"><span class="pre">lingvo.core.gshard_utils.TensorShardingSpec</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.RemoveLeadingDims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.RemoveLeadingDims" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.RemoveDim">
+<span class="sig-name descname"><span class="pre">RemoveDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.core.gshard_utils.TensorShardingSpec" title="lingvo.core.gshard_utils.TensorShardingSpec"><span class="pre">lingvo.core.gshard_utils.TensorShardingSpec</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.RemoveDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.RemoveDim" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a copy of self with dimension ‘dim’ removed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.ReplicatedSpec">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ReplicatedSpec</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#TensorShardingSpec.ReplicatedSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.ReplicatedSpec" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.split_dims_mapping">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">split_dims_mapping</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.split_dims_mapping" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.device_mesh">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">device_mesh</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.device_mesh" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.is_replicated">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_replicated</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><span class="pre">bool</span></a></em><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.is_replicated" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.mesh_dim_to_tensor_dim_mapping">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mesh_dim_to_tensor_dim_mapping</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.mesh_dim_to_tensor_dim_mapping" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.TensorShardingSpec.uneven_padding">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">uneven_padding</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#lingvo.core.gshard_utils.TensorShardingSpec.uneven_padding" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.GetVarSharding">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">GetVarSharding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tensorflow.python.ops.variables.VariableV1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#lingvo.core.gshard_utils.TensorShardingSpec" title="lingvo.core.gshard_utils.TensorShardingSpec"><span class="pre">lingvo.core.gshard_utils.TensorShardingSpec</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#GetVarSharding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.GetVarSharding" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the sharding directly attached to a variable.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_utils.LoadSpm">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_utils.</span></span><span class="sig-name descname"><span class="pre">LoadSpm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_utils.html#LoadSpm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_utils.LoadSpm" title="Permalink to this definition"></a></dt>
+<dd><p>Loads SPM from model_file. Returns SentencePieceProcessor.</p>
+</dd></dl>
+
 </section>
 
 

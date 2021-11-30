@@ -80,8 +80,76 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-bfloat16-variables-module">
-<h1>lingvo.core.bfloat16_variables module<a class="headerlink" href="#lingvo-core-bfloat16-variables-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.bfloat16_variables">
+<span id="lingvo-core-bfloat16-variables-module"></span><h1>lingvo.core.bfloat16_variables module<a class="headerlink" href="#module-lingvo.core.bfloat16_variables" title="Permalink to this headline"></a></h1>
+<p>Various methods for bfloat16 training &amp; inference.</p>
+<p>Bfloat16VariableSaveable: Saveable that restores variable into bfloat16 type.</p>
+<p>Usage:</p>
+<blockquote>
+<div><p>Given a checkpoint_path with a variable of type tf.float32, this particular
+saveable allows restore them as tf.bfloat16. This is specifically useful for
+inference.</p>
+<p>Say: checkpoint_path contains a variable “var” with dtype tf.float32:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">variable_name</span> <span class="o">=</span> <span class="s2">&quot;var&quot;</span>
+<span class="n">original_dtype</span> <span class="o">=</span>  <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+
+<span class="n">bfloat16_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+    <span class="mf">0.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">variable_name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span> <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">saveable</span> <span class="o">=</span> <span class="n">bfloat16_variables</span><span class="o">.</span><span class="n">Bfloat16VariableSaveable</span><span class="p">(</span>
+    <span class="n">bfloat16_var</span><span class="p">,</span> <span class="n">original_dtype</span><span class="p">,</span> <span class="n">slice_spec</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+<span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span>
+    <span class="p">{</span><span class="n">variable_name</span><span class="p">:</span> <span class="n">saveable</span><span class="p">},</span> <span class="n">restore_sequentially</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+
+<span class="c1"># bfloat16_var is now loaded from the checkpoint.</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.bfloat16_variables.Bfloat16VariableSaveable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bfloat16_variables.</span></span><span class="sig-name descname"><span class="pre">Bfloat16VariableSaveable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orig_dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.training.saving.saveable_object.SaveableObject</span></code></p>
+<p>Saveable that loads Variables as bfloat16.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore">
+<span class="sig-name descname"><span class="pre">restore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restored_tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restored_shapes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable.restore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore" title="Permalink to this definition"></a></dt>
+<dd><p>Restores this object from ‘restored_tensors’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>restored_tensors</strong> – the tensors that were loaded from a checkpoint</p></li>
+<li><p><strong>restored_shapes</strong> – the shapes this object should conform to after
+restore, or None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An operation that restores the state of the object.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If the object cannot be restored using the provided
+    parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.bfloat16_variables.</span></span><span class="sig-name descname"><span class="pre">get_saver_spec_for_variables_with_bf16_overrides</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variables_to_restore</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#get_saver_spec_for_variables_with_bf16_overrides"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a dictionary containing overrides to load variables as bf16.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>variables_to_restore</strong> – A mapping from variable to name (on checkpoint) to the
+Variable object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A saver dictionary which can be used to load from checkpoints.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 

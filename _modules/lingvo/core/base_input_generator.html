@@ -123,6 +123,27 @@
 <span class="n">INPUT_DATA_STATS_SUMMARIES_COLLECTION</span> <span class="o">=</span> <span class="s1">&#39;INPUT_DATA_STATS_SUMMARIES&#39;</span>
 
 
+<span class="c1"># TODO(ylc/zhifengc): Add this to a policy module and test it.</span>
+<div class="viewcode-block" id="_PerHostInfeedTPUOrdinalFunction"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator._PerHostInfeedTPUOrdinalFunction">[docs]</a><span class="k">def</span> <span class="nf">_PerHostInfeedTPUOrdinalFunction</span><span class="p">(</span><span class="n">use_per_core_infeed</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span>
+                                     <span class="n">shard_index_in_host</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Get the TPU ordinal for an input shard generated for the given task.&quot;&quot;&quot;</span>
+  <span class="n">tpu_ordinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+  <span class="k">if</span> <span class="n">use_per_core_infeed</span><span class="p">:</span>
+    <span class="n">tpu_ordinal</span> <span class="o">=</span> <span class="n">shard_index_in_host</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">device_assignment</span><span class="p">:</span>
+      <span class="c1"># We put both enqueue/dequeue ops at core 0 in each replica.</span>
+      <span class="n">replica</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">lookup_replicas</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span>
+                                                  <span class="mi">0</span><span class="p">)[</span><span class="n">shard_index_in_host</span><span class="p">]</span>
+      <span class="n">tpu_ordinal</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">tpu_ordinal</span><span class="p">(</span><span class="n">replica</span><span class="o">=</span><span class="n">replica</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tpu_ordinal</span> <span class="o">=</span> <span class="n">shard_index_in_host</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;shard_index_in_host (</span><span class="si">{</span><span class="n">shard_index_in_host</span><span class="si">}</span><span class="s1">) -&gt; &#39;</span>
+                  <span class="sa">f</span><span class="s1">&#39;tpu_ordinal (</span><span class="si">{</span><span class="n">tpu_ordinal</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tpu_ordinal</span></div>
+
+
 <div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;The abstract base input generator.&quot;&quot;&quot;</span>
 
@@ -380,7 +401,10 @@
       <span class="n">shards</span> <span class="o">=</span> <span class="n">shards</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
     <span class="k">return</span> <span class="n">shards</span>
 
-<div class="viewcode-block" id="BaseInputGenerator.CreateTpuEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip_enqueue</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGenerator.CreateTpuEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">skip_enqueue</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">benchmark_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create the host-side enqueue ops.</span>
 
 <span class="sd">    This should be called in an outer non-TPU context.</span>
@@ -389,6 +413,7 @@
 <span class="sd">      job_name: the name of the job on which the enqueue operations run.</span>
 <span class="sd">      skip_enqueue: if True, only create the tpu queues, but skip the enqueue</span>
 <span class="sd">        call. To be used in eager mode to setup tpu queues.</span>
+<span class="sd">      benchmark_only: If true, don&#39;t wire it up to the TPU infeed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span><span class="p">,</span> <span class="p">(</span>
@@ -507,6 +532,9 @@
             <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">benchmark_only</span><span class="p">:</span>
+          <span class="k">continue</span>
+
         <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
           <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">b</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
             <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">(),</span> <span class="p">(</span>
@@ -557,40 +585,29 @@
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
             <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">([</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
           <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
-            <span class="c1"># TODO(ylc/zhifengc): Add this to a policy module and test it.</span>
-            <span class="k">def</span> <span class="nf">TPUOrdinalFunction</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">shard_index_in_host</span><span class="p">):</span>
-              <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">shard_index_in_host</span>
-              <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
-              <span class="k">if</span> <span class="n">device_assignment</span><span class="p">:</span>
-                <span class="c1"># We put both enqueue/dequeue ops at core 0 in each replica.</span>
-                <span class="n">replica</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">lookup_replicas</span><span class="p">(</span>
-                    <span class="n">task_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="n">shard_index_in_host</span><span class="p">]</span>
-                <span class="k">return</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">tpu_ordinal</span><span class="p">(</span><span class="n">replica</span><span class="o">=</span><span class="n">replica</span><span class="p">)</span>
-              <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">shard_index_in_host</span>
-
             <span class="k">def</span> <span class="nf">HostPlacementFunction</span><span class="p">(</span><span class="n">host_device</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
               <span class="k">del</span> <span class="n">x</span>  <span class="c1"># Unused.</span>
               <span class="k">return</span> <span class="n">host_device</span>
 
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
               <span class="c1"># In this case, the `shard_index_in_host` argument of</span>
-              <span class="c1"># `TPUOrdinalFunction` is the index of a sharded batch in the</span>
-              <span class="c1"># `batch` list.</span>
+              <span class="c1"># `_PerHostInfeedTPUOrdinalFunction` is the index of a sharded</span>
+              <span class="c1"># batch in the `batch` list.</span>
               <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
                   <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
                   <span class="n">placement_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">HostPlacementFunction</span><span class="p">,</span>
                                                        <span class="n">host_device</span><span class="p">),</span>
                   <span class="n">tpu_ordinal_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-                      <span class="n">TPUOrdinalFunction</span><span class="p">,</span> <span class="n">task_id</span><span class="p">))</span>
+                      <span class="n">_PerHostInfeedTPUOrdinalFunction</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">,</span>
+                      <span class="n">task_id</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
               <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
                   <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
                   <span class="n">placement_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">HostPlacementFunction</span><span class="p">,</span>
                                                        <span class="n">host_device</span><span class="p">),</span>
                   <span class="n">tpu_ordinal_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-                      <span class="n">TPUOrdinalFunction</span><span class="p">,</span> <span class="n">task_id</span><span class="p">))</span>
+                      <span class="n">_PerHostInfeedTPUOrdinalFunction</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">,</span>
+                      <span class="n">task_id</span><span class="p">))</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
             <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
@@ -598,8 +615,12 @@
                 <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">(</span><span class="n">job_name</span><span class="p">))</span>
           <span class="n">input_ops_list</span> <span class="o">+=</span> <span class="n">input_ops</span>
 
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_ops_list </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_ops_list</span><span class="p">)</span>
-    <span class="n">grouped_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">input_ops_list</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">benchmark_only</span><span class="p">:</span>
+      <span class="n">grouped_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_ops_list </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_ops_list</span><span class="p">)</span>
+      <span class="n">grouped_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">input_ops_list</span><span class="p">)</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grouped_infeed_op</span><span class="p">)</span></div>
@@ -703,9 +724,23 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1">, batch: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
           <span class="n">enqueue_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTpuEmbeddingEnqueueData</span><span class="p">(</span>
               <span class="n">tpu_embedding</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">num_cores_per_host</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
+            <span class="c1"># Need to match the ordinal selection mechanism used by</span>
+            <span class="c1"># CreateTpuEnqueueOps.</span>
+            <span class="n">ordinal_indexed_enqueue_data</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">enqueue_data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">enqueue_data</span><span class="p">):</span>
+              <span class="n">tpu_ordinal</span> <span class="o">=</span> <span class="n">_PerHostInfeedTPUOrdinalFunction</span><span class="p">(</span>
+                  <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+              <span class="n">ordinal_indexed_enqueue_data</span><span class="p">[</span><span class="n">tpu_ordinal</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="n">enqueue_data</span> <span class="o">=</span> <span class="n">ordinal_indexed_enqueue_data</span>
           <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
               <span class="n">enqueue_data</span><span class="p">,</span> <span class="n">mode_override</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_mode</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s1">&#39;TPU infeed parallelism </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="si">}</span><span class="s1"> is not supported &#39;</span>
+          <span class="s1">&#39;when TPU embedding is used, as it may cause mismatch between &#39;</span>
+          <span class="s1">&#39;regular input batch and TPU embedding input batch.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">enqueue_ops</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator._GetTpuEmbeddingEnqueueData"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator._GetTpuEmbeddingEnqueueData">[docs]</a>  <span class="k">def</span> <span class="nf">_GetTpuEmbeddingEnqueueData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
@@ -829,6 +864,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_host_queues</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">host_queue</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_enqueue</span><span class="p">:</span>
           <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="p">[</span><span class="n">host_queue</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">batch</span><span class="p">))]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s1">&#39;TPU infeed parallelism </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="si">}</span><span class="s1"> is not supported &#39;</span>
+          <span class="s1">&#39;when cpu passthrough queue is used, as it may cause mismatch &#39;</span>
+          <span class="s1">&#39;between regular input batch and the passthrough batch.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">enqueue_ops</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.DequeueCpuPassthrough"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DequeueCpuPassthrough">[docs]</a>  <span class="k">def</span> <span class="nf">DequeueCpuPassthrough</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">concat</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>

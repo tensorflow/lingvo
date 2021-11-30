@@ -173,25 +173,42 @@
                   <span class="n">block_size</span><span class="p">,</span>
                   <span class="n">left_context</span><span class="p">,</span>
                   <span class="n">right_context</span><span class="p">,</span>
+                  <span class="n">query_stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                   <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Makes the mask tensor for a full sequence.</span>
 
 <span class="sd">  The returned mask reflects the given context sizes, where position i</span>
 <span class="sd">  attends to tokens in the range [i - (left_context-1), i + right_context].</span>
 
+<span class="sd">  For example, given seq_len=4, block_size=2, left_context=3, right_context=0,</span>
+<span class="sd">  the result mask is</span>
+<span class="sd">  [[[0., 0., 1., 0.], 1st query in 1st block attends 1st key.</span>
+<span class="sd">  [0., 0., 1., 1.]],  2nd query in 1st block attends 2nd and left keys</span>
+<span class="sd">  [[1., 1., 1., 0.],  1st query in 2nd block attends 1st and left keys</span>
+<span class="sd">  [0., 1., 1., 1.]]]  2st query in 2nd block attends 2nd and left keys</span>
+
+<span class="sd">  The position i can move by stride, which means queries are pooled by stride.</span>
+<span class="sd">  For example, given same params and stride=2, the result mask is</span>
+<span class="sd">  [[[0., 0., 1., 1.]], The pooled query in 1st block attends 1st and 2nd keys</span>
+<span class="sd">  [[1., 1., 1., 1.]]]  The pooled query in 2st block attends 1st, 2nd and left</span>
+
 <span class="sd">  Args:</span>
 <span class="sd">    seq_len: int or scalar int tensor. Sequence length.</span>
 <span class="sd">    block_size: int. Number of time frames in a block.</span>
 <span class="sd">    left_context: int. Left context size.</span>
 <span class="sd">    right_context: int. Right context size.</span>
+<span class="sd">    query_stride: int. Query stride for funnel pool.</span>
 <span class="sd">    dtype: tf.dtype, default is tf.float32.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A tensor of [num_blocks, block_size, context_size] taking values in {0, 1},</span>
-<span class="sd">    where context_size = block_size + (left_context - 1) + right_context.</span>
-<span class="sd">    Element b, i, j is zero if in the b-th block, the i-th frame can access</span>
+<span class="sd">    A tensor of [num_blocks, block_size//stride, context_size] taking values in</span>
+<span class="sd">    {0, 1}, where context_size = block_size + (left_context - 1) + right_context</span>
+<span class="sd">    Element b, i, j is 1 if in the b-th block, the i-th frame can access</span>
 <span class="sd">    the j-th frame in the context.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">block_size</span> <span class="o">%</span> <span class="n">query_stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+      <span class="sa">f</span><span class="s1">&#39;block_size(</span><span class="si">{</span><span class="n">block_size</span><span class="si">}</span><span class="s1">) must be a multiple of &#39;</span>
+      <span class="sa">f</span><span class="s1">&#39;query_stride(</span><span class="si">{</span><span class="n">query_stride</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
   <span class="n">seq_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span>
           <span class="n">seq_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s1">&#39;seq_len must be at least 1&#39;</span><span class="p">)</span>
@@ -228,8 +245,15 @@
 
   <span class="n">valid_atten</span> <span class="o">&amp;=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">valid_src</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
                                      <span class="n">valid_tgt</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="n">valid_atten</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">valid_atten</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">valid_atten</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+  <span class="k">if</span> <span class="n">query_stride</span><span class="p">:</span>
+    <span class="n">valid_atten</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">valid_atten</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">num_blocks</span><span class="p">,</span> <span class="n">block_size</span> <span class="o">//</span> <span class="n">query_stride</span><span class="p">,</span> <span class="n">query_stride</span><span class="p">,</span> <span class="n">context_size</span><span class="p">])</span>
+    <span class="n">valid_atten</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">valid_atten</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">valid_atten</span></div>
 
 
 <div class="viewcode-block" id="RelShift"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.RelShift">[docs]</a><span class="k">def</span> <span class="nf">RelShift</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>

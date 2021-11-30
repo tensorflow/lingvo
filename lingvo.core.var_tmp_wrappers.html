@@ -80,8 +80,143 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="lingvo-core-var-tmp-wrappers-module">
-<h1>lingvo.core.var_tmp_wrappers module<a class="headerlink" href="#lingvo-core-var-tmp-wrappers-module" title="Permalink to this headline"></a></h1>
+  <section id="module-lingvo.core.var_tmp_wrappers">
+<span id="lingvo-core-var-tmp-wrappers-module"></span><h1>lingvo.core.var_tmp_wrappers module<a class="headerlink" href="#module-lingvo.core.var_tmp_wrappers" title="Permalink to this headline"></a></h1>
+<p>Wrappers of tf.Variable to achieve various temporary effects.</p>
+<p>E.g., such effects include tracking assign ops, and converting between manual
+and auto sharding modes in GShard. These wrappers are intended to be used in
+limited scopes.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.var_tmp_wrappers.</span></span><span class="sig-name descname"><span class="pre">VarWrapperTrackAssign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A wrapper of tf.Variable that tracks assignments.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.previous_assigns">
+<span class="sig-name descname"><span class="pre">previous_assigns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.previous_assigns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.previous_assigns" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.control_after_assigns">
+<span class="sig-name descname"><span class="pre">control_after_assigns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.control_after_assigns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.control_after_assigns" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.raw_var">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">raw_var</span></span><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.raw_var" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign">
+<span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_add">
+<span class="sig-name descname"><span class="pre">assign_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_add" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_sub">
+<span class="sig-name descname"><span class="pre">assign_sub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#VarWrapperTrackAssign.assign_sub"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.VarWrapperTrackAssign.assign_sub" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.var_tmp_wrappers.</span></span><span class="sig-name descname"><span class="pre">StackedVarWrapperWithManualSharding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A wrapper of tf.Variable for stacked variables in manual-sharding mode.</p>
+<p>The variable is sharded on on the leading (stacking) dimension, and the shard
+size is 1. Example: the physical variable v has shape [N, a, b], which is
+stacked from N logical variables of shape [a, b] and annotated to be sharded
+on dim 0 in N ways:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="n">With</span> <span class="n">StackedVarWrapperWithManualSharding</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">read</span> <span class="kn">from</span> <span class="nn">the</span> <span class="n">wrapper</span> <span class="n">will</span>
+<span class="n">have</span> <span class="p">(</span><span class="n">manually</span> <span class="n">sharded</span><span class="p">)</span> <span class="n">shape</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>This wrapper internally converts between auto and manual sharding modes, which
+makes variable read/write compatible with the rest of manually sharded code.</p>
+<p>If the variable has other dimensions sharded, the auto/manual conversion will
+only happen partially on the stacking dimension only.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.raw_var">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">raw_var</span></span><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.raw_var" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_manual">
+<span class="sig-name descname"><span class="pre">_to_manual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding._to_manual"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_manual" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_auto">
+<span class="sig-name descname"><span class="pre">_to_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding._to_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding._to_auto" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.value">
+<span class="sig-name descname"><span class="pre">value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.value" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the variable and converts it to manually sharded mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The return value has the shape of the individual elements of the stacked
+variable (shard shape with the stacking dimension collapsed).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.read_value">
+<span class="sig-name descname"><span class="pre">read_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.read_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.read_value" title="Permalink to this definition"></a></dt>
+<dd><p>Reads the variable and converts it to manually sharded mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The return value has the shape of the individual elements of the stacked
+variable (shard shape with the stacking dimension collapsed).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign">
+<span class="sig-name descname"><span class="pre">assign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign" title="Permalink to this definition"></a></dt>
+<dd><p>Implements the interface of tf.Variable.assign.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – A manually sharded tensor that has the shape of the individual
+elements of the stacked variable (shard shape with the stacking
+dimension collapsed).</p></li>
+<li><p><strong>use_locking</strong> – See tf.Variable.assign.</p></li>
+<li><p><strong>name</strong> – See tf.Variable.assign.</p></li>
+<li><p><strong>read_value</strong> – See tf.Variable.assign. If True, the returned value will be
+manually sharded.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>See tf.Variable.assign. If read_value is True, returns the updated value
+in the shard shape of the shape of the individual elements of the stacked
+variable (shard shape with the stacking dimension collapsed).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_add">
+<span class="sig-name descname"><span class="pre">assign_add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign_add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_add" title="Permalink to this definition"></a></dt>
+<dd><p>Implements the interface of tf.Variable.assign_add.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_sub">
+<span class="sig-name descname"><span class="pre">assign_sub</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_locking</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/var_tmp_wrappers.html#StackedVarWrapperWithManualSharding.assign_sub"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.var_tmp_wrappers.StackedVarWrapperWithManualSharding.assign_sub" title="Permalink to this definition"></a></dt>
+<dd><p>Implements the interface of tf.Variable.assign_sub.</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 
