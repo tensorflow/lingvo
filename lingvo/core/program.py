@@ -1869,6 +1869,7 @@ def _ClearSpecifiedProgram(program_list, program_cls_to_clear):
 def UpdateProgramSchedule(ps_params,
                           dataset_list,
                           train_executions_per_eval,
+                          train_steps_per_loop,
                           eval_steps_per_loop,
                           decode_steps_per_loop,
                           decode_summary_emails=None):
@@ -1882,6 +1883,8 @@ def UpdateProgramSchedule(ps_params,
       datasets in ps_params.
     train_executions_per_eval: Optional[int], if not None, it will override
       train_executions_per_eval in ps_params.
+    train_steps_per_loop: Optional[int], if not None, it will override
+      train program's steps_per_loop.
     eval_steps_per_loop: Optional[int], if not None, it will override all the
       eval programs steps_per_loop. Currently list not supported.
     decode_steps_per_loop: Optional[int], if not None, it will override all the
@@ -1931,6 +1934,9 @@ def UpdateProgramSchedule(ps_params,
 
   if train_executions_per_eval is not None:
     ps_params.train_executions_per_eval = train_executions_per_eval
+
+  if train_steps_per_loop is not None:
+    ps_params.train_program.steps_per_loop = train_steps_per_loop
 
   if eval_steps_per_loop is not None:
     if eval_steps_per_loop == 0:
