@@ -106,10 +106,10 @@ class NormalizationsTest(test_util.JaxTestCase):
 
     tf.nest.assert_same_structure(
         summaries, {
-            'bn.fprop/moving_mean': None,
-            'bn.fprop/variance': None,
-            'bn.fprop/mean': None,
-            'bn.fprop/moving_variance': None
+            'bn.fprop/moving_mean_scalar': None,
+            'bn.fprop/variance_scalar': None,
+            'bn.fprop/mean_scalar': None,
+            'bn.fprop/moving_variance_scalar': None
         })
 
     logging.info('new_vars: %s', new_vars)
@@ -117,10 +117,11 @@ class NormalizationsTest(test_util.JaxTestCase):
     logging.info('summaries: %s', summaries)
 
     expected_moving_mean = (
-        initial_vars.moving_mean * 0.8 + 0.2 * summaries['bn.fprop/mean'])
+        initial_vars.moving_mean * 0.8 +
+        0.2 * summaries['bn.fprop/mean_scalar'])
     expected_moving_variance = (
         initial_vars.moving_variance * 0.8 +
-        0.2 * summaries['bn.fprop/variance'])
+        0.2 * summaries['bn.fprop/variance_scalar'])
 
     self.assertAllClose(
         to_np(expected_moving_mean), to_np(new_vars.moving_mean))

@@ -26,6 +26,7 @@ from lingvo.jax import base_layer
 from lingvo.jax import model
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
+from lingvo.jax import summary_utils
 from lingvo.jax import train_states
 import tensorflow.compat.v2 as tf
 
@@ -172,6 +173,9 @@ def train_step_single_learner(
       forward_updated_vars = mdl.forward_updated_vars
       # Finally, fetch all the summary tensors.
       summary_tensors = base_layer.all_summaries()
+      if in_pmap:
+        summary_tensors = summary_utils.aggregate_per_replica_summaries(
+            summary_tensors, data_parallel_axis_name)
     if fprop_dtype == jnp.bfloat16 and weighted_loss.dtype == fprop_dtype:
       weighted_loss = weighted_loss.astype(jnp.float32)
     return weighted_loss, (metrics, forward_updated_vars, summary_tensors,
@@ -291,7 +295,8 @@ def train_step_single_learner(
 
     new_states = states.new_state(
         mdl_vars=mdl_vars, opt_states=[new_opt_states])
-    # Finally fetch all backward summary tensors.
+    # Finally fetch all backward summary tensors. We do not aggregate the scalar
+    # summaries with pmean because the grads are already psum-ed.
     bwd_summary_tensors = base_layer.all_summaries()
 
   summary_tensors = NestedMap(
@@ -364,6 +369,8 @@ def eval_step_single_learner(
     assert loss.ndim == 0, 'loss has to be a scalar.'
     assert loss_weight.ndim == 0, 'loss_weight has to be a scalar.'
 
+    summary_tensors = base_layer.all_summaries()
+
     if data_parallel_axis_name:
       # This is simple data-parallel training.
       # Renormalize loss weight by the total weight across all replicas.
@@ -381,13 +388,13 @@ def eval_step_single_learner(
         sum_weight = jax.lax.psum(weight, axis_name=data_parallel_axis_name)
         mean_metrics[key] = (sum_value / (sum_weight + 1e-8), sum_weight)
 
+      summary_tensors = summary_utils.aggregate_per_replica_summaries(
+          summary_tensors, data_parallel_axis_name)
     else:
       # No data_parallel_axis_name is specified, most likely this is evaling an
       # spmd model.
       mean_metrics = metrics
       mean_loss = loss
-
-    summary_tensors = base_layer.all_summaries()
 
   def _maybe_to_float32(x):
     if x.dtype == jnp.bfloat16:

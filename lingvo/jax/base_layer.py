@@ -370,21 +370,54 @@ class _PrngKey:
     return next_key
 
 
+class SummaryType(enum.Enum):
+  """Types of summary tensors."""
+  SCALAR = 1
+  IMAGE = 2
+
+
+def get_summary_type_suffix(summary_type: SummaryType) -> str:
+  return '_' + summary_type.name.lower()
+
+
+def get_summary_type_from_key(key: str) -> SummaryType:
+  for t in SummaryType:
+    if key.endswith('_' + t.name.lower()):
+      return t
+  raise ValueError('Cannot parse summary type from key: ' + key)
+
+
 class _SummaryDict:
-  """A dict holding summaries generated during forward computation."""
+  """A dict holding summaries generated during forward computation.
+
+  Currently it supports 2 types: SCALAR, IMAGE. Keys will be appended with a
+  type suffix.
+  """
 
   def __init__(self) -> None:
     self.dict = {}
 
-  def add_summary(self, name: str, tensor: JTensor) -> None:
-    """Adds named summary to the thread local dict."""
+  def add_summary(self, name: str, tensor: JTensor,
+                  summary_type: SummaryType) -> None:
+    """Adds named summary to the thread local dict.
+
+    Args:
+      name: name of the summary.
+      tensor: value of the summary.
+      summary_type: type of the summary.
+    """
     prefix = '/'.join(_NAMESPACE_STACK.stack)
     summary_name = prefix + '/' + name
     next_iter = 0
-    full_name = summary_name
+    full_name = summary_name + get_summary_type_suffix(summary_type)
     while full_name in self.dict:
       next_iter += 1
       full_name = summary_name + str(next_iter)
+    if summary_type == SummaryType.IMAGE:
+      if tensor.ndim == 3:
+        # Add a batch dim.
+        tensor = jnp.expand_dims(tensor, 0)
+      assert tensor.ndim == 4
     self.dict[full_name] = tensor
 
   def clear(self) -> None:
@@ -484,9 +517,21 @@ def cur_jax_context() -> JaxContext:
   return current
 
 
-def add_summary(name: str, tensor: JTensor) -> None:
+def add_summary(name: str,
+                tensor: JTensor,
+                summary_type: SummaryType = SummaryType.SCALAR) -> None:
+  """Adds a summary tensor.
+
+
+  Args:
+    name: name of the summary.
+    tensor: value of the summary.
+    summary_type: type of the summary. Currently it supports 2 types: SCALAR,
+      IMAGE. Keys will be appended with a type suffix. Image tensors must be
+      either [batch, height, width, channels] or [height, width, channels].
+  """
   context = cur_jax_context()
-  context.summary_dict.add_summary(name, tensor)
+  context.summary_dict.add_summary(name, tensor, summary_type)
 
 
 def clear_summary() -> None:

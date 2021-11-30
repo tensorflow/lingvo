@@ -25,6 +25,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 from absl import logging
 import jax
 from jax import numpy as jnp
+from lingvo.jax import base_layer
 from lingvo.jax import pytypes
 from lingvo.jax import train_states
 import numpy as np
@@ -34,7 +35,12 @@ from tensorflow.compat.v2 import summary as tf_summary
 JTensor = pytypes.JTensor
 NestedJTensor = pytypes.NestedJTensor
 TrainState = train_states.TrainState
+SummaryType = base_layer.SummaryType
 SummaryWriter = tf.summary.SummaryWriter
+
+
+# Maximum number of images written to a single summary entry.
+MAX_IMAGES_PER_SUMMARY = 64
 
 
 # Copied from flax.core.FrozenDict and customized for lists.
@@ -134,6 +140,38 @@ def l2_norms(tree: NestedJTensor,
   return dict(zip(names, norms))
 
 
+def aggregate_per_replica_summaries(summary_tensors: NestedJTensor,
+                                    data_parallel_axis_name):
+  """Aggregates summaries from different replicas in pmap."""
+  scalar_summaries = {}
+  image_summaries = {}
+  for k, v in summary_tensors.items():
+    summary_type = base_layer.get_summary_type_from_key(k)
+    if summary_type == SummaryType.SCALAR:
+      scalar_summaries[k] = v
+    elif summary_type == SummaryType.IMAGE:
+      image_summaries[k] = v
+
+  # Compute the mean of scalars.
+  scalar_summaries = jax.lax.pmean(
+      scalar_summaries, axis_name=data_parallel_axis_name)
+  # Gather per-replica image results.
+  image_summaries = jax.tree_map(
+      lambda x: jax.lax.all_gather(x, axis_name=data_parallel_axis_name),
+      image_summaries)
+  max_entries = MAX_IMAGES_PER_SUMMARY
+  image_summaries = jax.tree_map(
+      lambda x: jnp.reshape(x, [-1] + list(x.shape)[-3:])[:max_entries],
+      image_summaries)
+
+  summary_tensors = summary_tensors.copy()
+  for k, v in scalar_summaries.items():
+    summary_tensors[k] = v
+  for k, v in image_summaries.items():
+    summary_tensors[k] = v
+  return summary_tensors
+
+
 @contextlib.contextmanager
 def get_summary_writer(summary_dir: str) -> SummaryWriter:
   """Context manager around Tensorflow's SummaryWriter."""
@@ -171,6 +209,22 @@ def flatten_summary_dict(summary_dict: Dict[str, JTensor],
   return outputs
 
 
+def write_summary_tensor(step_i: int, key: str, tensor: JTensor,
+                         summary_type: SummaryType) -> bool:
+  """Writes summary in relevant processes."""
+  if summary_type == SummaryType.SCALAR:
+    tensor = np.mean(tensor).item()
+    tf_summary.scalar(key, tensor, step_i)
+  elif summary_type == SummaryType.IMAGE:
+    # Some eval codepath adds a leading 'test split' dim.
+    tensor = np.reshape(tensor, [-1] + list(tensor.shape)[-3:])
+    # Create a separate key for each image to avoid RPC oversize issues.
+    for i in range(max(tensor.shape[0], MAX_IMAGES_PER_SUMMARY)):
+      tf_summary.image('%s_%d' % (key, i), tensor[i:i + 1], step_i)
+  else:
+    assert False, 'Unsupported summary type: ' + str(summary_type)
+
+
 def write_summary_entry(summary_writer: SummaryWriter,
                         step_i: int,
                         loss: JTensor,
@@ -188,10 +242,10 @@ def write_summary_entry(summary_writer: SummaryWriter,
 
   mean_loss = np.mean(loss).item()
   with summary_writer.as_default():
-    tf_summary.scalar('loss', mean_loss, step_i)
+    write_summary_tensor(step_i, 'loss', mean_loss, SummaryType.SCALAR)
     if steps_per_sec is not None:
-      tf_summary.scalar('Steps/sec', steps_per_sec, step_i)
-
+      write_summary_tensor(step_i, 'Steps/sec', steps_per_sec,
+                           SummaryType.SCALAR)
     logging.info('Metrics values at step %d:', step_i)
     logging.info('  loss=%f', mean_loss)
     for key, value in metrics.items():
@@ -204,14 +258,18 @@ def write_summary_entry(summary_writer: SummaryWriter,
           metric_values * metric_weights) / sum_metric_weights
       logging.info('  %s=%f (weight=%f)', key, weighted_average.item(),
                    sum_metric_weights.item())
-      tf_summary.scalar(f'Metrics/{key}', weighted_average.item(), step_i)
-      tf_summary.scalar(f'Metrics/{key}-weight', sum_metric_weights.item(),
-                        step_i)
+      write_summary_tensor(step_i, f'Metrics/{key}', weighted_average.item(),
+                           SummaryType.SCALAR)
+      write_summary_tensor(step_i, f'Metrics/{key}-weight',
+                           sum_metric_weights.item(), SummaryType.SCALAR)
+
     summaries = flatten_summary_dict(summary_tensors)
-    # TODO(shafey): Add support for non-scalar summaries.
     for key, tensor in summaries:
-      mean_tensor = np.mean(tensor).item()
-      tf_summary.scalar(key, mean_tensor, step_i)
+      summary_type = base_layer.get_summary_type_from_key(key)
+      if unreplicate_metrics:
+        tensor = tensor[0]
+      write_summary_tensor(step_i, key, tensor, summary_type)
+
   # Lastly flush summaries.
   summary_writer.flush()
   logging.info('Wrote summary entry at step `%d` (loss=`%f`).', step_i,
@@ -278,6 +336,6 @@ def write_summary_every_n_steps(train_state: TrainState,
     norms = l2_norms(mdl_vars, prefix='Vars', max_level=10)
     with train_summary_writer.as_default():
       for name in norms:
-        tf_summary.scalar(name, norms[name], step_i)
+        write_summary_tensor(step_i, name, norms[name], SummaryType.SCALAR)
 
   return result

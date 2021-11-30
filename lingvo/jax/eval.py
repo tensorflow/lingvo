@@ -15,6 +15,7 @@
 # ==============================================================================
 """Evaluation loop for lingvo Jax model."""
 
+import contextlib
 import functools
 import os
 import time
@@ -128,42 +129,48 @@ def evaluate_pmap_model(
       os.path.join(summary_base_dir, f'eval_test_{split}')
       for split, _ in enumerate(eval_input_p)
   ]
-  summary_writer = summary_utils.get_summary_writer
 
   num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
   last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
-  while True:
-    step_i = int(jax.device_get(replicated_model_states.step)[0])
-    eval_step = functools.partial(p_eval_step, replicated_model_states.mdl_vars,
-                                  eval_prng_seed, replicated_model_states.step)
-    # Run the eval loop.
-    model_utils.run_eval_loop_over_test_splits(
-        num_steps,
-        eval_step,
-        summary_writer,
-        summary_eval_dirs,
-        step_i,
-        eval_input_pipelines,
-        reshard_inputs=True)
-    # If the last check point evaluated matches max train steps, exit.
-    if last_checkpoint is not None:
-      last_ckpt_step = int(last_checkpoint.split('_')[-1])
-      exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
-      if exceeded_ckpt >= model_p.train.num_train_steps:
-        break
-    # Release replicated_model_states.
-    del replicated_model_states
-    new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
-    while new_checkpoint == last_checkpoint:
-      # Sleep for a minute.
-      time.sleep(60)
+  with contextlib.ExitStack() as exit_stack:
+    eval_summary_writers = [
+        exit_stack.enter_context(summary_utils.get_summary_writer(d))
+        for d in summary_eval_dirs
+    ]
+
+    while True:
+      step_i = int(jax.device_get(replicated_model_states.step)[0])
+      eval_step = functools.partial(p_eval_step,
+                                    replicated_model_states.mdl_vars,
+                                    eval_prng_seed,
+                                    replicated_model_states.step)
+      # Run the eval loop.
+      model_utils.run_eval_loop_over_test_splits(
+          num_steps,
+          eval_step,
+          eval_summary_writers,
+          step_i,
+          eval_input_pipelines,
+          reshard_inputs=True)
+      # If the last check point evaluated matches max train steps, exit.
+      if last_checkpoint is not None:
+        last_ckpt_step = int(last_checkpoint.split('_')[-1])
+        exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
+        if exceeded_ckpt >= model_p.train.num_train_steps:
+          break
+      # Release replicated_model_states.
+      del replicated_model_states
       new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
-    # There must be a new checkpoint here.
-    logging.info('Found new checkpoint: %s', new_checkpoint)
-    model_states = checkpoints.restore_checkpoint(
-        model_states, checkpoint_dir, checkpoint_type=checkpoint_type)
-    replicated_model_states = trainer_lib.replicate_model_state(model_states)
-    last_checkpoint = new_checkpoint
+      while new_checkpoint == last_checkpoint:
+        # Sleep for a minute.
+        time.sleep(60)
+        new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
+      # There must be a new checkpoint here.
+      logging.info('Found new checkpoint: %s', new_checkpoint)
+      model_states = checkpoints.restore_checkpoint(
+          model_states, checkpoint_dir, checkpoint_type=checkpoint_type)
+      replicated_model_states = trainer_lib.replicate_model_state(model_states)
+      last_checkpoint = new_checkpoint
 
 
 def evaluate_spmd_model(
@@ -231,42 +238,46 @@ def evaluate_spmd_model(
         os.path.join(summary_base_dir, f'eval_{split}')
         for split, _ in enumerate(eval_input_p)
     ]
-    summary_writer = summary_utils.get_summary_writer
 
     num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
     last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
-    while True:
-      step_i = int(jax.device_get(partitioned_train_state.step))
-      eval_step_fn = functools.partial(eval_step,
-                                       partitioned_train_state.mdl_vars,
-                                       eval_key, partitioned_train_state.step)
-      # Run the eval loop.
-      model_utils.run_eval_loop_over_test_splits(
-          num_steps,
-          eval_step_fn,
-          summary_writer,
-          summary_eval_dirs,
-          step_i,
-          eval_input_pipelines,
-          reshard_inputs=False)
-      # If the last check point evaluated matches max train steps, exit.
-      if last_checkpoint is not None:
-        last_ckpt_step = int(last_checkpoint.split('_')[-1])
-        exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
-        if exceeded_ckpt >= model_p.train.num_train_steps:
-          break
-      new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
-      while new_checkpoint == last_checkpoint:
-        # Sleep for a minute.
-        time.sleep(60)
+    with contextlib.ExitStack() as exit_stack:
+      eval_summary_writers = [
+          exit_stack.enter_context(summary_utils.get_summary_writer(d))
+          for d in summary_eval_dirs
+      ]
+      while True:
+        step_i = int(jax.device_get(partitioned_train_state.step))
+        eval_step_fn = functools.partial(eval_step,
+                                         partitioned_train_state.mdl_vars,
+                                         eval_key, partitioned_train_state.step)
+        # Run the eval loop.
+        model_utils.run_eval_loop_over_test_splits(
+            num_steps,
+            eval_step_fn,
+            eval_summary_writers,
+            step_i,
+            eval_input_pipelines,
+            reshard_inputs=False)
+        # If the last check point evaluated matches max train steps, exit.
+        if last_checkpoint is not None:
+          last_ckpt_step = int(last_checkpoint.split('_')[-1])
+          exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
+          if exceeded_ckpt >= model_p.train.num_train_steps:
+            break
         new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
-      # There must be a new checkpoint here.
-      logging.info('Found new checkpoint: %s', new_checkpoint)
-      partitioned_train_state = checkpoints.restore_checkpoint(
-          partitioned_train_state,
-          checkpoint_task_dir,
-          checkpoint_type=checkpoint_type,
-          state_specs=partitioned_specs)
-      if multi_host_checkpointing:
-        py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
-      last_checkpoint = new_checkpoint
+        while new_checkpoint == last_checkpoint:
+          # Sleep for a minute.
+          time.sleep(60)
+          new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
+        # There must be a new checkpoint here.
+        logging.info('Found new checkpoint: %s', new_checkpoint)
+        partitioned_train_state = checkpoints.restore_checkpoint(
+            partitioned_train_state,
+            checkpoint_task_dir,
+            checkpoint_type=checkpoint_type,
+            state_specs=partitioned_specs)
+        if multi_host_checkpointing:
+          py_utils.sync_global_devices(
+              f'checkpointer:restored:{checkpoint_dir}')
+        last_checkpoint = new_checkpoint

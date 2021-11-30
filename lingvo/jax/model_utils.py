@@ -74,8 +74,7 @@ def run_eval_one_step(eval_inputs: NestedJTensor,
 def run_eval_loop_over_test_splits(
     num_steps: List[int],
     eval_step: Callable[[NestedJTensor], Any],
-    summary_writer: SummaryWriter,
-    summary_eval_dirs: List[str],
+    summary_writers: List[SummaryWriter],
     step: int,
     model_inputs: List[base_input.BaseInput],
     reshard_inputs: Optional[bool] = False) -> List[Metrics]:
@@ -84,9 +83,7 @@ def run_eval_loop_over_test_splits(
   Args:
     num_steps: A list of steps for each test split to evaluate on.
     eval_step: The eval step function which to call to evaluate the model.
-    summary_writer: The summary writer object to log summaries.
-    summary_eval_dirs: The list of summary directories corresponding to the
-      different test sets.
+    summary_writers: The summary writer objects to log summaries.
     step: The step at which we are evaling the model.
     model_inputs: List of BaseInput instances.
     reshard_inputs: Whether to reshard inputs.
@@ -126,6 +123,8 @@ def run_eval_loop_over_test_splits(
       if unreplicate_metrics:
         # In pmap, metrics has already been aggregated on tpu.
         eval_metrics = jax.tree_map(lambda x: x[0], eval_metrics)
+        eval_summary_tensors = jax.tree_map(lambda x: x[0],
+                                            eval_summary_tensors)
       loss += [eval_loss]
       for k in eval_summary_tensors:
         if k in summary_tensors:
@@ -156,14 +155,13 @@ def run_eval_loop_over_test_splits(
       logging.info('  %s=%f (weight=%f)', key, weighted_average.item(),
                    sum_metric_weights.item())
 
-    with summary_writer(summary_eval_dirs[split]) as eval_test_summary_writer:
-      summary_utils.write_summary_entry(
-          eval_test_summary_writer,
-          step,
-          loss,
-          metrics,
-          summary_tensors,
-          # Metrics have already been unreplicated above.
-          unreplicate_metrics=False)
+    summary_utils.write_summary_entry(
+        summary_writers[split],
+        step,
+        loss,
+        metrics,
+        summary_tensors,
+        # Metrics have already been unreplicated above.
+        unreplicate_metrics=False)
     metrics_output.append(metrics)
   return metrics_output

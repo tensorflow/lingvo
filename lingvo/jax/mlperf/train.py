@@ -15,6 +15,7 @@
 # ==============================================================================
 """Training loop for lingvo Jax model."""
 
+import contextlib
 import functools
 import os
 import time
@@ -194,17 +195,24 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
   summary_eval_dir = os.path.join(summary_base_dir, 'eval_train')
   summary_writer = summary_utils.get_summary_writer
   if eval_input_p is not None:
-    summary_eval_dirs = [
+    summary_eval_test_dirs = [
         os.path.join(summary_base_dir, f'eval_test_{split}')
         for split, _ in enumerate(eval_input_p)
     ]
     eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
   else:
     eval_input_p = []
+    summary_eval_test_dirs = []
 
-  with summary_writer(
-      summary_train_dir) as train_summary_writer, summary_writer(
-          summary_eval_dir) as eval_summary_writer:
+  with contextlib.ExitStack() as exit_stack:
+    train_summary_writer = exit_stack.enter_context(
+        summary_writer(summary_train_dir))
+    eval_summary_writer = exit_stack.enter_context(
+        summary_writer(summary_eval_dir))
+    eval_test_summary_writers = [
+        exit_stack.enter_context(summary_writer(d))
+        for d in summary_eval_test_dirs
+    ]
 
     summary_utils.write_model_structure(
         train_summary_writer, replicated_model_states, is_vars_replicated=True)
@@ -308,8 +316,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
           eval_metrics = model_utils.run_eval_loop_over_test_splits(
               eval_num_steps,
               eval_step_fn,
-              summary_writer,
-              summary_eval_dirs,
+              eval_test_summary_writers,
               step_i,
               eval_input_pipelines,
               reshard_inputs=True)
@@ -419,7 +426,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
     summary_eval_dir = os.path.join(summary_base_dir, 'eval_train')
     summary_writer = summary_utils.get_summary_writer
     if eval_input_p is not None:
-      summary_eval_dirs = [
+      summary_eval_test_dirs = [
           os.path.join(summary_base_dir, f'eval_test_{split}')
           for split, _ in enumerate(eval_input_p)
       ]
@@ -428,10 +435,17 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
       eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
     else:
       eval_input_p = []
+      summary_eval_test_dirs = []
 
-    with summary_writer(
-        summary_train_dir) as train_summary_writer, summary_writer(
-            summary_eval_dir) as eval_summary_writer:
+    with contextlib.ExitStack() as exit_stack:
+      train_summary_writer = exit_stack.enter_context(
+          summary_writer(summary_train_dir))
+      eval_summary_writer = exit_stack.enter_context(
+          summary_writer(summary_eval_dir))
+      eval_test_summary_writers = [
+          exit_stack.enter_context(summary_writer(d))
+          for d in summary_eval_test_dirs
+      ]
 
       # This only prints the view from the first host machine.
       summary_utils.write_model_structure(
@@ -551,8 +565,7 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
             eval_metrics = model_utils.run_eval_loop_over_test_splits(
                 eval_num_steps,
                 eval_step_fn,
-                summary_writer,
-                summary_eval_dirs,
+                eval_test_summary_writers,
                 step_i,
                 eval_input_pipelines,
                 reshard_inputs=False)
