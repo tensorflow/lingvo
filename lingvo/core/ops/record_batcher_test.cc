@@ -48,7 +48,7 @@ class TestRP : public RecordProcessor {
 
   ~TestRP() override {}
 
-  Status Process(const Record& record, int64* bucket_key,
+  Status Process(const Record& record, int64_t* bucket_key,
                  TensorVec* sample) override {
     const string val = string(record.value);
     *bucket_key = val.size();
@@ -63,9 +63,9 @@ class TestRP : public RecordProcessor {
     return Status::OK();
   }
 
-  Status Merge(int64 bucket_size, const std::vector<TensorVec>& samples,
+  Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
                TensorVec* batch) override {
-    const int64 n = samples.size();
+    const int64_t n = samples.size();
     Tensor t(DT_STRING, {n});
     Tensor source_ids(DT_STRING, {n});
     for (int i = 0; i < samples.size(); ++i) {
@@ -95,7 +95,7 @@ TEST(RecordBatcher, Basic) {
   bopts.bucket_batch_limit = {8, 4, 2, 1};
 
   RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
-  int64 bucket_id;
+  int64_t bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
     TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
@@ -138,7 +138,7 @@ TEST(RecordBatcher, BasicMultiThread) {
   bopts.num_threads = 4;
 
   RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
-  int64 bucket_id;
+  int64_t bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
     TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
@@ -177,7 +177,7 @@ TEST(RecordBatcher, LearnBuckets) {
   bopts.bucket_adjust_every_n = 550;
 
   RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
-  int64 bucket_id;
+  int64_t bucket_id;
   TensorVec batch;
 
   // For the first 500 batches we just make sure the batches are the right
@@ -191,7 +191,7 @@ TEST(RecordBatcher, LearnBuckets) {
 
   // For the next 1000 batches we measure the max length distribution.
   std::vector<double> maxlens;
-  std::vector<int64> batches;
+  std::vector<int64_t> batches;
   maxlens.resize(4, 0);
   batches.resize(4, 0);
   for (int i = 0; i < 1000; ++i) {
@@ -238,7 +238,7 @@ TEST(RecordBatcher, FullEpoch) {
   bopts.flush_every_n = N;  // Same number of records in the data file.
 
   RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
-  int64 bucket_id;
+  int64_t bucket_id;
   TensorVec batch;
   std::vector<string> records;
   while (records.size() < N) {
@@ -272,7 +272,7 @@ TEST(RecordBatcher, CaptureYielderStatus) {
   RecordBatcher batcher(bopts,
                         SequentialRecordYielder::New(file_pattern, num_epochs),
                         new TestRP());
-  int64 bucket_id;
+  int64_t bucket_id;
   TensorVec batch;
   std::vector<string> records;
   // Fetch N * num_epochs worth of data, which should all be there.
@@ -312,7 +312,7 @@ TEST(RecordBatcher, SequentialEoFImmediately) {
   RecordBatcher batcher(bopts,
                         SequentialRecordYielder::New(file_pattern, num_epochs),
                         new TestRP());
-  int64 bucket_id;
+  int64_t bucket_id;
   TensorVec batch;
   Status s = batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch);
   ASSERT_TRUE(errors::IsOutOfRange(s));

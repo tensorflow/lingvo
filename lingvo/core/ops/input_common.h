@@ -34,7 +34,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 const BasicRecordYielder::Options& yopts_tpl,
                                 bool require_sequential_order,
-                                int64 repeat_count);
+                                int64_t repeat_count);
 
 // Creates BasicRecordYielder::Options for each file in the file pattern. For
 // use only by ConstructYielder. Exposed to enable testing.
@@ -62,13 +62,13 @@ class InputOp : public OpKernel {
 
     GETATTR(string, file_pattern);
     GETATTR(std::vector<float>, input_source_weights);
-    GETATTR(std::vector<int64>, bucket_upper_bound);
-    GETATTR(std::vector<int64>, bucket_batch_limit);
-    GETATTR(int64, bucket_adjust_every_n);
-    GETATTR(int64, flush_every_n);
-    GETATTR(int64, num_threads);
+    GETATTR(std::vector<int64_t>, bucket_upper_bound);
+    GETATTR(std::vector<int64_t>, bucket_batch_limit);
+    GETATTR(int64_t, bucket_adjust_every_n);
+    GETATTR(int64_t, flush_every_n);
+    GETATTR(int64_t, num_threads);
     GETATTR(bool, require_sequential_order);
-    GETATTR(int64, repeat_count);
+    GETATTR(int64_t, repeat_count);
     GETATTR(std::vector<string>, fatal_errors);
 #undef GETATTR
     OP_REQUIRES(
@@ -97,7 +97,7 @@ class InputOp : public OpKernel {
   ~InputOp() override { delete batcher_; }
 
   void Compute(OpKernelContext* ctx) override {
-    int64 bucket_id;
+    int64_t bucket_id;
     TensorVec batch;
     OP_REQUIRES_OK(ctx, batcher_->GetNext(ctx, &bucket_id, &batch));
     VLOG(1) << "Produce a batch from bucket : " << bucket_id;

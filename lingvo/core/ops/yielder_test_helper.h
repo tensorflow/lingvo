@@ -27,7 +27,7 @@ class MockRecordYielder : public BasicRecordYielder {
   MockRecordYielder() : BasicRecordYielder() {}
   MOCK_METHOD(Status, Yield, (Record * record), (override));
   MOCK_METHOD(void, Close, (), (override));
-  MOCK_METHOD(int64, current_epoch, (), (const, override));
+  MOCK_METHOD(int64_t, current_epoch, (), (const, override));
 };
 
 // Generates n plain text files with m lines each.

@@ -21,7 +21,7 @@ namespace tensorflow {
 namespace lingvo {
 
 WeightedMixRecordYielder::WeightedMixRecordYielder(
-    const int64 seed, const std::vector<RecordYielder*>& yielders,
+    const int64_t seed, const std::vector<RecordYielder*>& yielders,
     const std::vector<float>& input_source_weights)
     : rnd_(seed),
       sample_distribution_(input_source_weights.begin(),
@@ -50,7 +50,7 @@ WeightedMixRecordYielder::WeightedMixRecordYielder(
 }
 
 WeightedMixRecordYielder* WeightedMixRecordYielder::New(
-    const int64 seed, const std::vector<RecordYielder*>& yielders,
+    const int64_t seed, const std::vector<RecordYielder*>& yielders,
     const std::vector<float>& input_source_weights) {
   WeightedMixRecordYielder* yielder =
       new WeightedMixRecordYielder(seed, yielders, input_source_weights);

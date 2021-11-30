@@ -57,7 +57,7 @@ class UniformSampler {
     if (ids_.size() < k_) {
       ids_.push_back(Item{id});
     } else {
-      const int64 rnd = rnd_() % num_;
+      const int64_t rnd = rnd_() % num_;
       // Replace w/ prob k_ / num_ following the reservoir sampling algorithm R.
       if (rnd < k_) {
         ids_[rnd].id = id;
@@ -260,8 +260,8 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
 
   auto points_t = points.tensor<float, 3>();
   auto points_padding_t = points_padding.matrix<float>();
-  const int64 batch_size = points.dim_size(0);
-  const int64 num_points = points.dim_size(1);
+  const int64_t batch_size = points.dim_size(0);
+  const int64_t num_points = points.dim_size(1);
 
   Result result;
   result.center = Tensor(DT_INT32, {batch_size, opts_.num_centers});

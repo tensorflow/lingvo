@@ -164,7 +164,8 @@ Status ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
   mutex mu_status;
   // The thread sharding is along the hyps_size.
   Shard(
-      kNumWorkers, workers, hyps_size, num_ids, [&](int64 start, int64 limit) {
+      kNumWorkers, workers, hyps_size, num_ids,
+      [&](int64_t start, int64_t limit) {
         for (int32 hyp_id = start; hyp_id < limit; ++hyp_id) {
           if (is_first_step && hyp_id >= num_beams) {
             // For first step, we only consider the first hyp of each beam, as
@@ -302,11 +303,10 @@ Status ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
                     // considered terminated, if explicitly permitted.
                     // 'prev_labels' contains only non-epsilons.
                     (allow_empty_terminated_hyp || !e.prev_labels.empty())) {
-                    VLOG(3) << "Last chunk EOC hyp: global_score="
-                        << e.global_score
-                        << ", local_score=" << e.local_score
-                        << ", toks=[" << str_util::Join(e.prev_labels, " ")
-                        << "]";
+                  VLOG(3) << "Last chunk EOC hyp: global_score="
+                          << e.global_score << ", local_score=" << e.local_score
+                          << ", toks=[" << str_util::Join(e.prev_labels, " ")
+                          << "]";
                   (*eos_in_topk)[hyp_id] = true;
                   (*eos_hyps)[hyp_id] = e;
                   (*terminal_symbols)[hyp_id] = eoc_id;
@@ -989,7 +989,7 @@ class TopKTerminatedHypsOp : public OpKernel {
     auto t_done_hyps = in_done_hyps.matrix<tstring>();
     // The thread sharding is along hyps_size.
     Shard(kNumWorkers, workers, hyps_size, 1000 * num_steps,
-          [&](int64 start, int64 limit) {
+          [&](int64_t start, int64_t limit) {
             Hypothesis hypothesis;
             for (int32 hyp_id = start; hyp_id < limit; ++hyp_id) {
               // The topk for this beam.
@@ -1281,7 +1281,7 @@ class HypsFromBeamSearchOuts : public OpKernel {
 
     Shard(
         kNumWorkers, workers, num_hyps, seq_length * seq_length,
-        [&](int64 start, int64 end) {
+        [&](int64_t start, int64_t end) {
           std::vector<int> hyp_token_ids;
           std::vector<T> hyp_local_scores;
           std::vector<int> hyp_ids;
@@ -1473,7 +1473,7 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
     }
     ctx->device()->tensorflow_cpu_worker_threads()->workers->ParallelFor(
         num_hyps, /*cost_per_unit=*/seq_length << 2,
-        [&](int64 begin, int64 end) {
+        [&](int64_t begin, int64_t end) {
           for (int j = begin; j < end; ++j) {
             // Input is mod ordered.
             const int beam_id = j % num_beams;
@@ -1526,7 +1526,7 @@ class TopKFromBeamSearchOutsOp : public OpKernel {
 
     ctx->device()->tensorflow_cpu_worker_threads()->workers->ParallelFor(
         num_beams, /* cost_per_unit=*/4 * num_hyps_per_beam_ * max_seq_length_,
-        [&](int64 begin, int64 end) {
+        [&](int64_t begin, int64_t end) {
           for (int beam_id = begin; beam_id < end; ++beam_id) {
             mutex_lock l(topk_vec[beam_id].mu);
             auto beam_topk = topk_vec[beam_id].top_k.Get();

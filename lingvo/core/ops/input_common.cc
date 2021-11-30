@@ -68,7 +68,7 @@ std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
 
 RecordYielder* ConstructMixYielderFromOptions(
     const std::vector<BasicRecordYielder::Options>& yielder_options,
-    const std::vector<float>& input_source_weights, const int64 seed) {
+    const std::vector<float>& input_source_weights, const int64_t seed) {
   RecordYielder* yielder = nullptr;
   if (yielder_options.size() == 1) {
     yielder = BasicRecordYielder::New(yielder_options.front());
@@ -88,7 +88,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 const BasicRecordYielder::Options& yopts_tpl,
                                 bool require_sequential_order,
-                                int64 repeat_count) {
+                                int64_t repeat_count) {
   std::vector<string> file_patterns =
       VerifyAndSplitFilePattern(file_pattern, input_source_weights);
 

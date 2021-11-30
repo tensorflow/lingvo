@@ -155,7 +155,7 @@ class GenericInputProcessor : public RecordProcessor {
 
   ~GenericInputProcessor() { delete merger_; }
 
-  Status Process(const Record& record, int64* bucket_key,
+  Status Process(const Record& record, int64_t* bucket_key,
                  TensorVec* sample) override {
     // Generates <source_id, record> pair as the resulting Tensors.
     TensorVec args(2);
@@ -186,7 +186,7 @@ class GenericInputProcessor : public RecordProcessor {
     return Status::OK();
   }
 
-  Status Merge(int64 bucket_size, const std::vector<TensorVec>& samples,
+  Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
                TensorVec* batch) override {
     CHECK(!samples.empty());
     const auto num_samples = samples.size();
@@ -204,7 +204,7 @@ class GenericInputProcessor : public RecordProcessor {
         }
         const int pad_value = dynamic_padding_constants_[j];
 
-        int64 max_length = 0;
+        int64_t max_length = 0;
         for (int i = 0; i < samples.size(); ++i) {
           max_length = std::max(max_length, samples[i][j].dim_size(pad_dim));
         }
@@ -230,7 +230,7 @@ class GenericInputProcessor : public RecordProcessor {
 
               CASE(float);
               CASE(int32);
-              CASE(int64);
+              CASE(int64_t);
 #undef CASE
               default:
                 LOG(FATAL) << "Unexpected " << DataTypeString(dtype);
@@ -296,34 +296,35 @@ class GenericInputProcessor : public RecordProcessor {
     // If there is just one sample, 'batch' already has the copy.
     if (num_samples == 1) return Status::OK();
 
-    Sharder::Do(num_samples /* total */, 1000 /* cost_per_unit */,
-                [&](int64 start, int64 limit) {
-                  for (int i = 0; i < num_outs; ++i) {
-                    DataType dtype = padded_samples[0][i].dtype();
-                    Tensor* merged = &(*batch)[i];
-                    for (int j = start; j < limit; ++j) {
-                      switch (dtype) {
+    Sharder::Do(
+        num_samples /* total */, 1000 /* cost_per_unit */,
+        [&](int64_t start, int64_t limit) {
+          for (int i = 0; i < num_outs; ++i) {
+            DataType dtype = padded_samples[0][i].dtype();
+            Tensor* merged = &(*batch)[i];
+            for (int j = start; j < limit; ++j) {
+              switch (dtype) {
 #define CASE(T)                                                               \
   case DataTypeToEnum<T>::value:                                              \
     merged->flat_outer_dims<T>().chip<0>(j) = padded_samples[j][i].flat<T>(); \
     break
-                        CASE(float);
-                        CASE(int32);
-                        CASE(int64);
-                        CASE(tstring);
-                        CASE(uint8);
-                        CASE(bfloat16);
-                        CASE(complex64);
-                        CASE(complex128);
-                        CASE(bool);
+                CASE(float);
+                CASE(int32);
+                CASE(int64_t);
+                CASE(tstring);
+                CASE(uint8);
+                CASE(bfloat16);
+                CASE(complex64);
+                CASE(complex128);
+                CASE(bool);
 #undef CASE
-                        default:
-                          LOG(FATAL) << "Unexpected " << DataTypeString(dtype);
-                      }
-                    }
-                  }
-                },
-                merger_runner_, 1 + num_merger_threads_);
+                default:
+                  LOG(FATAL) << "Unexpected " << DataTypeString(dtype);
+              }
+            }
+          }
+        },
+        merger_runner_, 1 + num_merger_threads_);
     return Status::OK();
   }
 

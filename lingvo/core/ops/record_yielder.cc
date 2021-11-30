@@ -287,7 +287,7 @@ class PlainTextIterator : public RecordIterator {
   std::unique_ptr<RandomAccessFile> file_;
   io::RandomAccessInputStream stream_;
   io::BufferedInputStream buf_;
-  int64 num_ = 0;
+  int64_t num_ = 0;
   string line_;
 };
 
@@ -308,7 +308,7 @@ class TFRecordIterator : public RecordIterator {
  private:
   std::unique_ptr<RandomAccessFile> file_;
   io::SequentialRecordReader reader_;
-  int64 num_ = 0;
+  int64_t num_ = 0;
   tstring record_;
 
   io::RecordReaderOptions ReaderOptions(const string& compression_type) {
@@ -338,8 +338,8 @@ class IotaIterator : public RecordIterator {
   }
 
  private:
-  int64 max_ = kint64max;
-  int64 num_ = 0;
+  int64_t max_ = kint64max;
+  int64_t num_ = 0;
 };
 
 namespace {
@@ -486,7 +486,8 @@ void BasicRecordYielder::AdjustBufferSizeLoop() {
 
       // Make sure the buffer is large enough to hold one batch of Add records
       // per thread.
-      bufsize_ = std::max<int64>(opts_.parallelism * kRecordsPerAdd, bufsize_);
+      bufsize_ =
+          std::max<int64_t>(opts_.parallelism * kRecordsPerAdd, bufsize_);
 
       // Make sure the buffer is not larger than the bufsize parameter in the
       // options.
@@ -512,7 +513,7 @@ void BasicRecordYielder::MainLoop() {
 
   while (true) {
     num_records_yielded_in_epoch_ = 0;
-    const int64 epoch = current_epoch();
+    const int64_t epoch = current_epoch();
     LOG(INFO) << "Epoch " << epoch << " " << opts_.file_pattern;
 
     // Finds all files.
@@ -526,8 +527,8 @@ void BasicRecordYielder::MainLoop() {
     // We want each shard to fit into the shuffle buffer. Since there can be
     // up to `num_threads` concurrent ShardLoop calls, we divide the shuffle
     // buffer by num_threads.
-    parser_options.max_records_per_shard = static_cast<int64>(
-        bufsize() * .9 / num_threads);
+    parser_options.max_records_per_shard =
+        static_cast<int64_t>(bufsize() * .9 / num_threads);
     // Ideally there should be enough number of shards to keep the thread pool
     // busy.
     parser_options.min_shards = opts_.parallelism * 4;
@@ -608,7 +609,7 @@ void BasicRecordYielder::ShardLoop(Shard* shard) {
     VLOG(1) << "Shard " << shard->index << " " << filename;
     std::unique_ptr<RecordIterator> iter(
         RecordIterator::New(file_type_, filename));
-    int64 shard_record_count = 0;
+    int64_t shard_record_count = 0;
     string key;
     Rope val;
     while (iter->Next(&key, &val)) {

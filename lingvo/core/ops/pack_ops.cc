@@ -61,7 +61,7 @@ struct PackRecord {
 class PackSequencesOp : public OpKernel {
  public:
   explicit PackSequencesOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    int64 seed;
+    int64_t seed;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("seed", &seed));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("packed_batch_size", &packed_batch_size_));
     OP_REQUIRES_OK(ctx,
@@ -133,11 +133,11 @@ class PackSequencesOp : public OpKernel {
   mutable absl::Mutex mu_;
   // Used for randomizing the dropping of input rows when needed.
   std::mt19937 rnd_ ABSL_GUARDED_BY(mu_);
-  int64 total_src_tokens_ ABSL_GUARDED_BY(mu_) = 0;
-  int64 total_tgt_tokens_ ABSL_GUARDED_BY(mu_) = 0;
-  int64 total_examples_ ABSL_GUARDED_BY(mu_) = 0;
-  int64 total_packed_records_ ABSL_GUARDED_BY(mu_) = 0;
-  int64 total_dropped_packed_records_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t total_src_tokens_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t total_tgt_tokens_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t total_examples_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t total_packed_records_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t total_dropped_packed_records_ ABSL_GUARDED_BY(mu_) = 0;
 
   TF_DISALLOW_COPY_AND_ASSIGN(PackSequencesOp);
 };
@@ -208,7 +208,7 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
                       /*align=*/1,
                       /*pack=*/true, /*spread_first_n=*/packed_batch_size_);
   int max_output_batch_idx = 0;
-  int64 total_src_seq_len = 0, total_tgt_seq_len = 0;
+  int64_t total_src_seq_len = 0, total_tgt_seq_len = 0;
   for (int i = 0; i < input_num; ++i) {
     int src_seq_len = src_actual_seq_len(i);
     int tgt_seq_len = tgt_actual_seq_len(i);
@@ -515,16 +515,16 @@ class ApplyPackingOp : public OpKernel {
     const auto& segment_ids = ctx->input(2).matrix<int32>();
     const auto& indices_in_input = ctx->input(3).matrix<int32>();
     auto output_3d = output->flat_outer_dims<T, 3>();
-    const int64 rows = output->dim_size(0);
-    const int64 columns = output->dim_size(1);
+    const int64_t rows = output->dim_size(0);
+    const int64_t columns = output->dim_size(1);
     // The CPU cost per each row is linear in the number of elements in that
     // row
     // (`columns`). We need to read segment_ids to discern each segment, and
     // copy from input to output, plus a few extra cycles (e.g. checking
     // bounds). The constant is guesstimated to be 4.
-    const int64 cost_per_unit = columns << 2;
+    const int64_t cost_per_unit = columns << 2;
     ctx->device()->tensorflow_cpu_worker_threads()->workers->ParallelFor(
-        rows, cost_per_unit, [&](int64 begin, int64 end) {
+        rows, cost_per_unit, [&](int64_t begin, int64_t end) {
           for (int i = begin; i < end; ++i) {
             for (int j = 0; j < columns; ++j) {
               if (segment_ids(i, j) <= 0) {
@@ -571,7 +571,7 @@ class ApplyPackingOp : public OpKernel {
     for (int i = 0; i < output->dim_size(0); ++i) {
       // input_rows condenses row i of indices_in_input, e.g. from
       // [0, 0, 0, 3, 3, 4, 4, 4, 4, 0, 0] to [0, 3, 4].
-      std::vector<int64> input_rows;
+      std::vector<int64_t> input_rows;
       for (int j = 0; j < ctx->input(3).dim_size(1); ++j) {
         auto row = indices_in_input(i, j);
         if (segment_ids(i, j) &&
@@ -653,7 +653,7 @@ class ApplyPackingOp<::tensorflow::tstring> : public OpKernel {
     for (int i = 0; i < output->dim_size(0); ++i) {
       // input_rows condenses row i of indices_in_input, e.g. from
       // [0, 0, 0, 3, 3, 4, 4, 4, 4, 0, 0] to [0, 3, 4].
-      std::vector<int64> input_rows;
+      std::vector<int64_t> input_rows;
       for (int j = 0; j < ctx->input(3).dim_size(1); ++j) {
         auto row = indices_in_input(i, j);
         if (segment_ids(i, j) &&

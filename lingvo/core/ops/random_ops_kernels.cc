@@ -31,7 +31,7 @@ class RandomPermutationSequenceOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num", &num_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("batch", &batch_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("repeat", &repeat_));
-    int64 seed;
+    int64_t seed;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("seed", &seed));
     if (seed == 0) {
       std::random_device device("/dev/urandom");

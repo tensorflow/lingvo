@@ -47,7 +47,7 @@ class InputGeneratorTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       inp = input_generator.PunctuatorInput(p)
       # Runs a few steps.
-      for _ in range(10):
+      for _ in range(3):
         self.evaluate(inp.GetPreprocessedInputBatch())
 
   def testSourceTargetValues(self):

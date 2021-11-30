@@ -130,7 +130,7 @@ class BestStepOp : public OpKernel {
   }
 
   void Compute(OpKernelContext* ctx) override {
-    int64 best_step = 0, last_step = 0;
+    int64_t best_step = 0, last_step = 0;
     float best_val = 0.0;
     std::map<int, float> step_value;
     if (hist_file_.find("events.out.tfevents") != std::string::npos) {
@@ -151,8 +151,8 @@ class BestStepOp : public OpKernel {
 
     Tensor* res;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({2}), &res));
-    res->vec<int64>()(0) = best_step;
-    res->vec<int64>()(1) = last_step;
+    res->vec<int64_t>()(0) = best_step;
+    res->vec<int64_t>()(1) = last_step;
   }
 
  private:

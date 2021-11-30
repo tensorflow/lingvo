@@ -60,16 +60,13 @@ class WeightedMixRecordYielder : public RecordYielder {
   // closing the WeightedMixRecordYielder returned by this function. Caller
   // should not delete the yielder as it will be handled internally.
   static WeightedMixRecordYielder* New(
-      const int64 seed,
-      const std::vector<RecordYielder*>& yielders,
+      const int64_t seed, const std::vector<RecordYielder*>& yielders,
       const std::vector<float>& input_source_weights);
 
  protected:
-  WeightedMixRecordYielder(
-      const int64 seed,
-      const std::vector<RecordYielder*>& yielders,
-      const std::vector<float>& input_source_weights);
-
+  WeightedMixRecordYielder(const int64_t seed,
+                           const std::vector<RecordYielder*>& yielders,
+                           const std::vector<float>& input_source_weights);
 
  private:
   mutable absl::Mutex mu_;

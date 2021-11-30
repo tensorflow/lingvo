@@ -132,7 +132,7 @@ Status RecordBatcher::EnsureInitialized(OpKernelContext* ctx) {
   return Status::OK();
 }
 
-Status RecordBatcher::GetNext(OpKernelContext* ctx, int64* bucket,
+Status RecordBatcher::GetNext(OpKernelContext* ctx, int64_t* bucket,
                               TensorVec* batch) {
   absl::MutexLock l(&mu_);
   TF_RETURN_IF_ERROR(EnsureInitialized(ctx));
@@ -155,7 +155,7 @@ Status RecordBatcher::GetNext(OpKernelContext* ctx, int64* bucket,
   return Status::OK();
 }
 
-void RecordBatcher::IncrementHistogram(int64 bucket) {
+void RecordBatcher::IncrementHistogram(int64_t bucket) {
   if (bucket > bucket_upper_bound_.back()) return;
   length_histogram_[bucket]++;
 }
@@ -163,7 +163,7 @@ void RecordBatcher::IncrementHistogram(int64 bucket) {
 void RecordBatcher::AdjustBuckets() {
   // The length histogram is too big to compute with quickly.
   // We distill it down to a histogram with bins of equal cost (equal area).
-  int64 ideal_cost = 0;
+  int64_t ideal_cost = 0;
   for (int i = 0; i < length_histogram_.size(); i++) {
     ideal_cost += length_histogram_[i] * i;
   }
@@ -172,15 +172,15 @@ void RecordBatcher::AdjustBuckets() {
   }
 
   // The histogram is pairs of (upper_length_bound, items_in_bucket).
-  std::vector<std::pair<int64, int64>> compact_histogram;
-  int64 cost_so_far = 0;
-  int64 count_in_bucket = 0;
+  std::vector<std::pair<int64_t, int64_t>> compact_histogram;
+  int64_t cost_so_far = 0;
+  int64_t count_in_bucket = 0;
   int bucket_index = 0;
   const int kCompactBuckets = 500;
   for (int i = 0; i < length_histogram_.size(); i++) {
     cost_so_far += length_histogram_[i] * i;
     count_in_bucket += length_histogram_[i];
-    int64 cost_target = ideal_cost * ((bucket_index + 1.0) / kCompactBuckets);
+    int64_t cost_target = ideal_cost * ((bucket_index + 1.0) / kCompactBuckets);
     if (cost_so_far >= cost_target &&
         compact_histogram.size() != kCompactBuckets) {
       compact_histogram.push_back(std::make_pair(i, count_in_bucket));
@@ -203,13 +203,13 @@ void RecordBatcher::AdjustBuckets() {
   // next bucketing point is at index j (j > i), and there are k more bucketing
   // points available to use for the remaining elements.
   Tensor cost(DT_INT64, TensorShape({num_lengths, num_lengths, num_buckets}));
-  auto c = cost.tensor<int64, 3>();
+  auto c = cost.tensor<int64_t, 3>();
 
   // s(i, j) is the total cost of computing the items in histogram bucket i
   // when padding them out to the size of bucket j.
   auto s = [&compact_histogram](int i, int j) {
-    const int64 bucket_j_width = compact_histogram[j].first;
-    const int64 bucket_i_count = compact_histogram[i].second;
+    const int64_t bucket_j_width = compact_histogram[j].first;
+    const int64_t bucket_i_count = compact_histogram[i].second;
     return bucket_i_count * bucket_j_width;
   };
 
@@ -227,10 +227,10 @@ void RecordBatcher::AdjustBuckets() {
         if (i > 0) {
           // When we choose to put a bucket boundary here at position i, we
           // can compute these new items with minimal padding [s(i, i)].
-          int64 cost_choose = c(i - 1, i, k - 1) + s(i, i);
+          int64_t cost_choose = c(i - 1, i, k - 1) + s(i, i);
           // If we don't put a bucket boundary here, we have to wait until
           // position j, which means extra padding. [s(i, j)].
-          int64 cost_not_choose = c(i - 1, j, k) + s(i, j);
+          int64_t cost_not_choose = c(i - 1, j, k) + s(i, j);
           c(i, j, k) = std::min(cost_choose, cost_not_choose);
         } else {
           c(i, j, k) = s(i, j);
@@ -241,14 +241,15 @@ void RecordBatcher::AdjustBuckets() {
 
   std::vector<int> buckets;
   buckets.push_back(num_lengths - 1);
-  const int64 best_cost = c(num_lengths - 2, num_lengths - 1, num_buckets - 1);
-  int64 remaining_cost = best_cost;
+  const int64_t best_cost =
+      c(num_lengths - 2, num_lengths - 1, num_buckets - 1);
+  int64_t remaining_cost = best_cost;
   for (int i = num_lengths - 2; i > 0; i--) {
     int buckets_left = num_buckets - buckets.size();
     if (buckets_left <= 0) break;
     int prev_bucket = buckets.back();
-    int64 cost_choose = c(i - 1, i, buckets_left - 1) + s(i, i);
-    int64 cost_not_choose =
+    int64_t cost_choose = c(i - 1, i, buckets_left - 1) + s(i, i);
+    int64_t cost_not_choose =
         c(i - 1, prev_bucket, buckets_left) + s(i, prev_bucket);
     if (remaining_cost == cost_choose) {
       buckets.push_back(i);
@@ -282,7 +283,7 @@ void RecordBatcher::AdjustBuckets() {
 void RecordBatcher::FlushAllBuckets() {
   for (int i = 0; i < buckets_.size(); ++i) {
     if (!buckets_[i].empty()) {
-      CHECK_LE(static_cast<int64>(buckets_[i].size()),
+      CHECK_LE(static_cast<int64_t>(buckets_[i].size()),
                opts_.bucket_batch_limit[i]);
       to_flush_.push_back({i, std::move(buckets_[i])});
       buckets_[i].clear();
@@ -292,8 +293,8 @@ void RecordBatcher::FlushAllBuckets() {
 
 void RecordBatcher::ProcessorLoop() {
   // Multiply next_status_update_duration_seconds_ by 2 every update.
-  const int64 status_update_duration_multiplier = 2;
-  std::vector<int64> out_of_range_buckets;
+  const int64_t status_update_duration_multiplier = 2;
+  std::vector<int64_t> out_of_range_buckets;
   while (true) {
     {
       absl::MutexLock l(&mu_);
@@ -322,7 +323,7 @@ void RecordBatcher::ProcessorLoop() {
     }
 
     // Parse the record.
-    int64 bucket;
+    int64_t bucket;
     TensorVec sample;
     s = processor_->Process(record, &bucket, &sample);
     if (!s.ok()) {
@@ -367,7 +368,7 @@ void RecordBatcher::ProcessorLoop() {
     absl::MutexLock l(&mu_);
 
     if (opts_.bucket_adjust_every_n > 0) {
-      const int64 records_processed =
+      const int64_t records_processed =
           total_records_yielded_ + total_records_skipped_;
       if (records_processed % opts_.bucket_adjust_every_n == 0 &&
           total_records_yielded_ > 0) {
@@ -390,7 +391,7 @@ void RecordBatcher::ProcessorLoop() {
       // Figure out which buckets we should return to the consumer.
       // A bucket (id-th) is full.
       const int id = iter - bucket_upper_bound_.begin();
-      const int64 batch_limit = opts_.bucket_batch_limit[id];
+      const int64_t batch_limit = opts_.bucket_batch_limit[id];
       if (buckets_[id].size() + 1 == batch_limit) {
         WaitForToFlushEmpty();
         if (stop_) {
@@ -462,7 +463,7 @@ void RecordBatcher::MergerLoop() {
     // Now, flush out batches we accumulated. Typically, to_flush has only 1
     // batch unless flush_every_n is > 0.
     for (auto& p : to_flush) {
-      const int64 id = p.first;
+      const int64_t id = p.first;
       const int32 num = p.second.size();
       Tensor bucket_keys(DT_INT32, {num});
       auto t_bucket_keys = bucket_keys.flat<int32>();

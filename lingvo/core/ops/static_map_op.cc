@@ -78,8 +78,8 @@ class StaticMapOp : public OpKernel {
     int total = tx.size();
     auto workers = ctx->device()->tensorflow_cpu_worker_threads();
     Shard(workers->num_threads, workers->workers, total, 250,
-          [this, &tx, &ty](int64 start, int64 limit) {
-            for (int64 i = start; i < limit; ++i) {
+          [this, &tx, &ty](int64_t start, int64_t limit) {
+            for (int64_t i = start; i < limit; ++i) {
               auto it = dict_.find(tx(i));
               if (it != dict_.end()) {
                 ty(i) = it->second;

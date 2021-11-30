@@ -50,12 +50,13 @@ class RecordProcessor {
   // 'bucket_key' is an auxilary annotation extracted from the record
   // used by RecordBatcher to bucketize training examples. Typically,
   // 'bucket_key' is just a length measure about the record.
-  virtual Status Process(const Record& record, int64* bucket_key,
+  virtual Status Process(const Record& record, int64_t* bucket_key,
                          TensorVec* sample) = 0;
 
   // Gives a list of training 'samples' returned by Process() and bucketed into
   // a bucket with size `bucket_size`, merges them into a single 'batch'.
-  virtual Status Merge(int64 bucket_size, const std::vector<TensorVec>& samples,
+  virtual Status Merge(int64_t bucket_size,
+                       const std::vector<TensorVec>& samples,
                        TensorVec* batch) = 0;
 
   // Initializes the RecordProcessor. This should be invoked only once before
@@ -79,20 +80,20 @@ class RecordBatcher {
   // one training batch.
   struct Options {
     // REQUIRES: bucket_upper_bound.size() == bucket_batch_limit.size()
-    std::vector<int64> bucket_upper_bound;
-    std::vector<int64> bucket_batch_limit;
+    std::vector<int64_t> bucket_upper_bound;
+    std::vector<int64_t> bucket_batch_limit;
 
     // If non-zero, optimize bucket_upper_bound values (except the last one)
     // every n records based on input lengths.
-    int64 bucket_adjust_every_n = 0;
+    int64_t bucket_adjust_every_n = 0;
 
     // If non-zero, flushes all batches buffered so far every these
     // many records are yielded.
-    int64 flush_every_n = 0;
+    int64_t flush_every_n = 0;
 
     // Number of threads to use for record batcher, each thread
     // fills separate batches based on bucket limits.
-    int64 num_threads = 1;
+    int64_t num_threads = 1;
 
     // Errors to treat as fatal.
     std::vector<string> fatal_errors;
@@ -105,7 +106,7 @@ class RecordBatcher {
   // Returns the a training batch in 'batch' and the batch comes out
   // from 'bucket_id'-th bucket.
   // Processor threads will be launched on the first call to this function.
-  Status GetNext(OpKernelContext* ctx, int64* bucket_id, TensorVec* batch);
+  Status GetNext(OpKernelContext* ctx, int64_t* bucket_id, TensorVec* batch);
 
  private:
   // Initializes the batcher and launches the processor threads, if not done.
@@ -116,13 +117,13 @@ class RecordBatcher {
 
   typedef RecordBatcher ME;
   struct Processed {
-    int64 bucket_key;
+    int64_t bucket_key;
     TensorVec sample;
   };
   typedef std::vector<Processed> Batch;
 
   // FlushList is a list of bucket id and one batch for that bucket.
-  typedef std::vector<std::pair<int64, Batch>> FlushList;
+  typedef std::vector<std::pair<int64_t, Batch>> FlushList;
 
   // Owned.
   Options opts_;
@@ -131,7 +132,7 @@ class RecordBatcher {
   thread::ThreadPool* processor_thread_ = nullptr;
   thread::ThreadPool* merger_thread_ = nullptr;
   absl::Mutex mu_;
-  int64 curr_bucket_ ABSL_GUARDED_BY(mu_) = -1;
+  int64_t curr_bucket_ ABSL_GUARDED_BY(mu_) = -1;
   TensorVec curr_ ABSL_GUARDED_BY(mu_);
 
   // True if either the yielder hits EOF or the destructor triggers.
@@ -146,20 +147,20 @@ class RecordBatcher {
   bool is_initialized_ = false;
   absl::Condition curr_empty_;
   absl::Condition curr_non_empty_;
-  int64 records_yielded_ ABSL_GUARDED_BY(mu_) = 0;
-  int64 total_records_yielded_ ABSL_GUARDED_BY(mu_) = 0;
-  int64 total_records_skipped_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t records_yielded_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t total_records_yielded_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t total_records_skipped_ ABSL_GUARDED_BY(mu_) = 0;
   std::vector<Batch> buckets_ ABSL_GUARDED_BY(mu_);
-  int64 processor_loop_done_count_ ABSL_GUARDED_BY(mu_) = 0;
+  int64_t processor_loop_done_count_ ABSL_GUARDED_BY(mu_) = 0;
   FlushList to_flush_ ABSL_GUARDED_BY(mu_);
   absl::Condition to_flush_empty_;
   absl::Condition to_flush_non_empty_;
   std::time_t start_time_;  // Not necessary to guard.
   std::time_t last_log_update_time_ ABSL_GUARDED_BY(mu_);
-  int64 next_status_update_duration_seconds_ ABSL_GUARDED_BY(mu_) = 60;
+  int64_t next_status_update_duration_seconds_ ABSL_GUARDED_BY(mu_) = 60;
 
-  std::vector<int64> length_histogram_;
-  std::vector<int64> bucket_upper_bound_;
+  std::vector<int64_t> length_histogram_;
+  std::vector<int64_t> bucket_upper_bound_;
 
   // Conditions.
   bool CurrEmpty() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
@@ -191,7 +192,7 @@ class RecordBatcher {
 
   void AdjustBuckets() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
   void FlushAllBuckets() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
-  void IncrementHistogram(int64 bucket) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void IncrementHistogram(int64_t bucket) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // For performance debugging.
   void WaitForCurrEmpty() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);

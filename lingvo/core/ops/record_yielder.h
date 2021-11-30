@@ -79,7 +79,7 @@ class RecordIterator {
 
   struct ParserOptions {
     thread::ThreadPool* executor = nullptr;
-    int64 epoch = 0;
+    int64_t epoch = 0;
     int num_input_replicas = 1;
     int input_replica_id = 0;
 
@@ -177,14 +177,14 @@ class BasicRecordYielder : public RecordYielder {
     string file_pattern;
 
     // Random seed. It determines how data files are shuffled.
-    int64 seed = 0;
+    int64_t seed = 0;
 
     // Randomization buffer keeps these many records.
-    int64 bufsize = 1;
+    int64_t bufsize = 1;
 
     // If non-zero, attempt to keep this many seconds of records in the
     // randomization buffer. The buffer size will never exceed bufsize.
-    int64 bufsize_in_seconds = 0;
+    int64_t bufsize_in_seconds = 0;
 
     // Uses this many concurrent iterators to iterate through files.
     int32 parallelism = 1;
@@ -209,14 +209,14 @@ class BasicRecordYielder : public RecordYielder {
 
   // Returns the current epoch number. Epoch number starts from 1 and reflects
   // the epoch number of the record returned by the next Yield() call.
-  virtual int64 current_epoch() const {
+  virtual int64_t current_epoch() const {
     // TODO(tilarids): Use ReaderMutexLock here.
     absl::MutexLock l(&mu_);
     return epoch_;
   }
 
   // Returns the current buffer size.
-  int64 bufsize() const {
+  int64_t bufsize() const {
     absl::MutexLock l(&mu_);
     return bufsize_;
   }
@@ -255,7 +255,7 @@ class BasicRecordYielder : public RecordYielder {
   mutable absl::Mutex mu_;
 
   // Epoch number.
-  int64 epoch_ ABSL_GUARDED_BY(mu_);
+  int64_t epoch_ ABSL_GUARDED_BY(mu_);
 
   // Turned to true when the yielder is deleted.
   bool stop_ ABSL_GUARDED_BY(mu_) = false;
@@ -270,13 +270,13 @@ class BasicRecordYielder : public RecordYielder {
   // True iff we are draining an epoch.
   bool epoch_end_ ABSL_GUARDED_BY(mu_) = false;
 
-  int64 num_records_yielded_in_epoch_ = 0;
+  int64_t num_records_yielded_in_epoch_ = 0;
 
   // Dynamically adjusted buffer size.
   double bufsize_ ABSL_GUARDED_BY(mu_);
 
   // Number of Yield calls in the current adjustment interval.
-  int64 yields_ ABSL_GUARDED_BY(mu_);
+  int64_t yields_ ABSL_GUARDED_BY(mu_);
 
   // Trigger when the main loop has exited.
   absl::Notification main_loop_done_;
@@ -289,7 +289,7 @@ class BasicRecordYielder : public RecordYielder {
 
   absl::Condition buf_not_full_;
   bool BufNotFull() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
-    return stop_ || static_cast<int64>(buf_.size()) < bufsize_;
+    return stop_ || static_cast<int64_t>(buf_.size()) < bufsize_;
   }
 
   absl::Condition buf_enough_;
@@ -297,8 +297,8 @@ class BasicRecordYielder : public RecordYielder {
     // NOTE: Unless we are finishing an epoch, we want to make sure
     // the buf_ contains enough randomized elements before yielding any.
     return stop_ || !status_.ok() || (epoch_end_ && !buf_.empty()) ||
-           (!epoch_end_ && static_cast<int64>(buf_.size()) >=
-                               std::max<int64>(1, bufsize_ / 2));
+           (!epoch_end_ && static_cast<int64_t>(buf_.size()) >=
+                               std::max<int64_t>(1, bufsize_ / 2));
   }
 
   void ExtractValue(Rope* value) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
