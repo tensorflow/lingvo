@@ -15,6 +15,7 @@
 # ==============================================================================
 """Optimizers."""
 
+import contextlib
 import copy
 import re
 
@@ -85,7 +86,8 @@ class Base(base_layer.BaseLayer):
       The variable update op.
 
     Raises:
-      RuntimeError: When `lr` is not a callable in Eager mode.
+      RuntimeError: When `lr` is not a callable in Eager mode and user did not
+        enable the scalar lr option.
     """
 
     if py_utils.IsEagerMode() and not callable(lr):
@@ -188,17 +190,18 @@ class CompositeOptimizer(Base):
 
   def __init__(self, params):
     super().__init__(params)
-    self._optimizer_map = {}
+    self._lingvo_optimizer_map = {}
+    self._tf_optimizer_map = None
     self._lr_map = {}
     for index, regex in enumerate(params.optimizer_map):
       sub_optimizer, learning_rate = params.optimizer_map[regex]
       self.CreateChild('sub_{}_{}'.format(sub_optimizer.name, index),
                        sub_optimizer)
-      self._optimizer_map[regex] = self.children['sub_{}_{}'.format(
+      self._lingvo_optimizer_map[regex] = self.children['sub_{}_{}'.format(
           sub_optimizer.name, index)]
       self._lr_map[regex] = learning_rate
 
-    if 'default_optimizer' not in self._optimizer_map:
+    if 'default_optimizer' not in self._lingvo_optimizer_map:
       raise KeyError('default_optimizer is not found in optimizer_map. Please '
                      'specify a default_optimizer regex and its associated '
                      '(Lingvo Optimizer, learning rate) tuple.')
@@ -207,7 +210,7 @@ class CompositeOptimizer(Base):
     """Returns a dictionary of regex to TF optimizer objects."""
     return {
         k: v.GetOptimizer(self._lr_map[k])
-        for k, v in self._optimizer_map.items()
+        for k, v in self._lingvo_optimizer_map.items()
     }
 
   def Apply(self, lr, var_grad):
@@ -224,12 +227,14 @@ class CompositeOptimizer(Base):
       Exception: When the regex overlaps with or does not cover all variables.
     """
     # Override inherited GetOptimizer even though learning rate is unused.
-    tf_optimizer_map = self.GetOptimizer(0)
-    var_grad_map = {regex: [] for regex in self._optimizer_map}
+    if not self._tf_optimizer_map or not py_utils.IsEagerMode():
+      self._tf_optimizer_map = self.GetOptimizer(0)
+
+    var_grad_map = {regex: [] for regex in self._lingvo_optimizer_map}
 
     for (v, g) in var_grad.Flatten():
       regex_match = 0
-      for regex in self._optimizer_map:
+      for regex in self._lingvo_optimizer_map:
         if re.match(regex, v.name):
           var_grad_map[regex].append((g, v))
           regex_match += 1
@@ -237,17 +242,18 @@ class CompositeOptimizer(Base):
         var_grad_map['default_optimizer'].append((g, v))
       if regex_match > 1:
         raise Exception('Variable {} is matched {} times by regex {}'.format(
-            v.name, regex_match, list(self._optimizer_map.keys())))
+            v.name, regex_match, list(self._lingvo_optimizer_map.keys())))
 
     def _Apply():
       """Use the matched optimizer to apply the gradients."""
       train_ops = []
       non_default_regex = [
-          regex for regex in self._optimizer_map if regex != 'default_optimizer'
+          regex for regex in self._lingvo_optimizer_map
+          if regex != 'default_optimizer'
       ]
-      for regex in self._optimizer_map:
+      for regex in self._lingvo_optimizer_map:
         if var_grad_map[regex]:
-          opt = tf_optimizer_map[regex]
+          opt = self._tf_optimizer_map[regex]
           train_ops.append(opt.apply_gradients(var_grad_map[regex]))
           # pylint: disable=cell-var-from-loop, g-long-lambda
           if regex == 'default_optimizer':
@@ -257,8 +263,8 @@ class CompositeOptimizer(Base):
             filtered_var_grad = var_grad.FilterKeyVal(
                 lambda k, v: (re.match(regex, v.var.name)))
           # pylint: enable=cell-var-from-loop, g-long-lambda
-          self._optimizer_map[regex].AddSummary(self._lr_map[regex], opt,
-                                                filtered_var_grad)
+          self._lingvo_optimizer_map[regex].AddSummary(self._lr_map[regex], opt,
+                                                       filtered_var_grad)
       return tf.group(*train_ops, name='composite_optimizer_train_op')
 
     # Many optimizers, e.g., Adam, Adagrad, etc., create
@@ -280,7 +286,8 @@ class CompositeOptimizer(Base):
       Ops to run after training loop ends.
     """
     post_training_ops = [
-        opt.ApplyPostTrainingLoop() for _, opt in self._optimizer_map.items()
+        opt.ApplyPostTrainingLoop()
+        for _, opt in self._lingvo_optimizer_map.items()
     ]
     return tf.group(*post_training_ops)
 
@@ -484,7 +491,10 @@ class Accumulator(Base):
       """Updating accumulators."""
 
       v, g = vg
-      with tf.variable_scope(v.op.name):
+      with contextlib.ExitStack() as stack:
+        if not py_utils.IsEagerMode():
+          stack.enter_context(tf.variable_scope(v.op.name))
+
         a = py_utils.CreateVariable(
             'grad_accumulator',
             py_utils.WeightParams(v.get_shape(),
@@ -578,13 +588,17 @@ class DistributedShampoo(Base):
     """Applies the gradient to the variable.
 
     Args:
-      lr: A scalar. The base learning rate.
+      lr: A scalar or callable that returns the base learning rate.
       var_grad: A `.NestedMap` of (var, grad) pairs.
 
     Returns:
       The variable update op.
     """
-    self._optimizer = self.GetOptimizer(lr)
+    # In Graph mode, always re-create the optimizer to remain consistent with
+    # the old logic for the Graph trainer.
+    # TODO(jiaweix): Recreating optimizers in Graph mode seems unnecessary.
+    if self._optimizer is None or not py_utils.IsEagerMode():
+      self._optimizer = self.GetOptimizer(lr)
 
     def _Apply():
       return self._optimizer.apply_gradients(

@@ -1253,6 +1253,24 @@ py_test(
     ],
 )
 
+py_test(
+    name = "optimizer_eager_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["optimizer_eager_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":cluster_factory",
+        ":layers",
+        ":optimizer",
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
 py_library(
     name = "plot",
     srcs = ["plot.py"],
