@@ -4,7 +4,7 @@ load("@subpar//:subpar.bzl", "par_binary")
 
 def tf_copts():
     # TODO(drpng): autoconf this.
-    return ["-D_GLIBCXX_USE_CXX11_ABI=0", "-Wno-sign-compare", "-mavx"] + select({
+    return ["-D_GLIBCXX_USE_CXX11_ABI=0", "-std=c++14", "-Wno-sign-compare", "-mavx"] + select({
         "//lingvo:cuda": ["-DGOOGLE_CUDA=1"],
         "//conditions:default": [],
     })
@@ -49,6 +49,7 @@ def lingvo_cc_test(name, srcs, deps = [], **kwargs):
         deps = [
             "@tensorflow_includes//:includes",
             "@tensorflow_solib//:framework_lib",
+            "@com_google_benchmark//:benchmark",
             "@com_google_googletest//:gtest_main",
         ] + deps,
         **kwargs

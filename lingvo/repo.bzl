@@ -170,6 +170,15 @@ def cc_tf_configure():
     make_tflib_repo(name = "tensorflow_solib")
 
 def lingvo_testonly_deps():
+    http_archive(
+        name = "com_google_benchmark",
+        sha256 = "23082937d1663a53b90cb5b61df4bcc312f6dee7018da78ba00dd6bd669dfef2",
+        strip_prefix = "benchmark-1.5.1",
+        urls = [
+            "https://github.com/google/benchmark/archive/v1.5.1.tar.gz",
+        ],
+    )
+
     if not native.existing_rule("com_google_googletest"):
         http_archive(
             name = "com_google_googletest",

@@ -11,6 +11,8 @@ py_test(
     srcs = ["waymo_ap_metric_test.py"],
     python_version = "PY3",
     srcs_version = "PY3",
+    # TODO(b/208324211): Skip until waymo-open-dataset-2-7-0 is released.
+    tags = ["manual"],
     deps = [
         ":waymo_ap_metric",
         ":waymo_metadata",

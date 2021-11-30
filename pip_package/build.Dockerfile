@@ -13,14 +13,14 @@ RUN apt-key del F06FC659
 
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776
 RUN echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu xenial main" > /etc/apt/sources.list.d/deadsnakes-ppa-xenial.list
-RUN apt-get update && apt-get install -y python3.6 python3.7 python3.8 python3.8-distutils python3.9 python3.9-distutils
+RUN apt-get update && apt-get install -y python3.7 python3.8 python3.8-distutils python3.9 python3.9-distutils
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
 # Download and install bazel.
 RUN wget https://github.com/bazelbuild/bazel/releases/download/4.0.0/bazel-4.0.0-installer-linux-x86_64.sh > /dev/null
 RUN bash bazel-4.0.0-installer-linux-x86_64.sh
 
-RUN for python in python3.6 python3.7 python3.8 python3.9; do \
+RUN for python in python3.7 python3.8 python3.9; do \
       $python get-pip.py && \
       $python -m pip install --upgrade pip setuptools auditwheel && \
       $python -m pip install --upgrade \
@@ -33,6 +33,7 @@ RUN for python in python3.6 python3.7 python3.8 python3.9; do \
         model-pruning-google-research \
         numpy \
         sentencepiece \
+        scipy \
         sympy \
         twine && \
       $python -m pip install tensorflow tensorflow-datasets tensorflow-text; \

@@ -16,13 +16,13 @@
 """Setup script for pip package."""
 import sys
 
-from setuptools import find_packages
+from setuptools import find_namespace_packages
 from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
-__version__ = '0.10.0'
+__version__ = '0.11.0'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -76,9 +76,11 @@ setup(
     description=('Lingvo libraries.'),
     author='Lingvo Authors',
     author_email='lingvo-bot@google.com',
-    packages=find_packages(include=['lingvo*'], exclude=[]),
+    packages=find_namespace_packages(
+        include=find_namespace_packages(
+            include=['lingvo*'], exclude=['*.params*'])),
     include_package_data=True,
-    python_requires='>=3.6,<3.10',
+    python_requires='>=3.7,<3.10',
     install_requires=REQUIRED_PACKAGES,
     zip_safe=False,
     cmdclass={
@@ -92,7 +94,6 @@ setup(
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',

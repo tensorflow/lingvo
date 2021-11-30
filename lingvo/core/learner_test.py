@@ -175,9 +175,9 @@ class LearnerTest(test_utils.TestCase):
       metrics = {learner_p.name: (loss, 1.)}
       expected_losses = [loss]
     losses, update_op, eval_metrics = lrnr.Apply(metrics, layer.vars)
-    self.assertAllEqual(losses, expected_losses)
     with self.session():
       self.evaluate(tf.global_variables_initializer())
+      self.assertAllEqual(self.evaluate(losses), self.evaluate(expected_losses))
       var_grads = self.evaluate(lrnr.GetVarGrads().Transform(tuple))
       update_op.run()
       updated_vars = self.evaluate(layer.vars)

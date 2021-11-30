@@ -37,6 +37,7 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
+0.11.0       | 6fae10077756f54beacd5c454959f20b33fd65e2
 0.10.0       | 075fd1d88fa6f92681f58a2383264337d0e737ee
 0.9.1        | c1124c5aa7af13d2dd2b6d43293c8ca6d022b008
 0.9.0        | f826e99803d1b51dccbbbed1ef857ba48a2bbefe
@@ -62,6 +63,12 @@ guarantees regarding backwards compatibility.**
 #### HEAD
 
 Nothing here.
+
+#### 0.11.0
+
+*   **General**
+    *   Tensorflow 2.7 is now the required version.
+    *   Python 3.6 support has been removed.
 
 #### 0.10.0
 
@@ -148,7 +155,7 @@ for how to get started with the pip package.
 
 The prerequisites are:
 
-*   a TensorFlow 2.6 [installation](https://www.tensorflow.org/install/),
+*   a TensorFlow 2.7 [installation](https://www.tensorflow.org/install/),
 *   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 
