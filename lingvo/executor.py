@@ -115,6 +115,7 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
         for eval_dataset_name in program_schedule_params.dataset_names:
           multi_task_eval_cfg = model_registry.GetParams(
               model_name, eval_dataset_name)
+          multi_task_eval_cfg.cluster = cluster_params
           if multi_task_train_cfg.share_model_object:
             eval_task_params = base_model.MultiTaskSubModel.Params()
             eval_task_params.task_name = k
@@ -146,6 +147,7 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
       for eval_dataset_name in program_schedule_params.dataset_names:
         task_eval_params = model_registry.GetParams(model_name,
                                                     eval_dataset_name)
+        task_eval_params.cluster = cluster_params
         task_eval_params = UnsetUnusedTrainParams(task_eval_params)
         program_schedule_params.task_dict[eval_dataset_name] = task_eval_params
 
