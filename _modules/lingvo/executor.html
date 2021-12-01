@@ -180,6 +180,7 @@
         <span class="k">for</span> <span class="n">eval_dataset_name</span> <span class="ow">in</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
           <span class="n">multi_task_eval_cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span>
               <span class="n">model_name</span><span class="p">,</span> <span class="n">eval_dataset_name</span><span class="p">)</span>
+          <span class="n">multi_task_eval_cfg</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_params</span>
           <span class="k">if</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">share_model_object</span><span class="p">:</span>
             <span class="n">eval_task_params</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
             <span class="n">eval_task_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">k</span>
@@ -211,6 +212,7 @@
       <span class="k">for</span> <span class="n">eval_dataset_name</span> <span class="ow">in</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
         <span class="n">task_eval_params</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span>
                                                     <span class="n">eval_dataset_name</span><span class="p">)</span>
+        <span class="n">task_eval_params</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_params</span>
         <span class="n">task_eval_params</span> <span class="o">=</span> <span class="n">UnsetUnusedTrainParams</span><span class="p">(</span><span class="n">task_eval_params</span><span class="p">)</span>
         <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_eval_params</span>
 
