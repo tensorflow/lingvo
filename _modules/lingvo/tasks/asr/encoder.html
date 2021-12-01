@@ -160,6 +160,8 @@
         <span class="s1">&#39;will be inserted. Negative value means no stacking layer will be &#39;</span>
         <span class="s1">&#39;used.&#39;</span><span class="p">)</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;final_proj&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;An optional final projection layer.&#39;</span><span class="p">)</span>
+
     <span class="c1"># TODO(yonghui): Maybe move those configs to a separate file.</span>
     <span class="c1"># Set some reasonable default values.</span>
     <span class="c1">#</span>
@@ -313,6 +315,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">params_rnn_layers</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;proj&#39;</span><span class="p">,</span> <span class="n">params_proj_layers</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;highway_skip&#39;</span><span class="p">,</span> <span class="n">params_highway_skip_layers</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_proj</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_proj&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">final_proj</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">_use_functional</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -530,6 +535,9 @@
                 <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">rnn_padding</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="s1">&#39;rnn_</span><span class="si">%d</span><span class="s1">_out&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">))</span>
         <span class="n">rnn_in</span> <span class="o">=</span> <span class="n">rnn_out</span>
       <span class="n">final_out</span> <span class="o">=</span> <span class="n">rnn_in</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_proj</span><span class="p">:</span>
+        <span class="n">final_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_proj</span><span class="p">,</span> <span class="n">final_out</span><span class="p">)</span>
 
       <span class="n">summary_utils</span><span class="o">.</span><span class="n">PlotSequenceFeatures</span><span class="p">(</span>
           <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">plots</span><span class="p">)),</span> <span class="s1">&#39;encoder_example&#39;</span><span class="p">,</span> <span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Time&#39;</span><span class="p">)</span>
