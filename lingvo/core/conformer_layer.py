@@ -665,6 +665,10 @@ class ConformerLayer(base_layer.BaseLayer):
     return 1
 
   @classmethod
+  def NumOutputNodes(cls, p):
+    return p.input_dim
+
+  @classmethod
   def _ConfigSelfAttenContext(cls, atten_left_context, atten_right_context, *,
                               use_relative_atten, query_stride,
                               relative_pos_emb_dim):
