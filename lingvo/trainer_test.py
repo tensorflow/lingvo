@@ -26,6 +26,7 @@ from absl.testing import flagsaver
 from absl.testing import parameterized
 from lingvo import base_trial
 from lingvo import model_registry
+from lingvo import runners
 from lingvo import trainer
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -55,19 +56,19 @@ class BaseTrainerTest(test_utils.TestCase):
     FLAGS.vizier_reporting_job = 'decoder'
 
   def _CreateController(self, cfg):
-    return trainer.Controller(cfg, FLAGS.model_task_name, FLAGS.logdir,
+    return runners.Controller(cfg, FLAGS.model_task_name, FLAGS.logdir,
                               FLAGS.tf_master, self._trial)
 
   def _CreateTrainer(self, cfg):
-    return trainer.Trainer(cfg, FLAGS.model_task_name, FLAGS.logdir,
+    return runners.Trainer(cfg, FLAGS.model_task_name, FLAGS.logdir,
                            FLAGS.tf_master, self._trial)
 
   def _CreateEvalerDev(self, cfg):
-    return trainer.Evaler('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
+    return runners.Evaler('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
                           FLAGS.tf_master, self._trial)
 
   def _CreateDecoderDev(self, cfg):
-    return trainer.Decoder('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
+    return runners.Decoder('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
                            FLAGS.tf_master, self._trial)
 
   def _HasFile(self, files, substr):
@@ -318,8 +319,8 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
     self.assertTrue(self._HasFile(control_files, 'tfevents'))
 
-  @parameterized.named_parameters(('Evaler', trainer.Evaler),
-                                  ('Decoder', trainer.Decoder))
+  @parameterized.named_parameters(('Evaler', runners.Evaler),
+                                  ('Decoder', runners.Decoder))
   def testEMA(self, cls):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'ema_test' + str(random.random()))
@@ -360,16 +361,16 @@ class TrainerWithTrialTest(BaseTrainerTest):
     # Stop trial once ReportEvalMeasure is called.
     trial.ReportEvalMeasure.return_value = True
 
-    runners = [self._CreateController(cfg), self._CreateTrainer(cfg)]
+    all_runners = [self._CreateController(cfg), self._CreateTrainer(cfg)]
     # Param override works.
-    for runner in runners:
+    for runner in all_runners:
       self.assertEqual(runner.params.task.softmax.num_classes, 20)
       self.assertEqual(runner.params.task.filter_shapes, [(5, 5, 1, 10),
                                                           (5, 5, 10, 50)])
       self.assertEqual(runner.params.task.train.lr_schedule.decay_start, 100)
 
     runner_manager = trainer.RunnerManager(cfg.name)
-    runner_manager.StartRunners(runners)
+    runner_manager.StartRunners(all_runners)
     # Controller and trainer check whether the trial is stopped.
     self.assertGreater(trial.OverrideModelParams.call_count, 0)
     self.assertGreater(trial.ShouldStop.call_count, 0)
@@ -431,11 +432,11 @@ class ProcessFPropResultsTest(BaseTrainerTest):
     cfg.train.max_steps = steps
     cfg.task.train.learning_rate = 0.025
 
-    runners = [self._CreateController(cfg), self._CreateTrainer(cfg)]
+    all_runners = [self._CreateController(cfg), self._CreateTrainer(cfg)]
 
     runner_manager = trainer.RunnerManager(cfg.name)
-    runner_manager.StartRunners(runners)
-    train = runners[1]
+    runner_manager.StartRunners(all_runners)
+    train = all_runners[1]
 
     # ProcessFPropResults should have been called <steps> times on the task
     # and <steps> times on the model.

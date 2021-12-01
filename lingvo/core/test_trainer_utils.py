@@ -18,7 +18,7 @@
 import os
 
 from absl.testing import parameterized
-from lingvo import trainer_impl
+from lingvo import runners
 import lingvo.compat as tf
 from lingvo.core import test_utils
 
@@ -60,7 +60,7 @@ def MakeModelValidatorTestCase(model_classes):
       cfg.input = model_params.GetDatasetParams('Train')
       cfg.cluster.mode = 'sync'
       cfg.cluster.job = 'trainer_client'
-      _ = trainer_impl.Trainer(cfg, '', tmpdir, tf_master='')
+      _ = runners.Trainer(cfg, '', tmpdir, tf_master='')
 
     def DecoderBuilds(self, model):
       tmpdir = os.path.join(FLAGS.test_tmpdir, model.__name__)
@@ -73,7 +73,7 @@ def MakeModelValidatorTestCase(model_classes):
       cfg.cluster.job = 'decoder'
       cfg.cluster.task = 0
       cfg.cluster.decoder.replicas = 1
-      _ = trainer_impl.Decoder('train', cfg, '', tmpdir, tf_master='')
+      _ = runners.Decoder('train', cfg, '', tmpdir, tf_master='')
 
     # Each of these take about 10-20 seconds to run, to build the model and
     # execute the forward and backward pass building.

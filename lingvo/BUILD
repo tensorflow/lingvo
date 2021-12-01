@@ -183,11 +183,15 @@ py_test(
 )
 
 py_library(
-    name = "trainer_impl",
-    srcs = ["trainer_impl.py"],
+    name = "runners",
+    srcs = ["runners.py"],
     srcs_version = "PY3",
     deps = [
         ":compat",
+        ":pdb_wrapper",
+        # Implicit python proto dependency.
+        # Implicit IPython dependency.
+        # Implicit absl.flags dependency.
         "//lingvo:base_runner",
         "//lingvo/core:base_model",
         "//lingvo/core:checkpointer_lib",
@@ -195,6 +199,8 @@ py_library(
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",
+        "//lingvo/core:tpu_embedding_layers",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -209,23 +215,16 @@ py_library(
         ":executor_lib",
         ":model_imports_no_params",
         ":model_registry",
-        ":pdb_wrapper",
-        ":trainer_impl",
+        ":runners",
         ":trainer_utils",
         # Implicit network file system dependency.
         # Implicit python proto dependency.
-        # Implicit IPython dependency.
-        "//lingvo:base_runner",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
-        "//lingvo/core:checkpointer_lib",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:inference_graph_exporter",
-        "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",
-        "//lingvo/core:tpu_embedding_layers",
-        # Implicit numpy dependency.
         # Implicit tensorflow grpc dependency.
     ],
 )
@@ -259,6 +258,7 @@ py_test(
         ":base_trial",
         ":compat",
         ":model_registry",
+        ":runners",
         ":trainer_lib",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.

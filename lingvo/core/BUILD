@@ -1860,7 +1860,7 @@ py_library(
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
-        "//lingvo:trainer_impl",
+        "//lingvo:runners",
     ],
 )
 
