@@ -95,6 +95,8 @@ class AsrEncoder(base_layer.BaseLayer):
         'will be inserted. Negative value means no stacking layer will be '
         'used.')
 
+    p.Define('final_proj', None, 'An optional final projection layer.')
+
     # TODO(yonghui): Maybe move those configs to a separate file.
     # Set some reasonable default values.
     #
@@ -248,6 +250,9 @@ class AsrEncoder(base_layer.BaseLayer):
     self.CreateChildren('rnn', params_rnn_layers)
     self.CreateChildren('proj', params_proj_layers)
     self.CreateChildren('highway_skip', params_highway_skip_layers)
+
+    if p.final_proj:
+      self.CreateChild('final_proj', p.final_proj)
 
   @property
   def _use_functional(self):
@@ -465,6 +470,9 @@ class AsrEncoder(base_layer.BaseLayer):
                 tf.transpose(rnn_padding, [1, 0, 2]), 'rnn_%d_out' % i))
         rnn_in = rnn_out
       final_out = rnn_in
+
+      if p.final_proj:
+        final_out = self.final_proj.FProp(theta.final_proj, final_out)
 
       summary_utils.PlotSequenceFeatures(
           list(reversed(plots)), 'encoder_example', xlabel='Time')
