@@ -107,6 +107,8 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;executor_datasets_to_eval&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Semicolon separated dataset list for &#39;</span>
     <span class="s1">&#39;executor to eval and decode.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;executor_train_steps_per_loop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="s1">&#39;To override ProgramSchedule.train_steps_per_loop.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span>
     <span class="s1">&#39;executor_train_executions_per_eval&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
     <span class="s1">&#39;To override ProgramSchedule.train_executions_per_eval.&#39;</span><span class="p">)</span>
@@ -365,10 +367,11 @@
     <span class="n">decode_summary_emails</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decode_summary_emails</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">decode_summary_emails</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decode_summary_emails</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+
     <span class="n">program_schedule_cfg</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">UpdateProgramSchedule</span><span class="p">(</span>
         <span class="n">program_schedule_cfg</span><span class="p">,</span> <span class="n">datasets_to_eval</span><span class="p">,</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_train_executions_per_eval</span><span class="p">,</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_eval_steps_per_loop</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_train_steps_per_loop</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_eval_steps_per_loop</span><span class="p">,</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_decode_steps_per_loop</span><span class="p">,</span> <span class="n">decode_summary_emails</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">program_schedule_cfg</span></div>
 

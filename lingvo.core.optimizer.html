@@ -138,7 +138,8 @@
 <dd class="field-even"><p>The variable update op.</p>
 </dd>
 <dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – When <code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code> is not a callable in Eager mode.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – When <code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code> is not a callable in Eager mode and user did not
+    enable the scalar lr option.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -443,7 +444,8 @@ variables with both ‘a’ and ‘b’ in their name – an exception is thrown
 <dd class="field-even"><p>The variable update op.</p>
 </dd>
 <dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – When <code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code> is not a callable in Eager mode.</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – When <code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code> is not a callable in Eager mode and user did not
+    enable the scalar lr option.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -490,7 +492,7 @@ Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lr</strong> – A scalar. The base learning rate.</p></li>
+<li><p><strong>lr</strong> – A scalar or callable that returns the base learning rate.</p></li>
 <li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
 </ul>
 </dd>

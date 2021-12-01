@@ -770,7 +770,7 @@ eval_dataset_names.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program.UpdateProgramSchedule">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">UpdateProgramSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ps_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_executions_per_eval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_summary_emails</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#UpdateProgramSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.UpdateProgramSchedule" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">UpdateProgramSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ps_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_executions_per_eval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_summary_emails</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#UpdateProgramSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.UpdateProgramSchedule" title="Permalink to this definition"></a></dt>
 <dd><p>Update ProgramSchedule params with the given new configs.</p>
 <p>Currently this override only support EvalProgram and DecodeProgram.</p>
 <dl class="field-list simple">
@@ -781,6 +781,8 @@ eval_dataset_names.</p></li>
 datasets in ps_params.</p></li>
 <li><p><strong>train_executions_per_eval</strong> – Optional[int], if not None, it will override
 train_executions_per_eval in ps_params.</p></li>
+<li><p><strong>train_steps_per_loop</strong> – Optional[int], if not None, it will override
+train program’s steps_per_loop.</p></li>
 <li><p><strong>eval_steps_per_loop</strong> – Optional[int], if not None, it will override all the
 eval programs steps_per_loop. Currently list not supported.</p></li>
 <li><p><strong>decode_steps_per_loop</strong> – Optional[int], if not None, it will override all the

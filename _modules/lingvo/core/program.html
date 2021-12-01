@@ -1934,6 +1934,7 @@
 <div class="viewcode-block" id="UpdateProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.UpdateProgramSchedule">[docs]</a><span class="k">def</span> <span class="nf">UpdateProgramSchedule</span><span class="p">(</span><span class="n">ps_params</span><span class="p">,</span>
                           <span class="n">dataset_list</span><span class="p">,</span>
                           <span class="n">train_executions_per_eval</span><span class="p">,</span>
+                          <span class="n">train_steps_per_loop</span><span class="p">,</span>
                           <span class="n">eval_steps_per_loop</span><span class="p">,</span>
                           <span class="n">decode_steps_per_loop</span><span class="p">,</span>
                           <span class="n">decode_summary_emails</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1947,6 +1948,8 @@
 <span class="sd">      datasets in ps_params.</span>
 <span class="sd">    train_executions_per_eval: Optional[int], if not None, it will override</span>
 <span class="sd">      train_executions_per_eval in ps_params.</span>
+<span class="sd">    train_steps_per_loop: Optional[int], if not None, it will override</span>
+<span class="sd">      train program&#39;s steps_per_loop.</span>
 <span class="sd">    eval_steps_per_loop: Optional[int], if not None, it will override all the</span>
 <span class="sd">      eval programs steps_per_loop. Currently list not supported.</span>
 <span class="sd">    decode_steps_per_loop: Optional[int], if not None, it will override all the</span>
@@ -1996,6 +1999,9 @@
 
   <span class="k">if</span> <span class="n">train_executions_per_eval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">ps_params</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="n">train_executions_per_eval</span>
+
+  <span class="k">if</span> <span class="n">train_steps_per_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">ps_params</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">steps_per_loop</span> <span class="o">=</span> <span class="n">train_steps_per_loop</span>
 
   <span class="k">if</span> <span class="n">eval_steps_per_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">eval_steps_per_loop</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
