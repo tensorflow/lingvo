@@ -227,8 +227,9 @@ def sharded_chain(
   def init_partition_spec_fn(mdl_vars):
     partition_specs = []
     for fn in args:
-      if isinstance(fn, ShardedGradientTransformation):
-        nmap = fn.init_partition_spec(mdl_vars)
+      init_partition_spec = getattr(fn, 'init_partition_spec', None)
+      if callable(init_partition_spec):
+        nmap = init_partition_spec(mdl_vars)
         partition_specs.append(nmap)
       else:
         # Replicate the states.
@@ -239,6 +240,40 @@ def sharded_chain(
       init=init_fn,
       update=update_fn,
       init_partition_spec=init_partition_spec_fn)
+
+
+def sharded_masked(
+    inner: Union[ShardedGradientTransformation, optax.GradientTransformation],
+    mask: Union[NestedParams, Callable[[NestedParams], NestedParams]]
+) -> Union[ShardedGradientTransformation, optax.GradientTransformation]:
+  """Mask updates so only some are transformed, the rest are passed through.
+
+  This differs from the Optax version in that it supports sharding annotations.
+
+  Args:
+    inner: Inner transformation to mask.
+    mask: a PyTree with same structure as (or a prefix of) the params PyTree, or
+      a Callable that returns such a pytree given the params/updates. The leaves
+      should be booleans, ``True`` for leaves/subtrees you want to apply the
+      transformation to, and ``False`` for those you want to skip.
+
+  Returns:
+    New ShardedGradientTransformation wrapping ``inner``.
+  """
+
+  def init_partition_spec_fn(mdl_vars):
+    init_partition_spec = getattr(inner, 'init_partition_spec', None)
+    if callable(init_partition_spec):
+      return init_partition_spec(mdl_vars)
+
+  grad_tx = optax.masked(inner, mask)
+  if not hasattr(inner, 'init_partition_spec'):
+    return grad_tx
+  else:
+    return ShardedGradientTransformation(
+        init=grad_tx.init,
+        update=grad_tx.update,
+        init_partition_spec=init_partition_spec_fn)
 
 
 def apply_l2_weight_decay(
@@ -626,6 +661,23 @@ class Adafactor(BaseOptimizer):
         weight_decay_rate=p.weight_decay_rate,
         eps=p.eps,
         factored=p.factored)
+
+
+class Adagrad(BaseOptimizer):
+  """Adagrad optimizer."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
+    p = super().Params()
+    p.Define(
+        'epsilon', 1e-10,
+        'Small constant applied to the denominator outside of the square root '
+        'to avoid dividing by zero when rescaling.')
+    return p
+
+  def _get_raw_grad_transformation(
+      self, lr: optax.Schedule) -> optax.GradientTransformation:
+    return optax.adagrad(learning_rate=lr, eps=self._params.epsilon)
 
 
 def to_quantized(fvalue: JTensor,

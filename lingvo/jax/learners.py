@@ -14,9 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 """Module with the Learner class."""
-
-from typing import Tuple
-
+from typing import Tuple, Union
 import jax
 from jax import numpy as jnp
 from lingvo.jax import asserts
@@ -54,7 +52,7 @@ class Learner(base_layer.BaseLayer):
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
-    """Constructor."""
+    """Constructor for the learner."""
     super().__init__(params)
     p = self.params
     asserts.not_none(p.optimizer)
@@ -67,8 +65,7 @@ class Learner(base_layer.BaseLayer):
     """Return the Optimizer object of this learner."""
     return self._optimizer
 
-  @property
-  def grad_tx(self) -> optax.GradientTransformation:
+  def get_grad_tx(self, **kwargs) -> optax.GradientTransformation:
     return self._grad_tx
 
   def scale_gradients(self, grads: NestedMap) -> NestedMap:
@@ -171,3 +168,115 @@ class Learner(base_layer.BaseLayer):
   @property
   def loss_name(self) -> str:
     return self._params.loss_name
+
+
+class MultiOptimizerLearner(Learner):
+  """Multi-optimizer learner which supports multiple optimizers.
+
+  This class assumes a primary optimizer as in the Learner class. To add more
+  optimizers, call the `MultiOptimizerLearner` class with a list of
+  `auxiliary_optimizers` which are applied on variables matched using the list
+  `auxiliary_regex`, which will walk the PyTree of variables, and set all
+  descendants to use the corresponding auxiliary optimizer. Note that the length
+  of `auxiliary_optimizers` and `auxiliary_regex` must be the same.
+  """
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
+    """Returns the Learner params."""
+    p = super().Params()
+    p.Define(
+        'auxiliary_optimizers', [], 'Additional auxiliary optimizers for'
+        'optimizing a subset of model variables.')
+    p.Define(
+        'auxiliary_regex', [], 'A regular expression which if matches'
+        'the variable name, will activate the corresponding auxiliary'
+        'optimizer. The length of this list must be the same as auxiliary'
+        'optimiers.')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    """Constructor for the MultiOptimizer learner."""
+    super().__init__(params)
+    p = self.params
+    asserts.not_none(p.optimizer)
+    asserts.not_none(p.loss_name)
+    if len(p.auxiliary_optimizers) != len(p.auxiliary_regex):
+      raise ValueError('The length of the auxiliary regex must match the length'
+                       'of the auxiliary optimizers.')
+    self._optimizer = p.optimizer.Instantiate()
+    self._auxiliary_optimizers = [
+        opt.Instantiate() for opt in p.auxiliary_optimizers
+    ]
+    self._grad_tx_fn = self._optimizer._get_raw_grad_transformation
+    self._auxiliary_grad_tx_fn = [
+        opt._get_raw_grad_transformation for opt in self._auxiliary_optimizers
+    ]
+
+  def get_grad_tx(
+      self, mdl_vars: NestedJTensor
+  ) -> Union[optax.GradientTransformation,
+             optimizers.ShardedGradientTransformation]:
+    """The gradient transformation the MultiOptimizer lerner.
+
+    Args:
+      mdl_vars: The model vars which will be used to filter using the regex to
+        determine which optimizer will be applied to which variable.
+
+    Returns:
+      Optax sharded gradient transformation.
+    """
+    p = self.params
+    optimizer_chain = []
+    optimizer_mask = []
+
+    # Aggregate all the auxiliary optimizer masks.
+    for regex, grad_tx_fn, optimizer in zip(p.auxiliary_regex,
+                                            self._auxiliary_grad_tx_fn,
+                                            self._auxiliary_optimizers):
+      prefix = py_utils.extract_prefixed_keys_from_nested_map(mdl_vars)
+      mask = jax.tree_map(lambda x, regex=regex: regex in x, prefix)
+      optimizer_chain.append(
+          optimizers.sharded_masked(
+              grad_tx_fn(optimizer.get_learning_rate), mask))
+      optimizer_mask.append(mask)
+
+    # Create the default optimizer mask.
+    def check_var_in_auxiliary_regex(*args):
+      """Check if a variable is already activated by an auxiliary optimizer."""
+      r = False
+      for x in args:
+        if x:
+          # Check if it was already activated by some other optimizer.
+          if r:
+            raise ValueError('The regex pattern of auxiliary optimizers should'
+                             'be non-overlapping.')
+          r = True
+      return r
+
+    default_mask = jax.tree_multimap(check_var_in_auxiliary_regex,
+                                     *optimizer_mask)
+    default_mask = jax.tree_map(lambda mask: not mask, default_mask)
+    optimizer_chain.insert(
+        0,
+        optimizers.sharded_masked(
+            self._grad_tx_fn(self._optimizer.get_learning_rate), default_mask))
+    grad_tx = optimizers.sharded_chain(*optimizer_chain)
+    return grad_tx
+
+  def update_states(
+      self, grads: NestedMap, states: optax.OptState,
+      old_vars: NestedJTensor) -> Tuple[NestedMap, optax.OptState]:
+    """Applies gradient transformation, updates optimizer states.
+
+    Args:
+      grads: A nested structure of gradient values.
+      states: Optimizer states.
+      old_vars: Current model weights.
+
+    Returns:
+      transformed_grad, new_states pair.
+    """
+    grads = self.scale_gradients(grads)
+    grad_tx = self.get_grad_tx(old_vars)
+    return grad_tx.update(grads, states, old_vars)

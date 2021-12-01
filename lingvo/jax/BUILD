@@ -396,10 +396,12 @@ py_strict_test(
         ":optimizers",
         ":py_utils",
         ":schedules",
+        # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
         # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
