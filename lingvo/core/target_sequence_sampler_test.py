@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for target_sequence_sampler."""
 
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import target_sequence_sampler
@@ -22,9 +23,11 @@ from lingvo.core import test_utils
 import numpy as np
 
 
-class TargetSequenceSamplerTest(test_utils.TestCase):
+class TargetSequenceSamplerTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testTargetSequenceSampler(self):
+  @parameterized.named_parameters(('UseRecurrent', True),
+                                  ('NoUseRecurrent', False))
+  def testTargetSequenceSampler(self, use_recurrent):
     with self.session(use_gpu=False):
       np.random.seed(9384758)
       tf.random.set_seed(8274758)
@@ -63,7 +66,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       theta = py_utils.NestedMap()
       random_seed = tf.constant(123)
       p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
-          name='bsh', target_seq_len=tgt_len)
+          name='bsh', target_seq_len=tgt_len, use_recurrent=use_recurrent)
       seq_sampler = p.Instantiate()
       decoder_output = seq_sampler.Sample(
           theta, encoder_outputs, random_seed, InitBeamSearchCallBack,
@@ -136,7 +139,9 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
-  def testTargetSequenceSamplerWithEOC(self):
+  @parameterized.named_parameters(('UseRecurrent', True),
+                                  ('NoUseRecurrent', False))
+  def testTargetSequenceSamplerWithEOC(self, use_recurrent):
     with self.session(use_gpu=False):
       np.random.seed(9384758)
       tf.random.set_seed(8274758)
@@ -145,7 +150,10 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       tgt_len = 20
       batch_size = 2
       p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
-          name='bsh', target_seq_len=tgt_len, target_eoc_id=0)
+          name='bsh',
+          target_seq_len=tgt_len,
+          target_eoc_id=0,
+          use_recurrent=use_recurrent)
       seq_sampler = p.Instantiate()
 
       def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
@@ -230,7 +238,9 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
-  def testTargetSequenceSamplerWithVariables(self):
+  @parameterized.named_parameters(('UseRecurrent', True),
+                                  ('NoUseRecurrent', False))
+  def testTargetSequenceSamplerWithVariables(self, use_recurrent):
     with self.session(use_gpu=False):
       np.random.seed(9384758)
       tf.random.set_seed(8274758)
@@ -276,7 +286,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       theta = py_utils.NestedMap()
       random_seed = tf.constant(123)
       p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
-          name='bsh', target_seq_len=tgt_len)
+          name='bsh', target_seq_len=tgt_len, use_recurrent=use_recurrent)
       seq_sampler = p.Instantiate()
       decoder_output = seq_sampler.Sample(theta, encoder_outputs, random_seed,
                                           InitBeamSearchCallBack,
@@ -291,7 +301,9 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       print(np.array_repr(ids))
       print(np.array_repr(lens))
 
-  def testTargetSequenceSamplerWithNumHypsPerBeam4(self):
+  @parameterized.named_parameters(('UseRecurrent', True),
+                                  ('NoUseRecurrent', False))
+  def testTargetSequenceSamplerWithNumHypsPerBeam4(self, use_recurrent):
     with self.session(use_gpu=False):
       np.random.seed(9384758)
       tf.random.set_seed(8274758)
@@ -331,7 +343,10 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       theta = py_utils.NestedMap()
       random_seed = tf.constant(123)
       p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
-          name='bsh', target_seq_len=tgt_len, num_hyps_per_beam=4)
+          name='bsh',
+          target_seq_len=tgt_len,
+          num_hyps_per_beam=4,
+          use_recurrent=use_recurrent)
       seq_sampler = p.Instantiate()
       decoder_output = seq_sampler.Sample(theta, encoder_outputs, random_seed,
                                           InitBeamSearchCallBack,

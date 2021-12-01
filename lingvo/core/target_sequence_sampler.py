@@ -54,6 +54,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         'sampler to early terminate when all samples in the batch end with '
         'the target_eos_id token.')
     p.Define('num_hyps_per_beam', 1, 'Number of samples')
+    p.Define('use_recurrent', False, 'Use lingvo.core.recurrent.')
     p.name = 'target_sequence_sampler'
     return p
 
@@ -115,11 +116,20 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         ids=init_step_ids if init_step_ids is not None else tf.fill(
             [batch], tf.cast(p.target_sos_id, tf.int32)),
         bs_state=bs_state)
-    inputs = py_utils.NestedMap(dummy=tf.zeros([p.target_seq_len, batch]))
+
+    if p.use_recurrent:
+      inputs = py_utils.NestedMap(dummy=tf.zeros([p.target_seq_len, batch]))
+    else:
+      inputs = py_utils.NestedMap(
+          ids=tf.TensorArray(dtype=tf.int32, size=p.target_seq_len),
+          logits=tf.TensorArray(
+              dtype=bs_result.log_probs.dtype, size=p.target_seq_len),
+      )
 
     def Step(recurrent_theta, state0, inputs):
       """Computes one decoder step."""
-      del inputs
+      if p.use_recurrent:
+        del inputs
       with tf.name_scope('single_sampler_step'):
         # Compute logits and states.
         bs_result, bs_state1 = pre_step_callback(
@@ -158,24 +168,50 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         state1.bs_state = post_step_callback(decoder_theta,
                                              recurrent_theta.encoder_outputs,
                                              state1.ids, bs_state1)
-      return state1, py_utils.NestedMap()
+      if p.use_recurrent:
+        return state1, py_utils.NestedMap()
+      else:
+        inputs.ids = inputs.ids.write(state0.timestep, state1.ids)
+        inputs.logits = inputs.logits.write(state0.timestep, state1.logits)
+        return (recurrent_theta, state1, inputs)
 
-    def StopFn(t, theta, state):
-      del t, theta  # Unused: this stop function only uses the state ids.
-      return tf.equal(state.ids, p.target_eos_id)
+    if p.use_recurrent:
+
+      def StopFn(t, theta, state):
+        del t, theta  # Unused: this stop function only uses the state ids.
+        return tf.equal(state.ids, p.target_eos_id)
+    else:
+
+      def StopFn(recurrent_theta, state, inputs):
+        del recurrent_theta, inputs
+        return tf.logical_not(
+            tf.reduce_all(tf.equal(state.ids, p.target_eos_id)))
 
     if p.use_stop_fn:
       stop_fn = StopFn
     else:
       stop_fn = None
 
-    accumulated_states, _ = recurrent.Recurrent(
-        recurrent_theta,
-        recurrent_state0,
-        inputs,
-        Step,
-        stop_fn=stop_fn,
-        allow_implicit_capture=True)
+    if p.use_recurrent:
+      accumulated_states, _ = recurrent.Recurrent(
+          recurrent_theta,
+          recurrent_state0,
+          inputs,
+          Step,
+          stop_fn=stop_fn,
+          allow_implicit_capture=True)
+    else:
+      loop_vars = (recurrent_theta, recurrent_state0, inputs)
+      (_, _, accumulated_states) = tf.while_loop(
+          StopFn,
+          Step,
+          loop_vars=loop_vars,
+          shape_invariants=_GetShapes(loop_vars, none_shapes=True),
+          back_prop=False,
+          maximum_iterations=p.target_seq_len)
+      accumulated_states.ids = accumulated_states.ids.stack()
+      accumulated_states.logits = accumulated_states.logits.stack()
+
     result = py_utils.NestedMap(
         logits=tf.transpose(accumulated_states.logits, [1, 0, 2]),
         ids=tf.transpose(accumulated_states.ids))
@@ -189,3 +225,27 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     result.ids.set_shape([static_batch_size, p.target_seq_len])
     result.paddings.set_shape([static_batch_size, p.target_seq_len])
     return result
+
+
+def _GetShapes(tensors, none_shapes=False):
+  """Util for getting nested structure of shapes from structure of tensors.
+
+  Args:
+    tensors: Structure of Tensors to get shapes for.
+    none_shapes: Returns None shapes if true.
+
+  Returns:
+    The same structure as tensors but of corresponding `TensorShape` objects.
+  """
+  shapes = []
+  for t in tf.nest.flatten(tensors):
+    shape = t.get_shape() if isinstance(t, tf.Tensor) else None
+    if none_shapes:
+      if shape:
+        shapes.append(tf.TensorShape([None] * len(shape)))
+      else:
+        shapes.append(tf.TensorShape(None))
+    else:
+      shapes.append(tf.TensorShape(shape))
+
+  return type(tensors)(tf.nest.pack_sequence_as(tensors, shapes))

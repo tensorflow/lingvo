@@ -858,7 +858,8 @@ class TransformerDecoderTestCaseBase(test_utils.TestCase):
     return (encoder_outputs, tgts, num_hyps)
 
 
-class TransformerDecoderTest(TransformerDecoderTestCaseBase):
+class TransformerDecoderTest(TransformerDecoderTestCaseBase,
+                             parameterized.TestCase):
 
   def testDecoderConstruction(self):
     p = self._DecoderParams()
@@ -1374,12 +1375,14 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                           dtype=tf.float32,
                           init_step_ids=False,
                           has_task_ids=False,
-                          num_hyps_per_beam=1):
+                          num_hyps_per_beam=1,
+                          use_recurrent=True):
     tf.random.set_seed(_TF_RANDOM_SEED)
     src_batch = 4
     src_time = 5
     p = self._DecoderParams(dtype=dtype, init_step_ids=init_step_ids)
     p.target_sequence_sampler.num_hyps_per_beam = num_hyps_per_beam
+    p.target_sequence_sampler.use_recurrent = use_recurrent
     p.beam_search.num_hyps_per_beam = num_hyps_per_beam
     p.beam_search.coverage_penalty = 0.0
     p.beam_search.length_normalization = 0
@@ -1418,7 +1421,11 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         init_step_ids=True,
         has_task_ids=False)
 
-  def testSampleSequenceDecodeWithNumHypsPerBeam4(self, dtype=tf.float32):
+  @parameterized.named_parameters(('UseRecurrent', True),
+                                  ('NoUseRecurrent', False))
+  def testSampleSequenceDecodeWithNumHypsPerBeam4(self,
+                                                  use_recurrent,
+                                                  dtype=tf.float32):
     expected_values = {}
     expected_values['topk_ids'] = [[4, 3, 12, 7, 11], [17, 3, 0, 19, 12],
                                    [1, 5, 2, 2, 2], [17, 19, 3, 3, 7],
@@ -1443,7 +1450,8 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         dtype=dtype,
         init_step_ids=True,
         has_task_ids=False,
-        num_hyps_per_beam=4)
+        num_hyps_per_beam=4,
+        use_recurrent=use_recurrent)
 
 
 class InsertionDecoderTest(TransformerDecoderTestCaseBase):
