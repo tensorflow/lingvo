@@ -345,3 +345,73 @@ class LinearRampupPiecewiseConstant(BaseSchedule):
     return jnp.array(
         optax.join_schedules([self.p0.value, self.p1.value],
                              p.boundaries[:1])(value), jnp.float32)
+
+
+class PiecewiseSchedule(BaseSchedule):
+  """Piecewise schedule composed of sub-schedules."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define('boundaries', None, 'Boundaries between subschedules.')
+    p.Define(
+        'schedules', None, 'A list of sub-schedules. '
+        'The length must be len(boundaries) + 1. '
+        'schedules[i] starts at boundaries[i-1] (inclusive) and ends at '
+        'boundaries[i] (exclusive). '
+        'The *relative* step in each interval will be passed to the '
+        'sub-schedule for Value.')
+    return p
+
+  def __init__(self, params) -> None:
+    super().__init__(params)
+    p = self.params
+    prev_boundary = 0
+    for boundary in p.boundaries:
+      if boundary < prev_boundary:
+        raise ValueError('Invalid boundary %s < %s' % (boundary, prev_boundary))
+      prev_boundary = boundary
+    if len(p.schedules) != len(p.boundaries) + 1:
+      raise ValueError('len(schedules) != len(boundaries) + 1: %s vs %s' %
+                       (len(p.schedules), len(p.boundaries)))
+    self._schedules = [s.Instantiate() for s in p.schedules]
+
+  def value(self, count: JTensor) -> JTensor:
+    p = self.params
+    return jnp.array(
+        optax.join_schedules([s.value for s in self._schedules],
+                             p.boundaries)(count), jnp.float32)
+
+
+class CycleSchedule(BaseSchedule):
+  """Piecewise schedule composed of sub-schedules in a cycle."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define(
+        'schedules', None, 'A list of sub-schedules. Unlike PiecewiseSchedule, '
+        'the absolute step is passed to the sub-schedule.')
+    p.Define('steps', None, 'The number of steps to run each sub-schedule.')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+    if len(p.schedules) != len(p.steps):
+      raise ValueError('len(schedules) != len(steps): %s vs %s' %
+                       (len(p.schedules), len(p.steps)))
+    self._schedules = [s.Instantiate() for s in p.schedules]
+    boundaries = [0]
+    for step in p.steps:
+      boundaries.append(boundaries[-1] + step)
+    self._period = boundaries[-1]
+    self._boundaries = boundaries[1:-1]
+
+  def value(self, count: JTensor) -> JTensor:
+    relative_step = jnp.mod(count, self._period)
+    output = self._schedules[0].value(count)
+    for boundary, schedule in zip(self._boundaries, self._schedules[1:]):
+      output = jnp.where(relative_step < boundary, output,
+                         schedule.value(count))
+    return output
