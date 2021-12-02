@@ -196,9 +196,16 @@ def train_and_evaluate_pmap(
         os.path.join(summary_base_dir, f'eval_test_{split}')
         for split, _ in enumerate(eval_input_p)
     ]
-    # We either run one batch or one epoch (when supported by a resettable
-    # input) per eval step during training.
-    eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
+    # We either run p.eval_loop_num_batches steps or one epoch (when supported
+    # by a resettable input) per eval loop during training. When
+    # p.reset_for_eval is set to True, we run the eval loop until
+    # tf.errors.OutOfRangeError is raised, which can be triggered either because
+    # input pipeline has reached the end of the input sequence, or a
+    # pre-determined num_batches has reached.
+    eval_num_steps = [
+        -1 if p.reset_for_eval else p.eval_loop_num_batches
+        for p in eval_input_p
+    ]
   else:
     summary_test_split_dirs = []
 
@@ -417,10 +424,16 @@ def train_and_evaluate_spmd_model(
           os.path.join(summary_base_dir, f'eval_test_{split}')
           for split, _ in enumerate(eval_input_p)
       ]
-      # Eval batch size per replica defaults to 1 when not resettable,
-      # otherwise we exhaust all eval data (num_steps=-1).
-      # TODO(yonghui): Allow user to customize this.
-      eval_num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
+      # We either run p.eval_loop_num_batches steps or one epoch (when supported
+      # by a resettable input) per eval loop during training. When
+      # p.reset_for_eval is set to True, we run the eval loop until
+      # tf.errors.OutOfRangeError is raised, which can be triggered either
+      # because input pipeline has reached the end of the input sequence, or a
+      # pre-determined num_batches has reached.
+      eval_num_steps = [
+          -1 if p.reset_for_eval else p.eval_loop_num_batches
+          for p in eval_input_p
+      ]
     else:
       summary_eval_test_dirs = []
 

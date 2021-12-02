@@ -63,7 +63,7 @@ lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
     python_version = "PY3",
-    shard_count = 15,
+    shard_count = 20,
     tags = ["noasan"],
     deps = [
         ":layers",

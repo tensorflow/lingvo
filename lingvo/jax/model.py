@@ -327,14 +327,14 @@ class LanguageModel(BaseTask):
     num_preds = predictions.total_weight
     mean_acc = jnp.sum(
         (labels == predicted_labels) * weights) / jnp.maximum(num_preds, 1)
-    metric_weight = jnp.array(1.0, predictions.avg_xent.dtype)
+    metric_weight = jnp.array(num_preds, predictions.avg_xent.dtype)
     metrics = py_utils.NestedMap(
         total_loss=(predictions.total_loss, metric_weight),
         avg_xent=(predictions.avg_xent, metric_weight),
-        aux_loss=(predictions.aux_loss, metric_weight),
+        aux_loss=(predictions.aux_loss,
+                  jnp.array(1.0, predictions.aux_loss.dtype)),
         log_pplx=(predictions.avg_xent, metric_weight),
-        fraction_of_correct_next_step_preds=(mean_acc,
-                                             jnp.array(1.0, mean_acc.dtype)),
+        fraction_of_correct_next_step_preds=(mean_acc, metric_weight),
         num_predictions=(num_preds, jnp.array(1.0, num_preds.dtype)),
     )
     per_example_output = py_utils.NestedMap()

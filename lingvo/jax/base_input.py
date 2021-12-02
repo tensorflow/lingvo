@@ -61,6 +61,14 @@ class BaseInputParams(InstantiableParams):
         ' all variant p.infeed_host_index instances raise after the same number'
         ' of calls to get_next() to ensure synchronization across hosts. If not'
         ' set, get_next() must never raise.')
+    self.Define(
+        'eval_loop_num_batches', 1,
+        'Num of batches to process per eval loop. Must be >= 1. This value'
+        ' is ignored if reset_for_eval is set True, in which case, this value'
+        ' is dynamically determined by the number of available batches. If '
+        ' reset_for_eval is set to False, then each eval loop will process'
+        ' this many batches. Metrics over those batches will be aggregated'
+        ' and then reported.')
     self.Define('is_training', False,
                 'Whether or not this dataset is used for model traning.')
 

@@ -140,8 +140,8 @@ def run_eval_loop_over_test_splits(
     for k in summary_tensors:
       summary_tensors[k] = np.array(summary_tensors[k])
     for k in metrics:
-      value = np.array([metric[0] for metric in metrics[k]])
-      weight = np.array([metric[1] for metric in metrics[k]])
+      value = np.stack([metric[0] for metric in metrics[k]])
+      weight = np.stack([metric[1] for metric in metrics[k]])
       metrics[k] = (value, weight)
     loss = np.mean(loss, axis=0)
     logging.info('step_i: %d, eval test split %s loss: %s', step, split, loss)
