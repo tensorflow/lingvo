@@ -104,6 +104,149 @@ def ExtractBlockContext(x,
   return tf.concat(concat_list, axis=2)
 
 
+def _DoPadding(x, b, l, r, d=None, padding_val=0.0):
+  """A helper function to do padding in the front and rear.
+
+  padding is done along axis 1.
+
+  Args:
+      x: a [b, t, d] tensor if d is not None, else [b, t] tensor.
+      b: batch size.
+      l: the length to be padded on the left.
+      r: the length to be padded on the right.
+      d: last dimension size if x is 3d tensor.
+      padding_val: which value is used to pad.
+
+  Returns:
+      padded tensor.
+  """
+  to_concate = []
+  padding_val = tf.convert_to_tensor(padding_val, dtype=x.dtype)
+
+  front_pad_shape = [b, l] if d is None else [b, l, d]
+  rear_pad_shape = [b, r] if d is None else [b, r, d]
+
+  to_concate = [
+      tf.ones(front_pad_shape, dtype=x.dtype) * padding_val, x,
+      tf.ones(rear_pad_shape, dtype=x.dtype) * padding_val
+  ]
+  return tf.concat(to_concate, axis=1)
+
+
+def ExtractBlockContextV2(x,
+                          block_size,
+                          left_context,
+                          right_context,
+                          padding_val=0.0,
+                          paddings=None):
+  """Extracts temporal context for every block (without restrictions).
+
+  This is a generalized implementation of ExtractBlockContext, where block_size,
+  left_context, and right_context are 3 free parameters and we don't have
+  constraints (other than l>=1, r>=0, block_size>0).
+
+  Args:
+    x: a tensor of [batch, time, dim].
+    block_size: int. Number of time frames in a block.
+    left_context: int. Left context size. Note that the actual left context is
+      `left_context - 1` (this is to be compatible with ExtractBlockContext
+      implementation).
+    right_context: int. Right context size.
+    padding_val: float. value on the padded frames.
+    paddings: optional. If specified, it must be a tensor of [batch, time], and
+      we will return a padding tensor indicating padding info for the returned
+      tensor.
+
+  Returns:
+    (x_patches, x_paddings) where
+
+    - x_patches: A tensor of
+      [batch, num_blocks, context_size + block_size, dim] with necessary
+      paddings, where context_size = (left_context - 1) + right_context,
+      and output[:, i, ...] are
+      x[:, start-left_context+1:end+right_context, ...], where
+      start = i * block_size, end = (i + 1) * block_size.
+    - x_paddings: None if paddings = None; else a
+      [batch, num_blocks, context_size + block_size] tensor, indicating the
+      padding info for the corresponding position in x_patches.
+
+  Let's define some variables here:
+
+  B: batch size
+  T: input tensor length in time axis
+  D: input tensor dimension in the last axis
+  W: block size
+  U: ceil(T/W)
+  L: left context size
+  R: right context size
+  C: L-1+W+R, full block length
+
+  Given a [B, T, D] tensor, the return is a [B, U, C, D] tensor
+  where ret[b, u, :] is a length of 2D tensor in a shape (L - 1 + W + R, D),
+  which is a u-th block of the input tensor with (L - 1) left context frames
+  and R right context frames.
+
+  Implementation note:
+
+  We use the following procedure to get the return tensor
+
+  - first do padding in the beginning and at the end:
+    [B, T, D] -> [B, L - 1 + U*W + L - 1 + R, D]
+  - add one extra axis
+    [B, L-1+U*W+R, D] -> [B, L-1+U*W+R, D, 1]
+  - use gather to gather blocks
+    [B, L-1+U*W+R+L-1, D, 1] -> [B, U, C, D]
+
+  TODO(yqw): after verfiying correctness and benchmark, consider replace v1
+  implementation?
+  """
+  # 0. basic shapes
+  b, t, d = py_utils.GetShape(x, 3)
+  w = block_size
+  u = (t + w - 1) // w  # equivalent to math.ceil(t/w)
+  l = left_context
+  r = right_context
+  c = l - 1 + r + w
+
+  # the only constraints are block_size > 0 , l >= 1, r>=0
+  if w <= 0:
+    raise ValueError(f'block size ({w}) must be greater than 0')
+  if l < 1:
+    raise ValueError(f'Left context ({left_context}) must be >= 1.')
+  if r < 0:
+    raise ValueError(f'Right context ({right_context}) must be >= 0')
+  if paddings is not None:
+    paddings = py_utils.HasShape(paddings, [b, t])
+
+  # 1. do front and rear padding
+  left_pad = l - 1
+  # we need to make sure all u * w elements have enough long context
+  right_pad = (u * w - t + l - 1 + r)
+  x_padded = _DoPadding(x, b, left_pad, right_pad, d, padding_val=padding_val)
+  if paddings is not None:
+    paddings = _DoPadding(
+        paddings, b, left_pad, right_pad, d=None, padding_val=1.0)
+
+  # 2. generate gather indices
+  # gather_indices is a [u, c] matrix like
+  #  [ 0, .........,             c-1]
+  #  [ w, .........,       w + (c-1)]
+  #  [2w, ..........,     2w + (c-1)]
+  #  [(u-1)*w, ...., (u-1)*w + (c-1)]
+  gather_indices = (
+      tf.tile(tf.expand_dims(tf.range(0, c), axis=0), (u, 1)) +
+      tf.tile(tf.expand_dims(tf.range(0, u * w, w), axis=1), (1, c)))
+
+  # 3. generate x_patches, shape [b, u, c, d]
+  x_patches = tf.gather(x_padded, gather_indices, axis=1)
+
+  if paddings is not None:
+    # gather is now a [b, u, c] tensor
+    paddings = tf.gather(paddings, gather_indices, axis=1)
+
+  return x_patches, paddings
+
+
 def MakeLocalMask(seq_len,
                   block_size,
                   left_context,

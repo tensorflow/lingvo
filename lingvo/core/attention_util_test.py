@@ -189,6 +189,203 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
       actual_val = actual_val[:, front_padding:context_size - back_padding, ...]
       self.assertAllClose(expected_val, actual_val)
 
+  def testExtractBlockContextV2Basic(self):
+    """this test shows an visualized example.
+
+    Assuming x is a [b=1, t=10, d=2] tensor
+    b = 1
+    t = 10
+    x is a 1 x 10 x 1 array that contains the numbers 1 through 10.
+
+    x = [[
+      1 3 5 7  9 11 13 15 17 19
+      2 4 6 8 10 12 14 16 18 20
+    ]]
+
+    paddings = [
+      0 0 0 0 0  0  0  1  1 1
+    ]
+    i.e., [15, 16], [17, 18], [19, 20] are paddings
+
+    Now, with w=2, l=5, r=1, we want to get a tensor of shape [1, 5, 4+2+1, 2]
+    where [b, i, 7, 2] is x[b, i*w-(l-1): i*w + r, :], i.e.,
+    ret_tensor = [
+      [
+         p p p p | 1 3 | 5
+         p p p p | 2 4 | 6
+      ],
+      [
+         p p 1 3 | 5 7 | 9
+         p p 2 4 | 6 8 | 10
+      ],
+      [
+         1 3 5 7 | 9  11| 13
+         2 4 6 8 | 10 12| 14
+      ],
+      [
+         5 7 9  11|13 15| 17
+         6 8 10 12|14 16| 18
+      ],
+      [
+         9  11 13 15|17 19| p
+         10 12 14 16|18 20| p
+      ],
+
+    where "p" is padding_val, and "|" is used to visualize the block and its
+    left and right context.
+    """
+    t = 10
+    x_np = np.array([[[t_ * 2 + 1, t_ * 2 + 2] for t_ in range(t)]],
+                    dtype=np.float32)
+    paddings_np = np.array([[0, 0, 0, 0, 0, 0, 0, 1, 1, 1]], dtype=np.float32)
+    w = 2
+    l = 5
+    r = 1
+    x = tf.convert_to_tensor(x_np)
+    paddings = tf.convert_to_tensor(paddings_np)
+
+    expected_x_block = np.array(
+        [[
+            [
+                [0, 0.],  # left_context, padding
+                [0, 0.],  # left_context, padding
+                [0, 0.],  # left_context, padding
+                [0, 0.],  # left_context, padding
+                [1, 2.],  # block
+                [3, 4.],  # block
+                [5, 6.],  # right_context
+            ],
+            [
+                [0, 0.],  # left_context, padding
+                [0, 0.],  # left_context, padding
+                [1, 2.],  # left_context
+                [3, 4.],  # left_context
+                [5, 6.],  # block
+                [7, 8.],  # block
+                [9, 10.]  # right_context
+            ],
+            [
+                [1, 2.],  # left_context
+                [3, 4.],  # left_context
+                [5, 6.],  # left_context
+                [7, 8.],  # left_context
+                [9, 10.],  # block
+                [11, 12.],  # block
+                [13, 14.],  # right_context
+            ],
+            [
+                [5, 6.],  # left_context
+                [7, 8.],  # left_context
+                [9, 10.],  # left_context
+                [11, 12.],  # left_context
+                [13, 14.],  # block
+                [15, 16.],  # block, padding
+                [17, 18.],  # right_context, padding
+            ],
+            [
+                [9, 10.],  # left_context
+                [11, 12.],  # left_context
+                [13, 14.],  # left_context
+                [15, 16.],  # left_context, padding
+                [17, 18.],  # block, padding
+                [19, 20.],  # block, padding
+                [0, 0.],  # right_context, padding
+            ],
+        ]],
+        dtype=np.float32)
+
+    expected_paddings_block = np.array(
+        [[
+            [1, 1, 1, 1, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1],
+            [0, 0, 0, 1, 1, 1, 1],
+        ]],
+        dtype=np.float32,
+    )
+
+    x_block, paddings_block = attention_util.ExtractBlockContextV2(
+        x=x,
+        block_size=w,
+        left_context=l,
+        right_context=r,
+        padding_val=0.0,
+        paddings=paddings)
+
+    with self.session(use_gpu=True) as sess:
+      x_block, paddings_block = sess.run([x_block, paddings_block])
+      self.assertAllEqual(expected_x_block, x_block)
+      self.assertAllEqual(expected_paddings_block, paddings_block)
+
+  @parameterized.named_parameters(
+      ('_w8_l4_r1', 8, 4, 1),
+      ('_w8_l5_r1', 8, 5, 1),
+      ('_w10_l5_r1', 10, 5, 1),
+      ('_w10_l6_r2', 10, 6, 2),
+      ('_w16_l16_r1', 16, 16, 1),
+      ('_w16_l32_r16', 16, 32, 16),
+      ('_w32_l4_r2', 32, 4, 2),
+      ('_no_context', 32, 1, 0),
+  )
+  def testExtractBlockContextV2AgainstRef(self, w, l, r):
+    np.random.seed(12345)
+    b = 4
+    t = 32
+    d = 2
+    pad_elem_val = 0.0
+    x_val = np.tile(
+        np.expand_dims(np.reshape(np.arange(t * d), [t, d]), axis=0), (b, 1, 1))
+
+    length_val = np.random.randint(low=0, high=t, size=[b])
+    padding_val = np.array([[0] * t_ + [1] * (32 - t_) for t_ in length_val],
+                           dtype=np.float32)
+    with self.session() as sess:
+      x = tf.convert_to_tensor(x_val, tf.float32)
+      paddings = tf.convert_to_tensor(padding_val, tf.float32)
+      x_blocks, padding_blocks = attention_util.ExtractBlockContextV2(
+          x, w, l, r, padding_val=pad_elem_val, paddings=paddings)
+      x_blocks_np, padding_blocks_np = sess.run([x_blocks, padding_blocks])
+    # check shape
+
+    u = (t + w - 1) // w
+    c = (l - 1) + w + r
+    self.assertAllEqual(x_blocks_np.shape, [b, u, c, d])
+    self.assertAllEqual(padding_blocks_np.shape, [b, u, c])
+
+    front_pad = np.ones([b, l - 1, d], dtype=np.float32) * pad_elem_val
+    rear_pad = np.ones([b, (u * w - t) + r, d], dtype=np.float32) * pad_elem_val
+    x_val_padded = np.concatenate([front_pad, x_val, rear_pad], axis=1)
+
+    # check value by blocks
+    for b_ in range(b):
+      for u_ in range(u):
+        print('=' * 80)
+        print(f'Comparing {b_}\'s seq {u_}\'s block value and paddings')
+        # x_blocks_np[b, u, :, :] should be the same as
+        # x_val_padded[b, u*w:u*(w+1)+r, :]
+        self.assertAllEqual(
+            x_blocks_np[b_, u_, :],
+            x_val_padded[b_, u_ * w:(u_ + 1) * w + r + (l - 1), :])
+        # paddings_blocks_np[b, u, :] maps to the position
+        # [b, u*w-(l-1):u*(w+1)+r]
+        # print more information for debugging
+        print(f'{b_}\'s sequence\'s original paddings are '
+              f'{padding_val[b_, :]}')
+        print(f'It\'s {u_}-th block corresponds to the position from '
+              f'{u_*w - (l-1)} to {(u_+1)*w + r}')
+        expected_paddings = [0] * c
+        mapped_pos = range(u_ * w - (l - 1), (u_ + 1) * w + r)
+        for i, pos in enumerate(mapped_pos):
+          print(f'[{b_},{u_},{i}] maps to position [{b_}, {pos}]')
+          if pos < 0 or pos >= t:
+            print(f'{i}: Position {pos} is already out of range. Therefore = 1')
+            expected_paddings[i] = 1
+          else:
+            print(f'{i}: Position ({b_}, {pos}) is {padding_val[b_, pos]}')
+            expected_paddings[i] = padding_val[b_, pos]
+        self.assertAllEqual(expected_paddings, padding_blocks_np[b_, u_, :])
+
   def _getReferenceCausalPadding(self, seq_len, block_size, left_context,
                                  right_context, query_stride):
     strided_block_size = block_size // query_stride
