@@ -126,6 +126,93 @@ start = i * block_size, end = (i + 1) * block_size.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.attention_util._DoPadding">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">_DoPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#_DoPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util._DoPadding" title="Permalink to this definition"></a></dt>
+<dd><p>A helper function to do padding in the front and rear.</p>
+<p>padding is done along axis 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – a [b, t, d] tensor if d is not None, else [b, t] tensor.</p></li>
+<li><p><strong>b</strong> – batch size.</p></li>
+<li><p><strong>l</strong> – the length to be padded on the left.</p></li>
+<li><p><strong>r</strong> – the length to be padded on the right.</p></li>
+<li><p><strong>d</strong> – last dimension size if x is 3d tensor.</p></li>
+<li><p><strong>padding_val</strong> – which value is used to pad.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>padded tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.attention_util.ExtractBlockContextV2">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">ExtractBlockContextV2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ExtractBlockContextV2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.ExtractBlockContextV2" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts temporal context for every block (without restrictions).</p>
+<p>This is a generalized implementation of ExtractBlockContext, where block_size,
+left_context, and right_context are 3 free parameters and we don’t have
+constraints (other than l&gt;=1, r&gt;=0, block_size&gt;0).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – a tensor of [batch, time, dim].</p></li>
+<li><p><strong>block_size</strong> – int. Number of time frames in a block.</p></li>
+<li><p><strong>left_context</strong> – int. Left context size. Note that the actual left context is
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">left_context</span> <span class="pre">-</span> <span class="pre">1</span></code> (this is to be compatible with ExtractBlockContext
+implementation).</p></li>
+<li><p><strong>right_context</strong> – int. Right context size.</p></li>
+<li><p><strong>padding_val</strong> – float. value on the padded frames.</p></li>
+<li><p><strong>paddings</strong> – optional. If specified, it must be a tensor of [batch, time], and
+we will return a padding tensor indicating padding info for the returned
+tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>(x_patches, x_paddings) where</p>
+<ul class="simple">
+<li><p>x_patches: A tensor of
+[batch, num_blocks, context_size + block_size, dim] with necessary
+paddings, where context_size = (left_context - 1) + right_context,
+and output[:, i, …] are
+x[:, start-left_context+1:end+right_context, …], where
+start = i * block_size, end = (i + 1) * block_size.</p></li>
+<li><p>x_paddings: None if paddings = None; else a
+[batch, num_blocks, context_size + block_size] tensor, indicating the
+padding info for the corresponding position in x_patches.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p>Let’s define some variables here:</p>
+<p>B: batch size
+T: input tensor length in time axis
+D: input tensor dimension in the last axis
+W: block size
+U: ceil(T/W)
+L: left context size
+R: right context size
+C: L-1+W+R, full block length</p>
+<p>Given a [B, T, D] tensor, the return is a [B, U, C, D] tensor
+where ret[b, u, :] is a length of 2D tensor in a shape (L - 1 + W + R, D),
+which is a u-th block of the input tensor with (L - 1) left context frames
+and R right context frames.</p>
+<p>Implementation note:</p>
+<p>We use the following procedure to get the return tensor</p>
+<ul class="simple">
+<li><p>first do padding in the beginning and at the end:
+[B, T, D] -&gt; [B, L - 1 + U*W + L - 1 + R, D]</p></li>
+<li><p>add one extra axis
+[B, L-1+U*W+R, D] -&gt; [B, L-1+U*W+R, D, 1]</p></li>
+<li><p>use gather to gather blocks
+[B, L-1+U*W+R+L-1, D, 1] -&gt; [B, U, C, D]</p></li>
+</ul>
+<p>TODO(yqw): after verfiying correctness and benchmark, consider replace v1
+implementation?</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.attention_util.MakeLocalMask">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.attention_util.</span></span><span class="sig-name descname"><span class="pre">MakeLocalMask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seq_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_stride</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">tf.float32</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#MakeLocalMask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention_util.MakeLocalMask" title="Permalink to this definition"></a></dt>
 <dd><p>Makes the mask tensor for a full sequence.</p>

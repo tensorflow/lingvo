@@ -169,6 +169,149 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">concat_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="_DoPadding"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util._DoPadding">[docs]</a><span class="k">def</span> <span class="nf">_DoPadding</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">padding_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A helper function to do padding in the front and rear.</span>
+
+<span class="sd">  padding is done along axis 1.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">      x: a [b, t, d] tensor if d is not None, else [b, t] tensor.</span>
+<span class="sd">      b: batch size.</span>
+<span class="sd">      l: the length to be padded on the left.</span>
+<span class="sd">      r: the length to be padded on the right.</span>
+<span class="sd">      d: last dimension size if x is 3d tensor.</span>
+<span class="sd">      padding_val: which value is used to pad.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">      padded tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">to_concate</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">padding_val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">padding_val</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="n">front_pad_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">d</span><span class="p">]</span>
+  <span class="n">rear_pad_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">]</span> <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">d</span><span class="p">]</span>
+
+  <span class="n">to_concate</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">front_pad_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">padding_val</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">rear_pad_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">padding_val</span>
+  <span class="p">]</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">to_concate</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExtractBlockContextV2"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.ExtractBlockContextV2">[docs]</a><span class="k">def</span> <span class="nf">ExtractBlockContextV2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span>
+                          <span class="n">block_size</span><span class="p">,</span>
+                          <span class="n">left_context</span><span class="p">,</span>
+                          <span class="n">right_context</span><span class="p">,</span>
+                          <span class="n">padding_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                          <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts temporal context for every block (without restrictions).</span>
+
+<span class="sd">  This is a generalized implementation of ExtractBlockContext, where block_size,</span>
+<span class="sd">  left_context, and right_context are 3 free parameters and we don&#39;t have</span>
+<span class="sd">  constraints (other than l&gt;=1, r&gt;=0, block_size&gt;0).</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: a tensor of [batch, time, dim].</span>
+<span class="sd">    block_size: int. Number of time frames in a block.</span>
+<span class="sd">    left_context: int. Left context size. Note that the actual left context is</span>
+<span class="sd">      `left_context - 1` (this is to be compatible with ExtractBlockContext</span>
+<span class="sd">      implementation).</span>
+<span class="sd">    right_context: int. Right context size.</span>
+<span class="sd">    padding_val: float. value on the padded frames.</span>
+<span class="sd">    paddings: optional. If specified, it must be a tensor of [batch, time], and</span>
+<span class="sd">      we will return a padding tensor indicating padding info for the returned</span>
+<span class="sd">      tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    (x_patches, x_paddings) where</span>
+
+<span class="sd">    - x_patches: A tensor of</span>
+<span class="sd">      [batch, num_blocks, context_size + block_size, dim] with necessary</span>
+<span class="sd">      paddings, where context_size = (left_context - 1) + right_context,</span>
+<span class="sd">      and output[:, i, ...] are</span>
+<span class="sd">      x[:, start-left_context+1:end+right_context, ...], where</span>
+<span class="sd">      start = i * block_size, end = (i + 1) * block_size.</span>
+<span class="sd">    - x_paddings: None if paddings = None; else a</span>
+<span class="sd">      [batch, num_blocks, context_size + block_size] tensor, indicating the</span>
+<span class="sd">      padding info for the corresponding position in x_patches.</span>
+
+<span class="sd">  Let&#39;s define some variables here:</span>
+
+<span class="sd">  B: batch size</span>
+<span class="sd">  T: input tensor length in time axis</span>
+<span class="sd">  D: input tensor dimension in the last axis</span>
+<span class="sd">  W: block size</span>
+<span class="sd">  U: ceil(T/W)</span>
+<span class="sd">  L: left context size</span>
+<span class="sd">  R: right context size</span>
+<span class="sd">  C: L-1+W+R, full block length</span>
+
+<span class="sd">  Given a [B, T, D] tensor, the return is a [B, U, C, D] tensor</span>
+<span class="sd">  where ret[b, u, :] is a length of 2D tensor in a shape (L - 1 + W + R, D),</span>
+<span class="sd">  which is a u-th block of the input tensor with (L - 1) left context frames</span>
+<span class="sd">  and R right context frames.</span>
+
+<span class="sd">  Implementation note:</span>
+
+<span class="sd">  We use the following procedure to get the return tensor</span>
+
+<span class="sd">  - first do padding in the beginning and at the end:</span>
+<span class="sd">    [B, T, D] -&gt; [B, L - 1 + U*W + L - 1 + R, D]</span>
+<span class="sd">  - add one extra axis</span>
+<span class="sd">    [B, L-1+U*W+R, D] -&gt; [B, L-1+U*W+R, D, 1]</span>
+<span class="sd">  - use gather to gather blocks</span>
+<span class="sd">    [B, L-1+U*W+R+L-1, D, 1] -&gt; [B, U, C, D]</span>
+
+<span class="sd">  TODO(yqw): after verfiying correctness and benchmark, consider replace v1</span>
+<span class="sd">  implementation?</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># 0. basic shapes</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+  <span class="n">w</span> <span class="o">=</span> <span class="n">block_size</span>
+  <span class="n">u</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">w</span>  <span class="c1"># equivalent to math.ceil(t/w)</span>
+  <span class="n">l</span> <span class="o">=</span> <span class="n">left_context</span>
+  <span class="n">r</span> <span class="o">=</span> <span class="n">right_context</span>
+  <span class="n">c</span> <span class="o">=</span> <span class="n">l</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">r</span> <span class="o">+</span> <span class="n">w</span>
+
+  <span class="c1"># the only constraints are block_size &gt; 0 , l &gt;= 1, r&gt;=0</span>
+  <span class="k">if</span> <span class="n">w</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;block size (</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s1">) must be greater than 0&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Left context (</span><span class="si">{</span><span class="n">left_context</span><span class="si">}</span><span class="s1">) must be &gt;= 1.&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Right context (</span><span class="si">{</span><span class="n">right_context</span><span class="si">}</span><span class="s1">) must be &gt;= 0&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+
+  <span class="c1"># 1. do front and rear padding</span>
+  <span class="n">left_pad</span> <span class="o">=</span> <span class="n">l</span> <span class="o">-</span> <span class="mi">1</span>
+  <span class="c1"># we need to make sure all u * w elements have enough long context</span>
+  <span class="n">right_pad</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">w</span> <span class="o">-</span> <span class="n">t</span> <span class="o">+</span> <span class="n">l</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span>
+  <span class="n">x_padded</span> <span class="o">=</span> <span class="n">_DoPadding</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">left_pad</span><span class="p">,</span> <span class="n">right_pad</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">padding_val</span><span class="o">=</span><span class="n">padding_val</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">_DoPadding</span><span class="p">(</span>
+        <span class="n">paddings</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">left_pad</span><span class="p">,</span> <span class="n">right_pad</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">padding_val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
+  <span class="c1"># 2. generate gather indices</span>
+  <span class="c1"># gather_indices is a [u, c] matrix like</span>
+  <span class="c1">#  [ 0, .........,             c-1]</span>
+  <span class="c1">#  [ w, .........,       w + (c-1)]</span>
+  <span class="c1">#  [2w, ..........,     2w + (c-1)]</span>
+  <span class="c1">#  [(u-1)*w, ...., (u-1)*w + (c-1)]</span>
+  <span class="n">gather_indices</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">u</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">)))</span>
+
+  <span class="c1"># 3. generate x_patches, shape [b, u, c, d]</span>
+  <span class="n">x_patches</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x_padded</span><span class="p">,</span> <span class="n">gather_indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># gather is now a [b, u, c] tensor</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">gather_indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">x_patches</span><span class="p">,</span> <span class="n">paddings</span></div>
+
+
 <div class="viewcode-block" id="MakeLocalMask"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.MakeLocalMask">[docs]</a><span class="k">def</span> <span class="nf">MakeLocalMask</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span>
                   <span class="n">block_size</span><span class="p">,</span>
                   <span class="n">left_context</span><span class="p">,</span>
