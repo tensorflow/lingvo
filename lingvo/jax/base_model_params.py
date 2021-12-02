@@ -29,9 +29,16 @@ BaseModelParamsT = Type[_BaseModelParamsT]
 class BaseModelParams(metaclass=abc.ABCMeta):
   """Encapsulates the parameters for a model."""
 
+  # p.is_training on each input param is used to determine whether
+  # the dataset is used for training or eval.
   @abc.abstractmethod
   def datasets(self) -> List[base_input.BaseInputParams]:
     """Returns the list of dataset parameters."""
+
+  # Optional. Returns a list of datasets to be decoded.
+  def decoder_datasets(self) -> List[base_input.BaseInputParams]:
+    """Returns the list of dataset parameters for decoder."""
+    return []
 
   @abc.abstractmethod
   def task(self) -> InstantiableParams:
