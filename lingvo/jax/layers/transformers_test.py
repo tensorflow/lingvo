@@ -344,6 +344,90 @@ class TransformersTest(test_util.JaxTestCase):
       p.Instantiate()
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
+  def test_transformer_moe_dense_layer(self, mask_self_attention, packed_input,
+                                       cross_attention):
+    block_p = transformers.TransformerMoeDense.Params().Set(
+        name='transformer_block',
+        model_dims=16,
+        hidden_dims=64,
+        num_heads=8,
+        mask_self_attention=mask_self_attention,
+        packed_input=packed_input,
+        cross_attention=cross_attention,
+        num_experts=4,
+        num_groups=1)
+    stack_p = transformers.StackedTransformer.Params().Set(
+        name='transformer_stack',
+        num_layers=2,
+        model_dims=block_p.model_dims,
+        hidden_dims=block_p.hidden_dims,
+        num_heads=block_p.num_heads,
+        mask_self_attention=block_p.mask_self_attention,
+        packed_input=block_p.packed_input,
+        cross_attention=block_p.cross_attention,
+        num_experts=block_p.num_experts,
+        num_groups=block_p.num_groups,
+        moe_layers=[0])
+
+    transformer_block = block_p.Instantiate()
+    transformer_stack = stack_p.Instantiate()
+
+    seq_len = np.random.randint(10, 32)
+    batch_size = 10
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_block.instantiate_variables(prng_key)
+    npy_inputs = np.random.normal(
+        1.0, 0.5, [batch_size, seq_len, block_p.model_dims]).astype('float32')
+    inputs = jnp.asarray(npy_inputs)
+    npy_paddings = np.random.randint(0, 1,
+                                     [batch_size, seq_len]).astype('float32')
+    paddings = jnp.asarray(npy_paddings)
+    segment_mask = None
+    if packed_input:
+      segment_ids = np.random.random_integers(0, 2, [batch_size, seq_len])
+      segment_mask = attentions.segment_mask(segment_ids, dtype=np.float32)
+
+    cross_inputs = None
+    cross_paddings = None
+    cross_segment_mask = None
+    if cross_attention:
+      cross_seq_len = np.random.randint(10, 64)
+      npy_cross_inputs = np.random.normal(
+          1.0, 0.5,
+          [batch_size, cross_seq_len, block_p.model_dims]).astype('float32')
+      cross_inputs = jnp.asarray(npy_cross_inputs)
+      npy_cross_paddings = np.random.randint(
+          0, 1, [batch_size, cross_seq_len]).astype('float32')
+      cross_paddings = jnp.asarray(npy_cross_paddings)
+      if packed_input:
+        source_segment_ids = np.random.random_integers(
+            0, 2, [batch_size, cross_seq_len])
+        cross_segment_mask = attentions.segment_mask(
+            segment_ids, source_segment_ids, dtype=np.float32)
+
+    with base_layer.JaxContext.new_context(
+        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+      block_outputs = transformer_block.fprop(
+          initial_vars,
+          inputs,
+          paddings,
+          segment_mask=segment_mask,
+          cross_inputs=cross_inputs,
+          cross_paddings=cross_paddings,
+          cross_segment_mask=cross_segment_mask)
+      stack_outputs = transformer_stack.fprop(
+          initial_vars,
+          inputs,
+          paddings,
+          segment_mask=segment_mask,
+          cross_inputs=cross_inputs,
+          cross_paddings=cross_paddings,
+          cross_segment_mask=cross_segment_mask)
+    block_np_outputs = test_utils.to_np(block_outputs)
+    stack_np_outputs = test_utils.to_np(stack_outputs)
+    self.assertAllClose(stack_np_outputs, block_np_outputs)
+
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
   def test_stacked_transformer_layer(self, mask_self_attention, packed_input,
                                      cross_attention):
     p = transformers.StackedTransformer.Params().Set(
@@ -772,7 +856,7 @@ class TransformersTest(test_util.JaxTestCase):
       logging.info('outputs: %s', outputs)
 
   @parameterized.parameters(('RELU',), ('GATED_SILU',))
-  def test_gated_ffwd(self, activation_function):
+  def test_transformer_feedforward(self, activation_function):
     """Test JAX and TF transformer on PTB."""
     p = transformers.TransformerFeedForward.Params().Set(
         name='ffwd',

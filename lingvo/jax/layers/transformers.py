@@ -21,6 +21,7 @@ from absl import logging
 import jax
 from jax import numpy as jnp
 from jax.ad_checkpoint import checkpoint_name
+from lingvo.jax import asserts
 from lingvo.jax import base_layer
 from lingvo.jax import gshard_utils
 from lingvo.jax import py_utils
@@ -940,6 +941,250 @@ class Transformer(base_layer.BaseLayer):
     # Apply FFN layer
     output = self.ff_layer.fprop(theta.ff_layer, atten_output)
     return updated_states, output
+
+
+class TransformerMoeDense(base_layer.BaseLayer):
+  """A 2-layer stack of a MoE and dense Transformer layers."""
+
+  @staticmethod
+  def DefineParams(p):
+    p.Define('cross_attention', False,
+             'If set, introduces cross encoder-decoder attention layer.')
+    p.Define('mask_self_attention', False, 'Use masked self-attention.')
+    p.Define('model_dims', 0, 'Model dimension in Transformer layers.')
+    p.Define('hidden_dims', 0,
+             'The hidden layer dimension of FFN in Transformer layers.')
+    p.Define('num_heads', 0, 'Number of attention heads.')
+    p.Define('dropout_prob', 0.0,
+             'Apply dropout at this prob at various places.')
+    p.Define(
+        'transformer_layer_params_tpl', Transformer.Params(),
+        'A template of Transformer.params, can be a list of params '
+        'of length equal to the num_layers or a factor of num_layers.'
+        'For a factor, the params are tiled as [a, a, ..., b, b,...,].')
+    p.Define('packed_input', False,
+             'If True, each training example may pack multiple sequences.')
+    p.Define(
+        'fold_padding_with_segment_mask', False, 'If True then segment'
+        'mask is supposed to include the padding mask as well, i.e.'
+        'treating PADs as one sequence and non-PADs as another.')
+    p.Define(
+        'enable_while_loop', False,
+        'Whether or not to use a while loop to unroll the transformer layer'
+        ' stack. Potential benefits: 1) reduce xla compilation time. '
+        ' 2) improve hbm usage due to explicit rematerialization.')
+    p.Define(
+        'checkpoint_policy', recurrent.AutodiffCheckpointType.SAVE_NOTHING,
+        'How to checkpoint residuals for BProp: save nothing, dot only or '
+        'dot with no batch dimensions.')
+    # MoE related params.
+    p.Define('moe_layer_tpl', TransformerFeedForwardMoe.Params(),
+             'Template configuration for the moe feedforward layer.')
+    p.Define('num_experts', None, 'Total number of experts.')
+    p.Define('num_groups', None, 'Num of groups for dispathcing.')
+    p.Define(
+        'min_group_size', None,
+        'If not None, num_groups will be adjusted so that there will be '
+        'at least min_group_size tokens in each group.')
+    return p
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p = TransformerMoeDense.DefineParams(p)
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+
+    asserts.gt(p.model_dims, 0)
+    asserts.gt(p.hidden_dims, 0)
+    asserts.gt(p.num_heads, 0)
+    asserts.le(0.0, p.dropout_prob)
+    asserts.lt(p.dropout_prob, 1.0)
+
+    def _moe_layer_params(ff_p):
+      """Converts a TransformerFeedforwardLayer to a MoE Layer."""
+      asserts.subclass(ff_p.cls, TransformerFeedForward)
+      p = self.params
+      asserts.gt(p.num_experts, 0)
+      moe_p = p.moe_layer_tpl.Copy()
+      # Copy over the base params.
+      base_layer.BaseLayer.copy_base_params(ff_p, moe_p)
+      # Copy over othe params.
+      moe_p.name = ff_p.name
+      moe_p.input_dims = ff_p.input_dims
+      moe_p.hidden_dims = ff_p.hidden_dims
+      moe_p.ln_tpl = ff_p.ln_tpl.Copy()
+      moe_p.activation = ff_p.activation
+      moe_p.relu_dropout_tpl = ff_p.relu_dropout_tpl.Copy()
+      moe_p.relu_dropout_prob = ff_p.relu_dropout_prob
+      moe_p.residual_dropout_tpl = ff_p.residual_dropout_tpl.Copy()
+      moe_p.residual_dropout_prob = ff_p.residual_dropout_prob
+      moe_p.add_skip_connection = ff_p.add_skip_connection
+      moe_p.pre_layer_norm = ff_p.pre_layer_norm
+      moe_p.num_experts = p.num_experts
+      moe_p.num_groups = p.num_groups
+      moe_p.min_group_size = p.min_group_size
+      return moe_p
+
+    def _layer_params(is_moe=False):
+      """Construct i-th layer params."""
+      p_i = p.transformer_layer_params_tpl.Copy()
+      suffix = 'moe' if is_moe else 'dense'
+      p_i.name = f'layer_{suffix}'
+      p_i.cross_attention = p.cross_attention
+      p_i.mask_self_attention = p.mask_self_attention
+      p_i.num_heads = p.num_heads
+      p_i.input_dims = p.model_dims
+      p_i.packed_input = p.packed_input
+      p_i.atten_dropout_prob = p.dropout_prob
+      p_i.residual_dropout_prob = p.dropout_prob
+      p_i.relu_dropout_prob = p.dropout_prob
+      p_i.hidden_dims = p.hidden_dims
+      if is_moe:
+        moe_p = _moe_layer_params(p_i.tr_fflayer_tpl)
+        p_i.tr_fflayer_tpl = moe_p
+      return p_i
+
+    layer_params = [_layer_params(is_moe=True), _layer_params(is_moe=False)]
+    self.create_children('x_layers', layer_params)
+
+  def init_states(self, theta: NestedMap, *args: Any,
+                  **kwargs: Any) -> NestedMap:
+    return NestedMap(x_layers=[
+        layer.init_states(layer_theta, *args, **kwargs)
+        for layer, layer_theta in zip(self.x_layers, theta.x_layers)
+    ])
+
+  def fprop(self,
+            theta: NestedMap,
+            inputs: JTensor,
+            paddings: JTensor,
+            segment_mask: Optional[JTensor] = None,
+            cross_inputs: Optional[JTensor] = None,
+            cross_paddings: Optional[JTensor] = None,
+            cross_segment_mask: Optional[JTensor] = None) -> JTensor:
+    """Forward propagates for a 2-layer sparse+dense Transformer block.
+
+    Args:
+      theta: A `NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Input sequence of shape [B, T, H].
+      paddings: Input paddings of shape [B, T].
+      segment_mask: Segment mask for packed input of shape [B, 1, T, T] ready to
+        add to logits.
+      cross_inputs: Output of the encoder, to be used for cross attention, of
+        shape [B, S, H].
+      cross_paddings: Paddings for cross atention of shape [B, S].
+      cross_segment_mask: Segment mask for encoder-decoder in packed input case
+        of shape [B, 1, T, S].
+
+    Returns:
+      Output vector with shape [B, T, D].
+    """
+    p = self.params
+    x_out = inputs
+    if p.packed_input:
+      assert segment_mask is not None
+
+    if p.cross_attention:
+      assert cross_inputs is not None
+      assert cross_paddings is not None
+      if p.packed_input:
+        assert cross_segment_mask is not None
+
+    attention_mask, cross_attention_mask = compute_attention_masks_for_fprop(
+        inputs,
+        paddings,
+        p.mask_self_attention,
+        segment_mask,
+        cross_inputs,
+        cross_paddings,
+        cross_segment_mask,
+        fold_padding_with_segment_mask=p.fold_padding_with_segment_mask)
+
+    for i in range(2):
+      x_in = x_out
+      x_out, _ = self.x_layers[i].fprop(theta.x_layers[i], x_in, paddings,
+                                        attention_mask, cross_inputs,
+                                        cross_attention_mask)
+    return x_out
+
+  def extend_step(
+      self,
+      theta: NestedMap,
+      cached_states: NestedMap,
+      inputs: JTensor,
+      *,
+      time_step: JTensor,
+      segment_mask: Optional[JTensor] = None,
+      cross_inputs: Optional[JTensor] = None,
+      cross_paddings: Optional[JTensor] = None,
+      cross_segment_mask: Optional[JTensor] = None
+  ) -> Tuple[JTensor, NestedMap]:
+    """Transformer stacked decoder layers, autoregressive cached decoding.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      cached_states: A `.NestedMap` object containing tensors which are the
+        results of previous attentions, used for cached decoding.
+        cached_states.x_layers is a list corresponding to self.x_layers with key
+        - [T, B, N, H]. value - [T, B, N, H].
+      inputs: Target sequence of shape [B, D] corresponding to target sequence
+        at index time_step.
+      time_step: A scalar, the current decode step, 0-based.
+      segment_mask: if not None, per step segment mask for this time step, of
+        shape [B, 1, T].
+      cross_inputs: Source sequence - [B, S, D].
+      cross_paddings: Source paddings - [B, S].
+      cross_segment_mask: if not None, cross_segment_mask for this time step, of
+        shape [B, 1, S].
+
+    Returns:
+      updated_states: A `.NestedMap` object containing the updated states.
+      updated_states.x_layers is a list corresponding to self.x_layers, where
+      each element is a NestedMap with attention keys and values:
+      cur_output: The last decoder layer output of shape [B, D].
+
+      - key - [T, B, N, H].
+      - value - [T, B, N, H].
+    """
+    p = self.params
+    if not self.params.mask_self_attention:
+      raise ValueError('extend_step should only be used with masked attention')
+
+    if 'key' in cached_states.x_layers[0]:
+      key = cached_states.x_layers[0].key
+      max_t = key.shape[0]
+    else:
+      raise ValueError('Must call init_states before extend_step')
+
+    if p.cross_attention:
+      assert cross_inputs is not None
+      assert cross_paddings is not None
+
+    attention_mask, cross_attention_mask = compute_attention_masks_for_extend_step(
+        time_step, max_t, segment_mask, cross_inputs, cross_paddings,
+        cross_segment_mask)
+
+    updated_states = NestedMap(x_layers=[])
+    decoder_input = inputs
+    for layer, layer_theta, layer_states in zip(self.x_layers, theta.x_layers,
+                                                cached_states.x_layers):
+      updated_layer_states, decoder_output = layer.extend_step(
+          layer_theta,
+          layer_states,
+          decoder_input,
+          time_step=time_step,
+          attention_mask=attention_mask,
+          cross_inputs=cross_inputs,
+          cross_attention_mask=cross_attention_mask)
+      updated_states.x_layers.append(updated_layer_states)
+      decoder_input = decoder_output
+    return updated_states, decoder_output
 
 
 class StackedTransformer(base_layer.BaseLayer):

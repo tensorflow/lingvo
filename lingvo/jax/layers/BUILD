@@ -271,6 +271,7 @@ pytype_strict_library(
         ":stochastics",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
+        "//lingvo/jax:asserts",
         "//lingvo/jax:base_layer",
         "//lingvo/jax:gshard_utils",
         "//lingvo/jax:py_utils",
@@ -445,7 +446,7 @@ py_strict_test(
     name = "transformers_test",
     srcs = ["transformers_test.py"],
     python_version = "PY3",
-    shard_count = 16,
+    shard_count = 20,
     srcs_version = "PY3",
     deps = [
         ":attentions",

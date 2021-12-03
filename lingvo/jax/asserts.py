@@ -24,6 +24,7 @@ The following asserts are currently defined:
   - asserts.eq(a, b): Check that two values are equal.
   - asserts.ne(a, b): Check that two values are not equal.
   - asserts.instance(a, instances): Check that a has a type within `instances`.
+  - asserts.subclass(a, subclasses): Check that a is a subclass of `subclasses`.
   - asserts.le(a, b): Check that `a <= b`.
   - asserts.lt(a, b): Check that `a < b`.
   - asserts.ge(a, b): Check that `a >= b`.
@@ -268,6 +269,36 @@ def instance(value: Any,
       arguments = _retrieve_argnames('instance')
       value_str = _get_value_str(value, arguments)
     error_msg = f'`{value_str}` must be of type `{instances}`.'
+  raise exception_type(error_msg)
+
+
+def subclass(value: Any,
+             subclasses: Any,
+             *,
+             value_str: Optional[str] = None,
+             msg: Optional[str] = None,
+             exception_type: Type[Exception] = ValueError) -> None:
+  """Checks that `value` is a subclass of one of the provided `subclasses`.
+
+  Raises an exception otherwise.
+
+  Args:
+    value: The element to compare against None.
+    subclasses: A class or a tuple of classess.
+    value_str: Optional string representation of the `value` element used in the
+      exception message overriding the default one.
+    msg: Optional exception message overriding the default one.
+    exception_type: Type of exception to raise.
+  """
+  if issubclass(value, subclasses):
+    return
+  if msg:
+    error_msg = msg
+  else:
+    if value_str is None:
+      arguments = _retrieve_argnames('subclasses')
+      value_str = _get_value_str(value, arguments)
+    error_msg = f'`{value_str}` must be a subclass of `{subclasses}`.'
   raise exception_type(error_msg)
 
 

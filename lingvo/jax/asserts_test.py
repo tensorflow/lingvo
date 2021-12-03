@@ -110,6 +110,28 @@ class AssertsTest(parameterized.TestCase):
                                 '`value=.*` must be of type `.*`.$'):
       asserts.instance(value, instance)
 
+  def test_subclass(self):
+
+    class A:
+      pass
+
+    class B(A):
+      pass
+
+    asserts.subclass(B, A)
+
+  def test_subclass_raises(self):
+
+    class A:
+      pass
+
+    class B(A):
+      pass
+
+    with self.assertRaisesRegex(ValueError,
+                                '`.*` must be a subclass of `.*`.$'):
+      asserts.subclass(A, B)
+
   @parameterized.parameters((0, 0), (1.2, 3.4), (10, 30.))
   def test_le(self, value1, value2):
     asserts.le(value1, value2)
