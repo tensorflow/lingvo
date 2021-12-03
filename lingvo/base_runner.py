@@ -22,7 +22,9 @@ import traceback
 
 from lingvo import base_trial
 from lingvo import pdb_wrapper
+from lingvo import trainer_utils
 import lingvo.compat as tf
+from lingvo.core import checkpointer
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
@@ -37,13 +39,204 @@ FLAGS = tf.flags.FLAGS
 class BaseRunner:
   """Base class for all jobs."""
 
+  def __init__(self):
+    self._params = None
+    self._trial = None
+    self._early_stop = None
+    self._checkpointer = None
+
+    # To early terminate a runner, we set max_steps here and that will trigger
+    # appropriate ShouldStop behavior in the threads. This is used by Vizier
+    # to early stop a trial and also EarlyStop to stop training based on
+    # metrics.
+    self._max_steps_for_early_stop = None
+
+  @property
+  def params(self):
+    return self._params
+
+  @classmethod
+  def _GetTtlDir(cls, path, duration):
+    """Returns a path to a time-limited directory under dir if required."""
+    del duration
+    return path
+
+  def _FormatStatusMessage(self, message, retrying):
+    if self._trial and self._trial.Name():
+      message = 'Trial:{} {}'.format(self._trial.Name(), message)
+    if retrying:
+      message = f'Job {self._job_name}: <b>Retrying as expected</b>\n{message}'
+    return message
+
+  def _SetStatusMessage(self, message, retrying=False):
+    """Update the status message for this task."""
+    tf.logging.info(self._FormatStatusMessage(message, retrying))
+
+  def _ExportMetrics(self, **kwargs):
+    """Exports metrics externally."""
+    pass
+
+  def _ShouldEarlyStop(self, sess=None):
+    return self._early_stop and self._early_stop.Stop(sess)
+
+  def _ShouldStop(self, sess=None, step=None, check_early_stop=True):
+    """Check if the runner should stop.
+
+    Args:
+      sess: tf.Session.
+      step: The current GlobalStep.
+      check_early_stop: Whether or not we want to check the EarlyStop condition.
+        In TPU-training, we don't want to check this at the every step
+        granularity in the enqueue thread, as this may starve the TPU training
+        loop which by default operates at the 1000 steps granularity.
+
+    Returns:
+      Whether runner should stop.
+    """
+    if step is None:
+      if py_utils.IsEagerMode():
+        step = py_utils.GetGlobalStep().numpy()
+      else:
+        step = sess.run(py_utils.GetGlobalStep())
+
+    if step >= self.params.train.max_steps:
+      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
+                      self.params.train.max_steps)
+      return True
+
+    if (self._max_steps_for_early_stop and
+        step >= self._max_steps_for_early_stop):
+      tf.logging.info('ShouldStop: step:%6d _max_steps_for_early_stop:%6d',
+                      step, self._max_steps_for_early_stop)
+      return True
+
+    if check_early_stop and self._ShouldEarlyStop(sess):
+      tf.logging.info('ShouldStop: Early stopping.')
+      return True
+
+    if self._trial and self._trial.ShouldStop():
+      tf.logging.info('ShouldStop: Trial finished.')
+      return True
+
+    return False
+
+  @py_utils.Retry(
+      initial_delay_sec=1, delay_growth_factor=1.5, max_delay_sec=300)
+  def _FindNewCheckpoint(self, sess=None, processed_ckpts=None):
+    """Returns the path to a new checkpoint, or raises RuntimeError."""
+    if self._ShouldStop(sess, step=0):
+      # Check for early stopping or trail early stopping.
+      return None
+    path = tf.train.latest_checkpoint(self._checkpointer.checkpoint_dir)
+    if not path:
+      raise RuntimeError('No check point is found in %s' %
+                         self._checkpointer.checkpoint_dir)
+    if path in processed_ckpts:
+      raise RuntimeError('No new check point is found: %s' % path)
+    return path
+
+  def _TrainerFinished(self, sess=None):
+    """Infer if training finished using the latest training checkpoint."""
+    latest_ckpt_path = tf.train.latest_checkpoint(
+        self._checkpointer.checkpoint_dir)
+    if latest_ckpt_path is None:
+      return self._ShouldStop(sess, step=0)
+    latest_ckpt = tf.train.load_checkpoint(latest_ckpt_path)
+    return self._ShouldStop(sess, step=latest_ckpt.get_tensor('global_step'))
+
+  def _RunOnLatestCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
+    """Executes 'runner_fn' on the latest checkpoints produced by the Trainer.
+
+    Args:
+      sess: the session to compute the metrics in.
+      runner_fn: a callable taking a session and a checkpoint path to apply to
+        checkpoints saved by the Trainer.
+      runner_dir: the log directory for this runner.
+    """
+    # Check if the trainer finished before this job (re)started. global_step
+    # will be 0 in this process until a checkpoint is restored, so we infer the
+    # trainer global_step from the step of its latest checkpoint.
+    trainer_finished_at_job_start = self._TrainerFinished(sess)
+    processed_ckpts = set(py_utils.GetProcessedCheckpoints(runner_dir))
+    if (trainer_finished_at_job_start and tf.train.latest_checkpoint(
+        self._checkpointer.checkpoint_dir) in processed_ckpts):
+      tf.logging.warning(
+          'Training has finished and the final checkpoint has already been '
+          'evaluated. Specify a new eval/decode directory, or set '
+          'p.eval.load_checkpoint_from to the final checkpoint to reanalyze it.'
+      )
+      return
+
+    # Process the latest checkpoints produced by the Trainer until the
+    # checkpoint for the final training step has been processed. If training
+    # has already finished then only the last checkpoint will be processed.
+    while True:
+      ckpt_path = self._FindNewCheckpoint(sess, processed_ckpts)
+      if ckpt_path is None:
+        # Could potentially be None in the case of early stopping.
+        break
+
+      runner_fn(sess, ckpt_path)
+      py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
+      processed_ckpts.add(ckpt_path)
+      if self._ShouldStop(sess):
+        break
+
+  def _RunOnAllCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
+    """Executes 'runner_fn' on all checkpoints produced by the Trainer.
+
+    Args:
+      sess: the session to compute the metrics in.
+      runner_fn: a callable taking a session and a checkpoint path to apply to
+        checkpoints saved by the Trainer.
+      runner_dir: the log directory for this runner.
+    """
+    # Check if the trainer finished before this job (re)started. global_step
+    # will be 0 in this process until a checkpoint is restored, so we infer the
+    # trainer global_step from the step of its latest checkpoint.
+    trainer_finished_at_job_start = self._TrainerFinished(sess)
+    processed_ckpts = set(py_utils.GetProcessedCheckpoints(runner_dir))
+
+    while True:
+      # Checkpoints may be deleted while runner_fn is running, so we fetch the
+      # checkpoint state every loop.
+      state = tf.train.get_checkpoint_state(self._checkpointer.checkpoint_dir)
+      ckpts = set() if state is None else state.all_model_checkpoint_paths
+      unprocessed_ckpts = set(ckpts).difference(processed_ckpts)
+
+      if unprocessed_ckpts:
+        # Process the checkpoints sequentially.
+        ckpt_path = sorted(unprocessed_ckpts)[0]
+        try:
+          runner_fn(sess, ckpt_path)
+          py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
+          processed_ckpts.add(ckpt_path)
+        except tf.errors.NotFoundError as e:
+          # Though it should be exceedingly rare in realistic cases, it's
+          # technically possible for the checkpoint in ckpt_path to be deleted
+          # by Trainer.checkpointer during the set and sort operations above.
+          tf.logging.warning(
+              'Ignorring NotFoundError resulting from rare race '
+              'condition:\n%s', e)
+      elif trainer_finished_at_job_start or self._ShouldStop(sess):
+        # Exit if all checkpoints have been processed and training is done.
+        break
+      else:
+        # Check for new checkpoints every 10 seconds if none are found. Spends
+        # 1s worth of CPU cycles every ~3hrs looking for new checkpoints.
+        time.sleep(10)
+
+
+class GraphRunner(BaseRunner):
+  """Base class for graph jobs."""
+
   def __init__(self,
                params,
                model_task_name,
                logdir,
                tf_master,
                trial=base_trial.NoOpTrial()):
-    """Construct a new BaseRunner.
+    """Construct a new GraphRunner.
 
     Args:
       params:  Params object containing model configuration.
@@ -53,6 +246,7 @@ class BaseRunner:
       tf_master:  String path to the master job, e.g. 'local'.
       trial:   An optional hyperparameter trial. Used by Vizier studies.
     """
+    super().__init__()
     p = params.Copy()
     # Set in subclasses.
     self._job_name = ''
@@ -75,12 +269,6 @@ class BaseRunner:
     self._container_id = self._trial.Name()
     self._should_report_metrics = False
 
-    # To early terminate a runner, we set max_steps here and that will trigger
-    # appropriate ShouldStop behavior in the threads. This is used by Vizier
-    # to early stop a trial and also EarlyStop to stop training based on
-    # metrics.
-    self._max_steps_for_early_stop = None
-
     self._train_dir = os.path.join(self._logdir, 'train')
     tf.io.gfile.makedirs(self._train_dir)
     if py_utils.IsEagerMode():
@@ -94,7 +282,6 @@ class BaseRunner:
 
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
     # The actual EarlyStop object.
-    self._early_stop = None
     if p.train.early_stop and p.train.early_stop.window:
       self._early_stop = p.train.early_stop.Instantiate()
       self._verbose_enqueue_logging = True
@@ -110,23 +297,8 @@ class BaseRunner:
     # Merged TF scalar summaries for training related input data stats.
     self._merged_input_data_summary_op = None
 
-  @property
-  def params(self):
-    return self._params
-
   def _InVizierStudy(self):
     return not isinstance(self._trial, base_trial.NoOpTrial)
-
-  def _FormatStatusMessage(self, message, retrying):
-    if self._trial.Name():
-      message = 'Trial:{} {}'.format(self._trial.Name(), message)
-    if retrying:
-      message = f'Job {self._job_name}: <b>Retrying as expected</b>\n{message}'
-    return message
-
-  def _SetStatusMessage(self, message, retrying=False):
-    """Update the status message for this task."""
-    tf.logging.info(self._FormatStatusMessage(message, retrying))
 
   def _UpdateEarlyStopMetric(self, jobname, global_step, metric_name,
                              metric_value):
@@ -138,49 +310,6 @@ class BaseRunner:
       early_stop.MetricHistory.ConditionalAppend(
           os.path.join(self._logdir, jobname), metric_name, global_step,
           metric_value)
-
-  def _ShouldEarlyStop(self, sess=None):
-    return self._early_stop and self._early_stop.Stop(sess)
-
-  def _ShouldStop(self, sess=None, step=None, check_early_stop=True):
-    """Check if the runner should stop.
-
-    Args:
-      sess: tf.Session.
-      step: The current GlobalStep.
-      check_early_stop: Whether or not we want to check the EarlyStop condition.
-        In TPU-training, we don't want to check this at the every step
-        granularity in the enqueue thread, as this may starve the TPU training
-        loop which by default operates at the 1000 steps granularity.
-
-    Returns:
-      Whether runner should stop.
-    """
-    if step is None:
-      if py_utils.IsEagerMode():
-        step = py_utils.GetGlobalStep().numpy
-      else:
-        step = sess.run(py_utils.GetGlobalStep())
-
-    if step >= self.params.train.max_steps:
-      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
-                      self.params.train.max_steps)
-      return True
-
-    if self._max_steps_for_early_stop and step >= self._max_steps_for_early_stop:
-      tf.logging.info('ShouldStop: step:%6d _max_steps_for_early_stop:%6d',
-                      step, self._max_steps_for_early_stop)
-      return True
-
-    if check_early_stop and self._ShouldEarlyStop(sess):
-      tf.logging.info('ShouldStop: Early stopping.')
-      return True
-
-    if self._trial.ShouldStop():
-      tf.logging.info('ShouldStop: Trial finished.')
-      return True
-
-    return False
 
   def _WriteToLog(self, text, logdir, filename):
     """Logs `text` and saves it under `logdir/filename`."""
@@ -224,24 +353,6 @@ class BaseRunner:
       return global_step
 
     return RetryLoop()
-
-  @py_utils.Retry(
-      initial_delay_sec=1, delay_growth_factor=1.5, max_delay_sec=300)
-  def _FindNewCheckpoint(self, sess=None, processed_ckpts=None):
-    """Returns the path to a new checkpoint, or raises RuntimeError."""
-    if self._ShouldStop(sess, step=0):
-      # Check for early stopping or trail early stopping.
-      return None
-    path = tf.train.latest_checkpoint(self._train_dir)
-    if not path:
-      msg = 'No check point is found in %s' % self._train_dir
-      tf.logging.info('%s: %s', self._job_name, msg)
-      raise RuntimeError(msg)
-    if path in processed_ckpts:
-      msg = 'No new check point is found: %s' % path
-      tf.logging.info('%s: %s', self._job_name, msg)
-      raise RuntimeError(msg)
-    return path
 
   @py_utils.Retry()
   def _RunLoop(self, job_name, loop_func, loop_args=(), cleanup_func=None):
@@ -460,12 +571,6 @@ class BaseRunner:
   def GetTrainDir(self):
     return self._train_dir
 
-  @classmethod
-  def _GetTtlDir(cls, path, duration):
-    """Returns a path to a time-limited directory under dir if required."""
-    del duration
-    return path
-
   def _CreateSummaryWriter(self, logdir):
     """Creates and returns a tf summary writer."""
     return tf.summary.FileWriter(logdir)
@@ -557,96 +662,33 @@ class BaseRunner:
       self._summary_writer.add_summary(summary_str, global_enqueue_steps)
       self._summary_writer.flush()
 
-  def _ExportMetrics(self, **kwargs):
-    """Exports metrics externally."""
-    pass
 
-  def _TrainerFinished(self, sess=None):
-    """Infer if training finished using the latest training checkpoint."""
-    latest_ckpt_path = tf.train.latest_checkpoint(self._train_dir)
-    if latest_ckpt_path is None:
-      return self._ShouldStop(sess, step=0)
-    latest_ckpt = tf.train.load_checkpoint(latest_ckpt_path)
-    return self._ShouldStop(sess, step=latest_ckpt.get_tensor('global_step'))
+class EagerRunner(BaseRunner):
+  """Base class for eager runners."""
 
-  def _RunOnLatestCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
-    """Executes 'runner_fn' on the latest checkpoints produced by the Trainer.
+  def __init__(self, params):
+    super().__init__()
+    self._params = params
+    self._cluster = cluster_factory.Cluster(
+        trainer_utils.UpdateClusterParamsFromFlags(params.cluster))
+    tf.logging.info('Cluster params: %s', self._cluster.params.ToText())
+    self._train_dir = os.path.join(self._cluster.logdir, 'train')
+    self._model = None
+    self._task = None
 
-    Args:
-      sess: the session to compute the metrics in.
-      runner_fn: a callable taking a session and a checkpoint path to apply to
-        checkpoints saved by the Trainer.
-      runner_dir: the log directory for this runner.
-    """
-    # Check if the trainer finished before this job (re)started. global_step
-    # will be 0 in this process until a checkpoint is restored, so we infer the
-    # trainer global_step from the step of its latest checkpoint.
-    trainer_finished_at_job_start = self._TrainerFinished(sess)
-    processed_ckpts = set(py_utils.GetProcessedCheckpoints(runner_dir))
-    if (trainer_finished_at_job_start and
-        tf.train.latest_checkpoint(self._train_dir) in processed_ckpts):
-      tf.logging.warning(
-          'Training has finished and the final checkpoint has already been '
-          'evaluated. Specify a new eval/decode directory, or set '
-          'p.eval.load_checkpoint_from to the final checkpoint to reanalyze it.'
-      )
-      return
+  def Start(self):
+    """Start."""
+    assert tf.executing_eagerly()
+    assert py_utils.IsEagerMode()
 
-    # Process the latest checkpoints produced by the Trainer until the
-    # checkpoint for the final training step has been processed. If training
-    # has already finished then only the last checkpoint will be processed.
-    while True:
-      ckpt_path = self._FindNewCheckpoint(sess, processed_ckpts)
-      if ckpt_path is None:
-        # Could potentially be None in the case of early stopping.
-        break
-
-      runner_fn(sess, ckpt_path)
-      py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
-      processed_ckpts.add(ckpt_path)
-      if self._ShouldStop(sess):
-        break
-
-  def _RunOnAllCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
-    """Executes 'runner_fn' on all checkpoints produced by the Trainer.
-
-    Args:
-      sess: the session to compute the metrics in.
-      runner_fn: a callable taking a session and a checkpoint path to apply to
-        checkpoints saved by the Trainer.
-      runner_dir: the log directory for this runner.
-    """
-    # Check if the trainer finished before this job (re)started. global_step
-    # will be 0 in this process until a checkpoint is restored, so we infer the
-    # trainer global_step from the step of its latest checkpoint.
-    trainer_finished_at_job_start = self._TrainerFinished(sess)
-    processed_ckpts = set(py_utils.GetProcessedCheckpoints(runner_dir))
-
-    while True:
-      # Checkpoints may be deleted while runner_fn is running, so we fetch the
-      # checkpoint state every loop.
-      state = tf.train.get_checkpoint_state(self._train_dir)
-      ckpts = set() if state is None else state.all_model_checkpoint_paths
-      unprocessed_ckpts = set(ckpts).difference(processed_ckpts)
-
-      if unprocessed_ckpts:
-        # Process the checkpoints sequentially.
-        ckpt_path = sorted(unprocessed_ckpts)[0]
-        try:
-          runner_fn(sess, ckpt_path)
-          py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
-          processed_ckpts.add(ckpt_path)
-        except tf.errors.NotFoundError as e:
-          # Though it should be exceedingly rare in realistic cases, it's
-          # technically possible for the checkpoint in ckpt_path to be deleted
-          # by Trainer.checkpointer during the set and sort operations above.
-          tf.logging.warning(
-              'Ignorring NotFoundError resulting from rare race '
-              'condition:\n%s', e)
-      elif trainer_finished_at_job_start or self._ShouldStop(sess):
-        # Exit if all checkpoints have been processed and training is done.
-        break
+    # Set up cluster and model params.
+    self._cluster.InitDevicesEager()
+    with self._cluster:
+      self._model = self._params.Instantiate()
+      self._task = self._model.GetTask(FLAGS.model_task_name)
+      if FLAGS.write_v2_checkpoints:
+        self._checkpointer = checkpointer.EagerCheckpointerV2(
+            self._train_dir, self._model)
       else:
-        # Check for new checkpoints every 10 seconds if none are found. Spends
-        # 1s worth of CPU cycles every ~3hrs looking for new checkpoints.
-        time.sleep(10)
+        self._checkpointer = checkpointer.EagerCheckpointerV1(
+            self._train_dir, self._model)

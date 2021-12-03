@@ -156,7 +156,7 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
   return ps_params_dict, train_cfg
 
 
-class ExecutorTpu(base_runner.BaseRunner):
+class ExecutorTpu(base_runner.GraphRunner):
   """An runner that does arbitrary multi-program execution on TPU.
 
   Overview of operation:
@@ -181,11 +181,11 @@ class ExecutorTpu(base_runner.BaseRunner):
     """
     if py_utils.IsEagerMode():
       assert tf.executing_eagerly()
-      tf.logging.info(f'FLAGS.tf_worker_address: {FLAGS.tf_worker_address}')
+      tf.logging.info(f'FLAGS.tf_master: {FLAGS.tf_master}')
 
       # Connect to the TPU runtime.
       resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-          FLAGS.tf_worker_address, job_name=FLAGS.worker_job[len('/job:'):])
+          FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:'):])
       tf.config.experimental_connect_to_cluster(resolver)
 
     super().__init__(train_cfg, *args, **kwargs)

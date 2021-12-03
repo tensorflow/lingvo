@@ -25,6 +25,8 @@ py_library(
         ":base_trial",
         ":compat",
         ":pdb_wrapper",
+        ":trainer_utils",
+        "//lingvo/core:checkpointer_lib",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:early_stop",
         "//lingvo/core:py_utils",
@@ -205,6 +207,21 @@ py_library(
 )
 
 py_library(
+    name = "eager_runners",
+    srcs = ["eager_runners.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":compat",
+        "//lingvo:base_runner",
+        "//lingvo/core:base_model",
+        "//lingvo/core:checkpointer_lib",
+        "//lingvo/core:metrics",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:summary_utils",
+    ],
+)
+
+py_library(
     name = "trainer_lib",
     srcs = ["trainer.py"],
     srcs_version = "PY3",
@@ -364,7 +381,10 @@ py_library(
 py_library(
     name = "trainer_utils",
     srcs = ["trainer_utils.py"],
-    deps = [":compat"],
+    deps = [
+        ":compat",
+        "//lingvo/core:cluster_factory",
+    ],
 )
 
 py_library(

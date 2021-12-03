@@ -61,7 +61,7 @@ def StartShell(local_ns=None):
   IPython.start_ipython(argv=[], user_ns=user_ns)
 
 
-class Controller(base_runner.BaseRunner):
+class Controller(base_runner.GraphRunner):
   """Controller for a training cluster."""
 
   def __init__(self, *args, **kwargs):
@@ -92,7 +92,7 @@ class Controller(base_runner.BaseRunner):
         self._initialize_global_vars = tf.global_variables_initializer()
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         if self._checkpoint_in_controller:
-          self.checkpointer = self._CreateCheckpointer(
+          self._checkpointer = self._CreateCheckpointer(
               self._train_dir,
               self._model,
               init_op=self._initialize_global_vars)
@@ -150,20 +150,20 @@ class Controller(base_runner.BaseRunner):
 
         if self._checkpoint_in_controller:
           # Init/restore variable if needed.
-          self.checkpointer.RestoreIfNeeded(sess)
+          self._checkpointer.RestoreIfNeeded(sess)
 
         global_step = sess.run(self._model.global_step)
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if self._checkpoint_in_controller:
-            self.checkpointer.Save(sess, global_step)
+            self._checkpointer.Save(sess, global_step)
           sess.close()
           self._DequeueThreadComplete()
           return
 
         if self._checkpoint_in_controller:
           # Checkpoint if it's time.
-          self.checkpointer.MaybeSave(sess, global_step)
+          self._checkpointer.MaybeSave(sess, global_step)
 
         # Summary.
         if self._summary_op is not None and global_step >= next_summary_step:
@@ -189,7 +189,7 @@ class Controller(base_runner.BaseRunner):
         metrics.CreateScalarSummary(tag, value), step)
 
 
-class Trainer(base_runner.BaseRunner):
+class Trainer(base_runner.GraphRunner):
   """Trainer on non-TPU."""
 
   def __init__(self, *args, **kwargs):
@@ -346,7 +346,7 @@ class Trainer(base_runner.BaseRunner):
                                         per_example_tensors)
 
 
-class TrainerTpu(base_runner.BaseRunner):
+class TrainerTpu(base_runner.GraphRunner):
   """Trainer on TPU."""
 
   def __init__(self, *args, **kwargs):
@@ -510,7 +510,7 @@ class TrainerTpu(base_runner.BaseRunner):
       self._initialize_tables = tf.tables_initializer()
 
       if FLAGS.checkpoint_in_trainer_tpu:
-        self.checkpointer = checkpointer.Checkpointer(
+        self._checkpointer = checkpointer.Checkpointer(
             self._train_dir, self._model, init_op=self._initialize_global_vars)
 
       self.enqueue_ops = self._task.input.tpu_infeed_op
@@ -661,7 +661,7 @@ class TrainerTpu(base_runner.BaseRunner):
     # uses session state isolation (e.g. Cloud TPUs).
     sess = self._GetSession()
     if FLAGS.checkpoint_in_trainer_tpu:
-      self.checkpointer.RestoreGlobalStepIfNeeded(sess)
+      self._checkpointer.RestoreGlobalStepIfNeeded(sess)
 
     # Get merged summary op for training related input data stats from the
     # tasks's input generator.
@@ -705,21 +705,21 @@ class TrainerTpu(base_runner.BaseRunner):
         # For b/134415393 -- better to initialize to a known state than
         # rely on what's in the session on the trainer/TPU worker.
         tf.logging.info('TrainerTpu: Force restore or initialize.')
-        self.checkpointer.Restore(sess, force_reinitialize=True)
+        self._checkpointer.Restore(sess, force_reinitialize=True)
 
       global_step = sess.run(self._model.global_step)
       self._initialized.set()
       eval_metrics = None
       if FLAGS.checkpoint_in_trainer_tpu and global_step == 0:
         # Always save a ckpt at step 0.
-        self.checkpointer.MaybeSave(sess, global_step)
+        self._checkpointer.MaybeSave(sess, global_step)
 
       sess.run(self._load_ops)
       while True:
         train_steps_start = time.perf_counter()
         if FLAGS.checkpoint_in_trainer_tpu:
           # Init/restore variable if needed.
-          self.checkpointer.RestoreIfNeeded(sess)
+          self._checkpointer.RestoreIfNeeded(sess)
 
         if self._trial.ShouldStopAndMaybeReport(
             global_step, eval_metrics) or self._ShouldEarlyStop(sess):
@@ -742,7 +742,7 @@ class TrainerTpu(base_runner.BaseRunner):
         if self._ShouldStop(sess, global_step, check_early_stop=False):
           tf.logging.info('Training finished.')
           if FLAGS.checkpoint_in_trainer_tpu:
-            self.checkpointer.Save(sess, global_step)
+            self._checkpointer.Save(sess, global_step)
           self._DequeueThreadComplete()
           return
 
@@ -803,7 +803,7 @@ class TrainerTpu(base_runner.BaseRunner):
         checkpoint_write_secs = 0.0
         if FLAGS.checkpoint_in_trainer_tpu:
           checkpoint_write_start = time.perf_counter()
-          checkpoint_saved = self.checkpointer.MaybeSave(sess, global_step)
+          checkpoint_saved = self._checkpointer.MaybeSave(sess, global_step)
           if checkpoint_saved:
             checkpoint_write_secs = time.perf_counter() - checkpoint_write_start
         train_steps_secs = time.perf_counter() - train_steps_start
@@ -818,7 +818,7 @@ class TrainerTpu(base_runner.BaseRunner):
             **{k: v[0] for k, v in eval_metrics.items()})
 
 
-class Evaler(base_runner.BaseRunner):
+class Evaler(base_runner.GraphRunner):
   """Evaler."""
 
   def __init__(self, eval_type, *args, **kwargs):
@@ -853,8 +853,8 @@ class Evaler(base_runner.BaseRunner):
         self._params = self._model.params
         self._model.ConstructFPropGraph()
         self._task = self._model.GetTask(self._model_task_name)
-        self.checkpointer = self._CreateCheckpointer(self._train_dir,
-                                                     self._model)
+        self._checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                      self._model)
       self._CreateTF2SummaryOps()
       self._summary_op = tf.summary.merge_all()
       self._initialize_tables = tf.tables_initializer()
@@ -949,7 +949,7 @@ class Evaler(base_runner.BaseRunner):
     """
 
     if not FLAGS.evaler_in_same_address_as_controller:
-      self.checkpointer.RestoreFromPath(sess, path)
+      self._checkpointer.RestoreFromPath(sess, path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
     # Save any additional information to disk before evaluation.
@@ -1065,7 +1065,7 @@ def _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step):
   return ckpt_id_from_file
 
 
-class Decoder(base_runner.BaseRunner):
+class Decoder(base_runner.GraphRunner):
   """Decoder."""
 
   def __init__(self, decoder_type, *args, **kwargs):
@@ -1113,8 +1113,8 @@ class Decoder(base_runner.BaseRunner):
               self._dec_output[key] = input_batch[key]
 
         self._summary_op = tf.summary.merge_all()
-        self.checkpointer = self._CreateCheckpointer(self._train_dir,
-                                                     self._model)
+        self._checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                      self._model)
       self._CreateTF2SummaryOps()
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
@@ -1190,7 +1190,7 @@ class Decoder(base_runner.BaseRunner):
       samples_per_summary = p.eval.samples_per_summary
     if samples_per_summary == 0:
       assert self._task.input.params.resettable
-    self.checkpointer.RestoreFromPath(sess, checkpoint_path)
+    self._checkpointer.RestoreFromPath(sess, checkpoint_path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
 

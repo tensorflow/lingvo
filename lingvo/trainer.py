@@ -58,7 +58,6 @@ tf.flags.DEFINE_string(
     'Can be empty, cpu, or gpu. If not empty, ignores cluster configuration '
     'flags and runs controller and trainer in a single local process.')
 
-tf.flags.DEFINE_string('tf_master', '', 'TF runtime.')
 tf.flags.DEFINE_string(
     'cluster_spec', '', 'A tf.train.ClusterSpec to override the master. '
     'The dict is specified as: job=host1:port1,host2:port2,'
