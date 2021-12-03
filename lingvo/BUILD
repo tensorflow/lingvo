@@ -229,6 +229,7 @@ py_library(
         ":base_trial",
         ":compat",
         ":datasets_lib",
+        ":eager_runners",
         ":executor_lib",
         ":model_imports_no_params",
         ":model_registry",
@@ -381,10 +382,7 @@ py_library(
 py_library(
     name = "trainer_utils",
     srcs = ["trainer_utils.py"],
-    deps = [
-        ":compat",
-        "//lingvo/core:cluster_factory",
-    ],
+    deps = [":compat"],
 )
 
 py_library(

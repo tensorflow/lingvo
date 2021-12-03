@@ -15,7 +15,6 @@
 """Common flags."""
 
 from lingvo import compat as tf
-from lingvo.core import cluster_factory
 
 tf.flags.DEFINE_string(
     'model', None, 'Name of the model class to train.'
@@ -58,49 +57,3 @@ tf.flags.DEFINE_bool('run_functions_eagerly', False,
 tf.flags.DEFINE_bool(
     'write_v2_checkpoints', False,
     'Whether to write v2 object based checkpoints or v1 checkpoints.')
-
-FLAGS = tf.flags.FLAGS
-
-
-def UpdateClusterParamsFromFlags(p=None):
-  """Returns cluster params based on flag settings."""
-  if p is None:
-    p = cluster_factory.Current().params.Copy()
-
-  p.mode = 'sync'
-  p.task = FLAGS.task
-  p.logdir = FLAGS.logdir
-  p.job = FLAGS.job
-  if p.job.startswith('evaler_'):
-    p.job = 'evaler'
-  elif p.job.startswith('decoder_'):
-    p.job = 'decoder'
-
-  if FLAGS.xla_device == 'tpu':
-    is_tpu = True
-  else:
-    assert FLAGS.xla_device in ('', 'cpu')
-    is_tpu = False
-
-  p.enable_asserts = not is_tpu
-  p.enable_check_numerics = not is_tpu
-  FLAGS.enable_asserts = not is_tpu
-  FLAGS.enable_check_numerics = not is_tpu
-  FLAGS.tpu_compatible = is_tpu
-
-  p.worker.replicas = 1
-  p.worker.devices_per_split = 1
-  if is_tpu:
-    p.worker.name = FLAGS.worker_job
-    p.worker.tpus_per_replica = FLAGS.worker_tpus
-    p.worker.num_tpu_hosts = FLAGS.worker_num_tpu_hosts
-  else:
-    p.worker.name = '/job:localhost'
-    p.worker.tpus_per_replica = 0
-    p.worker.num_tpu_hosts = 0
-
-  p.evaler.replicas = FLAGS.evaler_replicas
-  p.evaler.gpus_per_replica = FLAGS.evaler_gpus
-  p.decoder.replicas = FLAGS.decoder_replicas
-  p.decoder.gpus_per_replica = FLAGS.decoder_gpus
-  return p

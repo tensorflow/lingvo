@@ -238,9 +238,6 @@ class ExecutorTpu(base_runner.GraphRunner):
     else:
       self._ml_perf_log = False
 
-    # BaseRunner legacy
-    self.enqueue_ops = None
-
     train_cfg = self.params
 
     @py_utils.RetryOnTransientTfError()
@@ -427,13 +424,14 @@ class ExecutorTpu(base_runner.GraphRunner):
         stack.enter_context(tf.device(self._cluster.GetPlacer()))
       with py_utils.VariableStore(), py_utils.VariableRenameScope(
           self._variable_renaming_rules):
-        _ = py_utils.GetOrCreateGlobalStepVar()
+        py_utils.GetOrCreateGlobalStepVar()
         shared_model = train_cfg.Instantiate()
         shared_model.InstantiateVariables()
 
     return shared_model
 
   def Start(self):
+    super().Start()
     # Run training.
     self._RunLoop('executor_tpu', self._Loop)
 
@@ -456,6 +454,8 @@ class ExecutorTpu(base_runner.GraphRunner):
                   embedding_config=config_proto, job=worker))
 
       # Initialize the variables first, if needed.
+      # Need to call create global step again because this is run in a thread.
+      py_utils.GetOrCreateGlobalStepVar()
       compile_fns = []
       for program in self._programs:
         if not py_utils.IsEagerMode():

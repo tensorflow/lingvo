@@ -113,12 +113,12 @@ class Trainer(base_runner.EagerRunner):
 class TrainSummaries(base_runner.EagerRunner):
   """Write training summaries."""
 
-  def __init__(self, params):
-    super().__init__(params)
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
-    logdir = os.path.join(self._cluster.logdir, 'train_summaries')
-    if FLAGS.model_task_name:
-      logdir += '_' + FLAGS.model_task_name
+    logdir = os.path.join(self._logdir, 'train_summaries')
+    if self._model_task_name:
+      logdir += '_' + self._model_task_name
     tf.io.gfile.makedirs(logdir)
     self._summary_writer = tf.compat.v2.summary.create_file_writer(logdir)
 
@@ -172,15 +172,14 @@ class TrainSummaries(base_runner.EagerRunner):
 class Evaler(base_runner.EagerRunner):
   """Evaler."""
 
-  def __init__(self, eval_type, params):
-    params.cluster.do_eval = True
-    super().__init__(params)
+  def __init__(self, eval_type, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
     self._eval_type = eval_type
 
-    self._eval_dir = os.path.join(self._cluster.logdir, f'eval_{eval_type}')
-    if FLAGS.model_task_name:
-      self._eval_dir += '_' + FLAGS.model_task_name
+    self._eval_dir = os.path.join(self._logdir, f'eval_{eval_type}')
+    if self._model_task_name:
+      self._eval_dir += '_' + self._model_task_name
     tf.io.gfile.makedirs(self._eval_dir)
     self._summary_writer = tf.compat.v2.summary.create_file_writer(
         self._eval_dir)
@@ -301,14 +300,12 @@ def _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step):
 class Decoder(base_runner.EagerRunner):
   """Decoder."""
 
-  def __init__(self, decoder_type, params):
-    params.cluster.do_eval = True
-    super().__init__(params)
+  def __init__(self, decoder_type, *args, **kwargs):
+    super().__init__(*args, **kwargs)
 
-    self._decoder_dir = os.path.join(self._cluster.logdir,
-                                     f'decoder_{decoder_type}')
-    if FLAGS.model_task_name:
-      self._decoder_dir += '_' + FLAGS.model_task_name
+    self._decoder_dir = os.path.join(self._logdir, f'decoder_{decoder_type}')
+    if self._model_task_name:
+      self._decoder_dir += '_' + self._model_task_name
     tf.io.gfile.makedirs(self._decoder_dir)
     self._summary_writer = tf.compat.v2.summary.create_file_writer(
         self._decoder_dir)

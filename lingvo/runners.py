@@ -114,6 +114,7 @@ class Controller(base_runner.GraphRunner):
     return checkpointer.Checkpointer(train_dir, model, init_op)
 
   def Start(self):
+    super().Start()
     self._RunLoop('controller', self._Loop)
 
   def StartEnqueueOp(self, op):
@@ -242,6 +243,7 @@ class Trainer(base_runner.GraphRunner):
           metrics.CreateScalarSummary(tag, value), steps)
 
   def Start(self):
+    super().Start()
     self._RunLoop('trainer', self._Loop)
 
   def StartEnqueueOp(self, op):
@@ -623,6 +625,7 @@ class TrainerTpu(base_runner.GraphRunner):
     self._initialized.clear()
 
   def Start(self):
+    super().Start()
     # Run training.
     self._RunLoop('trainer', self._Loop, cleanup_func=self._CleanUp)
 
@@ -877,6 +880,7 @@ class Evaler(base_runner.GraphRunner):
     return checkpointer.Checkpointer(train_dir, model)
 
   def Start(self):
+    super().Start()
     self._RunLoop(self._job_name, self._Loop)
 
   def _Loop(self):
@@ -1133,6 +1137,7 @@ class Decoder(base_runner.GraphRunner):
     return checkpointer.Checkpointer(train_dir, model)
 
   def Start(self):
+    super().Start()
     self._RunLoop(self._job_name, self._Loop)
 
   def _Loop(self):

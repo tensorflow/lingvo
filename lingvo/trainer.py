@@ -33,6 +33,7 @@ import threading
 
 from lingvo import base_trial
 from lingvo import datasets
+from lingvo import eager_runners
 from lingvo import executor
 from lingvo import model_imports
 from lingvo import model_registry
@@ -152,6 +153,7 @@ tf.flags.DEFINE_bool(
     'summaries based on the job type.')
 tf.flags.DEFINE_bool('disable_tf2', False,
                      'Whether run on Tensorflow without V2 behaviors.')
+tf.flags.DEFINE_bool('use_eager', False, 'Whether to use eager mode.')
 
 
 @tf.flags.validator('vizier_reporting_job')
@@ -216,11 +218,21 @@ class RunnerManager:
   inference_graph_exporter = inference_graph_exporter
   model_registry = model_registry
   Controller = runners.Controller
-  Trainer = runners.Trainer
   TrainerTpu = runners.TrainerTpu
-  Evaler = runners.Evaler
-  Decoder = runners.Decoder
   ExecutorTpu = executor.ExecutorTpu
+  TrainSummaries = eager_runners.TrainSummaries
+
+  @property
+  def Trainer(self):
+    return eager_runners.Trainer if py_utils.IsEagerMode() else runners.Trainer
+
+  @property
+  def Evaler(self):
+    return eager_runners.Evaler if py_utils.IsEagerMode() else runners.Evaler
+
+  @property
+  def Decoder(self):
+    return eager_runners.Decoder if py_utils.IsEagerMode() else runners.Decoder
 
   # pylint: enable=invalid-name
 
@@ -229,7 +241,7 @@ class RunnerManager:
 
   def MaybeLaunchTensorFlow(self):
     """Starts TF machinery in this process."""
-    if FLAGS.run_locally or FLAGS.tpu:
+    if FLAGS.run_locally or FLAGS.tpu or FLAGS.use_eager:
       return
 
     tf.logging.info('Launching tensorflow.')
@@ -437,6 +449,9 @@ class RunnerManager:
         return self.TrainerTpu(cfg, *common_args)
       else:
         return self.Trainer(cfg, *common_args)
+    elif job == 'train_summaries':
+      cfg = self.GetParamsForDataset('train_summaries', 'Train')
+      return self.TrainSummaries(cfg, *common_args)
     elif job.startswith(evaler_job_name_prefix):
       dataset_name = job[len(evaler_job_name_prefix):]
       cfg = self.GetParamsForDataset('evaler', dataset_name)
@@ -471,7 +486,7 @@ class RunnerManager:
       tf_master = FLAGS.tf_master
       # Ensure that decoder or evaler threads do not clobber variables being
       # updated by trainer by forcing them to use independent sessions.
-      if (is_training and (j.startswith('decoder') or j.startswith('evaler'))):
+      if is_training and (j.startswith('decoder') or j.startswith('evaler')):
         tf_master = ''
 
       runner = self._CreateRunner(j, FLAGS.model_task_name, logdir, tf_master,
@@ -490,35 +505,40 @@ class RunnerManager:
     Returns:
       None.
     """
-    threads = []
     tf.logging.info('Starting runners')
-    for runner in all_runners:
-      runner_class_name = str(runner)
-      t = threading.Thread(target=runner.Start, name=runner_class_name)
-      t.daemon = True
-      t.start()
-      threads.append(t)
-      if runner.enqueue_ops:
-        tf.logging.info('Total num runner.enqueue_ops: %d',
-                        len(runner.enqueue_ops))
-        for i, enqueue_op in enumerate(runner.enqueue_ops):
+    if len(all_runners) == 1 and not all_runners[0].enqueue_ops:
+      # If there is only one runner and it does not have an enqueue thread, just
+      # run it directly here.
+      all_runners[0].Start()
+    else:
+      threads = []
+      for runner in all_runners:
+        runner_class_name = str(runner)
+        t = threading.Thread(target=runner.Start, name=runner_class_name)
+        t.daemon = True
+        t.start()
+        threads.append(t)
+        if runner.enqueue_ops:
+          tf.logging.info('Total num runner.enqueue_ops: %d',
+                          len(runner.enqueue_ops))
+          for i, enqueue_op in enumerate(runner.enqueue_ops):
 
-          def StartEnqueue(runner, op):
-            tf.logging.info('Starting enqueue op %s', op.name)
-            return lambda: runner.StartEnqueueOp(op)
+            def StartEnqueue(runner, op):
+              tf.logging.info('Starting enqueue op %s', op.name)
+              return lambda: runner.StartEnqueueOp(op)
 
-          enqueue_name = '%s-enqueue-%d' % (runner_class_name, i)
-          tq = threading.Thread(
-              target=StartEnqueue(runner, enqueue_op), name=enqueue_name)
-          tq.start()
-          threads.append(tq)
-    tf.logging.info('Waiting for runners to finish...')
-    for t in threads:
-      tf.logging.info('Waiting for thread to finish: %s' % t.name)
-      while True:
-        t.join(1)
-        if not t.is_alive():
-          break
+            enqueue_name = '%s-enqueue-%d' % (runner_class_name, i)
+            tq = threading.Thread(
+                target=StartEnqueue(runner, enqueue_op), name=enqueue_name)
+            tq.start()
+            threads.append(tq)
+      tf.logging.info('Waiting for runners to finish...')
+      for t in threads:
+        tf.logging.info('Waiting for thread to finish: %s' % t.name)
+        while True:
+          t.join(1)
+          if not t.is_alive():
+            break
     tf.logging.info('All runners done.')
 
   def RunTrial(self, job, logdir, trial):
@@ -823,11 +843,12 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
-  py_utils.SetEagerMode(False)
   tf.flags.mark_flag_as_required('model')
   FLAGS(sys.argv, known_only=True)
   if FLAGS.disable_tf2:
     tf.disable_v2_behavior()
+  py_utils.SetEagerMode(FLAGS.use_eager)
+  tf.config.run_functions_eagerly(FLAGS.run_functions_eagerly)
   model_imports.ImportParams(FLAGS.model)
   FLAGS.unparse_flags()
   tf.app.run(main)
