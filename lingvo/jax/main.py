@@ -34,7 +34,7 @@ from clu import platform
 import jax
 from jax import prng
 from lingvo.jax import checkpoints
-from lingvo.jax import eval as continuous_eval
+from lingvo.jax import eval as eval_lib
 from lingvo.jax import train
 import tensorflow.compat.v2 as tf
 
@@ -44,10 +44,8 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('model', None, 'Lingvo Jax model name.')
 flags.DEFINE_string('job_log_dir', None,
                     'Directory where all experiment assets will be stored.')
-flags.DEFINE_string(
-    'mode', 'train', 'Flag to control whether the model is in '
-    'train mode or eval mode. This is used to control which '
-    'job is called.')
+flags.DEFINE_enum('mode', 'train', ['train', 'eval', 'decode_once'],
+                  'Flag to control which job is called.')
 flags.DEFINE_bool(
     'eval_on_test', False, 'If True, then the training loop '
     'includes a full evaluation on all the test set splits. '
@@ -149,13 +147,22 @@ def main(argv: Sequence[str]) -> None:
         restore_checkpoint_step=FLAGS.restore_checkpoint_step,
         eval_on_test=FLAGS.eval_on_test)
   elif FLAGS.mode == 'eval':
-    continuous_eval.evaluate(
+    eval_lib.evaluate(
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
         checkpoint_type=FLAGS.checkpoint_type)
-  else:
-    raise ValueError(f'Invalid mode: {FLAGS.mode}, mode must be train or eval.')
+  # TODO(zhouwk): support continuous decode mode "decode".
+  elif FLAGS.mode == 'decode_once':
+    if not FLAGS.restore_checkpoint_dir:
+      raise ValueError('--mode=decode_once requires --restore_checkpoint_dir.')
+    eval_lib.decode_once(
+        model_name=FLAGS.model,
+        job_log_dir=FLAGS.job_log_dir,
+        multi_host_checkpointing=FLAGS.multi_host_checkpointing,
+        checkpoint_type=FLAGS.checkpoint_type,
+        restore_checkpoint_dir=FLAGS.restore_checkpoint_dir,
+        restore_checkpoint_step=FLAGS.restore_checkpoint_step)
 
 
 if __name__ == '__main__':

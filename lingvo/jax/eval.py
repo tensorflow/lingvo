@@ -281,3 +281,28 @@ def evaluate_spmd_model(
           py_utils.sync_global_devices(
               f'checkpointer:restored:{checkpoint_dir}')
         last_checkpoint = new_checkpoint
+
+
+def decode_once(
+    model_name: str,
+    job_log_dir: Optional[str],
+    multi_host_checkpointing: Optional[bool],
+    checkpoint_type: checkpoints.CheckpointType,
+    restore_checkpoint_dir: str,
+    restore_checkpoint_step: Optional[int],
+) -> None:
+  """Runs decoding once on the decoder datasets.
+
+  Args:
+    model_name: The name of the model from the registry to evaluate.
+    job_log_dir: The directory for the job logs.
+    multi_host_checkpointing: Whether to use multi-host checkpointing.
+    checkpoint_type: Type of model checkpointing method to use.
+    restore_checkpoint_dir: The directory from which to restore checkpoint.
+    restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
+      try to restore from the latest checkpoint if any.
+  """
+  logging.info('running decode_once on model %s from %s', model_name,
+               restore_checkpoint_dir)
+  del job_log_dir, multi_host_checkpointing, restore_checkpoint_step, checkpoint_type
+  # TODO(zhouwk): implement this. placeholder for now.
