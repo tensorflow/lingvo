@@ -45,6 +45,7 @@
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.compat.html">lingvo.compat module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.datasets.html">lingvo.datasets module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.eager_runners.html">lingvo.eager_runners module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.executor.html">lingvo.executor module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.ipython_kernel.html">lingvo.ipython_kernel module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
@@ -90,7 +91,7 @@
 <p>Base class for all jobs.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.base_runner.</span></span><span class="sig-name descname"><span class="pre">BaseRunner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_task_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf_master</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trial=&lt;lingvo.base_trial.NoOpTrial</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.base_runner.</span></span><span class="sig-name descname"><span class="pre">BaseRunner</span></span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for all jobs.</p>
 <dl class="py property">
@@ -99,9 +100,10 @@
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._InVizierStudy">
-<span class="sig-name descname"><span class="pre">_InVizierStudy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._InVizierStudy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._InVizierStudy" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._GetTtlDir">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_GetTtlDir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._GetTtlDir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._GetTtlDir" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a path to a time-limited directory under dir if required.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._FormatStatusMessage">
@@ -115,9 +117,10 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._UpdateEarlyStopMetric">
-<span class="sig-name descname"><span class="pre">_UpdateEarlyStopMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._UpdateEarlyStopMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._UpdateEarlyStopMetric" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._ExportMetrics">
+<span class="sig-name descname"><span class="pre">_ExportMetrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ExportMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ExportMetrics" title="Permalink to this definition"></a></dt>
+<dd><p>Exports metrics externally.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._ShouldEarlyStop">
@@ -146,135 +149,9 @@ loop which by default operates at the 1000 steps granularity.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._WriteToLog">
-<span class="sig-name descname"><span class="pre">_WriteToLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._WriteToLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._WriteToLog" title="Permalink to this definition"></a></dt>
-<dd><p>Logs <code class="xref py py-obj docutils literal notranslate"><span class="pre">text</span></code> and saves it under <code class="xref py py-obj docutils literal notranslate"><span class="pre">logdir/filename</span></code>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._WaitUntilInit">
-<span class="sig-name descname"><span class="pre">_WaitUntilInit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_up_delay_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._WaitUntilInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._WaitUntilInit" title="Permalink to this definition"></a></dt>
-<dd><p>Wait until the model is ready.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._FindNewCheckpoint">
 <span class="sig-name descname"><span class="pre">_FindNewCheckpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processed_ckpts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._FindNewCheckpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._FindNewCheckpoint" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the path to a new checkpoint, or raises RuntimeError.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._RunLoop">
-<span class="sig-name descname"><span class="pre">_RunLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._RunLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._RunLoop" title="Permalink to this definition"></a></dt>
-<dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_func</span></code>, retrying on expected errors.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>job_name</strong> – string job name.</p></li>
-<li><p><strong>loop_func</strong> – callable to run and retry on expected errors.</p></li>
-<li><p><strong>loop_args</strong> – list or tuple of arguments to be passed to the loop_func.</p></li>
-<li><p><strong>cleanup_func</strong> – callable to run before retry.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._DequeueThreadComplete">
-<span class="sig-name descname"><span class="pre">_DequeueThreadComplete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._DequeueThreadComplete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._DequeueThreadComplete" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._LoopEnqueue">
-<span class="sig-name descname"><span class="pre">_LoopEnqueue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._LoopEnqueue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._LoopEnqueue" title="Permalink to this definition"></a></dt>
-<dd><p>Runs the enqueue op in a loop.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._GetSession">
-<span class="sig-name descname"><span class="pre">_GetSession</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._GetSession"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._GetSession" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner.GetTrainDir">
-<span class="sig-name descname"><span class="pre">GetTrainDir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner.GetTrainDir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner.GetTrainDir" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._GetTtlDir">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_GetTtlDir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._GetTtlDir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._GetTtlDir" title="Permalink to this definition"></a></dt>
-<dd><p>Returns a path to a time-limited directory under dir if required.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._CreateSummaryWriter">
-<span class="sig-name descname"><span class="pre">_CreateSummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._CreateSummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._CreateSummaryWriter" title="Permalink to this definition"></a></dt>
-<dd><p>Creates and returns a tf summary writer.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._CreateTF2SummaryWriter">
-<span class="sig-name descname"><span class="pre">_CreateTF2SummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._CreateTF2SummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._CreateTF2SummaryWriter" title="Permalink to this definition"></a></dt>
-<dd><p>Creates a tf2 summary writer.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._TF2SummaryContext">
-<span class="sig-name descname"><span class="pre">_TF2SummaryContext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._TF2SummaryContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._TF2SummaryContext" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._CreateTF2SummaryOps">
-<span class="sig-name descname"><span class="pre">_CreateTF2SummaryOps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._CreateTF2SummaryOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._CreateTF2SummaryOps" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._InitializeTF2SummaryWriter">
-<span class="sig-name descname"><span class="pre">_InitializeTF2SummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._InitializeTF2SummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._InitializeTF2SummaryWriter" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._RunTF2SummaryOps">
-<span class="sig-name descname"><span class="pre">_RunTF2SummaryOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._RunTF2SummaryOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._RunTF2SummaryOps" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._WriteSummaries">
-<span class="sig-name descname"><span class="pre">_WriteSummaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary_writer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summaries</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._WriteSummaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._WriteSummaries" title="Permalink to this definition"></a></dt>
-<dd><p>Construct the summary and write them to the summary writer.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>summary_writer</strong> – The summary writer to use.</p></li>
-<li><p><strong>job_name</strong> – The name of the job that tries to write this summary.</p></li>
-<li><p><strong>global_step</strong> – The checkpoint used for eval is generated at this step.</p></li>
-<li><p><strong>summaries</strong> – a dict from keys to <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> protobuf messages.</p></li>
-<li><p><strong>text_filename</strong> – If not None, writes the summary to the text file.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._WriteInputDataStatSummaries">
-<span class="sig-name descname"><span class="pre">_WriteInputDataStatSummaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_enqueue_steps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._WriteInputDataStatSummaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._WriteInputDataStatSummaries" title="Permalink to this definition"></a></dt>
-<dd><p>Write input data stats as TF summaries to the training dir.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>summary_str</strong> – Merged TF scalar summaries for training related input data
-stats.</p></li>
-<li><p><strong>global_enqueue_steps</strong> – Measures how many global steps for which data has
-been enqueued.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.base_runner.BaseRunner._ExportMetrics">
-<span class="sig-name descname"><span class="pre">_ExportMetrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ExportMetrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ExportMetrics" title="Permalink to this definition"></a></dt>
-<dd><p>Exports metrics externally.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -313,6 +190,150 @@ checkpoints saved by the Trainer.</p></li>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.base_runner.</span></span><span class="sig-name descname"><span class="pre">GraphRunner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_task_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tf_master</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trial=&lt;lingvo.base_trial.NoOpTrial</span> <span class="pre">object&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Base class for graph jobs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._InVizierStudy">
+<span class="sig-name descname"><span class="pre">_InVizierStudy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._InVizierStudy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._InVizierStudy" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._UpdateEarlyStopMetric">
+<span class="sig-name descname"><span class="pre">_UpdateEarlyStopMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._UpdateEarlyStopMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._UpdateEarlyStopMetric" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._WriteToLog">
+<span class="sig-name descname"><span class="pre">_WriteToLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._WriteToLog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._WriteToLog" title="Permalink to this definition"></a></dt>
+<dd><p>Logs <code class="xref py py-obj docutils literal notranslate"><span class="pre">text</span></code> and saves it under <code class="xref py py-obj docutils literal notranslate"><span class="pre">logdir/filename</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._WaitUntilInit">
+<span class="sig-name descname"><span class="pre">_WaitUntilInit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_up_delay_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._WaitUntilInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._WaitUntilInit" title="Permalink to this definition"></a></dt>
+<dd><p>Wait until the model is ready.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._RunLoop">
+<span class="sig-name descname"><span class="pre">_RunLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._RunLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._RunLoop" title="Permalink to this definition"></a></dt>
+<dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_func</span></code>, retrying on expected errors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_name</strong> – string job name.</p></li>
+<li><p><strong>loop_func</strong> – callable to run and retry on expected errors.</p></li>
+<li><p><strong>loop_args</strong> – list or tuple of arguments to be passed to the loop_func.</p></li>
+<li><p><strong>cleanup_func</strong> – callable to run before retry.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._DequeueThreadComplete">
+<span class="sig-name descname"><span class="pre">_DequeueThreadComplete</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._DequeueThreadComplete"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._DequeueThreadComplete" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._LoopEnqueue">
+<span class="sig-name descname"><span class="pre">_LoopEnqueue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">op</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_override</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._LoopEnqueue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._LoopEnqueue" title="Permalink to this definition"></a></dt>
+<dd><p>Runs the enqueue op in a loop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._GetSession">
+<span class="sig-name descname"><span class="pre">_GetSession</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._GetSession"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._GetSession" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner.GetTrainDir">
+<span class="sig-name descname"><span class="pre">GetTrainDir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner.GetTrainDir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner.GetTrainDir" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._CreateSummaryWriter">
+<span class="sig-name descname"><span class="pre">_CreateSummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._CreateSummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._CreateSummaryWriter" title="Permalink to this definition"></a></dt>
+<dd><p>Creates and returns a tf summary writer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._CreateTF2SummaryWriter">
+<span class="sig-name descname"><span class="pre">_CreateTF2SummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._CreateTF2SummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._CreateTF2SummaryWriter" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a tf2 summary writer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._TF2SummaryContext">
+<span class="sig-name descname"><span class="pre">_TF2SummaryContext</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._TF2SummaryContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._TF2SummaryContext" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._CreateTF2SummaryOps">
+<span class="sig-name descname"><span class="pre">_CreateTF2SummaryOps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._CreateTF2SummaryOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._CreateTF2SummaryOps" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._InitializeTF2SummaryWriter">
+<span class="sig-name descname"><span class="pre">_InitializeTF2SummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._InitializeTF2SummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._InitializeTF2SummaryWriter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._RunTF2SummaryOps">
+<span class="sig-name descname"><span class="pre">_RunTF2SummaryOps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._RunTF2SummaryOps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._RunTF2SummaryOps" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._WriteSummaries">
+<span class="sig-name descname"><span class="pre">_WriteSummaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary_writer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summaries</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._WriteSummaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._WriteSummaries" title="Permalink to this definition"></a></dt>
+<dd><p>Construct the summary and write them to the summary writer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>summary_writer</strong> – The summary writer to use.</p></li>
+<li><p><strong>job_name</strong> – The name of the job that tries to write this summary.</p></li>
+<li><p><strong>global_step</strong> – The checkpoint used for eval is generated at this step.</p></li>
+<li><p><strong>summaries</strong> – a dict from keys to <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> protobuf messages.</p></li>
+<li><p><strong>text_filename</strong> – If not None, writes the summary to the text file.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.GraphRunner._WriteInputDataStatSummaries">
+<span class="sig-name descname"><span class="pre">_WriteInputDataStatSummaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">summary_str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_enqueue_steps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#GraphRunner._WriteInputDataStatSummaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.GraphRunner._WriteInputDataStatSummaries" title="Permalink to this definition"></a></dt>
+<dd><p>Write input data stats as TF summaries to the training dir.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>summary_str</strong> – Merged TF scalar summaries for training related input data
+stats.</p></li>
+<li><p><strong>global_enqueue_steps</strong> – Measures how many global steps for which data has
+been enqueued.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.base_runner.EagerRunner">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.base_runner.</span></span><span class="sig-name descname"><span class="pre">EagerRunner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#EagerRunner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.EagerRunner" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Base class for eager runners.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.base_runner.EagerRunner.Start">
+<span class="sig-name descname"><span class="pre">Start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#EagerRunner.Start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_runner.EagerRunner.Start" title="Permalink to this definition"></a></dt>
+<dd><p>Start.</p>
 </dd></dl>
 
 </dd></dl>

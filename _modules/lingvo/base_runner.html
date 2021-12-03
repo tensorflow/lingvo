@@ -87,7 +87,9 @@
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_trial</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">pdb_wrapper</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">trainer_utils</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">checkpointer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">early_stop</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -102,13 +104,204 @@
 <div class="viewcode-block" id="BaseRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner">[docs]</a><span class="k">class</span> <span class="nc">BaseRunner</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Base class for all jobs.&quot;&quot;&quot;</span>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># To early terminate a runner, we set max_steps here and that will trigger</span>
+    <span class="c1"># appropriate ShouldStop behavior in the threads. This is used by Vizier</span>
+    <span class="c1"># to early stop a trial and also EarlyStop to stop training based on</span>
+    <span class="c1"># metrics.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
+
+<div class="viewcode-block" id="BaseRunner._GetTtlDir"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetTtlDir">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_GetTtlDir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a path to a time-limited directory under dir if required.&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">duration</span>
+    <span class="k">return</span> <span class="n">path</span></div>
+
+<div class="viewcode-block" id="BaseRunner._FormatStatusMessage"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._FormatStatusMessage">[docs]</a>  <span class="k">def</span> <span class="nf">_FormatStatusMessage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">retrying</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">():</span>
+      <span class="n">message</span> <span class="o">=</span> <span class="s1">&#39;Trial:</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">retrying</span><span class="p">:</span>
+      <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Job </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="si">}</span><span class="s1">: &lt;b&gt;Retrying as expected&lt;/b&gt;</span><span class="se">\n</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="k">return</span> <span class="n">message</span></div>
+
+<div class="viewcode-block" id="BaseRunner._SetStatusMessage"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._SetStatusMessage">[docs]</a>  <span class="k">def</span> <span class="nf">_SetStatusMessage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">retrying</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update the status message for this task.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_FormatStatusMessage</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">retrying</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BaseRunner._ExportMetrics"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ExportMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ExportMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exports metrics externally.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BaseRunner._ShouldEarlyStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldEarlyStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldEarlyStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseRunner._ShouldStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_early_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check if the runner should stop.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: tf.Session.</span>
+<span class="sd">      step: The current GlobalStep.</span>
+<span class="sd">      check_early_stop: Whether or not we want to check the EarlyStop condition.</span>
+<span class="sd">        In TPU-training, we don&#39;t want to check this at the every step</span>
+<span class="sd">        granularity in the enqueue thread, as this may starve the TPU training</span>
+<span class="sd">        loop which by default operates at the 1000 steps granularity.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Whether runner should stop.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> params.train.max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="ow">and</span>
+        <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> _max_steps_for_early_stop:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">check_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldEarlyStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: Early stopping.&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: Trial finished.&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="BaseRunner._FindNewCheckpoint"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._FindNewCheckpoint">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span>
+      <span class="n">initial_delay_sec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">delay_growth_factor</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">max_delay_sec</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">_FindNewCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">processed_ckpts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the path to a new checkpoint, or raises RuntimeError.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+      <span class="c1"># Check for early stopping or trail early stopping.</span>
+      <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;No check point is found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">processed_ckpts</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;No new check point is found: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">path</span></div>
+
+<div class="viewcode-block" id="BaseRunner._TrainerFinished"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._TrainerFinished">[docs]</a>  <span class="k">def</span> <span class="nf">_TrainerFinished</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Infer if training finished using the latest training checkpoint.&quot;&quot;&quot;</span>
+    <span class="n">latest_ckpt_path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">latest_ckpt_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">latest_ckpt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span><span class="n">latest_ckpt_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">latest_ckpt</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="BaseRunner._RunOnLatestCheckpoints"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunOnLatestCheckpoints">[docs]</a>  <span class="k">def</span> <span class="nf">_RunOnLatestCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Executes &#39;runner_fn&#39; on the latest checkpoints produced by the Trainer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: the session to compute the metrics in.</span>
+<span class="sd">      runner_fn: a callable taking a session and a checkpoint path to apply to</span>
+<span class="sd">        checkpoints saved by the Trainer.</span>
+<span class="sd">      runner_dir: the log directory for this runner.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check if the trainer finished before this job (re)started. global_step</span>
+    <span class="c1"># will be 0 in this process until a checkpoint is restored, so we infer the</span>
+    <span class="c1"># trainer global_step from the step of its latest checkpoint.</span>
+    <span class="n">trainer_finished_at_job_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrainerFinished</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">trainer_finished_at_job_start</span> <span class="ow">and</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">)</span> <span class="ow">in</span> <span class="n">processed_ckpts</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;Training has finished and the final checkpoint has already been &#39;</span>
+          <span class="s1">&#39;evaluated. Specify a new eval/decode directory, or set &#39;</span>
+          <span class="s1">&#39;p.eval.load_checkpoint_from to the final checkpoint to reanalyze it.&#39;</span>
+      <span class="p">)</span>
+      <span class="k">return</span>
+
+    <span class="c1"># Process the latest checkpoints produced by the Trainer until the</span>
+    <span class="c1"># checkpoint for the final training step has been processed. If training</span>
+    <span class="c1"># has already finished then only the last checkpoint will be processed.</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+      <span class="n">ckpt_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindNewCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">processed_ckpts</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">ckpt_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Could potentially be None in the case of early stopping.</span>
+        <span class="k">break</span>
+
+      <span class="n">runner_fn</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+      <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+        <span class="k">break</span></div>
+
+<div class="viewcode-block" id="BaseRunner._RunOnAllCheckpoints"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunOnAllCheckpoints">[docs]</a>  <span class="k">def</span> <span class="nf">_RunOnAllCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Executes &#39;runner_fn&#39; on all checkpoints produced by the Trainer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: the session to compute the metrics in.</span>
+<span class="sd">      runner_fn: a callable taking a session and a checkpoint path to apply to</span>
+<span class="sd">        checkpoints saved by the Trainer.</span>
+<span class="sd">      runner_dir: the log directory for this runner.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check if the trainer finished before this job (re)started. global_step</span>
+    <span class="c1"># will be 0 in this process until a checkpoint is restored, so we infer the</span>
+    <span class="c1"># trainer global_step from the step of its latest checkpoint.</span>
+    <span class="n">trainer_finished_at_job_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrainerFinished</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+      <span class="c1"># Checkpoints may be deleted while runner_fn is running, so we fetch the</span>
+      <span class="c1"># checkpoint state every loop.</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">checkpoint_dir</span><span class="p">)</span>
+      <span class="n">ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span> <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span>
+      <span class="n">unprocessed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ckpts</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">processed_ckpts</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">unprocessed_ckpts</span><span class="p">:</span>
+        <span class="c1"># Process the checkpoints sequentially.</span>
+        <span class="n">ckpt_path</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unprocessed_ckpts</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">runner_fn</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
+          <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+          <span class="c1"># Though it should be exceedingly rare in realistic cases, it&#39;s</span>
+          <span class="c1"># technically possible for the checkpoint in ckpt_path to be deleted</span>
+          <span class="c1"># by Trainer.checkpointer during the set and sort operations above.</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+              <span class="s1">&#39;Ignorring NotFoundError resulting from rare race &#39;</span>
+              <span class="s1">&#39;condition:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">trainer_finished_at_job_start</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+        <span class="c1"># Exit if all checkpoints have been processed and training is done.</span>
+        <span class="k">break</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Check for new checkpoints every 10 seconds if none are found. Spends</span>
+        <span class="c1"># 1s worth of CPU cycles every ~3hrs looking for new checkpoints.</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GraphRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner">[docs]</a><span class="k">class</span> <span class="nc">GraphRunner</span><span class="p">(</span><span class="n">BaseRunner</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for graph jobs.&quot;&quot;&quot;</span>
+
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">params</span><span class="p">,</span>
                <span class="n">model_task_name</span><span class="p">,</span>
                <span class="n">logdir</span><span class="p">,</span>
                <span class="n">tf_master</span><span class="p">,</span>
                <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">()):</span>
-    <span class="sd">&quot;&quot;&quot;Construct a new BaseRunner.</span>
+    <span class="sd">&quot;&quot;&quot;Construct a new GraphRunner.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      params:  Params object containing model configuration.</span>
@@ -118,6 +311,7 @@
 <span class="sd">      tf_master:  String path to the master job, e.g. &#39;local&#39;.</span>
 <span class="sd">      trial:   An optional hyperparameter trial. Used by Vizier studies.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="c1"># Set in subclasses.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
@@ -140,12 +334,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="c1"># To early terminate a runner, we set max_steps here and that will trigger</span>
-    <span class="c1"># appropriate ShouldStop behavior in the threads. This is used by Vizier</span>
-    <span class="c1"># to early stop a trial and also EarlyStop to stop training based on</span>
-    <span class="c1"># metrics.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
-
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
@@ -159,7 +347,6 @@
 
     <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
     <span class="c1"># The actual EarlyStop object.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_verbose_enqueue_logging</span> <span class="o">=</span> <span class="kc">True</span>
@@ -175,25 +362,10 @@
     <span class="c1"># Merged TF scalar summaries for training related input data stats.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="kc">None</span>
 
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
-
-<div class="viewcode-block" id="BaseRunner._InVizierStudy"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._InVizierStudy">[docs]</a>  <span class="k">def</span> <span class="nf">_InVizierStudy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._InVizierStudy"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._InVizierStudy">[docs]</a>  <span class="k">def</span> <span class="nf">_InVizierStudy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">,</span> <span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseRunner._FormatStatusMessage"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._FormatStatusMessage">[docs]</a>  <span class="k">def</span> <span class="nf">_FormatStatusMessage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">retrying</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">():</span>
-      <span class="n">message</span> <span class="o">=</span> <span class="s1">&#39;Trial:</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">(),</span> <span class="n">message</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">retrying</span><span class="p">:</span>
-      <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Job </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="si">}</span><span class="s1">: &lt;b&gt;Retrying as expected&lt;/b&gt;</span><span class="se">\n</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s1">&#39;</span>
-    <span class="k">return</span> <span class="n">message</span></div>
-
-<div class="viewcode-block" id="BaseRunner._SetStatusMessage"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._SetStatusMessage">[docs]</a>  <span class="k">def</span> <span class="nf">_SetStatusMessage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">retrying</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Update the status message for this task.&quot;&quot;&quot;</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_FormatStatusMessage</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">retrying</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="BaseRunner._UpdateEarlyStopMetric"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._UpdateEarlyStopMetric">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateEarlyStopMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jobname</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">,</span>
+<div class="viewcode-block" id="GraphRunner._UpdateEarlyStopMetric"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._UpdateEarlyStopMetric">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateEarlyStopMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jobname</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metric_name</span><span class="p">,</span>
                              <span class="n">metric_value</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="p">:</span>
       <span class="k">return</span>
@@ -204,50 +376,7 @@
           <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">jobname</span><span class="p">),</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
           <span class="n">metric_value</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseRunner._ShouldEarlyStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldEarlyStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldEarlyStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BaseRunner._ShouldStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_early_stop</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Check if the runner should stop.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      sess: tf.Session.</span>
-<span class="sd">      step: The current GlobalStep.</span>
-<span class="sd">      check_early_stop: Whether or not we want to check the EarlyStop condition.</span>
-<span class="sd">        In TPU-training, we don&#39;t want to check this at the every step</span>
-<span class="sd">        granularity in the enqueue thread, as this may starve the TPU training</span>
-<span class="sd">        loop which by default operates at the 1000 steps granularity.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Whether runner should stop.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="n">step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
-
-    <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> params.train.max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
-                      <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">True</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> _max_steps_for_early_stop:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">True</span>
-
-    <span class="k">if</span> <span class="n">check_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldEarlyStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: Early stopping.&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">True</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: Trial finished.&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">True</span>
-
-    <span class="k">return</span> <span class="kc">False</span></div>
-
-<div class="viewcode-block" id="BaseRunner._WriteToLog"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._WriteToLog">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._WriteToLog"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._WriteToLog">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Logs `text` and saves it under `logdir/filename`.&quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
       <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -261,7 +390,7 @@
                   <span class="n">tag</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">tensor</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">make_tensor_proto</span><span class="p">([</span><span class="n">text</span><span class="p">]))</span>
           <span class="p">]))</span></div>
 
-<div class="viewcode-block" id="BaseRunner._WaitUntilInit"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._WaitUntilInit">[docs]</a>  <span class="k">def</span> <span class="nf">_WaitUntilInit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start_up_delay_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._WaitUntilInit"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._WaitUntilInit">[docs]</a>  <span class="k">def</span> <span class="nf">_WaitUntilInit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">start_up_delay_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wait until the model is ready.&quot;&quot;&quot;</span>
     <span class="c1"># Wait a fix amount of time at start.</span>
     <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
@@ -290,25 +419,7 @@
 
     <span class="k">return</span> <span class="n">RetryLoop</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseRunner._FindNewCheckpoint"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._FindNewCheckpoint">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span>
-      <span class="n">initial_delay_sec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">delay_growth_factor</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">max_delay_sec</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
-  <span class="k">def</span> <span class="nf">_FindNewCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">processed_ckpts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the path to a new checkpoint, or raises RuntimeError.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-      <span class="c1"># Check for early stopping or trail early stopping.</span>
-      <span class="k">return</span> <span class="kc">None</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
-      <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No check point is found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
-      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">processed_ckpts</span><span class="p">:</span>
-      <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No new check point is found: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
-      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">path</span></div>
-
-<div class="viewcode-block" id="BaseRunner._RunLoop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunLoop">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">()</span>
+<div class="viewcode-block" id="GraphRunner._RunLoop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._RunLoop">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">()</span>
   <span class="k">def</span> <span class="nf">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">loop_func</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">(),</span> <span class="n">cleanup_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs `loop_func`, retrying on expected errors.</span>
 
@@ -434,11 +545,11 @@
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
 
-<div class="viewcode-block" id="BaseRunner._DequeueThreadComplete"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._DequeueThreadComplete">[docs]</a>  <span class="k">def</span> <span class="nf">_DequeueThreadComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._DequeueThreadComplete"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._DequeueThreadComplete">[docs]</a>  <span class="k">def</span> <span class="nf">_DequeueThreadComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dequeue_thread_complete</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span></div>
 
-<div class="viewcode-block" id="BaseRunner._LoopEnqueue"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._LoopEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_LoopEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">session_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._LoopEnqueue"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._LoopEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_LoopEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">session_override</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs the enqueue op in a loop.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;_LoopEnqueue is not supported in eager mode.&#39;</span><span class="p">)</span>
@@ -515,56 +626,50 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">op</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="BaseRunner._GetSession"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetSession">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._GetSession"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._GetSession">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;_GetSession is not supported in eager mode.&#39;</span><span class="p">)</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;graph&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="BaseRunner.GetTrainDir"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner.GetTrainDir">[docs]</a>  <span class="k">def</span> <span class="nf">GetTrainDir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner.GetTrainDir"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner.GetTrainDir">[docs]</a>  <span class="k">def</span> <span class="nf">GetTrainDir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span></div>
 
-<div class="viewcode-block" id="BaseRunner._GetTtlDir"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetTtlDir">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_GetTtlDir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a path to a time-limited directory under dir if required.&quot;&quot;&quot;</span>
-    <span class="k">del</span> <span class="n">duration</span>
-    <span class="k">return</span> <span class="n">path</span></div>
-
-<div class="viewcode-block" id="BaseRunner._CreateSummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._CreateSummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logdir</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._CreateSummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._CreateSummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logdir</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates and returns a tf summary writer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">FileWriter</span><span class="p">(</span><span class="n">logdir</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseRunner._CreateTF2SummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._CreateTF2SummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logdir</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._CreateTF2SummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._CreateTF2SummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logdir</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a tf2 summary writer.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
       <span class="k">return</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">create_file_writer</span><span class="p">(</span><span class="n">logdir</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseRunner._TF2SummaryContext"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._TF2SummaryContext">[docs]</a>  <span class="k">def</span> <span class="nf">_TF2SummaryContext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._TF2SummaryContext"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._TF2SummaryContext">[docs]</a>  <span class="k">def</span> <span class="nf">_TF2SummaryContext</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseRunner._CreateTF2SummaryOps"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._CreateTF2SummaryOps">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTF2SummaryOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._CreateTF2SummaryOps"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._CreateTF2SummaryOps">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateTF2SummaryOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
       <span class="k">return</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">all_v2_summary_ops</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_flush</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseRunner._InitializeTF2SummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._InitializeTF2SummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_InitializeTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._InitializeTF2SummaryWriter"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._InitializeTF2SummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_InitializeTF2SummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span><span class="p">:</span>
       <span class="k">return</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_writer</span><span class="o">.</span><span class="n">init</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="BaseRunner._RunTF2SummaryOps"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunTF2SummaryOps">[docs]</a>  <span class="k">def</span> <span class="nf">_RunTF2SummaryOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._RunTF2SummaryOps"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._RunTF2SummaryOps">[docs]</a>  <span class="k">def</span> <span class="nf">_RunTF2SummaryOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_tf2_summary</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="k">return</span>
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_op</span><span class="p">)</span>
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf2_summary_flush</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseRunner._WriteSummaries"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._WriteSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="GraphRunner._WriteSummaries"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._WriteSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">summary_writer</span><span class="p">,</span>
                       <span class="n">job_name</span><span class="p">,</span>
                       <span class="n">global_step</span><span class="p">,</span>
@@ -606,7 +711,7 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">text_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_metrics</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="BaseRunner._WriteInputDataStatSummaries"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._WriteInputDataStatSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteInputDataStatSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">summary_str</span><span class="p">,</span> <span class="n">global_enqueue_steps</span><span class="p">):</span>
+<div class="viewcode-block" id="GraphRunner._WriteInputDataStatSummaries"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._WriteInputDataStatSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteInputDataStatSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">summary_str</span><span class="p">,</span> <span class="n">global_enqueue_steps</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Write input data stats as TF summaries to the training dir.</span>
 
 <span class="sd">    Args:</span>
@@ -620,101 +725,38 @@
 
     <span class="k">if</span> <span class="n">global_enqueue_steps</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_stats_summary_interval_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary_str</span><span class="p">,</span> <span class="n">global_enqueue_steps</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div></div>
 
-<div class="viewcode-block" id="BaseRunner._ExportMetrics"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ExportMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ExportMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Exports metrics externally.&quot;&quot;&quot;</span>
-    <span class="k">pass</span></div>
 
-<div class="viewcode-block" id="BaseRunner._TrainerFinished"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._TrainerFinished">[docs]</a>  <span class="k">def</span> <span class="nf">_TrainerFinished</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Infer if training finished using the latest training checkpoint.&quot;&quot;&quot;</span>
-    <span class="n">latest_ckpt_path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">latest_ckpt_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">latest_ckpt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span><span class="n">latest_ckpt_path</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">latest_ckpt</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">))</span></div>
+<div class="viewcode-block" id="EagerRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.EagerRunner">[docs]</a><span class="k">class</span> <span class="nc">EagerRunner</span><span class="p">(</span><span class="n">BaseRunner</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for eager runners.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="BaseRunner._RunOnLatestCheckpoints"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunOnLatestCheckpoints">[docs]</a>  <span class="k">def</span> <span class="nf">_RunOnLatestCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Executes &#39;runner_fn&#39; on the latest checkpoints produced by the Trainer.</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span>
+        <span class="n">trainer_utils</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cluster params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="kc">None</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">      sess: the session to compute the metrics in.</span>
-<span class="sd">      runner_fn: a callable taking a session and a checkpoint path to apply to</span>
-<span class="sd">        checkpoints saved by the Trainer.</span>
-<span class="sd">      runner_dir: the log directory for this runner.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Check if the trainer finished before this job (re)started. global_step</span>
-    <span class="c1"># will be 0 in this process until a checkpoint is restored, so we infer the</span>
-    <span class="c1"># trainer global_step from the step of its latest checkpoint.</span>
-    <span class="n">trainer_finished_at_job_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrainerFinished</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">trainer_finished_at_job_start</span> <span class="ow">and</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span> <span class="ow">in</span> <span class="n">processed_ckpts</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-          <span class="s1">&#39;Training has finished and the final checkpoint has already been &#39;</span>
-          <span class="s1">&#39;evaluated. Specify a new eval/decode directory, or set &#39;</span>
-          <span class="s1">&#39;p.eval.load_checkpoint_from to the final checkpoint to reanalyze it.&#39;</span>
-      <span class="p">)</span>
-      <span class="k">return</span>
+<div class="viewcode-block" id="EagerRunner.Start"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.EagerRunner.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Start.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span>
 
-    <span class="c1"># Process the latest checkpoints produced by the Trainer until the</span>
-    <span class="c1"># checkpoint for the final training step has been processed. If training</span>
-    <span class="c1"># has already finished then only the last checkpoint will be processed.</span>
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-      <span class="n">ckpt_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindNewCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">processed_ckpts</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">ckpt_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># Could potentially be None in the case of early stopping.</span>
-        <span class="k">break</span>
-
-      <span class="n">runner_fn</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-      <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
-        <span class="k">break</span></div>
-
-<div class="viewcode-block" id="BaseRunner._RunOnAllCheckpoints"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunOnAllCheckpoints">[docs]</a>  <span class="k">def</span> <span class="nf">_RunOnAllCheckpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">runner_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Executes &#39;runner_fn&#39; on all checkpoints produced by the Trainer.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      sess: the session to compute the metrics in.</span>
-<span class="sd">      runner_fn: a callable taking a session and a checkpoint path to apply to</span>
-<span class="sd">        checkpoints saved by the Trainer.</span>
-<span class="sd">      runner_dir: the log directory for this runner.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Check if the trainer finished before this job (re)started. global_step</span>
-    <span class="c1"># will be 0 in this process until a checkpoint is restored, so we infer the</span>
-    <span class="c1"># trainer global_step from the step of its latest checkpoint.</span>
-    <span class="n">trainer_finished_at_job_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrainerFinished</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="n">processed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">))</span>
-
-    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-      <span class="c1"># Checkpoints may be deleted while runner_fn is running, so we fetch the</span>
-      <span class="c1"># checkpoint state every loop.</span>
-      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
-      <span class="n">ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span> <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span>
-      <span class="n">unprocessed_ckpts</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ckpts</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">processed_ckpts</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="n">unprocessed_ckpts</span><span class="p">:</span>
-        <span class="c1"># Process the checkpoints sequentially.</span>
-        <span class="n">ckpt_path</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unprocessed_ckpts</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">try</span><span class="p">:</span>
-          <span class="n">runner_fn</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
-          <span class="n">processed_ckpts</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ckpt_path</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-          <span class="c1"># Though it should be exceedingly rare in realistic cases, it&#39;s</span>
-          <span class="c1"># technically possible for the checkpoint in ckpt_path to be deleted</span>
-          <span class="c1"># by Trainer.checkpointer during the set and sort operations above.</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-              <span class="s1">&#39;Ignorring NotFoundError resulting from rare race &#39;</span>
-              <span class="s1">&#39;condition:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="n">trainer_finished_at_job_start</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
-        <span class="c1"># Exit if all checkpoints have been processed and training is done.</span>
-        <span class="k">break</span>
+    <span class="c1"># Set up cluster and model params.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevicesEager</span><span class="p">()</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">write_v2_checkpoints</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV2</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Check for new checkpoints every 10 seconds if none are found. Spends</span>
-        <span class="c1"># 1s worth of CPU cycles every ~3hrs looking for new checkpoints.</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV1</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
