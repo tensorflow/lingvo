@@ -87,7 +87,7 @@
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_trial</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">pdb_wrapper</span>
-<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">trainer_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">trainer_utils</span>  <span class="c1"># pylint: disable=unused-import</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">checkpointer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
@@ -104,11 +104,39 @@
 <div class="viewcode-block" id="BaseRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner">[docs]</a><span class="k">class</span> <span class="nc">BaseRunner</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Base class for all jobs.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">params</span><span class="p">,</span>
+               <span class="n">model_task_name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+               <span class="n">logdir</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+               <span class="n">tf_master</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+               <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">()):</span>
+    <span class="sd">&quot;&quot;&quot;A job runner.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      params:  Params object containing model configuration.</span>
+<span class="sd">      model_task_name:  String name of the task this runner should execute for</span>
+<span class="sd">        multitask models only.  See flag for details.</span>
+<span class="sd">      logdir:  String path to the log directory to output to.</span>
+<span class="sd">      tf_master:  String path to the master job, e.g. &#39;local&#39;.</span>
+<span class="sd">      trial:   An optional hyperparameter trial. Used by Vizier studies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">OverrideModelParams</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span> <span class="o">=</span> <span class="n">model_task_name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span> <span class="o">=</span> <span class="n">tf_master</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="n">trial</span>
+
+    <span class="c1"># If the runner is conducting a Vizier trial, scope all the variables</span>
+    <span class="c1"># (e.g., global_step) by the trial id so that we do not share states across</span>
+    <span class="c1"># trials.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">()</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="c1"># To early terminate a runner, we set max_steps here and that will trigger</span>
     <span class="c1"># appropriate ShouldStop behavior in the threads. This is used by Vizier</span>
@@ -116,9 +144,29 @@
     <span class="c1"># metrics.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="o">=</span> <span class="kc">None</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Starting ...&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
+
+    <span class="c1"># Ensure global step tensor is created.</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
+
+<div class="viewcode-block" id="BaseRunner.Start"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevicesEager</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="BaseRunner._GetTtlDir"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetTtlDir">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_GetTtlDir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
@@ -295,47 +343,15 @@
 <div class="viewcode-block" id="GraphRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner">[docs]</a><span class="k">class</span> <span class="nc">GraphRunner</span><span class="p">(</span><span class="n">BaseRunner</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for graph jobs.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-               <span class="n">params</span><span class="p">,</span>
-               <span class="n">model_task_name</span><span class="p">,</span>
-               <span class="n">logdir</span><span class="p">,</span>
-               <span class="n">tf_master</span><span class="p">,</span>
-               <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">()):</span>
-    <span class="sd">&quot;&quot;&quot;Construct a new GraphRunner.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      params:  Params object containing model configuration.</span>
-<span class="sd">      model_task_name:  String name of the task this runner should execute for</span>
-<span class="sd">        multitask models only.  See flag for details.</span>
-<span class="sd">      logdir:  String path to the log directory to output to.</span>
-<span class="sd">      tf_master:  String path to the master job, e.g. &#39;local&#39;.</span>
-<span class="sd">      trial:   An optional hyperparameter trial. Used by Vizier studies.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct a new GraphRunner.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Set in subclasses.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_daemon</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_verbose_enqueue_logging</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">OverrideModelParams</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">logdir</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span> <span class="o">=</span> <span class="n">tf_master</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span> <span class="o">=</span> <span class="n">model_task_name</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="n">trial</span>
-    <span class="c1"># If the runner is conducting a Vizier trial, scope all the variables</span>
-    <span class="c1"># (e.g., global_step) by the trial id so that we do not share states across</span>
-    <span class="c1"># trials.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="kc">False</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
@@ -343,21 +359,14 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dequeue_thread_complete</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
 
-    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">)</span>
     <span class="c1"># The actual EarlyStop object.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_verbose_enqueue_logging</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Starting ...&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_worker_cluster_def</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">worker_cluster_def</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevicesEager</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">())</span>
 
     <span class="c1"># Merged TF scalar summaries for training related input data stats.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="kc">None</span>
@@ -731,13 +740,8 @@
 <div class="viewcode-block" id="EagerRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.EagerRunner">[docs]</a><span class="k">class</span> <span class="nc">EagerRunner</span><span class="p">(</span><span class="n">BaseRunner</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for eager runners.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span>
-        <span class="n">trainer_utils</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="p">))</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cluster params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -745,9 +749,9 @@
     <span class="sd">&quot;&quot;&quot;Start.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">()</span>
     <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
 
     <span class="c1"># Set up cluster and model params.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevicesEager</span><span class="p">()</span>
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">)</span>

@@ -303,9 +303,6 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="c1"># BaseRunner legacy</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="kc">None</span>
-
     <span class="n">train_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
@@ -492,13 +489,14 @@
         <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()))</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableStore</span><span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
-        <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
         <span class="n">shared_model</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="n">shared_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">shared_model</span></div>
 
 <div class="viewcode-block" id="ExecutorTpu.Start"><a class="viewcode-back" href="../../lingvo.executor.html#lingvo.executor.ExecutorTpu.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
     <span class="c1"># Run training.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;executor_tpu&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
@@ -521,6 +519,8 @@
                   <span class="n">embedding_config</span><span class="o">=</span><span class="n">config_proto</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">worker</span><span class="p">))</span>
 
       <span class="c1"># Initialize the variables first, if needed.</span>
+      <span class="c1"># Need to call create global step again because this is run in a thread.</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
       <span class="n">compile_fns</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>

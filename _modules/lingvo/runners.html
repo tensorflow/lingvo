@@ -179,6 +179,7 @@
     <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">init_op</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Controller.Start"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Controller.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Controller.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Controller.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
@@ -307,6 +308,7 @@
           <span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer.Start"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Trainer.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Trainer.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
@@ -688,6 +690,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TrainerTpu.Start"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.TrainerTpu.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
     <span class="c1"># Run training.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_CleanUp</span><span class="p">)</span></div>
 
@@ -942,6 +945,7 @@
     <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Evaler.Start"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Evaler.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Evaler._Loop"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Evaler._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1198,6 +1202,7 @@
     <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder.Start"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Decoder.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder._Loop"><a class="viewcode-back" href="../../lingvo.runners.html#lingvo.runners.Decoder._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
