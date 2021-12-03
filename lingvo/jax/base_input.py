@@ -15,6 +15,8 @@
 # ==============================================================================
 """Base classes for the lingvo Jax input layers."""
 
+from typing import List
+
 from lingvo.core import datasource
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -113,6 +115,21 @@ class BaseInput:
   def reset(self) -> None:
     pass
 
+  def ids_to_strings(self, ids: pytypes.NpTensor,
+                     lengths: pytypes.NpTensor) -> List[str]:
+    """Converts int ids into strings.
+
+    Args:
+      ids: A matrix of shape [batch, seqlen], each row is a sequence to be
+        converted.
+      lengths: A vector of shape [batch]. lens[i] is the sequence length of the
+        i-th row. Only the first lens[i] tokens in ids[i, :] are valid tokens.
+
+    Returns:
+      A list strings of shape [batch]. The converted texts.
+    """
+    raise NotImplementedError
+
 
 class LingvoInputAdaptor(BaseInput):
   """Syntactic sugar for adapting a Lingvo style input for Jax.
@@ -198,3 +215,9 @@ class LingvoInputAdaptor(BaseInput):
       return
     # reinstantiate the input and retrace self._get_batch.
     self._initialize()
+
+  def ids_to_strings(self, ids: pytypes.NpTensor,
+                     lengths: pytypes.NpTensor) -> List[str]:
+    """Converts int ids into strings."""
+    bytes_list = self.input.IdsToStrings(ids, lengths).numpy()
+    return [b.decode('utf-8') for b in bytes_list]
