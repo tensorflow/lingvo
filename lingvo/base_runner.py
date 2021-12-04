@@ -98,10 +98,7 @@ class BaseRunner:
     return self._params
 
   def Start(self):
-    if py_utils.IsEagerMode():
-      self._cluster.InitDevicesEager()
-    else:
-      self._cluster.InitDevices(self._GetSession())
+    pass
 
   @classmethod
   def _GetTtlDir(cls, path, duration):
@@ -305,6 +302,11 @@ class GraphRunner(BaseRunner):
 
     # Merged TF scalar summaries for training related input data stats.
     self._merged_input_data_summary_op = None
+
+    if py_utils.IsEagerMode():
+      self._cluster.InitDevicesEager()
+    else:
+      self._cluster.InitDevices(self._GetSession())
 
   def _InVizierStudy(self):
     return not isinstance(self._trial, base_trial.NoOpTrial)
@@ -687,6 +689,7 @@ class EagerRunner(BaseRunner):
     super().Start()
 
     # Set up cluster and model params.
+    self._cluster.InitDevicesEager()
     with self._cluster:
       self._model = self._params.Instantiate()
       self._task = self._model.GetTask(FLAGS.model_task_name)
