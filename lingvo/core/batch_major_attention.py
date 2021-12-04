@@ -4289,6 +4289,9 @@ class TransformerLayer(base_layer.BaseLayer):
     p.Define('num_heads', None, 'Num of heads in self attention.')
     p.Define('has_aux_atten', False,
              'If set, introduces a second attention layer')
+    p.Define(
+        'aux_atten_input_dim', None,
+        'If set, allows the aux atten layer to use customized input dims.')
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
     p.Define('tr_atten_tpl',
              TransformerAttentionLayer.Params().Set(),
@@ -4472,6 +4475,8 @@ class TransformerLayer(base_layer.BaseLayer):
       params = p.tr_atten_tpl.Copy()
       params.name = 'multihead_cross_atten'
       params.input_dim = p.input_dim
+      if p.aux_atten_input_dim is not None:
+        params.input_dim = p.aux_atten_input_dim
       if p.num_heads and not isinstance(params.num_heads, list):
         params.num_heads = p.num_heads
       if isinstance(params.atten_tpl, list):

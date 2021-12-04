@@ -2879,6 +2879,36 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(ctx_sum, step_sum)
 
   @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
+  def testTransformerLayerFPropWithCrossAttentionInputDimAsDict(
+      self, multiplier):
+    with self.session(use_gpu=True) as sess:
+      (query_vec, _, _, _) = self._TransformerAttentionLayerInputs()
+      (_, _, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs(input_dim=2)
+      query_vec = tf.tile(query_vec, [multiplier, 1, 1])
+      paddings = tf.zeros([2 * multiplier, 5])
+      p = attention.TransformerLayer.Params()
+      p.name = 'transformer_layer'
+      p.input_dim = 4
+      p.has_aux_atten = True
+      p.aux_atten_input_dim = {'query': 4, 'key': 2, 'value': 2}
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_heads = 2
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(l.theta, query_vec, paddings, aux_vec, aux_paddings)
+
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx_vec)
+      actual_ctx = np.reshape(actual_ctx, (10 * multiplier, 4))
+      tf.logging.info(np.array_repr(actual_ctx))
+      expected_ctx = [
+          7.3633065, 8.883232, 5.772561, 8.73429, 9.295169, 8.068511, 7.8807983,
+          6.7816095, 9.321457, 7.6491246
+      ] * multiplier
+      self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=1))
+
+  @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
   def testTransformerLayerFPropWithCrossAttention(self, multiplier):
     with self.session(use_gpu=True) as sess:
       (query_vec, _, aux_vec,
