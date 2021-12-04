@@ -163,10 +163,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
 
 <div class="viewcode-block" id="BaseRunner.Start"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevicesEager</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">())</span></div>
+    <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="BaseRunner._GetTtlDir"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._GetTtlDir">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_GetTtlDir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
@@ -370,6 +367,11 @@
 
     <span class="c1"># Merged TF scalar summaries for training related input data stats.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_merged_input_data_summary_op</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevicesEager</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">())</span>
 
 <div class="viewcode-block" id="GraphRunner._InVizierStudy"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.GraphRunner._InVizierStudy">[docs]</a>  <span class="k">def</span> <span class="nf">_InVizierStudy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">,</span> <span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">)</span></div>
@@ -752,6 +754,7 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span>
 
     <span class="c1"># Set up cluster and model params.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">InitDevicesEager</span><span class="p">()</span>
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">)</span>
