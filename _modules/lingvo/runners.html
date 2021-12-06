@@ -802,8 +802,12 @@
           <span class="c1"># max step horizon, the trainer thread would continue run for 3 loops</span>
           <span class="c1"># (3K global steps usually), so the enqueue thread could get a chance</span>
           <span class="c1"># to move forward and run `_ShouldStop()` to stop gracefully.</span>
+          <span class="c1"># Updated this to account for `tpu_infeed_parallelism` which could</span>
+          <span class="c1"># allow for more enqueue threads to get further ahead of the traiiner</span>
+          <span class="c1"># thread.</span>
           <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span>
+            <span class="n">tpu_infeed_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">tpu_infeed_parallelism</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Early stopping at step: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span><span class="p">)</span>
 
