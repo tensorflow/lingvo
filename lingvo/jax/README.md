@@ -18,6 +18,8 @@ More specifically:
 
 *   [TensorFlow](http://github.com/tensorflow/tensorflow)
 
+*   [TensorFlow Text](http://github.com/tensorflow/text)
+
 *   [NumPy](http://github.com/numpy/numpy)
 
 *   [Sympy](https://github.com/sympy/sympy)

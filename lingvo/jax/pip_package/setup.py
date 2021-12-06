@@ -53,6 +53,7 @@ REQUIRED_PACKAGES = [
     'tensorflow-datasets',
     'tensorflow~=' + tf.__version__,
     'tensorflow-hub',
+    'tensorflow-text',
 ]
 
 
