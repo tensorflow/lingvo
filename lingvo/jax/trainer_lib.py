@@ -410,6 +410,45 @@ def eval_step_single_learner(
   return mean_loss, mean_metrics, per_example_out, summary_tensors
 
 
+def decode_step(mdl: Model,
+                mdl_vars: NestedJTensor,
+                prng_key: JTensor,
+                global_step: JTensor,
+                inputs: Union[JTensor, NestedMap],
+                fprop_dtype: jnp.dtype = jnp.float32) -> NestedMap:
+  """Decodes a model for a single step.
+
+  Args:
+    mdl: An instance of model.BaseTask.
+    mdl_vars: model variables to be used during eval.
+    prng_key: A prng seed, of shape [2], of type np.uint32.
+    global_step: A global step tensor indicating how many steps a model has been
+      trained.
+    inputs: A batch of inputs to mdl.decode().
+    fprop_dtype: fprop datatype, can be either jnp.float32 or jnp.bfloat16.
+
+  Returns:
+    A NestedMap as computed by mdl.decode().
+  """
+  context_p = base_layer.JaxContext.Params().Set(do_eval=True)
+  # Fold in global_step as part of the random seed key, so that random
+  # numbers depends on global step.
+  prng_key = jax.random.fold_in(prng_key, global_step)
+
+  if fprop_dtype == jnp.bfloat16:
+    mdl_vars = jax.tree_map(_maybe_to_bfloat16, mdl_vars)
+    inputs = jax.tree_map(_maybe_to_bfloat16, inputs)
+  elif fprop_dtype != jnp.float32:
+    assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
+
+  with base_layer.JaxContext.new_context(
+      params=context_p, prng_key=prng_key, global_step=global_step):
+    # Prepares mdl for fprop. This clears all forward-updated vars that kept
+    # locally in mdl.
+    mdl.prepare_fprop()
+    return mdl.decode(mdl_vars, inputs)
+
+
 def initialize_partitioned_model_states(
     mdl: model.BaseTask,
     prng_key: PRNGKey,

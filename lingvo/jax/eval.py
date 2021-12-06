@@ -302,7 +302,94 @@ def decode_once(
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
   """
-  logging.info('running decode_once on model %s from %s', model_name,
+  logging.info('running decode_once on model %s restored from %s', model_name,
                restore_checkpoint_dir)
-  del job_log_dir, multi_host_checkpointing, restore_checkpoint_step, checkpoint_type
-  # TODO(zhouwk): implement this. placeholder for now.
+  model_config = model_utils.get_model(model_name)()
+  model_p = model_config.task()
+  decoder_inputs = model_config.decoder_datasets()
+  if not decoder_inputs:
+    return
+  for inp in decoder_inputs:
+    inp.num_infeed_hosts = jax.process_count()
+    inp.infeed_host_index = jax.process_index()
+  if model_p.device_mesh is not None:
+    del multi_host_checkpointing
+    raise NotImplementedError('Decoding spmd model not yet supported.')
+  else:
+    decode_once_pmap_model(model_p, decoder_inputs, job_log_dir,
+                           checkpoint_type, restore_checkpoint_dir,
+                           restore_checkpoint_step)
+
+
+def decode_once_pmap_model(
+    model_p: InstantiableParams,
+    input_p: Sequence[InstantiableParams],
+    job_log_dir: Optional[str],
+    checkpoint_type: checkpoints.CheckpointType,
+    restore_checkpoint_dir: str,
+    restore_checkpoint_step: Optional[int],
+) -> None:
+  """Runs the decoding once on the entire decoder datasets for PMAP model.
+
+  Args:
+    model_p: Params for the data parallel model.
+    input_p: List of input params to be decoded.
+    job_log_dir: Directory for the job logs.
+    checkpoint_type: Type of model checkpointing method to use.
+    restore_checkpoint_dir: The directory from which to restore checkpoint.
+    restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
+      try to restore from the latest checkpoint if any.
+  """
+  jax_model = model_p.Instantiate()
+  inputs = [p.Instantiate() for p in input_p]
+  # TODO(shafey): Retrieve the seeds from the model definition instead.
+  prng_key = jax.random.PRNGKey(1234)
+  prng_key, init_key = jax.random.split(prng_key)
+
+  model_states = trainer_lib.initialize_model_state(jax_model, init_key)
+  if restore_checkpoint_dir:
+    model_states = checkpoints.restore_checkpoint(
+        model_states,
+        restore_checkpoint_dir,
+        step=restore_checkpoint_step,
+        checkpoint_type=checkpoint_type)
+  replicated_model_states = trainer_lib.replicate_model_state(model_states)
+  del model_states
+  logging.info('replicated_model_states: %s',
+               jax.tree_map(lambda x: x.shape, replicated_model_states))
+  # From now on, different replicas should use different random seeds.
+  # Here, each process will have its unique prng_key.
+  # prng_key will be further split so that each core on a host will get
+  # different prng_key.
+  prng_key = jax.random.fold_in(prng_key, jax.process_index())
+  logging.info('root prng_key: %s', prng_key)
+
+  def decode_step(mdl_vars, prng_key, global_step, inputs):
+    return trainer_lib.decode_step(jax_model, mdl_vars, prng_key, global_step,
+                                   inputs, model_p.fprop_dtype)
+
+  num_devices = jax.local_device_count()
+  prng_key, eval_key = jax.random.split(prng_key)
+  eval_prng_seed = jax.random.split(eval_key, num=num_devices)
+  logging.info('eval prng_seed: %s', eval_prng_seed)
+
+  p_decode_step = jax.pmap(decode_step, axis_name='batch')
+  decode_step = functools.partial(p_decode_step,
+                                  replicated_model_states.mdl_vars,
+                                  eval_prng_seed, replicated_model_states.step)
+
+  num_steps = [
+      -1 if p.reset_for_eval else p.eval_loop_num_batches for p in input_p
+  ]
+  for split, num_split_steps in enumerate(num_steps):
+    step_num = 0
+    while num_split_steps < 0 or step_num < num_split_steps:
+      step_num += 1
+      try:
+        batch = inputs[split].get_next()
+      except tf.errors.OutOfRangeError:
+        break
+      batch = tf.nest.map_structure(py_utils.reshard, batch)
+      _ = decode_step(batch)
+  # TODO(zhouwk): process the decoder outputs and write to disk.
+  del job_log_dir

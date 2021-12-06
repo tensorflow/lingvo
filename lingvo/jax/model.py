@@ -342,6 +342,11 @@ class LanguageModel(BaseTask):
       per_example_output = predictions
     return metrics, per_example_output
 
+  def decode(self, theta: NestedMap, input_batch: NestedMap) -> NestedMap:
+    del theta, input_batch
+    # TODO(b/198356509): implement greedy search decoding.
+    return NestedMap()
+
 
 class ClassificationTask(BaseTask):
   """Classification task for images and video."""
