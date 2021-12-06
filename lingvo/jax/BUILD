@@ -106,6 +106,7 @@ pytype_strict_library(
     srcs = ["eval.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_layer",
         ":base_model_params",
         ":model_utils",
         ":partitioning",
@@ -117,6 +118,7 @@ pytype_strict_library(
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
         "//lingvo/jax:checkpoints",
+        "//lingvo/jax:io_utils",
         "//lingvo/jax:model_imports",
         # Implicit tensorflow dependency.
     ],
@@ -164,6 +166,7 @@ pytype_strict_library(
     srcs = ["model.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_input",
         ":base_layer",
         ":learners",
         ":metric_utils",
@@ -456,4 +459,11 @@ py_strict_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
     ],
+)
+
+pytype_strict_library(
+    name = "io_utils",
+    srcs = ["io_utils.py"],
+    srcs_version = "PY3",
+    deps = [],
 )

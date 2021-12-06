@@ -17,13 +17,16 @@
 
 import contextlib
 import functools
+import hashlib
 import os
 import time
 from typing import Optional, Sequence
 
 from absl import logging
 import jax
+from jax import numpy as jnp
 from jax.experimental import maps
+from lingvo.jax import base_layer
 from lingvo.jax import base_model_params
 from lingvo.jax import model_utils
 from lingvo.jax import partitioning
@@ -35,6 +38,7 @@ from lingvo.jax import trainer_lib
 import tensorflow.compat.v2 as tf
 
 from lingvo.jax import checkpoints
+from lingvo.jax import io_utils
 
 BaseModelParamsT = base_model_params.BaseModelParamsT
 InstantiableParams = py_utils.InstantiableParams
@@ -321,6 +325,35 @@ def decode_once(
                            restore_checkpoint_step)
 
 
+def _get_dir_names(input_p: Sequence[InstantiableParams]) -> Sequence[str]:
+  """Returns a list of same length for parent dir names for each dataset."""
+  uniq_names = set()
+  ret = []
+  for idx, p in enumerate(input_p):
+    name = p.name or f'decode_test_{idx}'
+    if p.name and p.name in uniq_names:
+      name = f'{p.name}_{idx}'
+    if name in uniq_names:
+      suffix = hashlib.md5(name.encode()).hexdigest()[-5:]
+      name = f'{name}_{suffix}'
+      assert name not in uniq_names
+    uniq_names.add(name)
+    ret.append(name)
+  return ret
+
+
+def _get_filename(step: base_layer.JTensorOrPartitionSpec) -> str:
+  """Returns a filename for the given step."""
+  if step.ndim == 0:
+    step_num = jax.device_get(step)
+  elif step.ndim == 1:
+    step_num = jax.device_get(step[0])
+  else:
+    raise ValueError(
+        f'Expecting a replicated 1D global step (got ndim=`{step.ndim}`).')
+  return f'decoder_out_{step_num}'
+
+
 def decode_once_pmap_model(
     model_p: InstantiableParams,
     input_p: Sequence[InstantiableParams],
@@ -381,6 +414,7 @@ def decode_once_pmap_model(
   num_steps = [
       -1 if p.reset_for_eval else p.eval_loop_num_batches for p in input_p
   ]
+  decodes = [list() for _ in input_p]
   for split, num_split_steps in enumerate(num_steps):
     step_num = 0
     while num_split_steps < 0 or step_num < num_split_steps:
@@ -390,6 +424,24 @@ def decode_once_pmap_model(
       except tf.errors.OutOfRangeError:
         break
       batch = tf.nest.map_structure(py_utils.reshard, batch)
-      _ = decode_step(batch)
-  # TODO(zhouwk): process the decoder outputs and write to disk.
-  del job_log_dir
+      out = decode_step(batch)
+      if jax.process_index() == 0:
+        # TODO(zhouwk): test with multi-process. Do we need all_gather?
+        out = jax.tree_map(lambda x: jnp.reshape(x, [-1] + list(x.shape[2:])),
+                           out)
+        processed = jax_model.process_decode_out(inputs[split], out)
+        decodes[split].extend(processed)
+
+  basedir = os.path.join(job_log_dir, 'decoder_out')
+  dirnames = _get_dir_names(input_p)
+  filename = _get_filename(replicated_model_states.step)
+  for s in dirnames:
+    dir_path = os.path.join(basedir, s)
+    if not tf.io.gfile.exists(dir_path):
+      tf.io.gfile.makedirs(dir_path)
+  filenames = [os.path.join(basedir, s, filename) for s in dirnames]
+  if jax.process_index() == 0:
+    for split, output_file in enumerate(filenames):
+      logging.info('Writing decoder output to %s with %d entries', output_file,
+                   len(decodes[split]))
+      io_utils.WriteKeyValuePairs(output_file, decodes[split])

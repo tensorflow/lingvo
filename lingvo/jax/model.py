@@ -15,11 +15,12 @@
 # ==============================================================================
 """Base class for all Jax models."""
 
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import jax
 from jax import numpy as jnp
 from jax.experimental import pjit
+from lingvo.jax import base_input
 from lingvo.jax import base_layer
 from lingvo.jax import layers
 from lingvo.jax import learners as learners_lib
@@ -191,6 +192,20 @@ class BaseTask(base_layer.BaseLayer):
 
     Returns:
       A `.NestedMap` as decoder output.
+    """
+    raise NotImplementedError('Abstract method')
+
+  def process_decode_out(self, input_obj: base_input.BaseInput,
+                         decode_out: NestedMap) -> Sequence[Tuple[str, Any]]:
+    """Processes one batch of decoded outputs.
+
+    Args:
+      input_obj: The input object where a tokenizer is accessible.
+      decode_out: The output from decode(). May have an extra leading axis.
+
+    Returns:
+      A list of tuples where each element corresponds to a row in the batch.
+      Each tuple is a key value pair.
     """
     raise NotImplementedError('Abstract method')
 
@@ -392,13 +407,58 @@ class LanguageModel(BaseTask):
       val.step = val.step + 1
       return val
 
+    # TODO(b/198356509): currently we rely on the underlying layers' correctness
+    # test, e.g. extend_step() is equivalent with fprop(). Improve testing of
+    # the correctness of a model's decode() implementation.
     result = jax.lax.while_loop(lambda val: val.step < max_length - 1,
                                 loop_body, val)
     result.prefix_lengths = prefix_lengths
+    result.decode_lengths = jnp.ones_like(prefix_lengths) * max_length
+    result.original_lengths = jnp.sum(
+        1.0 - input_batch.paddings, axis=1).astype(prefix_lengths.dtype)
+
+    prefix_ids = input_batch.ids
+    # We manually pad out the ids not belong to the prefix because some
+    # tokenizers tested do not always obey the lengths arg.
+    indices = jnp.tile(
+        jnp.arange(prefix_ids.shape[1]), (prefix_ids.shape[0], 1))
+    prefix_lengths_2d = jnp.tile(prefix_lengths[:, None],
+                                 (1, prefix_ids.shape[1]))
+    prefix_ids = jnp.where(indices < prefix_lengths_2d, prefix_ids,
+                           jnp.zeros_like(prefix_ids))
+    result.prefix_ids = prefix_ids
+
     del result.state
     del result.step
     result.update(input_batch)
     return result
+
+  def process_decode_out(self, input_obj: base_input.BaseInput,
+                         decode_out: NestedMap) -> Sequence[Tuple[str, Any]]:
+    """Processes one batch of decoded outputs.
+
+    Args:
+      input_obj: The input object where a tokenizer is accessible.
+      decode_out: The output from decode(). May have an extra leading axis.
+
+    Returns:
+      A dict where each entry corresponds to a row in the batch. The keys should
+      be unique across the entire decode dataset.
+    """
+    decoded_strs = input_obj.ids_to_strings(decode_out.output_ids,
+                                            decode_out.decode_lengths)
+    original_strs = input_obj.ids_to_strings(decode_out.ids,
+                                             decode_out.original_lengths)
+    prefix_strs = input_obj.ids_to_strings(decode_out.prefix_ids,
+                                           decode_out.prefix_lengths)
+    ret = list()
+    for idx, decoded_str in enumerate(decoded_strs):
+      ret.append((prefix_strs[idx], {
+          'prefix': prefix_strs[idx],
+          'decoded': decoded_str,
+          'original': original_strs[idx],
+      }))
+    return ret
 
 
 class ClassificationTask(BaseTask):
