@@ -1765,7 +1765,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     assert p.left_context >= 1, 'Left context should be at least one.'
     assert not p.packed_input, 'Packed input not implemented yet.'
     if p.block_size is None:
-      p.block_size = max(1, p.left_context - 1)
+      block_size = max(1, p.left_context - 1)
+      p.block_size = block_size + (-block_size % p.query_stride)
       tf.logging.warning('block_size not set, use default value {}'.format(
           p.block_size))
     assert p.block_size % p.query_stride == 0, (
@@ -4105,6 +4106,20 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
      segment_mask) = self._CastToFPropDtype(
          (query_vec, source_vecs, paddings, per_step_padding_override,
           segment_mask))
+    assert source_vecs is None, 'Cross attention is not supported.'
+
+    # Pad 0 to make the sequence length be multiple of p.stride. After this
+    # line, all code assumes it's true.
+    stride, seq_len = p.funnel_tpl.stride, py_utils.GetShape(paddings)[1]
+    pad_len = seq_len + (-seq_len % stride)
+    query_vec = py_utils.PadSequenceDimension(query_vec, pad_len, pad_val=0.)
+    paddings = py_utils.PadSequenceDimension(paddings, pad_len, pad_val=1.)
+    if per_step_padding_override:
+      per_step_padding_override = py_utils.PadSequenceDimension(
+          per_step_padding_override, pad_len, pad_val=1.)
+    if segment_mask:
+      segment_mask = py_utils.PadSequenceDimension(
+          segment_mask, pad_len, pad_val=0., axis=2)
 
     b, t, _ = py_utils.GetShape(query_vec, 3)
     unnormalized_query_vec = query_vec

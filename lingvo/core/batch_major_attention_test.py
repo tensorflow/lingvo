@@ -2242,10 +2242,10 @@ class FunnelTransformerAttentionLayerTest(test_utils.TestCase,
 
   # MultiHeadedAttention and LocalSelfAttention must return same values.
   def testBasic(self):
-    batch_size, max_seqlen, input_dim = 2, 32, 4
+    batch_size, max_seqlen, input_dim = 2, 31, 4
     query_stride = 2
     num_heads = 2
-    out_seqlen = max_seqlen // query_stride
+    out_seqlen = (max_seqlen + query_stride - 1) // query_stride
 
     # Prepares inputs.
     np.random.seed(None)
