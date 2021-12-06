@@ -1093,6 +1093,61 @@ class MoEBuilder(builder.Base):
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
     # pyformat: enable
 
+  def DecMultiDconvHeadAttention(self,
+                                 name,
+                                 device_mesh=None,
+                                 w_qkv_mhd_mesh_split=None,
+                                 wo_hdm_mesh_split=None):
+    """TransformerDecoder DecMultiDconvHeadAttention.
+
+    Args:
+      name: name of the layer.
+      device_mesh: device_mesh for sharding (if specified)
+      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)
+      wo_hdm_mesh_split: mesh split for output weights (if specified)
+
+    Returns:
+      layer params for TransformerDecoder DecMultiDconvHeadAttention.
+    """
+    p = self.params
+    state_shape = [
+        None, None, p.attention_num_memory_heads or p.attention_num_heads,
+        p.attention_key_value_dim
+    ]
+
+    # pyformat: disable
+    return self._Graph(
+        name, self._DecoderLayerInMapKeys, [
+            'outputs',
+            'aux_loss',
+        ],
+        ('->wq,wk,wv,wo', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
+        ('vec,wq,wk,wv->pre_q,pre_k,pre_v', self._ComputeQKVCombine('qkv')),
+        ('pre_q->q',
+         self.DepthwiseConvAutoregressive('q_dconv',
+                                          kernel_size=3,
+                                          model_dims=[p.attention_num_heads,
+                                                      p.attention_key_value_dim])),
+        ('pre_k->k',
+         self.DepthwiseConvAutoregressive('k_dconv',
+                                          kernel_size=3,
+                                          model_dims=[p.attention_num_memory_heads or p.attention_num_heads,
+                                                      p.attention_key_value_dim])),
+        ('pre_v->v',
+         self.DepthwiseConvAutoregressive('v_dconv',
+                                          kernel_size=3,
+                                          model_dims=[p.attention_num_memory_heads or p.attention_num_heads,
+                                                      p.attention_key_value_dim])),
+        ('k->k_full', self._AttentionState('k_state', state_shape)),
+        ('v->v_full', self._AttentionState('v_state', state_shape)),
+        self._DecComputeBiasGraphEdge(),
+        ('qq_bias->bias_full', self._Override('dec_self_attention_bias')),
+        ('q,k_full,v_full,bias_full->o', self.Attention('attention')),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+        ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
+    # pyformat: enable
+
   def _RelativePositionBucket(self, relative_position, bidirectional=False):
     p = self.params
     fprop_dtype = py_utils.FPropDtype(self.params)
@@ -2166,6 +2221,11 @@ class DenseBuilder(MoEBuilder):
                                     self.params.mhd_w_split,
                                     self._attention_output_hdm_w_split)
 
+  def DecMultiDconvHeadAttention(self, name):
+    return super().DecMultiDconvHeadAttention(
+        name, self._device_mesh, self.params.mhd_w_split,
+        self._attention_output_hdm_w_split)
+
   def SelfAttentionRelativeBias(self, name):
     return super().SelfAttentionRelativeBias(name, self._device_mesh,
                                              self.params.mhd_w_split,
@@ -3143,7 +3203,10 @@ class UniTransformer(base_model.BaseTask):
           norm_policy=p.norm_policy)
     else:
       if p.positional_embedding:
-        atten_layer = b.DecSelfAttention('dec_self_attention')
+        if p.multi_dconv_head_att:
+          atten_layer = b.DecMultiDconvHeadAttention('multi_dconv_head_att')
+        else:
+          atten_layer = b.DecSelfAttention('dec_self_attention')
       elif p.multi_dconv_head_att:
         atten_layer = b.DecMultiDconvHeadAttentionRelativeBias(
             'multi_dconv_head_att')
