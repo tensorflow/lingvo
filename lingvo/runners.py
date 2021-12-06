@@ -737,8 +737,12 @@ class TrainerTpu(base_runner.GraphRunner):
           # max step horizon, the trainer thread would continue run for 3 loops
           # (3K global steps usually), so the enqueue thread could get a chance
           # to move forward and run `_ShouldStop()` to stop gracefully.
+          # Updated this to account for `tpu_infeed_parallelism` which could
+          # allow for more enqueue threads to get further ahead of the traiiner
+          # thread.
           if self._max_steps_for_early_stop is None:
-            self._max_steps_for_early_stop = global_step + 3 * self._steps_per_loop
+            tpu_infeed_parallelism = self._task.input.params.tpu_infeed_parallelism
+            self._max_steps_for_early_stop = global_step + 3 * tpu_infeed_parallelism * self._steps_per_loop
             tf.logging.info('Early stopping at step: %d',
                             self._max_steps_for_early_stop)
 
