@@ -1158,6 +1158,61 @@
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
 
+<div class="viewcode-block" id="MoEBuilder.DecMultiDconvHeadAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecMultiDconvHeadAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecMultiDconvHeadAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">name</span><span class="p">,</span>
+                                 <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TransformerDecoder DecMultiDconvHeadAttention.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer.</span>
+<span class="sd">      device_mesh: device_mesh for sharding (if specified)</span>
+<span class="sd">      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)</span>
+<span class="sd">      wo_hdm_mesh_split: mesh split for output weights (if specified)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      layer params for TransformerDecoder DecMultiDconvHeadAttention.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+    <span class="p">]</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;pre_q,pre_k,pre_v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;pre_q-&gt;q&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;q_dconv&#39;</span><span class="p">,</span>
+                                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                          <span class="n">model_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+                                                      <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;pre_k-&gt;k&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;k_dconv&#39;</span><span class="p">,</span>
+                                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                          <span class="n">model_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+                                                      <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;pre_v-&gt;v&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="s1">&#39;v_dconv&#39;</span><span class="p">,</span>
+                                          <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                          <span class="n">model_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+                                                      <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">])),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
+        <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;bias_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,bias_full-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
 <div class="viewcode-block" id="MoEBuilder._RelativePositionBucket"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._RelativePositionBucket">[docs]</a>  <span class="k">def</span> <span class="nf">_RelativePositionBucket</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">relative_position</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
@@ -2231,6 +2286,11 @@
                                     <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
                                     <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="DenseBuilder.DecMultiDconvHeadAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DecMultiDconvHeadAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecMultiDconvHeadAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">DecMultiDconvHeadAttention</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attention_output_hdm_w_split</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="DenseBuilder.SelfAttentionRelativeBias"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.SelfAttentionRelativeBias">[docs]</a>  <span class="k">def</span> <span class="nf">SelfAttentionRelativeBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">SelfAttentionRelativeBias</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
                                              <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mhd_w_split</span><span class="p">,</span>
@@ -3208,7 +3268,10 @@
           <span class="n">norm_policy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_policy</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
-        <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">multi_dconv_head_att</span><span class="p">:</span>
+          <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecMultiDconvHeadAttention</span><span class="p">(</span><span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">multi_dconv_head_att</span><span class="p">:</span>
         <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecMultiDconvHeadAttentionRelativeBias</span><span class="p">(</span>
             <span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">)</span>
