@@ -24,6 +24,7 @@ import jax
 from jax import numpy as jnp
 from jax import test_util
 from lingvo.core import batch_major_attention
+from lingvo.core import layers_with_attention
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import test_utils
@@ -817,7 +818,6 @@ class TransformersTest(test_util.JaxTestCase):
     self.assertAllClose(np_fprop_outputs_1, np_fprop_outputs_2)
 
   def test_transformer_bert(self):
-    """Test JAX and TF transformer on PTB."""
     p = transformers.TransformerLm.Params().Set(
         name='bert_lm',
         model_dims=32,
@@ -855,9 +855,8 @@ class TransformersTest(test_util.JaxTestCase):
           segment_pos=input_segment_pos)
       logging.info('outputs: %s', outputs)
 
-  @parameterized.parameters(('RELU',), ('GATED_SILU',))
+  @parameterized.parameters('RELU', 'SILU', 'GATED_SILU')
   def test_transformer_feedforward(self, activation_function):
-    """Test JAX and TF transformer on PTB."""
     p = transformers.TransformerFeedForward.Params().Set(
         name='ffwd',
         input_dims=8,
@@ -868,15 +867,44 @@ class TransformersTest(test_util.JaxTestCase):
     ffwd = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = ffwd.instantiate_variables(prng_key)
-    inputs = jax.random.normal(
-        jax.random.PRNGKey(1234), [batch_size, seq_len, 8])
-    input_paddings = jnp.zeros([batch_size, seq_len])
+
+    npy_inputs = np.random.normal(
+        1.0, 0.5, [batch_size, seq_len, p.input_dims]).astype('float32')
+    inputs = jnp.asarray(npy_inputs)
+    npy_paddings = np.zeros([batch_size, seq_len], dtype=np.float32)
+    input_paddings = jnp.asarray(npy_paddings)
 
     with base_layer.JaxContext.new_context(
         prng_key=jax.random.PRNGKey(seed=1234),
         global_step=jnp.array(0, dtype=jnp.uint32)):
       outputs = ffwd.fprop(initial_vars, inputs, input_paddings)
       logging.info('outputs: %s', outputs)
+
+    if activation_function.startswith('GATED_'):
+      # Default lingvo layers_with_attention.TransformerFeedForwardLayer does
+      # not support gating.
+      return
+
+    # Test whether Tensorflow TransformerFeedForwardLayer returns the same
+    # output. Modify `initial_vars` to use TF compatible params.
+    tf_initial_vars = test_utils.replace_jax_transformer_ffwd_vars_to_tf(
+        initial_vars)
+    tf_initial_vars = test_utils.to_tf_nmap(tf_initial_vars)
+    logging.info('tf_initial_vars in transformer feedforward layer = %s',
+                 initial_vars)
+    tf_p = layers_with_attention.TransformerFeedForwardLayer.Params().Set(
+        name='tf_ffwd',
+        input_dim=p.input_dims,
+        hidden_dim=p.hidden_dims,
+        activation=p.activation)
+    tf_ffwd = tf_p.Instantiate()
+    tf_output = tf_ffwd.FProp(
+        tf_initial_vars,
+        tf.constant(npy_inputs, dtype=tf.float32),
+        paddings=test_utils.to_tf_nmap(npy_paddings))
+    np_outputs = test_utils.to_np(outputs)
+    tf_np_outputs = test_utils.to_np(tf_output)
+    self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-5)
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=2)))
   def test_ngrammer_lm_extendstep(self, use_vq_ngrams, use_rotary_position_emb):

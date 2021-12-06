@@ -33,6 +33,7 @@ _ACTIVATIONS = {
     'SOFTPLUS': tf.nn.softplus,
     # Squared ReLU from the Primer paper: https://arxiv.org/abs/2109.08668
     'SQUARED_RELU': lambda x: tf.math.square(tf.nn.relu(x)),
+    'SILU': tf.nn.silu,
     'NONE': tf.identity,
 }
 

@@ -74,6 +74,37 @@ def to_tf_nmap(x_nmap: NestedMap) -> NestedMap:
   return tf.nest.map_structure(to_tf, x_nmap)
 
 
+def replace_jax_transformer_ffwd_vars_to_tf(
+    jax_initial_vars: NestedMap) -> NestedMap:
+  """Replaces JAX TransformerFeedForward vars to TF compatible vars.
+
+  Args:
+    jax_initial_vars: JAX TransformerFeedforward layer vars.
+
+  Returns:
+    tf_initial_vars which is TF compatible.
+  """
+  tf_initial_vars = jax_initial_vars.copy()
+  tf_initial_vars = py_utils.NestedMap()
+  tf_initial_vars.fflayer = py_utils.NestedMap(
+      fc=[
+          py_utils.NestedMap(
+              w=jax_initial_vars.ffn_layer1.linear.w,
+              b=jax_initial_vars.ffn_layer1.bias.b),
+          py_utils.NestedMap(
+              w=jax_initial_vars.ffn_layer2.linear.w,
+              b=jax_initial_vars.ffn_layer2.bias.b),
+      ],
+      dropout=[py_utils.NestedMap(), py_utils.NestedMap()],
+  )
+  tf_initial_vars.layer_norm = py_utils.NestedMap(
+      bias=jax_initial_vars.layer_norm.bias,
+      scale=jax_initial_vars.layer_norm.scale)
+  tf_initial_vars.residual_dropout = py_utils.NestedMap()
+  tf_initial_vars.residual_droppath = py_utils.NestedMap()
+  return tf_initial_vars
+
+
 def replace_jax_attention_vars_to_tf(
     jax_initial_vars: NestedMap,
     cross_attention: Optional[bool] = False) -> NestedMap:
