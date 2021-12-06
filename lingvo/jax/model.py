@@ -190,7 +190,7 @@ class BaseTask(base_layer.BaseLayer):
         spiltting is used, a list of `NestedMap`, one for each split.
 
     Returns:
-      a dict of Tensors as decoder output.
+      A `.NestedMap` as decoder output.
     """
     raise NotImplementedError('Abstract method')
 
@@ -273,6 +273,13 @@ class LanguageModel(BaseTask):
         'return_predictions', False, 'Whether to return predictions during'
         'eval. Returning predictions is more expensive, but may be useful'
         'for debugging.')
+
+    greedy_search_p = py_utils.Params()
+    greedy_search_p.Define('seqlen', 0, 'Maximum output sequence length.')
+    greedy_search_p.Define(
+        'min_prefix_len', 5,
+        'Minimum number of tokens picked to be used as decoding prefix.')
+    p.Define('decoder', greedy_search_p, 'Decoder param.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -343,9 +350,55 @@ class LanguageModel(BaseTask):
     return metrics, per_example_output
 
   def decode(self, theta: NestedMap, input_batch: NestedMap) -> NestedMap:
-    del theta, input_batch
-    # TODO(b/198356509): implement greedy search decoding.
-    return NestedMap()
+    """Decodes input_batch with model weights 'theta'.
+
+    Args:
+      theta: A NestedMap of variable values of this task.
+      input_batch: The input batch, with fields like `.ids`.
+
+    Returns:
+      A NestedMap like `input_batch`, with `.prefix_lengths` (vector of
+      randomly generated ints indicating the lengths of prefixes for each
+      row), and `.output_ids` (matrix of int ids with the decoded output).
+    """
+    p = self.params
+    batch_size = input_batch.ids.shape[0]
+    max_length = p.decoder.seqlen
+    prefix_lengths = jax.random.randint(base_layer.next_prng_key(),
+                                        [batch_size], p.decoder.min_prefix_len,
+                                        max_length, input_batch.ids.dtype)
+    decoder_state = self.lm.init_states(
+        theta.lm, target_batch_size=batch_size, target_max_length=max_length)
+    output_ids = jnp.zeros(shape=(batch_size, max_length), dtype=jnp.int32)
+    output_ids = output_ids.at[:, 0].set(input_batch.ids[:, 0])
+
+    val = py_utils.NestedMap()
+    val.state = decoder_state
+    val.step = 0
+    val.output_ids = output_ids
+
+    def loop_body(val):
+      """From ids at `step`, update output ids at `step + 1`."""
+      step = val.step
+      decoder_state, xent_output = self.lm.extend_step(
+          theta.lm, val.state, inputs=val.output_ids[:, step])
+      val.state = decoder_state
+      # When step becomes prefix_length - 1, the new output has index beyond
+      # the known prefix.
+      new_ids = jnp.where(step < prefix_lengths - 1, input_batch.ids[:,
+                                                                     step + 1],
+                          jnp.argmax(xent_output.logits, axis=1))
+      val.output_ids = val.output_ids.at[:, step + 1].set(new_ids)
+      val.step = val.step + 1
+      return val
+
+    result = jax.lax.while_loop(lambda val: val.step < max_length - 1,
+                                loop_body, val)
+    result.prefix_lengths = prefix_lengths
+    del result.state
+    del result.step
+    result.update(input_batch)
+    return result
 
 
 class ClassificationTask(BaseTask):
