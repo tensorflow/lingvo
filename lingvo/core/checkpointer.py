@@ -202,17 +202,15 @@ class Checkpointer:
         tp = task.params.train
         if tp.init_from_checkpoint_rules:
           rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-          tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
           fn = py_utils.OverrideVarsFromCheckpoints(tf.global_variables(),
                                                     rules)
-          self._restore_fns.append(fn)
+          self._restore_fns.append((f'OverrideVarsFromCheckpoints {rules}', fn))
 
     if self._params and self._params.train.init_from_checkpoint_rules:
       tp = self._params.train
       rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-      tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
       fn = py_utils.OverrideVarsFromCheckpoints(tf.global_variables(), rules)
-      self._restore_fns.append(fn)
+      self._restore_fns.append((f'OverrideVarsFromCheckpoints {rules}', fn))
 
   @property
   def checkpoint_dir(self):
@@ -340,7 +338,8 @@ class Checkpointer:
     tf.logging.info('Initialized all vars.')
 
     if self._restore_fns:
-      for fn in self._restore_fns:
+      for msg, fn in self._restore_fns:
+        tf.logging.info(msg)
         fn(sess)
       tf.logging.info('Restored vars using checkpoint rules.')
     return None
