@@ -73,5 +73,237 @@ class LinearsTest(test_util.JaxTestCase):
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-6)
 
 
+class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    np.random.seed(123456)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'pad_with_left_frame',
+          'pad_with_left_frame': True
+      },
+      {
+          'testcase_name': 'pad_with_zeros',
+          'pad_with_left_frame': False
+      },
+  )
+  def testStackingOverTimeFProp(self, pad_with_left_frame):
+    params = linears.StackingOverTime.Params()
+    params.name = 'stackingOverTime'
+    params.left_context = 2
+    params.right_context = 0
+    params.stride = 2
+    params.pad_with_left_frame = pad_with_left_frame
+
+    stacker = linears.StackingOverTime(params)
+    stacker_vars = None
+    self.assertEqual(stacker.window_size, 3)
+
+    inputs = jnp.array([[[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]],
+                        [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0], [0, 0]]],
+                       dtype=jnp.float32)
+    paddings = jnp.array(
+        [[[0], [0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1], [1]]],
+        dtype=jnp.float32)
+
+    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    print(f'{outputs}')
+    if pad_with_left_frame:
+      expected_outputs = jnp.array([
+          [[1, 1, 1, 1, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
+          [[7, 7, 7, 7, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
+      ],
+                                   dtype=jnp.float32)
+    else:
+      expected_outputs = jnp.array([
+          [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
+          [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
+      ],
+                                   dtype=jnp.float32)
+    self.assertAllClose(expected_outputs, outputs)
+
+    expected_output_paddings = jnp.array([[[0], [0], [0]], [[0], [0], [1]]],
+                                         dtype=jnp.float32)
+    self.assertAllClose(expected_output_paddings, output_paddings)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'pad_with_right_frame',
+          'pad_with_right_frame': True
+      },
+      {
+          'testcase_name': 'pad_with_zeros',
+          'pad_with_right_frame': False
+      },
+  )
+  def testStackingOverTimePadWithRightFrameFProp(self, pad_with_right_frame):
+    params = linears.StackingOverTime.Params()
+    params.name = 'stackingOverTime'
+    params.left_context = 0
+    params.right_context = 1
+    params.stride = 2
+    params.pad_with_right_frame = pad_with_right_frame
+
+    stacker = linears.StackingOverTime(params)
+    stacker_vars = None
+    self.assertEqual(stacker.window_size, 2)
+
+    # input shape [2, 5, 2]
+    inputs = jnp.array([[[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]],
+                        [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0]]],
+                       dtype=jnp.float32)
+    paddings = jnp.array([[[0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1]]],
+                         dtype=jnp.float32)
+    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    print(f'{outputs}')
+
+    if pad_with_right_frame:
+      # output shape [2, 3, 4]
+      # [5, 5] is duplication of the last input frame.
+      expected_outputs = jnp.array([
+          [[1, 1, 2, 2], [3, 3, 4, 4], [5, 5, 5, 5]],
+          [[7, 7, 8, 8], [0, 0, 0, 0], [0, 0, 0, 0]],
+      ],
+                                   dtype=jnp.float32)
+    else:
+      expected_outputs = jnp.array([
+          [[1, 1, 2, 2], [3, 3, 4, 4], [5, 5, 0, 0]],
+          [[7, 7, 8, 8], [0, 0, 0, 0], [0, 0, 0, 0]],
+      ],
+                                   dtype=jnp.float32)
+
+    self.assertAllClose(expected_outputs, outputs)
+
+    expected_output_paddings = jnp.array([[[0], [0], [0]], [[0], [1], [1]]],
+                                         dtype=jnp.float32)
+    self.assertAllClose(expected_output_paddings, output_paddings)
+
+  def testStackingOverTimeFPropReduceMaxPadding(self):
+    params = linears.StackingOverTime.Params()
+    params.name = 'stackingOverTime'
+    params.left_context = 2
+    params.right_context = 0
+    params.stride = 2
+    params.padding_reduce_option = 'reduce_max'
+
+    stacker = linears.StackingOverTime(params)
+    stacker_vars = None
+    self.assertEqual(stacker.window_size, 3)
+
+    inputs = jnp.array([[[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]],
+                        [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0], [0, 0]]],
+                       dtype=jnp.float32)
+    paddings = jnp.array(
+        [[[0], [0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1], [1]]],
+        dtype=jnp.float32)
+
+    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    print(f'{outputs}')
+    expected_outputs = jnp.array([
+        [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
+        [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0, 0]],
+    ],
+                                 dtype=jnp.float32)
+
+    self.assertAllClose(expected_outputs, outputs)
+
+    expected_output_paddings = jnp.array([[[1], [0], [0]], [[1], [1], [1]]],
+                                         dtype=jnp.float32)
+    self.assertAllClose(expected_output_paddings, output_paddings)
+
+  def testStackingOverTimeFProp2(self):
+    params = linears.StackingOverTime.Params()
+    params.name = 'stackingOverTime'
+    params.left_context = 0
+    params.right_context = 1
+    params.stride = 2
+
+    stacker = linears.StackingOverTime(params)
+    stacker_vars = None
+    self.assertEqual(stacker.window_size, 2)
+
+    inputs = np.random.normal(size=[2, 21, 16])
+    # poor man's tf.sequence_mask in np.
+    mask = np.zeros([2, 21]).astype(np.float32)
+    mask[0, :9] = 1.
+    mask[1, :14] = 1.
+
+    paddings = 1.0 - mask
+    paddings = jnp.expand_dims(paddings, -1)
+    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+
+    # length
+    self.assertAllClose(
+        np.array([5, 7], dtype=np.float32), np.sum(1.0 - output_paddings,
+                                                   (1, 2)))
+    # input and output sums are equal
+    self.assertAllClose(np.sum(inputs, (1, 2)), np.sum(outputs, (1, 2)))
+
+  def testStackingOverTimeIdentityFProp(self):
+    params = linears.StackingOverTime.Params()
+    params.name = 'stackingOverTime'
+    params.left_context = 0
+    params.right_context = 0
+    params.stride = 1
+
+    stacker = linears.StackingOverTime(params)
+    stacker_vars = None
+    self.assertEqual(stacker.window_size, 1)
+    inputs = jnp.array([[[1], [2], [3], [4], [5]]], dtype=jnp.float32)
+    paddings = jnp.zeros([1, 5, 1], dtype=jnp.float32)
+
+    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    print(f'{outputs}')
+    expected_outputs = jnp.array([[[1], [2], [3], [4], [5]]], dtype=jnp.float32)
+    self.assertAllClose(expected_outputs, outputs)
+    expected_output_paddings = jnp.array([[[0], [0], [0], [0], [0]]],
+                                         dtype=jnp.float32)
+    self.assertAllClose(expected_output_paddings, output_paddings)
+
+  def _testUnstack(self, inputs, **kwargs):
+    params = linears.StackingOverTime.Params().Set(
+        name='stackingOverTime', **kwargs)
+
+    stacker = params.Instantiate()
+    stacker_vars = None
+    stacked, _ = stacker.fprop(stacker_vars, inputs)
+    unstacked = stacker.unstack(stacked)
+    print(f'{unstacked}')
+
+    batch, input_length, depth = inputs.shape
+    stacked_length = stacked.shape[1]
+    stride = stacker.params.stride
+    right_context = stacker.params.right_context
+
+    self.assertAllClose(
+        unstacked.shape,
+        [batch, (stacked_length - 1) * stride + right_context + 1, depth])
+    if right_context + 1 >= stride:
+      self.assertGreaterEqual(unstacked.shape[1], input_length)
+      self.assertAllClose(inputs, unstacked[:, :input_length])
+    else:
+      self.assertLessEqual(unstacked.shape[1], input_length)
+      # The final up to stride - right_context - 1 values are missing.
+      self.assertLessEqual(input_length - unstacked.shape[1],
+                           stride - right_context - 1)
+      self.assertAllClose(inputs[:, :unstacked.shape[1]], unstacked)
+
+  def testStackingOverTimeUnstack(self):
+    batch_size = 2
+    length = 7
+    depth = 3
+    inputs = jnp.reshape(
+        jnp.arange(batch_size * length * depth, dtype=jnp.float32),
+        [batch_size, length, depth])
+    self._testUnstack(inputs, left_context=2, stride=1)
+    with self.assertRaises(ValueError):
+      self._testUnstack(inputs, stride=2)
+    self._testUnstack(inputs, stride=2, right_context=3)
+    self._testUnstack(inputs, left_context=2, stride=3)
+    self._testUnstack(inputs, stride=4, right_context=3)
+    self._testUnstack(inputs, stride=4, left_context=1, right_context=2)
+
 if __name__ == '__main__':
   absltest.main()
