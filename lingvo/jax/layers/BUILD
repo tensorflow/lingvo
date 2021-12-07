@@ -450,6 +450,7 @@ py_strict_test(
     srcs_version = "PY3",
     deps = [
         ":attentions",
+        ":embedding_softmax",
         ":ngrammer",
         ":transformers",
         # Implicit absl.logging dependency.

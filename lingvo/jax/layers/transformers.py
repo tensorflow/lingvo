@@ -1670,6 +1670,12 @@ class TransformerLm(base_layer.BaseLayer):
         'Params for the Ngrammer layer. This param is shared between'
         'the Ngrammer layer as well as the VQNgrammer layer. If this is None'
         'then the Ngrammer layer is not used.')
+    p.Define(
+        'separate_embedding_tpl', None,
+        'Optional separate embedding lookup layer params. By default this is '
+        'None since the softmax and embedding lookup share parameters, however '
+        'if we wish to separate the parameters of embedding lookup and softmax '
+        'then we can set this param.')
     return p
 
   @classmethod
@@ -1775,6 +1781,13 @@ class TransformerLm(base_layer.BaseLayer):
       params = p.position_emb_tpl.Copy()
       params.embedding_dims = p.model_dims
       self.create_child('position_emb', params)
+
+    # Optional separate embedding layer.
+    if p.separate_embedding_tpl is not None:
+      params = p.separate_embedding_tpl.Copy()
+      params.embedding_dims = p.model_dims
+      params.vocab_size = p.vocab_size
+      self.create_child('embedding_lookup', params)
 
     # Ngrammer layer.
     if p.ngrammer_tpl is not None:
@@ -1905,7 +1918,11 @@ class TransformerLm(base_layer.BaseLayer):
     p = self.params
     with py_utils.AuxLossContext() as aux_loss_ctx:
       assert aux_loss_ctx is not None
-      input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
+      # Get the input embeddings.
+      if self.params.separate_embedding_tpl is not None:
+        input_emb = self.embedding_lookup.fprop(theta.embedding_lookup, inputs)
+      else:
+        input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
       batch, seq_length = inputs.shape
 
       if segment_ids is None:
@@ -1981,7 +1998,11 @@ class TransformerLm(base_layer.BaseLayer):
     if len(inputs.shape) == 1:
       inputs = inputs[:, jnp.newaxis]
 
-    input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
+    # Get the input embeddings.
+    if self.params.separate_embedding_tpl is not None:
+      input_emb = self.embedding_lookup.fprop(theta.embedding_lookup, inputs)
+    else:
+      input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
     time_step = cached_states.step
 
     # Add Ngrammer layer if applicable.

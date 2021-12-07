@@ -29,6 +29,7 @@ from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import test_utils
 from lingvo.jax.layers import attentions
+from lingvo.jax.layers import embedding_softmax
 from lingvo.jax.layers import ngrammer
 from lingvo.jax.layers import transformers
 import numpy as np
@@ -906,8 +907,9 @@ class TransformersTest(test_util.JaxTestCase):
     tf_np_outputs = test_utils.to_np(tf_output)
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-5)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=2)))
-  def test_ngrammer_lm_extendstep(self, use_vq_ngrams, use_rotary_position_emb):
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
+  def test_ngrammer_lm_extendstep(self, use_vq_ngrams, use_rotary_position_emb,
+                                  share_embedding_and_softmax):
     vocab_size = 8
     num_layers = 2
     num_heads = 2
@@ -939,6 +941,9 @@ class TransformersTest(test_util.JaxTestCase):
         packed_input=False,
         ngrammer_tpl=ngrammer_params,
         vocab_size=vocab_size)
+    if not share_embedding_and_softmax:
+      p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
+      p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
     # Rotary position embedding.
     params = p.stacked_transformer_tpl.transformer_layer_params_tpl
     params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
@@ -971,8 +976,9 @@ class TransformersTest(test_util.JaxTestCase):
             initial_vars, cached_states, inputs_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=1)))
-  def test_primer_lm_extendstep(self, use_rotary_position_emb):
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=2)))
+  def test_primer_lm_extendstep(self, use_rotary_position_emb,
+                                share_embedding_and_softmax):
     vocab_size = 8
     num_layers = 2
     num_heads = 2
@@ -987,6 +993,9 @@ class TransformersTest(test_util.JaxTestCase):
         masked_lm=False,
         packed_input=False,
         vocab_size=vocab_size)
+    if not share_embedding_and_softmax:
+      p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
+      p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
     seq_len = 16
     batch_size = 3
     # Turn on dconv as in Primer.
@@ -1019,9 +1028,10 @@ class TransformersTest(test_util.JaxTestCase):
             initial_vars, cached_states, inputs[:, t])
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=2)))
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
   def test_ngrammer_primer_lm_extendstep(self, use_vq_ngrams,
-                                         use_rotary_position_emb):
+                                         use_rotary_position_emb,
+                                         share_embedding_and_softmax):
     vocab_size = 8
     num_layers = 2
     num_heads = 2
@@ -1054,6 +1064,9 @@ class TransformersTest(test_util.JaxTestCase):
         packed_input=False,
         ngrammer_tpl=ngrammer_params,
         vocab_size=vocab_size)
+    if not share_embedding_and_softmax:
+      p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
+      p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
     seq_len = 8
     batch_size = 2
     # Turn on dconv as in Primer.
