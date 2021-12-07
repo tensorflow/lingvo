@@ -274,7 +274,7 @@ class LmCloudSpmd32B(LmCloudSpmd):
   NUM_LAYERS = 40
   MODEL_DIMS = 8192
 
-  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_CONTEXT_AND_OUT_PROJ
   MESH_SHAPE = [1, 16, 4]
 
 
@@ -282,14 +282,14 @@ class LmCloudSpmd32B(LmCloudSpmd):
 class LmCloudSpmd64B(LmCloudSpmd):
   r"""SPMD model with 64B params.
 
-  Global batch size = 4 * 4 * 8 * 8 = 1024
+  Global batch size = 4 * 4 * 8 * 4 = 512
   """
-  PERCORE_BATCH_SIZE = 8
+  PERCORE_BATCH_SIZE = 4
 
   NUM_LAYERS = 51
   MODEL_DIMS = 10240
 
-  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_CONTEXT_AND_OUT_PROJ
   MESH_SHAPE = [1, 16, 8]
 
 
