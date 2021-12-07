@@ -56,6 +56,8 @@ class BaseRunner:
       trial:   An optional hyperparameter trial. Used by Vizier studies.
     """
     self._params = trial.OverrideModelParams(params.Copy())
+    p = self.params
+
     self._model_task_name = model_task_name
     self._logdir = logdir
     self._train_dir = os.path.join(self._logdir, 'train')
@@ -69,9 +71,31 @@ class BaseRunner:
     # trials.
     self._container_id = self._trial.Name()
 
+    # Set in subclasses.
+    self._job_name = ''
+    self._daemon = False
+    self._verbose_enqueue_logging = False
+
     self._checkpointer = None
     self._should_report_metrics = False
+
+    if py_utils.IsEagerMode():
+      self._graph = None
+    else:
+      self._graph = tf.Graph()
+    self._summary_writer = None
+    self._initialize_tables = None
+    self._dequeue_thread_complete = False
+
     self._early_stop = None
+    # The actual EarlyStop object.
+    if p.train.early_stop and p.train.early_stop.window:
+      early_stop.MetricHistory.SetLogdirInMetricHistories(p, self._logdir)
+      self._early_stop = p.train.early_stop.Instantiate()
+      self._verbose_enqueue_logging = True
+
+    # Merged TF scalar summaries for training related input data stats.
+    self._merged_input_data_summary_op = None
 
     # To early terminate a runner, we set max_steps here and that will trigger
     # appropriate ShouldStop behavior in the threads. This is used by Vizier
@@ -89,6 +113,12 @@ class BaseRunner:
     self._SetStatusMessage('Starting ...')
     self.params.cluster.logdir = logdir
     self._cluster = cluster_factory.Cluster(self.params.cluster)
+    self._worker_cluster_def = self._cluster.worker_cluster_def
+
+    if py_utils.IsEagerMode():
+      self._cluster.InitDevicesEager()
+    else:
+      self._cluster.InitDevices(self._GetSession())
 
     # Ensure global step tensor is created.
     py_utils.GetOrCreateGlobalStepVar()
@@ -99,6 +129,14 @@ class BaseRunner:
 
   def Start(self):
     pass
+
+  def _CreateCheckpointer(self, train_dir, model, init_op=None):
+    """Wrapper method for override purposes."""
+    if py_utils.IsEagerMode():
+      if FLAGS.write_v2_checkpoints:
+        return checkpointer.EagerCheckpointerV2(train_dir, model, init_op)
+      return checkpointer.EagerCheckpointerV1(train_dir, model, init_op)
+    return checkpointer.Checkpointer(train_dir, model, init_op)
 
   @classmethod
   def _GetTtlDir(cls, path, duration):
@@ -270,43 +308,6 @@ class BaseRunner:
         # Check for new checkpoints every 10 seconds if none are found. Spends
         # 1s worth of CPU cycles every ~3hrs looking for new checkpoints.
         time.sleep(10)
-
-
-class GraphRunner(BaseRunner):
-  """Base class for graph jobs."""
-
-  def __init__(self, *args, **kwargs):
-    """Construct a new GraphRunner."""
-    super().__init__(*args, **kwargs)
-    p = self.params
-    # Set in subclasses.
-    self._job_name = ''
-    self._daemon = False
-    self._verbose_enqueue_logging = False
-
-    if py_utils.IsEagerMode():
-      self._graph = None
-    else:
-      self._graph = tf.Graph()
-    self._summary_writer = None
-    self._initialize_tables = None
-    self._dequeue_thread_complete = False
-
-    early_stop.MetricHistory.SetLogdirInMetricHistories(p, self._logdir)
-    # The actual EarlyStop object.
-    if p.train.early_stop and p.train.early_stop.window:
-      self._early_stop = p.train.early_stop.Instantiate()
-      self._verbose_enqueue_logging = True
-
-    self._worker_cluster_def = self._cluster.worker_cluster_def
-
-    # Merged TF scalar summaries for training related input data stats.
-    self._merged_input_data_summary_op = None
-
-    if py_utils.IsEagerMode():
-      self._cluster.InitDevicesEager()
-    else:
-      self._cluster.InitDevices(self._GetSession())
 
   def _InVizierStudy(self):
     return not isinstance(self._trial, base_trial.NoOpTrial)
@@ -672,30 +673,3 @@ class GraphRunner(BaseRunner):
     if global_enqueue_steps % self._input_stats_summary_interval_steps == 0:
       self._summary_writer.add_summary(summary_str, global_enqueue_steps)
       self._summary_writer.flush()
-
-
-class EagerRunner(BaseRunner):
-  """Base class for eager runners."""
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self._model = None
-    self._task = None
-
-  def Start(self):
-    """Start."""
-    assert tf.executing_eagerly()
-    assert py_utils.IsEagerMode()
-    super().Start()
-
-    # Set up cluster and model params.
-    self._cluster.InitDevicesEager()
-    with self._cluster:
-      self._model = self._params.Instantiate()
-      self._task = self._model.GetTask(FLAGS.model_task_name)
-      if FLAGS.write_v2_checkpoints:
-        self._checkpointer = checkpointer.EagerCheckpointerV2(
-            self._train_dir, self._model)
-      else:
-        self._checkpointer = checkpointer.EagerCheckpointerV1(
-            self._train_dir, self._model)

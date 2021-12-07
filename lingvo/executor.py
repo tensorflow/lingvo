@@ -156,7 +156,7 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
   return ps_params_dict, train_cfg
 
 
-class ExecutorTpu(base_runner.GraphRunner):
+class ExecutorTpu(base_runner.BaseRunner):
   """An runner that does arbitrary multi-program execution on TPU.
 
   Overview of operation:

@@ -61,7 +61,7 @@ def StartShell(local_ns=None):
   IPython.start_ipython(argv=[], user_ns=user_ns)
 
 
-class Controller(base_runner.GraphRunner):
+class Controller(base_runner.BaseRunner):
   """Controller for a training cluster."""
 
   def __init__(self, *args, **kwargs):
@@ -108,10 +108,6 @@ class Controller(base_runner.GraphRunner):
         text_format.MessageToString(self.params.ToProto(), as_utf8=True),
         self._control_dir, 'params.pbtxt')
     self._summary_writer.add_graph(self._graph)
-
-  def _CreateCheckpointer(self, train_dir, model, init_op=None):
-    """Wrapper method for override purposes."""
-    return checkpointer.Checkpointer(train_dir, model, init_op)
 
   def Start(self):
     super().Start()
@@ -190,7 +186,7 @@ class Controller(base_runner.GraphRunner):
         metrics.CreateScalarSummary(tag, value), step)
 
 
-class Trainer(base_runner.GraphRunner):
+class Trainer(base_runner.BaseRunner):
   """Trainer on non-TPU."""
 
   def __init__(self, *args, **kwargs):
@@ -348,7 +344,7 @@ class Trainer(base_runner.GraphRunner):
                                         per_example_tensors)
 
 
-class TrainerTpu(base_runner.GraphRunner):
+class TrainerTpu(base_runner.BaseRunner):
   """Trainer on TPU."""
 
   def __init__(self, *args, **kwargs):
@@ -825,7 +821,7 @@ class TrainerTpu(base_runner.GraphRunner):
             **{k: v[0] for k, v in eval_metrics.items()})
 
 
-class Evaler(base_runner.GraphRunner):
+class Evaler(base_runner.BaseRunner):
   """Evaler."""
 
   def __init__(self, eval_type, *args, **kwargs):
@@ -878,10 +874,6 @@ class Evaler(base_runner.GraphRunner):
     if self.params.cluster.task == 0:
       tf.io.write_graph(self._graph.as_graph_def(), self._eval_dir,
                         '%s.pbtxt' % self._output_name)
-
-  def _CreateCheckpointer(self, train_dir, model):
-    """Wrapper method for override purposes."""
-    return checkpointer.Checkpointer(train_dir, model)
 
   def Start(self):
     super().Start()
@@ -1073,7 +1065,7 @@ def _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step):
   return ckpt_id_from_file
 
 
-class Decoder(base_runner.GraphRunner):
+class Decoder(base_runner.BaseRunner):
   """Decoder."""
 
   def __init__(self, decoder_type, *args, **kwargs):
@@ -1135,10 +1127,6 @@ class Decoder(base_runner.GraphRunner):
     if self.params.cluster.task == 0:
       tf.io.write_graph(self._graph.as_graph_def(), self._decoder_dir,
                         '%s.pbtxt' % self._job_name)
-
-  def _CreateCheckpointer(self, train_dir, model):
-    """Wrapper method for override purposes."""
-    return checkpointer.Checkpointer(train_dir, model)
 
   def Start(self):
     super().Start()

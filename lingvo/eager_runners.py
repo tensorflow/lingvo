@@ -27,7 +27,7 @@ from lingvo import base_runner
 FLAGS = tf.flags.FLAGS
 
 
-class Trainer(base_runner.EagerRunner):
+class Trainer(base_runner.BaseRunner):
   """Trainer that runs in eager mode."""
 
   def Start(self):
@@ -35,16 +35,19 @@ class Trainer(base_runner.EagerRunner):
     super().Start()
 
     with self._cluster:
+      model = self._params.Instantiate()
+      ckptr = self._CreateCheckpointer(self._train_dir, model)
+      task = model.GetTask(self._model_task_name)
       # Initialze the datasets and iterators before `tf.function` because
       # `tf.function` does not trace python side effects.
       # https://www.tensorflow.org/guide/function#executing_python_side_effects
-      _ = self._task.GetInputBatch()
+      _ = task.GetInputBatch()
 
       @tf.function(autograph=False)
       def TrainFunc():
         with py_utils.GradientTape():
-          self._model.ConstructFPropBPropGraph()
-        return self._task.eval_metrics, self._task.per_example_tensors
+          model.ConstructFPropBPropGraph()
+        return task.eval_metrics, task.per_example_tensors
 
       step_rate_tracker = summary_utils.StepRateTracker()
       summary_writer = tf.compat.v2.summary.create_file_writer(self._train_dir)
@@ -56,7 +59,7 @@ class Trainer(base_runner.EagerRunner):
       # scenario the slot variables will be lost without a dummy run due to
       # checkpoint overwrites.
       _, _ = TrainFunc()
-      path = self._checkpointer.Restore()
+      path = ckptr.Restore()
       if path:
         tf.logging.info(f'Loaded checkpoints from {path}.')
       else:
@@ -65,7 +68,7 @@ class Trainer(base_runner.EagerRunner):
         global_step = py_utils.GetOrCreateGlobalStepVar()
         global_step.assign(0)
 
-      global_step = self._model.global_step.numpy()
+      global_step = model.global_step.numpy()
       while True:
         if self._ShouldStop(global_step):
           break
@@ -74,15 +77,15 @@ class Trainer(base_runner.EagerRunner):
         metrics_dict, outfeed = TrainFunc()
         tf.logging.info('Train function complete.')
 
-        global_step = self._model.global_step.numpy()
+        global_step = model.global_step.numpy()
 
-        if not self._task.per_example_tensors:
+        if not task.per_example_tensors:
           assert not outfeed
         else:
           # TODO(laigd): debugging only, remove later.
           tf.logging.info(f'outfeed: {outfeed}')
 
-        self._checkpointer.MaybeSave(gsteps=global_step)
+        ckptr.MaybeSave(gsteps=global_step)
 
         step_rate, example_rate, total_examples = (
             step_rate_tracker.ComputeStepRate(
@@ -107,10 +110,10 @@ class Trainer(base_runner.EagerRunner):
         self._SetStatusMessage(msg)
 
       # Also save at the end of training
-      self._checkpointer.Save(gsteps=global_step)
+      ckptr.Save(gsteps=global_step)
 
 
-class TrainSummaries(base_runner.EagerRunner):
+class TrainSummaries(base_runner.BaseRunner):
   """Write training summaries."""
 
   def __init__(self, *args, **kwargs):
@@ -127,21 +130,25 @@ class TrainSummaries(base_runner.EagerRunner):
     super().Start()
 
     with self._cluster:
+      model = self._params.Instantiate()
+      ckptr = self._CreateCheckpointer(self._train_dir, model)
+      task = model.GetTask(self._model_task_name)
+
       next_summary_step = 1
-      global_step = self._model.global_step.numpy()
+      global_step = model.global_step.numpy()
       last_path = None
 
       # Initialze the datasets and iterators before `tf.function` because
       # `tf.function` does not trace python side effects.
       # https://www.tensorflow.org/guide/function#executing_python_side_effects
-      _ = self._task.GetInputBatch()
+      _ = task.GetInputBatch()
 
       @tf.function(autograph=False)
       def ModelFunc():
         with self._summary_writer.as_default():
           with py_utils.GradientTape():
-            self._model.ConstructFPropBPropGraph()
-          return self._task.eval_metrics
+            model.ConstructFPropBPropGraph()
+          return task.eval_metrics
 
       while True:
         if self._ShouldStop(global_step):
@@ -149,27 +156,27 @@ class TrainSummaries(base_runner.EagerRunner):
 
         time.sleep(30)  # Wait some time between loops.
 
-        path = tf.train.latest_checkpoint(self._checkpointer.checkpoint_dir)
+        path = tf.train.latest_checkpoint(ckptr.checkpoint_dir)
         if path == last_path:
           continue
 
         # Attempt to restore the checkpoint
-        path = self._checkpointer.Restore()
+        path = ckptr.Restore()
         if not path:
           continue
 
         last_path = path
 
-        global_step = self._model.global_step.numpy()
+        global_step = model.global_step.numpy()
         if global_step >= next_summary_step:
           _ = ModelFunc()
           self._SetStatusMessage(f'Write summary @{global_step}')
           self._summary_writer.flush()
           next_summary_step = (
-              global_step + self._model.params.train.summary_interval_steps)
+              global_step + model.params.train.summary_interval_steps)
 
 
-class Evaler(base_runner.EagerRunner):
+class Evaler(base_runner.BaseRunner):
   """Evaler."""
 
   def __init__(self, eval_type, *args, **kwargs):
@@ -187,6 +194,12 @@ class Evaler(base_runner.EagerRunner):
   def Start(self):
     """Start."""
     super().Start()
+
+    with self._cluster:
+      self._model = self._params.Instantiate()
+      self._checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                    self._model)
+      self._task = self._model.GetTask(self._model_task_name)
 
     self._eval_path = checkpointer.GetSpecificCheckpoint(
         self._task.params.eval.load_checkpoint_from)
@@ -297,7 +310,7 @@ def _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step):
   return ckpt_id_from_file
 
 
-class Decoder(base_runner.EagerRunner):
+class Decoder(base_runner.BaseRunner):
   """Decoder."""
 
   def __init__(self, decoder_type, *args, **kwargs):
@@ -313,6 +326,12 @@ class Decoder(base_runner.EagerRunner):
   def Start(self):
     """Start."""
     super().Start()
+
+    with self._cluster:
+      self._model = self._params.Instantiate()
+      self._checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                    self._model)
+      self._task = self._model.GetTask(self._model_task_name)
 
     self._decode_path = checkpointer.GetSpecificCheckpoint(
         self._task.params.eval.load_checkpoint_from)
