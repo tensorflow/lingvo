@@ -24,7 +24,6 @@ from typing import Optional, Sequence
 
 from absl import logging
 import jax
-from jax import numpy as jnp
 from jax.experimental import maps
 from lingvo.jax import base_layer
 from lingvo.jax import base_model_params
@@ -396,20 +395,35 @@ def decode_once_pmap_model(
   # different prng_key.
   prng_key = jax.random.fold_in(prng_key, jax.process_index())
   logging.info('root prng_key: %s', prng_key)
+  prng_key, eval_key = jax.random.split(prng_key)
+  prng_seed = jax.random.split(eval_key, num=jax.local_device_count())
+  logging.info('decoder prng_seed: %s', prng_seed)
 
   def decode_step(mdl_vars, prng_key, global_step, inputs):
-    return trainer_lib.decode_step(jax_model, mdl_vars, prng_key, global_step,
-                                   inputs, model_p.fprop_dtype)
+    out = trainer_lib.decode_step(jax_model, mdl_vars, prng_key, global_step,
+                                  inputs, model_p.fprop_dtype)
+    out = jax.lax.all_gather(out, axis_name='batch', tiled=True)
+    return out
 
-  num_devices = jax.local_device_count()
-  prng_key, eval_key = jax.random.split(prng_key)
-  eval_prng_seed = jax.random.split(eval_key, num=num_devices)
-  logging.info('eval prng_seed: %s', eval_prng_seed)
-
-  p_decode_step = jax.pmap(decode_step, axis_name='batch')
-  decode_step = functools.partial(p_decode_step,
-                                  replicated_model_states.mdl_vars,
-                                  eval_prng_seed, replicated_model_states.step)
+  # As an example, suppose the output leaf from trainer_lib.decoder_step()
+  # for each core has shape: [per_core_batch_size, decoding_length].
+  # In the all_gather we set tiled=True, so the output chunks are all
+  # concatenated into the existing batch axis, so we get shape
+  # [num_cores x per_core_batch_size, decoding_length].
+  # In the pmap call we set out_axes=None to not have to manually unreplicate,
+  # so the output of pmap_decode_step() will have the same shape.
+  #
+  # Example code snippet showing this:
+  #   # shape (8, 3, 2)
+  #   x = jnp.tile(jnp.arange(8)[:, None, None],[1, 3, 2])
+  #   # shape (24, 2)
+  #   z = jax.pmap(
+  #       lambda y: jax.lax.all_gather(y+1, axis_name='i', tiled=True),
+  #       axis_name='i', out_axes=None)(x)
+  pmap_decode_step = jax.pmap(decode_step, axis_name='batch', out_axes=None)
+  decode_step_func = functools.partial(pmap_decode_step,
+                                       replicated_model_states.mdl_vars,
+                                       prng_seed, replicated_model_states.step)
 
   num_steps = [
       -1 if p.reset_for_eval else p.eval_loop_num_batches for p in input_p
@@ -424,11 +438,8 @@ def decode_once_pmap_model(
       except tf.errors.OutOfRangeError:
         break
       batch = tf.nest.map_structure(py_utils.reshard, batch)
-      out = decode_step(batch)
+      out = decode_step_func(batch)
       if jax.process_index() == 0:
-        # TODO(zhouwk): test with multi-process. Do we need all_gather?
-        out = jax.tree_map(lambda x: jnp.reshape(x, [-1] + list(x.shape[2:])),
-                           out)
         processed = jax_model.process_decode_out(inputs[split], out)
         decodes[split].extend(processed)
 
