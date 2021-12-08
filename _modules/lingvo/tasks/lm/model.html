@@ -401,8 +401,12 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">labels_ids</span><span class="p">,</span> <span class="n">predicted_labels</span><span class="p">),</span> <span class="n">fprop_dtype</span><span class="p">)</span> <span class="o">*</span>
         <span class="n">weights</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">num_preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">loss</span> <span class="o">=</span> <span class="n">xent_output</span><span class="o">.</span><span class="n">avg_xent</span>
+    <span class="n">per_sequence_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">xent_output</span><span class="o">.</span><span class="n">per_example_xent</span> <span class="o">*</span> <span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">sum_loss_across_tokens_in_batch</span><span class="p">:</span>
       <span class="n">loss</span> <span class="o">=</span> <span class="n">xent_output</span><span class="o">.</span><span class="n">total_xent</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">per_sequence_loss</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">num_preds</span><span class="p">),</span>
         <span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">mean_acc</span><span class="p">,</span> <span class="n">num_preds</span><span class="p">),</span>
@@ -412,7 +416,7 @@
         <span class="s1">&#39;num_words&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
         <span class="s1">&#39;num_sentences&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">num_sentences</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
     <span class="p">},</span> <span class="p">{</span>
-        <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">xent_output</span><span class="o">.</span><span class="n">per_sequence_xent</span><span class="p">,</span>
+        <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">per_sequence_loss</span><span class="p">,</span>
     <span class="p">}</span></div>
 
 <div class="viewcode-block" id="BatchMajorLanguageModel._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.BatchMajorLanguageModel._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
