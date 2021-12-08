@@ -79,6 +79,11 @@ class BaseProgram:
              'Whether to write input data stats during training.')
     p.Define('max_metrics', 256, 'Overrides TpuEvalMetrics.max_metrics')
     p.Define('ml_perf', None, 'MLPerf config')
+    p.Define(
+        'checkpoint_to_load', None,
+        'If set, the program will initially load from this checkpoint, '
+        'ignoring train_dir. Typically used for oneoff decode.'
+        'Eager mode is currently not supported!')
     return p
 
   def __init__(self,
@@ -97,6 +102,9 @@ class BaseProgram:
     self._tf_master = kwargs.pop('tf_master', None)
     self._write_train_input_stats = p.write_train_input_stats
     self._trial = trial
+    if p.checkpoint_to_load and py_utils.IsEagerMode():
+      raise NotImplementedError(
+          'p.checkpoint_to_load is not supported for eager mode!')
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
@@ -347,6 +355,8 @@ class BaseProgram:
   def RestoreIfNeeded(self, sess=None):
     if py_utils.IsEagerMode():
       raise TypeError('Not supported in Eager mode.')
+    elif self.params.checkpoint_to_load:
+      self._checkpointer.RestoreFromPath(sess, self.params.checkpoint_to_load)
     else:
       self._checkpointer.RestoreIfNeeded(sess)
 
@@ -431,6 +441,8 @@ class TrainProgram(BaseProgram):
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
     p = self.params
+    assert not p.checkpoint_to_load, (
+        'TrainProgram does not support checkpoint_to_load!')
     if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
         p.ml_perf.steps_per_epoch is not None):
       self._ml_perf = p.ml_perf
@@ -1872,7 +1884,8 @@ def UpdateProgramSchedule(ps_params,
                           train_steps_per_loop,
                           eval_steps_per_loop,
                           decode_steps_per_loop,
-                          decode_summary_emails=None):
+                          decode_summary_emails=None,
+                          oneoff_checkpoint_to_load=None):
   """Update ProgramSchedule params with the given new configs.
 
   Currently this override only support EvalProgram and DecodeProgram.
@@ -1891,6 +1904,8 @@ def UpdateProgramSchedule(ps_params,
       decode programs steps_per_loop. If set to -1, it will set
       decode_until_out_of_range=True. Currently list not supported.
     decode_summary_emails: List of emails to send Decode summary to.
+    oneoff_checkpoint_to_load: Optional[str], if not None, it will override
+      eval/decode program checkpoint_to_load.
 
   Returns:
     ps_params after overriden.
@@ -1955,6 +1970,16 @@ def UpdateProgramSchedule(ps_params,
       for eval_program in ps_params.eval_programs:
         if issubclass(eval_program.cls, DecodeProgram):
           _SetDecodeStepsPerLoop(eval_program, decode_steps_per_loop)
+
+  if oneoff_checkpoint_to_load:
+    if ps_params.train_executions_per_eval:
+      tf.logging.warning(
+          'Training with decoding does not suggest to set `checkpoint_to_load` '
+          'for DecodeProgram!')
+    for eval_program in ps_params.eval_programs:
+      if issubclass(eval_program.cls, DecodeProgram) or issubclass(
+          eval_program.cls, EvalProgram):
+        eval_program.checkpoint_to_load = oneoff_checkpoint_to_load
 
   if decode_summary_emails:
     for eval_program in ps_params.eval_programs:

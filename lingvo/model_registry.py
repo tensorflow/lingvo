@@ -54,6 +54,10 @@ tf.flags.DEFINE_integer(
     'To override ProgramSchedule.decode_steps_per_loop, '
     '-1 indicate decode_until_out_of_range.')
 tf.flags.DEFINE_string(
+    'executor_oneoff_checkpoint_to_load', None,
+    'Typically used for oneoff eval/decode executor run, to override '
+    'p.checkpoint_to_load.')
+tf.flags.DEFINE_string(
     'decode_summary_emails', None,
     'Semi-colon separated list of email addresses to send Decode summary to.')
 
@@ -307,7 +311,8 @@ class _ModelRegistryHelper:
         program_schedule_cfg, datasets_to_eval,
         FLAGS.executor_train_executions_per_eval,
         FLAGS.executor_train_steps_per_loop, FLAGS.executor_eval_steps_per_loop,
-        FLAGS.executor_decode_steps_per_loop, decode_summary_emails)
+        FLAGS.executor_decode_steps_per_loop, decode_summary_emails,
+        FLAGS.executor_oneoff_checkpoint_to_load)
     return program_schedule_cfg
 
   @classmethod
