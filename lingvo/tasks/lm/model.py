@@ -336,8 +336,12 @@ class BatchMajorLanguageModel(LanguageModel):
         tf.cast(tf.equal(labels_ids, predicted_labels), fprop_dtype) *
         weights) / tf.math.maximum(num_preds, 1)
     loss = xent_output.avg_xent
+    per_sequence_loss = tf.reduce_sum(
+        xent_output.per_example_xent * weights, axis=1)
     if p.train.sum_loss_across_tokens_in_batch:
       loss = xent_output.total_xent
+    else:
+      per_sequence_loss /= tf.reduce_sum(weights, axis=1)
     return {
         'loss': (loss, num_preds),
         'fraction_of_correct_next_step_preds': (mean_acc, num_preds),
@@ -347,7 +351,7 @@ class BatchMajorLanguageModel(LanguageModel):
         'num_words': (num_words, 1),
         'num_sentences': (tf.reduce_sum(num_sentences), 1),
     }, {
-        'loss': xent_output.per_sequence_xent,
+        'loss': per_sequence_loss,
     }
 
   def _InferenceSubgraph_Default(self):
