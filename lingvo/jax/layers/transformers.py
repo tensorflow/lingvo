@@ -188,6 +188,11 @@ class TransformerFeedForward(base_layer.BaseLayer):
   def Params(cls) -> InstantiableParams:
     p = super().Params()
     p.Define('input_dims', 0, 'Depth of the input.')
+    p.Define(
+        'projection_dims', 0, 'Depth of the output.'
+        'If unset, there is no residual projection layer.'
+        'Otherwise, add a residual projection layer '
+        'followed by batch normalization.')
     p.Define('hidden_dims', 0, 'Hidden dimension of FFN')
     p.Define(
         'activation', 'RELU', 'Activation function to use.'
@@ -207,6 +212,10 @@ class TransformerFeedForward(base_layer.BaseLayer):
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
     p.Define('add_skip_connection', True, 'Whether to add residual connection')
+    p.Define(
+        'residual_weight', 1.0,
+        'Weight of the residual connection. Output = fn(x) * residual_weight + x.'
+    )
     p.Define('pre_layer_norm', True, 'Whether to apply LN pre or post')
     p.weight_split_dims_mapping = py_utils.Params()
     wp = p.weight_split_dims_mapping
@@ -226,6 +235,21 @@ class TransformerFeedForward(base_layer.BaseLayer):
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     p = self.params
+
+    if p.projection_dims == 0:
+      # Make it compatible with previous implementation
+      p.projection_dims = p.input_dims
+    else:
+      self.create_child(
+          'res_proj',
+          linears.Linear.Params().Set(
+              input_dims=p.input_dims,
+              output_dims=p.projection_dims,
+          ))
+      self.create_child(
+          'res_proj_norm',
+          normalizations.BatchNorm.Params().Set(dim=p.projection_dims))
+
     wp = p.weight_split_dims_mapping
     ap = p.activation_split_dims_mapping
     # Create Layer Norm
@@ -274,7 +298,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
     ffn2_p.name = 'ffn_layer2'
     ffn2_p.input_dims = p.hidden_dims
     ffn2_p.activation = 'NONE'
-    ffn2_p.output_dims = p.input_dims
+    ffn2_p.output_dims = p.projection_dims
     ffn2_p.weight_split_dims_mapping.wt = wp.ffn1
     ffn2_p.activation_split_dims_mapping.out = ap.ffn1
     self.create_child('ffn_layer2', ffn2_p)
@@ -329,9 +353,13 @@ class TransformerFeedForward(base_layer.BaseLayer):
     projected_inputs = self.residual_dropout.fprop(theta.residual_dropout,
                                                    projected_inputs)
 
+    if hasattr(self, 'res_proj'):
+      inputs = self.res_proj_norm.fprop(
+          theta.res_proj_norm, self.res_proj.fprop(theta.res_proj, inputs))
+
     # Apply skip connection
     if p.add_skip_connection:
-      projected_inputs += inputs
+      projected_inputs = projected_inputs * p.residual_weight + inputs
 
     # Apply Layer norm if not applied
     if not p.pre_layer_norm:
@@ -779,18 +807,23 @@ class Transformer(base_layer.BaseLayer):
       self.create_child('cross_attention', params)
 
     # Initialize feed-forward layer
-    params = p.tr_fflayer_tpl.Copy()
-    params.name = 'tr_fflayer'
-    params.input_dims = p.input_dims
-    params.hidden_dims = p.hidden_dims
-    params.relu_dropout_prob = p.relu_dropout_prob
-    params.residual_dropout_prob = p.residual_dropout_prob
-    self.create_child('ff_layer', params)
+    if p.tr_fflayer_tpl:
+      params = p.tr_fflayer_tpl.Copy()
+      params.name = 'tr_fflayer'
+      params.input_dims = p.input_dims
+      params.hidden_dims = p.hidden_dims
+      params.relu_dropout_prob = p.relu_dropout_prob
+      params.residual_dropout_prob = p.residual_dropout_prob
+      self.create_child('ff_layer', params)
 
   def init_states(self, theta: NestedMap, target_batch_size: int,
                   target_max_length: int) -> NestedMap:
     return self.self_attention.init_states(theta.self_attention,
                                            target_batch_size, target_max_length)
+
+  @property
+  def has_fflayer(self) -> bool:
+    return hasattr(self, 'ff_layer')
 
   def fprop(
       self,
@@ -858,8 +891,11 @@ class Transformer(base_layer.BaseLayer):
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    output = self.ff_layer.fprop(
-        theta.ff_layer, atten_output, paddings=paddings)
+    if self.has_fflayer:
+      output = self.ff_layer.fprop(
+          theta.ff_layer, atten_output, paddings=paddings)
+    else:
+      output = atten_output
     return output, atten_probs
 
   def extend_step(
@@ -939,7 +975,10 @@ class Transformer(base_layer.BaseLayer):
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    output = self.ff_layer.fprop(theta.ff_layer, atten_output)
+    if self.has_fflayer:
+      output = self.ff_layer.fprop(theta.ff_layer, atten_output)
+    else:
+      output = atten_output
     return updated_states, output
 
 

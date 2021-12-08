@@ -17,6 +17,7 @@ pytype_strict_library(
         ":activations",
         ":attentions",
         ":augmentations",
+        ":conformers",
         ":convolutions",
         ":embedding_softmax",
         ":flax_wrapper",
@@ -243,6 +244,7 @@ pytype_strict_library(
     srcs = ["test_layers.py"],
     srcs_version = "PY3",
     deps = [
+        ":conformers",
         ":flax_wrapper",
         ":linears",
         ":normalizations",
@@ -253,6 +255,42 @@ pytype_strict_library(
         "//lingvo/jax:model",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
+    ],
+)
+
+py_strict_test(
+    name = "conformers_test",
+    srcs = ["conformers_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:conformer_layer",
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:test_utils",
+        "//lingvo/jax/layers:conformers",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+pytype_strict_library(
+    name = "conformers",
+    srcs = ["conformers.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":attentions",
+        ":convolutions",
+        ":normalizations",
+        ":stochastics",
+        ":transformers",
+        "//lingvo/jax:asserts",
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
     ],
 )
 

@@ -27,6 +27,8 @@ from lingvo.jax.layers.attentions import segment_mask
 
 from lingvo.jax.layers.augmentations import MaskedLmDataAugmenter
 
+from lingvo.jax.layers.conformers import Conformer
+
 from lingvo.jax.layers.convolutions import Conv2D
 from lingvo.jax.layers.convolutions import ConvBNAct
 from lingvo.jax.layers.convolutions import DepthwiseConv1D
