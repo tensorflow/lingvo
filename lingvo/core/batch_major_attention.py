@@ -2431,10 +2431,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     dims = self._StreamStepDimensions(query_vec)
     h, s, b, q = dims.h, dims.s, dims.b, dims.q
-    assert query_vec.shape[1] is not None, 'query_vec.shape[1] must be static.'
-    assert q <= p.inference_step_max_length, (
-        f'q: {q} should be less than p.inference_step_max_length: '
-        f'{p.inference_step_max_length}')
+    assert q is not None
+    query_vec = py_utils.with_dependencies(
+        [py_utils.assert_less_equal(q, p.inference_step_max_length)], query_vec)
 
     b, k = py_utils.GetShape(key_vec, 2)
     q = (k + p.query_stride - 1) // p.query_stride
