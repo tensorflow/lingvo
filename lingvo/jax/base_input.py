@@ -212,6 +212,8 @@ class LingvoInputAdaptor(BaseInput):
     if hasattr(self.input, 'datasource') and isinstance(
         self.input.datasource, datasource.TFDatasetSource):
       self.input.datasource.Reset()
+      # reset counter to 0.
+      self._num_batches_produced = 0
       return
     # reinstantiate the input and retrace self._get_batch.
     self._initialize()
