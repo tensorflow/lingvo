@@ -669,6 +669,8 @@ class Adagrad(BaseOptimizer):
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     p = super().Params()
+    p.Define('initial_accumulator_value', 0.1,
+             'Initial value of the accumulator.')
     p.Define(
         'epsilon', 1e-10,
         'Small constant applied to the denominator outside of the square root '
@@ -677,7 +679,11 @@ class Adagrad(BaseOptimizer):
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
-    return optax.adagrad(learning_rate=lr, eps=self._params.epsilon)
+    p = self._params
+    return optax.adagrad(
+        learning_rate=lr,
+        initial_accumulator_value=p.initial_accumulator_value,
+        eps=p.epsilon)
 
 
 def to_quantized(fvalue: JTensor,
