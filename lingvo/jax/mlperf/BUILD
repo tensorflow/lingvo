@@ -47,10 +47,10 @@ pytype_strict_library(
         ":mllog",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
+        "//third_party/py/jax:mesh_utils",
         "//lingvo/jax:checkpoints",
         "//lingvo/jax:model_imports",  # build_cleaner: keep
         "//lingvo/jax:model_utils",
-        "//lingvo/jax:partitioning",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:summary_utils",
         "//lingvo/jax:trainer_lib",

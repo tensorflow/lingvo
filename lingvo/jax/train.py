@@ -24,9 +24,9 @@ from typing import Optional, Sequence
 from absl import logging
 import jax
 from jax.experimental import maps
+from jax.experimental import mesh_utils
 from lingvo.jax import base_input
 from lingvo.jax import model_utils
-from lingvo.jax import partitioning
 from lingvo.jax import py_utils
 from lingvo.jax import summary_utils
 from lingvo.jax import trainer_lib
@@ -386,7 +386,7 @@ def train_and_evaluate_spmd_model(
   inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs_for_shape)
 
   mesh_shape = model_p.device_mesh.shape
-  device_mesh = partitioning.create_device_mesh(mesh_shape)
+  device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     (partitioned_train_state, partitioned_specs, train_step, eval_step, _, _,
