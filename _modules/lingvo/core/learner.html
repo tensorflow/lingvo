@@ -289,29 +289,12 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">lr_or_callable</span> <span class="o">=</span> <span class="n">lr</span>
 
-    <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">tpu_emb_update_op</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr_or_callable</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)])</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SelfVariableScope</span><span class="p">():</span>
+      <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">tpu_emb_update_op</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr_or_callable</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)])</span>
 
     <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">eval_metrics</span></div>
-
-<div class="viewcode-block" id="Learner.ComputeActivationGradients"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.ComputeActivationGradients">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeActivationGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activations</span><span class="p">,</span> <span class="n">activations_grad</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">vmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTrainableVariables</span><span class="p">(</span><span class="n">vmap</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span>
-        <span class="n">activations</span><span class="p">,</span>
-        <span class="n">vmap</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">gate_gradients</span><span class="p">,</span>
-        <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_CustomComputeGradientsFn</span><span class="p">(),</span>
-        <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">skip_zero_gradients</span><span class="p">,</span>
-        <span class="n">skip_none_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">activations_grad</span><span class="o">=</span><span class="n">activations_grad</span><span class="p">,</span>
-        <span class="n">is_activations</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Learner.ComputeLosses"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.ComputeLosses">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLosses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
