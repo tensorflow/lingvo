@@ -224,29 +224,12 @@ class Learner(base_layer.BaseLayer):
     else:
       lr_or_callable = lr
 
-    var_update_op = tf.group(
-        [tpu_emb_update_op,
-         self.optimizer.Apply(lr_or_callable, var_grads)])
+    with self._SelfVariableScope():
+      var_update_op = tf.group(
+          [tpu_emb_update_op,
+           self.optimizer.Apply(lr_or_callable, var_grads)])
 
     return losses, var_update_op, eval_metrics
-
-  def ComputeActivationGradients(self, activations, activations_grad, vmap):
-    p = self.params
-    vmap = self.GetTrainableVariables(vmap)
-
-    for v in vmap.Flatten():
-      tf.logging.info('%s: bprop variable: %s', p.name, v.name)
-    return self.optimizer.ComputeGradients(
-        activations,
-        vmap,
-        p.grad_aggregation_method,
-        p.colocate_gradients_with_ops,
-        p.gate_gradients,
-        compute_gradients_fn=self._CustomComputeGradientsFn(),
-        skip_zero_gradients=p.skip_zero_gradients,
-        skip_none_gradients=False,
-        activations_grad=activations_grad,
-        is_activations=True)
 
   def ComputeLosses(self, metrics):
     p = self.params
