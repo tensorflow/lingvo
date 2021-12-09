@@ -44,9 +44,8 @@ SummaryDict = pytypes.SummaryDict
 TrainStepFn = Callable[[TrainState, JTensor, NestedJTensor], Tuple[TrainState,
                                                                    ...]]
 EvalStepFn = Callable[[NestedJTensor, JTensor, JTensor, NestedJTensor], Tuple]
-InitFn = Callable[[NestedJTensor, JTensor, JTensor], NestedJTensor]
-ExtendFn = Callable[[NestedJTensor, NestedMap, JTensor, JTensor, NestedMap],
-                    Tuple[NestedJTensor, NestedJTensor]]
+DecodeFn = Callable[[NestedJTensor, JTensor, JTensor, NestedJTensor],
+                    NestedJTensor]
 
 
 def initialize_model_state(jax_model: model.BaseTask,
@@ -497,49 +496,6 @@ def initialize_partitioned_model_states(
   return train_state_partition_specs, out_shape, partitioned_vars
 
 
-def init_decoder_state(mdl: Model, mdl_vars: NestedJTensor, prng_key: JTensor,
-                       global_step: JTensor, target_batch_size: int,
-                       target_max_length: int,
-                       fprop_dtype: jnp.dtype) -> NestedJTensor:
-  """Initializes the decoder states.
-
-  Args:
-    mdl: An instance of model.BaseTask.
-    mdl_vars: Model variables used during decoding.
-    prng_key: A prng seed, of shape [2], of type np.uint32.
-    global_step: A counter of how many steps mdl has been trained.
-    target_batch_size: int, target batch size.
-    target_max_length: int, target max sequence length.
-    fprop_dtype: fprop datatype, can be either jnp.float32 or jnp.bfloat16.
-
-  Returns:
-    Initial cached decoder state.
-  """
-  if fprop_dtype == jnp.float32:
-    pass
-  elif fprop_dtype == jnp.bfloat16:
-    mdl_vars = jax.tree_map(_maybe_to_bfloat16, mdl_vars)
-  else:
-    assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
-
-  context_p = base_layer.JaxContext.Params().Set(do_eval=True)
-  # Fold in global_step as part of the random seed key, so that random
-  # numbers depends on global step.
-  prng_key = jax.random.fold_in(prng_key, global_step)
-  with base_layer.JaxContext.new_context(
-      params=context_p, prng_key=prng_key, global_step=global_step):
-    # Prepares mdl for fprop. This clears all forward-updated vars that kept
-    # locally in mdl.
-    mdl.prepare_fprop()
-
-    initial_decoder_state = mdl.lm.init_states(
-        mdl_vars.lm,
-        target_batch_size=target_batch_size,
-        target_max_length=target_max_length)
-
-  return initial_decoder_state
-
-
 def shard_on_batch_dim_partition_spec(
     mesh_names: Sequence[str], x: jax.ShapeDtypeStruct) -> pjit.PartitionSpec:
   """Fully shards x on the batch dimension."""
@@ -606,90 +562,27 @@ def infer_partition_spec_based_on_rank_fn(
     return base_layer.to_partition_spec(mapping_dict[key], mesh_names)
 
 
-def extend_decoder_state(
-    mdl: Model, mdl_vars: NestedJTensor, decoder_state: NestedJTensor,
-    prng_key: JTensor, global_step: JTensor, step_input: NestedJTensor,
-    fprop_dtype: jnp.dtype) -> Tuple[NestedJTensor, NestedJTensor]:
-  """Extends the decoder states.
-
-  Args:
-    mdl: An instance of model.BaseTask.
-    mdl_vars: model variables used for decoding.
-    decoder_state: Cached decoder state.
-    prng_key: A prng seed, of shape [2], of type np.uint32.
-    global_step: a global step tensor indicating how many steps a model has been
-      trained.
-    step_input: Input to the current decoder step.
-    fprop_dtype: fprop datatype, can be either jnp.float32 or jnp.bfloat16.
-
-  Returns:
-    A pair (xent_output, cached_state).
-  """
-  if fprop_dtype == jnp.float32:
-    pass
-  elif fprop_dtype == jnp.bfloat16:
-    mdl_vars = jax.tree_map(_maybe_to_bfloat16, mdl_vars)
-    step_input = jax.tree_map(_maybe_to_bfloat16, step_input)
-  else:
-    assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
-
-  context_p = base_layer.JaxContext.Params().Set(do_eval=True)
-  # Fold in decoder step as part of the random seed key, so that random
-  # numbers depends on current decoding step.
-  prng_key = jax.random.fold_in(prng_key, global_step)
-  with base_layer.JaxContext.new_context(
-      params=context_p, prng_key=prng_key, global_step=global_step):
-    # Prepares mdl for fprop. This clears all forward-updated vars that kept
-    # locally in mdl.
-    mdl.prepare_fprop()
-
-    # TODO(yonghui): Fix me. extend_decoder_state shouldn't try to access
-    # specific member of the input arg (like mdl_vars.lm here).
-    cached_state, xent_output = mdl.lm.extend_step(
-        mdl_vars.lm, decoder_state, inputs=step_input)
-  return cached_state, xent_output
-
-
 def partition_spmd_model(
     mdl_params: InstantiableParams,
     init_key: PRNGKey,
     inputs_shape: NestedShapeDtypeStruct,
-    decoder_mdl_params: Optional[InstantiableParams] = None,
-    decoder_inputs_shape: Optional[NestedShapeDtypeStruct] = None,
-    decoder_batch_size: Optional[int] = None,
-    decoder_max_length: Optional[int] = None
-) -> Tuple[TrainState, TrainState, TrainStepFn, EvalStepFn, Optional[InitFn],
-           Optional[ExtendFn], int]:
-  """Setup the SPMD model and return sharded train, eval, init and extend steps.
+) -> Tuple[TrainState, TrainState, TrainStepFn, EvalStepFn, int]:
+  """Setup the SPMD model and return sharded train and eval step function.
 
   For partitioning inputs, it is assumed the `mdl_params` has a field
   `inputs_split_mapping` which further contains keys `map_1d`, `map_2d`, ...,
   etc., which specifies how to shard inputs of that corresponding dimension.
-  If `decoder_mdl_params` is not None, then it is assumed that it contains
-  fields `decoder_inputs_split_mapping` and `decoder_states_split_mapping`,
-  which similarly contain keys `map_0d`, `map_1d` etc., which specify how to
-  shard decoder inputs and decoder states of that dimension respectively.
 
   Args:
     mdl_params: Model parameters of type NestedMap.
     init_key: PRNGKey for initializing the model variables.
     inputs_shape: Shape of the inputs for use in pjit sharding.
-    decoder_mdl_params: Model parameters used to build the decoder functions
-      (Optional). If this is not None, then decoder functions are returned.
-    decoder_inputs_shape: Shape of decoder inputs (Optional).
-    decoder_batch_size: Batch size to be used for sharding decoding step
-      (Optional).
-    decoder_max_length: Maximum sequence length to be used for sharding decoding
-      step (Optional).
 
   Returns:
     (partitioned_train_state, train_state_partition_specs, train_step_fn,
-    eval_step_fn, decoder_init_fn, decoder_extend_fn, total_num_params): The
-    partitioned TrainState, the corresponding partitioned TrainState specs,
-    the train step function, eval step function and total number of parameters.
-    Optionally, if `decoder_mdl_params` is not None, then an init cache step
-    and extend cache step are also returned, otherwise None values are returned
-    in their place.
+    eval_step_fn, total_num_params): The partitioned TrainState, the
+    corresponding partitioned TrainState specs, the train step function, eval
+    step function and total number of parameters.
   """
   mesh_names = mdl_params.mesh_axis_names
   mdl = mdl_params.Instantiate()
@@ -782,94 +675,77 @@ def partition_spmd_model(
       in_axis_resources=eval_fn_in_partition_specs,
       out_axis_resources=eval_fn_out_partition_specs)
 
-  decoder_init_fn = None
-  decoder_extend_fn = None
-  if decoder_mdl_params is not None:
-    assert decoder_inputs_shape is not None
-    assert decoder_batch_size is not None
-    assert decoder_max_length is not None
-    decode_mdl = decoder_mdl_params.Instantiate()
-
-    # Initializes all the meta data.
-    decode_mdl.instantiate_variable_configs()
-
-    def _init_decoder_state(mdl_vars, prng_key, global_step):
-      return init_decoder_state(
-          decode_mdl,
-          mdl_vars,
-          prng_key,
-          global_step,
-          target_batch_size=decoder_batch_size,
-          target_max_length=decoder_max_length,
-          fprop_dtype=decoder_mdl_params.fprop_dtype)
-
-    reshard_decoder_inputs_fn = functools.partial(
-        reshard_input_based_on_rank_fn,
-        decoder_mdl_params.train.decoder_inputs_split_mapping,
-        decoder_mdl_params.mesh_axis_names)
-
-    def _extend_decoder_state(mdl_vars, decoder_state, prng_key, global_step,
-                              step_input):
-      # Reshard the decoder inputs.
-      step_input = jax.tree_map(reshard_decoder_inputs_fn, step_input)
-      return extend_decoder_state(decode_mdl, mdl_vars, decoder_state, prng_key,
-                                  global_step, step_input,
-                                  decoder_mdl_params.fprop_dtype)
-
-    init_decoder_state_fn = _init_decoder_state
-    extend_decoder_state_fn = _extend_decoder_state
-
-    decoder_state_shapes = jax.eval_shape(_init_decoder_state,
-                                          var_shapes.mdl_vars, prng_key_shape,
-                                          var_shapes.step)
-
-    decoder_inputs_partition_spec_fn = functools.partial(
-        shard_on_batch_dim_partition_spec, decoder_mdl_params.mesh_axis_names)
-    decoder_inputs_partition_spec = tf.nest.map_structure(
-        decoder_inputs_partition_spec_fn, decoder_inputs_shape)
-
-    # Compute the Decoder state partition specs from decoder state shapes.
-    decoder_state_partition_spec_fn = functools.partial(
-        infer_partition_spec_based_on_rank_fn,
-        decoder_mdl_params.train.decoder_states_split_mapping,
-        decoder_mdl_params.mesh_axis_names)
-    decoder_state_partition_specs = tf.nest.map_structure(
-        decoder_state_partition_spec_fn, decoder_state_shapes)
-
-    init_fn_in_partition_specs = (train_state_partition_specs.mdl_vars,
-                                  prng_key_partition_spec,
-                                  train_state_partition_specs.step)
-    init_fn_out_partition_specs = decoder_state_partition_specs
-
-    _, xent_out_shapes = jax.eval_shape(extend_decoder_state_fn,
-                                        var_shapes.mdl_vars,
-                                        decoder_state_shapes, prng_key_shape,
-                                        var_shapes.step, decoder_inputs_shape)
-    # decoder output are always replicated at the moment.
-    # TODO(yonghui): Fix me.
-    xent_out_partition_specs = tf.nest.map_structure(lambda x: None,
-                                                     xent_out_shapes)
-
-    extend_fn_in_partition_specs = (train_state_partition_specs.mdl_vars,
-                                    decoder_state_partition_specs,
-                                    prng_key_partition_spec,
-                                    train_state_partition_specs.step,
-                                    decoder_inputs_partition_spec)
-
-    extend_fn_out_partition_specs = (decoder_state_partition_specs,
-                                     xent_out_partition_specs)
-
-    # pjit-ed decoder init function.
-    decoder_init_fn = pjit.pjit(
-        init_decoder_state_fn,
-        in_axis_resources=init_fn_in_partition_specs,
-        out_axis_resources=init_fn_out_partition_specs)
-
-    # pjit-ed decoder extend step function.
-    decoder_extend_fn = pjit.pjit(
-        extend_decoder_state_fn,
-        in_axis_resources=extend_fn_in_partition_specs,
-        out_axis_resources=extend_fn_out_partition_specs)
-
   return (partitioned_train_state, train_state_partition_specs, train_step,
-          eval_step, decoder_init_fn, decoder_extend_fn, total_num_params)
+          eval_step, total_num_params)
+
+
+def partition_spmd_model_decode(
+    mdl_params: InstantiableParams,
+    init_key: PRNGKey,
+    inputs_shape: NestedShapeDtypeStruct,
+) -> Tuple[TrainState, TrainState, DecodeFn]:
+  """Setup the SPMD model and return sharded decode step function.
+
+  For partitioning inputs, it is assumed the `mdl_params` has a field
+  `inputs_split_mapping` which further contains keys `map_1d`, `map_2d`, ...,
+  etc., which specifies how to shard inputs of that corresponding dimension.
+
+  Args:
+    mdl_params: Model parameters of type NestedMap.
+    init_key: PRNGKey for initializing the model variables.
+    inputs_shape: Shape of the inputs for use in pjit sharding.
+
+  Returns:
+    (partitioned_train_state, train_state_partition_specs, decode_step_fn):
+    The partitioned TrainState, the corresponding partitioned TrainState
+    specs, the decode step function.
+  """
+  mesh_names = mdl_params.mesh_axis_names
+  mdl = mdl_params.Instantiate()
+
+  # Compute inputs PartitionSpec from inputs_shape
+  inputs_partition_spec_fn = functools.partial(
+      shard_on_batch_dim_partition_spec, mdl_params.mesh_axis_names)
+  reshard_inputs_fn = functools.partial(reshard_input_based_on_rank_fn,
+                                        mdl_params.train.inputs_split_mapping,
+                                        mdl_params.mesh_axis_names)
+
+  inputs_partition_spec = tf.nest.map_structure(inputs_partition_spec_fn,
+                                                inputs_shape)
+
+  # Initialize the partitioned vars.
+  train_state_partition_specs, var_shapes, partitioned_train_state = (
+      initialize_partitioned_model_states(mdl, init_key))
+
+  prng_key_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
+  # TODO(b/198356509): Fix this so that prng_key is no longer replicated, as
+  # we want each core to not have identical random behavior.
+  prng_key_partition_spec = base_layer.to_partition_spec((None,), mesh_names)
+
+  eval_fn_in_partition_specs = (train_state_partition_specs.mdl_vars,
+                                prng_key_partition_spec,
+                                train_state_partition_specs.step,
+                                inputs_partition_spec)
+
+  def _decode_step(mdl_vars, prng_key, global_step, inputs):
+    inputs = jax.tree_map(reshard_inputs_fn, inputs)
+    return decode_step(
+        mdl,
+        mdl_vars,
+        prng_key,
+        global_step,
+        inputs,
+        fprop_dtype=mdl_params.fprop_dtype)
+
+  decode_out_shapes = jax.eval_shape(_decode_step, var_shapes.mdl_vars,
+                                     prng_key_shape, var_shapes.step,
+                                     inputs_shape)
+  # decoder output are always replicated at the moment.
+  decode_fn_out_partition_specs = tf.nest.map_structure(lambda _: None,
+                                                        decode_out_shapes)
+  decode_step_fn = pjit.pjit(
+      _decode_step,
+      in_axis_resources=eval_fn_in_partition_specs,
+      out_axis_resources=decode_fn_out_partition_specs)
+
+  return (partitioned_train_state, train_state_partition_specs, decode_step_fn)

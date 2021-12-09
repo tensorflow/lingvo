@@ -216,7 +216,7 @@ def evaluate_spmd_model(
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
-    partitioned_train_state, partitioned_specs, _, eval_step, _, _, _ = (
+    partitioned_train_state, partitioned_specs, _, eval_step, _ = (
         trainer_lib.partition_spmd_model(model_p, init_key, inputs_shape))
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
@@ -316,8 +316,9 @@ def decode_once(
     inp.num_infeed_hosts = jax.process_count()
     inp.infeed_host_index = jax.process_index()
   if model_p.device_mesh is not None:
-    del multi_host_checkpointing
-    raise NotImplementedError('Decoding spmd model not yet supported.')
+    decode_once_spmd_model(model_p, decoder_inputs, job_log_dir,
+                           checkpoint_type, restore_checkpoint_dir,
+                           restore_checkpoint_step, multi_host_checkpointing)
   else:
     decode_once_pmap_model(model_p, decoder_inputs, job_log_dir,
                            checkpoint_type, restore_checkpoint_dir,
@@ -451,6 +452,124 @@ def decode_once_pmap_model(
     if not tf.io.gfile.exists(dir_path):
       tf.io.gfile.makedirs(dir_path)
   filenames = [os.path.join(basedir, s, filename) for s in dirnames]
+  if jax.process_index() == 0:
+    for split, output_file in enumerate(filenames):
+      logging.info('Writing decoder output to %s with %d entries', output_file,
+                   len(decodes[split]))
+      io_utils.WriteKeyValuePairs(output_file, decodes[split])
+
+
+def decode_once_spmd_model(
+    model_p: InstantiableParams,
+    input_p: Sequence[InstantiableParams],
+    job_log_dir: Optional[str],
+    checkpoint_type: checkpoints.CheckpointType,
+    restore_checkpoint_dir: str,
+    restore_checkpoint_step: Optional[int],
+    multi_host_checkpointing: bool,
+) -> None:
+  """Runs the decoding once on the entire decoder datasets for SPMD model.
+
+  Args:
+    model_p: Params for the spmd model.
+    input_p: List of input params to be decoded.
+    job_log_dir: Directory for the job logs.
+    checkpoint_type: Type of model checkpointing method to use.
+    restore_checkpoint_dir: The directory from which to restore checkpoint.
+    restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
+      try to restore from the latest checkpoint if any.
+    multi_host_checkpointing: Whether to use multi-host checkpointing.
+  """
+  # TODO(bf-jax): Retrieve the seeds from the model definition instead.
+  prng_key = jax.random.PRNGKey(1234)
+  prng_key, init_key = jax.random.split(prng_key)
+
+  if restore_checkpoint_dir and multi_host_checkpointing:
+    # TODO(zhouwk): add sanity check on number of subdirs and number of
+    # processes and fail early if unequal.
+    restore_checkpoint_dir = os.path.join(restore_checkpoint_dir,
+                                          f'{jax.process_index():03d}')
+
+  def get_shape_dtype(x):
+    y = jax.ShapeDtypeStruct(x.shape, x.dtype)
+    return y
+
+  sample_inputs = input_p[0].Instantiate().get_next()
+  inputs_shape = tf.nest.map_structure(get_shape_dtype, sample_inputs)
+
+  # TODO(b/198356509): This is a hack for now as we need to change some
+  # annotations for mode='decode'. A future cl will move this logic
+  # to a more generic model_p.update_sharding_params_v1(mode='decode').
+  model_p.lm = model_p.lm.cls.set_sharding_params_v1(
+      model_p.lm,
+      replica_axis=model_p.lm.mesh_axis_names[0],
+      data_axis=model_p.lm.mesh_axis_names[1],
+      mdl_axis=model_p.lm.mesh_axis_names[2],
+      device_ids_mesh=model_p.lm.device_mesh,
+      mesh_axis_names=model_p.lm.mesh_axis_names,
+      mode='decode')
+
+  mesh_shape = model_p.device_mesh.shape
+  device_mesh = mesh_utils.create_device_mesh(mesh_shape)
+  logging.info('device_mesh: %s', device_mesh)
+  if jax.process_index() == 0:
+    # The instantiated model is only used for processing decode
+    # outputs, which only happens on process 0.
+    jax_model = model_p.Instantiate()
+  with maps.mesh(device_mesh, model_p.mesh_axis_names):
+    partitioned_train_state, partitioned_specs, decode_step_fn = (
+        trainer_lib.partition_spmd_model_decode(model_p, init_key,
+                                                inputs_shape))
+    if restore_checkpoint_dir:
+      partitioned_train_state = checkpoints.restore_checkpoint(
+          partitioned_train_state,
+          restore_checkpoint_dir,
+          checkpoint_type=checkpoint_type,
+          state_specs=partitioned_specs,
+          step=restore_checkpoint_step)
+      if multi_host_checkpointing:
+        py_utils.sync_global_devices(
+            f'checkpointer:restored:{restore_checkpoint_dir}')
+    logging.info('partitioned_train_state: %s',
+                 jax.tree_map(lambda x: x.shape, partitioned_train_state))
+
+    # We do not fold in jax.process_index in contrast to the pmap version and
+    # use a single global key instead to rely on pjit to split for different
+    # replicas.
+    logging.info('root prng_key: %s', prng_key)
+    prng_key, decode_key = jax.random.split(prng_key)
+    logging.info('eval prng_key: %s', decode_key)
+    spmd_decode_step_fn = functools.partial(decode_step_fn,
+                                            partitioned_train_state.mdl_vars,
+                                            decode_key,
+                                            partitioned_train_state.step)
+
+    num_steps = [
+        -1 if p.reset_for_eval else p.eval_loop_num_batches for p in input_p
+    ]
+    inputs = [p.Instantiate() for p in input_p]
+    decodes = [list() for _ in input_p]
+    for split, num_split_steps in enumerate(num_steps):
+      step_num = 0
+      while num_split_steps < 0 or step_num < num_split_steps:
+        step_num += 1
+        try:
+          batch = inputs[split].get_next()
+        except tf.errors.OutOfRangeError:
+          break
+        out = spmd_decode_step_fn(batch)
+        if jax.process_index() == 0:
+          processed = jax_model.process_decode_out(inputs[split], out)
+          decodes[split].extend(processed)
+
+  basedir = os.path.join(job_log_dir, 'decoder_out')
+  dirnames = _get_dir_names(input_p)
+  filename = _get_filename(partitioned_train_state.step)
+  for s in dirnames:
+    dir_path = os.path.join(basedir, s)
+    if not tf.io.gfile.exists(dir_path):
+      tf.io.gfile.makedirs(dir_path)
+      filenames = [os.path.join(basedir, s, filename) for s in dirnames]
   if jax.process_index() == 0:
     for split, output_file in enumerate(filenames):
       logging.info('Writing decoder output to %s with %d entries', output_file,
