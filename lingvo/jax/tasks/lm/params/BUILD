@@ -19,15 +19,12 @@ pytype_library(
     tags = ["keep_dep"],
     deps = [
         # Implicit jax dependency.
+        "//lingvo/jax:base_input",
         "//lingvo/jax:base_model_params",
-        "//lingvo/jax:model",
         "//lingvo/jax:model_registry",
-        "//lingvo/jax:optimizers",
         "//lingvo/jax:py_utils",
-        "//lingvo/jax:schedules",
         "//lingvo/jax/layers",
         "//lingvo/jax/tasks/lm:input_generator",
-        "//lingvo/tasks/lm/params",
-        # Implicit numpy dependency.
+        "//lingvo/jax/tasks/lm:model_params",
     ],
 )

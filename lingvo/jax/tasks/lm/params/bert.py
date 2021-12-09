@@ -14,20 +14,15 @@
 # limitations under the License.
 """BERT masked language model configurations."""
 
-import math
 from typing import List
 
 import jax
-from jax import numpy as jnp
 from lingvo.jax import base_model_params
 from lingvo.jax import layers
-from lingvo.jax import model
 from lingvo.jax import model_registry
-from lingvo.jax import optimizers
 from lingvo.jax import py_utils
-from lingvo.jax import schedules
 from lingvo.jax.tasks.lm import input_generator
-import numpy as np
+from lingvo.jax.tasks.lm import model_params
 
 InstantiableParams = py_utils.InstantiableParams
 NestedMap = py_utils.NestedMap
@@ -77,8 +72,8 @@ class BertDataset(base_model_params.BaseModelParams):
 
 
 @model_registry.register_model
-class BertAdamL4H128(BertDataset):
-  r"""4-layer Transformer LM using Adam on JF 2x2.
+class BertAdamL4H128(model_params.TransformerBertPmapAdam, BertDataset):
+  """4-layer Transformer LM using Adam on JF 2x2.
 
   global batch size = 2 * 2 * 2 * 8 = 64
   """
@@ -99,68 +94,8 @@ class BertAdamL4H128(BertDataset):
 
   ENABLE_BFLOAT16 = True
 
-  def task(self) -> InstantiableParams:
-    """Returns the task parameters."""
-    vocab_size = self.VOCAB_SIZE
-    num_layers = self.NUM_LAYERS
-    num_heads = self.NUM_HEADS
-    model_dims = self.MODEL_DIMS
-    hidden_dims = self.HIDDEN_DIMS
-    dropout_prob = self.DROPOUT_PROB
 
-    model_p = model.BertModel.Params().Set(name='bert_lm')
-    model_p.lm.masked_lm = True
-    model_p.lm.packed_input = True
-    model_p.lm.model_dims = model_dims
-    model_p.lm.hidden_dims = hidden_dims
-    model_p.lm.num_layers = num_layers
-    model_p.lm.num_heads = num_heads
-    model_p.lm.vocab_size = vocab_size
-    model_p.lm.softmax_tpl.scale_sqrt_depth = True
-    model_p.lm.softmax_tpl.soft_cap_logits = 30.0
-    if self.USE_REPEATED_LAYER:
-      model_p.lm.stacked_transformer_tpl = (
-          layers.StackedTransformerRepeated.Params())
-    else:
-      model_p.lm.stacked_transformer_tpl = (layers.StackedTransformer.Params())
-    model_p.lm.stacked_transformer_tpl.enable_while_loop = (
-        self.ENABLE_WHILE_LOOP)
-    model_p.lm.stacked_transformer_tpl.checkpoint_policy = (
-        self.CHECKPOINT_POLICY)
-    model_p.lm.stacked_transformer_tpl.dropout_prob = dropout_prob
-    transformer_layer_p = (
-        model_p.lm.stacked_transformer_tpl.transformer_layer_params_tpl)
-    transformer_layer_p.tr_atten_tpl.atten_logit_cap = 50.0
-    transformer_layer_p.tr_atten_tpl.use_bias = False
-    transformer_layer_p.tr_fflayer_tpl.activation = self.ACTIVATION_FUNCTION
-
-    softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(model_dims))
-    model_p.lm.softmax_tpl.params_init = softmax_init
-
-    model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
-
-    if self.ENABLE_BFLOAT16:
-      model_p.fprop_dtype = jnp.bfloat16
-
-    lp = model_p.train.learner
-    lp.loss_name = 'total_loss'
-    lp.optimizer = optimizers.Adam.Params().Set(
-        beta1=0.9,
-        beta2=0.99,
-        weight_decay=self.WEIGHT_DECAY,
-        clip_gradient_norm_to_value=5.0)
-    lp.optimizer.learning_rate = self.LEARNING_RATE
-    lp.optimizer.lr_schedule = (
-        schedules.LinearRampupExponentialDecay.Params().Set(
-            warmup=4000,
-            decay_start=4001,
-            decay_end=300000,
-            min_ratio=0.1,
-            max=1.0))
-    return model_p
-
-
-class BertSpmd(BertDataset):
+class BertSpmd(model_params.TransformerBertSpmdAdafactor, BertDataset):
   """Base config for an SPMD model."""
 
   NUM_LAYERS = 32
@@ -185,98 +120,6 @@ class BertSpmd(BertDataset):
   # Save a checkpoint every n steps.
   CHECKPOINT_EVERY_N_STEPS = 500
   CHECKPOINT_SAVE_MAX_TO_KEEP = 10
-
-  def task(self) -> InstantiableParams:
-    """Returns the task parameters."""
-    vocab_size = self.VOCAB_SIZE
-    num_layers = self.NUM_LAYERS
-    num_heads = self.NUM_HEADS
-    model_dims = self.MODEL_DIMS
-    hidden_dims = self.HIDDEN_DIMS
-    dropout_prob = self.DROPOUT_PROB
-
-    model_p = model.BertModel.Params().Set(name='bert_lm')
-    model_p.mask_token_id = self.MASK_TOKEN_ID
-    model_p.lm.masked_lm = True
-    model_p.lm.packed_input = True
-    model_p.lm.model_dims = model_dims
-    model_p.lm.hidden_dims = hidden_dims
-    model_p.lm.num_layers = num_layers
-    model_p.lm.num_heads = num_heads
-    model_p.lm.vocab_size = vocab_size
-    model_p.lm.softmax_tpl.scale_sqrt_depth = True
-    model_p.lm.softmax_tpl.soft_cap_logits = 30.0
-    if self.USE_REPEATED_LAYER:
-      model_p.lm.stacked_transformer_tpl = (
-          layers.StackedTransformerRepeated.Params())
-    else:
-      model_p.lm.stacked_transformer_tpl = (layers.StackedTransformer.Params())
-    model_p.lm.stacked_transformer_tpl.enable_while_loop = (
-        self.ENABLE_WHILE_LOOP)
-    model_p.lm.stacked_transformer_tpl.checkpoint_policy = (
-        self.CHECKPOINT_POLICY)
-    model_p.lm.stacked_transformer_tpl.dropout_prob = dropout_prob
-    transformer_layer_p = (
-        model_p.lm.stacked_transformer_tpl.transformer_layer_params_tpl)
-    transformer_layer_p.tr_atten_tpl.atten_logit_cap = 50.0
-    transformer_layer_p.tr_atten_tpl.use_bias = False
-    transformer_layer_p.tr_atten_tpl.combine_qkv = True
-    transformer_layer_p.tr_fflayer_tpl.activation = self.ACTIVATION_FUNCTION
-    softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(model_dims))
-    model_p.lm.softmax_tpl.params_init = softmax_init
-
-    if self.ENABLE_BFLOAT16:
-      model_p.fprop_dtype = jnp.bfloat16
-
-    model_p.train.save_max_to_keep = self.CHECKPOINT_SAVE_MAX_TO_KEEP
-    lp = model_p.train.learner
-    lp.loss_name = 'total_loss'
-    lp.optimizer = optimizers.ShardedAdafactor.Params().Set(
-        decay_method='adam',
-        beta1=0.9,
-        decay_adam=0.99,
-        weight_decay=self.WEIGHT_DECAY,
-        clip_gradient_norm_to_value=5.0)
-    lp.optimizer.learning_rate = self.LEARNING_RATE
-    lp.optimizer.lr_schedule = (
-        schedules.LinearRampupExponentialDecay.Params().Set(
-            warmup=4000,
-            decay_start=4001,
-            decay_end=100000,
-            min_ratio=0.1,
-            max=1.0))
-
-    # Set sharding annotations.
-    mesh_shape = self.MESH_SHAPE
-    device_count = np.prod(mesh_shape)
-    device_ids_mesh = np.arange(device_count).reshape(mesh_shape)
-    model_p.device_mesh = device_ids_mesh
-    replica_axis = 'replica'
-    data_axis = 'data'
-    mdl_axis = 'mdl'
-    mesh_axis_names = [replica_axis, data_axis, mdl_axis]
-    model_p.train.inputs_split_mapping = NestedMap(
-        map_1d=((replica_axis, data_axis),),
-        map_2d=((replica_axis, data_axis), None))
-    model_p.train.decoder_inputs_split_mapping = NestedMap(
-        map_1d=((replica_axis, data_axis),))
-    model_p.train.decoder_states_split_mapping = NestedMap(
-        map_0d=None,
-        map_4d=(None, (replica_axis, data_axis), mdl_axis, None),
-        # 5d inputs are for the decoder states of shape [layers, seq_len,
-        # batch_size, num_heads, dims_per_head]
-        map_5d=(None, None, (replica_axis, data_axis), mdl_axis, None),
-    )
-    model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
-    model_p.mesh_axis_names = mesh_axis_names
-    model_p.lm = model_p.lm.cls.set_sharding_params_v1(
-        model_p.lm,
-        replica_axis=replica_axis,
-        data_axis=data_axis,
-        mdl_axis=mdl_axis,
-        device_ids_mesh=device_ids_mesh,
-        mesh_axis_names=mesh_axis_names)
-    return model_p
 
 
 @model_registry.register_model
