@@ -521,6 +521,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":geometry",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",

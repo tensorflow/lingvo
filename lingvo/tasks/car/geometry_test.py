@@ -15,6 +15,7 @@
 # ==============================================================================
 """Tests for geometry."""
 
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_utils
@@ -22,7 +23,7 @@ from lingvo.tasks.car import geometry
 import numpy as np
 
 
-class GeometryTest(test_utils.TestCase):
+class GeometryTest(test_utils.TestCase, parameterized.TestCase):
 
   def testXYWHBBoxesCentroid(self):
     with self.session():
@@ -430,6 +431,18 @@ class GeometryTest(test_utils.TestCase):
       expected = [[False]] * 4 + [[True]]
       self.assertAllEqual(expected, is_inside)
 
+  def testIsWithinBBoxWithZeroAreaBBox(self):
+    bbox = tf.constant([[[0., 0.], [0., 0.], [0., 0.], [0., 0.]]],
+                       dtype=tf.float32)
+    points = tf.constant(
+        [[-.5, -.5], [.5, -.5], [1.5, -.5], [1.5, .5], [1.5, 1.5], [.5, 1.5],
+         [-.5, 1.5], [-.5, .5], [1., 1.], [.5, .5]],
+        dtype=tf.float32)
+    with self.session():
+      is_inside = self.evaluate(geometry.IsWithinBBox(points, bbox))
+      expected = [[False]] * 10
+      self.assertAllEqual(expected, is_inside)
+
   def testIsCounterClockwiseDirection(self):
     points = tf.constant(
         [[[0., 0.], [0., 0.], [0., 1.]], [[0., 0.], [0., 1.], [1., 1.]],
@@ -499,6 +512,32 @@ class GeometryTest(test_utils.TestCase):
     self.assertAllClose(y, np_xyz[..., 1])
     self.assertAllClose(z, np_xyz[..., 2])
 
+  @parameterized.named_parameters(
+      ('without_rotation', 0.0),
+      ('with_rotation_1_rad', 1.0),
+      ('with_rotation_2_rad', 2.0),
+      ('with_rotation_3_rad', 3.0),
+  )
+  def testBBoxArea(self, angle):
+    bbox = tf.constant([[[0., 0.], [1., 0.], [1., 1.], [0., 1.]],
+                        [[0., 0.], [2., 0.], [2., 1.], [0., 1.]],
+                        [[0., 0.], [2., 0.], [2., 2.], [0., 2.]]],
+                       dtype=tf.float32)
+    expected = [[1.0], [2.0], [4.0]]
+
+    def _rotate(bbox, theta):
+      rotation_matrix = tf.reshape(
+          [tf.cos(theta), -tf.sin(theta),
+           tf.sin(theta),
+           tf.cos(theta)],
+          shape=(2, 2))
+      return tf.matmul(bbox, rotation_matrix)
+
+    rotated_bbox = _rotate(bbox, angle)
+
+    with self.session():
+      bbox_area = self.evaluate(geometry._BBoxArea(rotated_bbox))
+      self.assertAllClose(expected, bbox_area)
 
 if __name__ == '__main__':
   tf.test.main()

@@ -450,6 +450,28 @@ def _IsCounterClockwiseDirection(v1, v2, v3):
   return d1 >= d2
 
 
+def _BBoxArea(bbox):
+  """Computes the area of a 2-d bbox.
+
+  Vertices must be ordered clockwise or counter-clockwise. This function can
+  technically handle any kind of convex polygons.
+
+  Args:
+    bbox: a float Tensor of shape [..., 4, 2] of bboxes. The last coordinates
+      are the four corners of the bbox and (x, y). The corners must be given in
+      counter-clockwise order.
+
+  Returns:
+    Area of the bbox. Tensor of shape [..., 1].
+  """
+  bbox_roll = tf.roll(bbox, shift=1, axis=-2)
+  det = tf.reduce_sum(
+      bbox[..., 0] * bbox_roll[..., 1] - bbox[..., 1] * bbox_roll[..., 0],
+      axis=-1,
+      keepdims=True) / 2.0
+  return tf.abs(det)
+
+
 def IsWithinBBox(points, bbox):
   """Checks if points are within a 2-d bbox.
 
@@ -494,6 +516,8 @@ def IsWithinBBox(points, bbox):
         tf.math.logical_and(
             _IsOnLeftHandSideOrOn(points, v3, v4),
             _IsOnLeftHandSideOrOn(points, v4, v1)))
+  has_non_zero_area = tf.greater(_BBoxArea(bbox), 0)
+  is_inside = tf.logical_and(tf.cast(is_inside, tf.bool), has_non_zero_area)
   # Swap the last two dimensions.
   is_inside = tf.einsum('...ij->...ji', tf.cast(is_inside, tf.int32))
   return tf.cast(is_inside, tf.bool)
