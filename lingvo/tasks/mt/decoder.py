@@ -2426,7 +2426,8 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     params_trans_layers = []
     for i in range(p.num_trans_layers):
       if isinstance(p.trans_decoder_tpl, list):
-        idx = i // len(p.trans_decoder_tpl)
+        factor = p.num_trans_layers // len(p.trans_decoder_tpl)
+        idx = i // factor
         params = p.trans_decoder_tpl[idx].Copy()
         params.packed_input = p.packed_input
       else:
