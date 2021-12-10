@@ -193,6 +193,13 @@ class Checkpointer:
       return res_rules
 
     self._restore_fns = []
+    if py_utils.IsEagerMode():
+      if self._model:
+        all_vars = list(self._model.GetVariablesDict().values())
+      else:
+        raise TypeError('self._model cannot be None in eager mode.')
+    else:
+      all_vars = tf.global_variables()
 
     # Add graph nodes to restore specific variables based on
     # init_from_checkpoint_rules.
@@ -202,14 +209,16 @@ class Checkpointer:
         tp = task.params.train
         if tp.init_from_checkpoint_rules:
           rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-          fn = py_utils.OverrideVarsFromCheckpoints(tf.global_variables(),
-                                                    rules)
+          fn = py_utils.OverrideVarsFromCheckpoints(all_vars, rules)
           self._restore_fns.append((f'OverrideVarsFromCheckpoints {rules}', fn))
 
     if self._params and self._params.train.init_from_checkpoint_rules:
+      if self._model is None:
+        raise TypeError(
+            'self._model cannot be None when using init_from_checkpoint_rules.')
       tp = self._params.train
       rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-      fn = py_utils.OverrideVarsFromCheckpoints(tf.global_variables(), rules)
+      fn = py_utils.OverrideVarsFromCheckpoints(all_vars, rules)
       self._restore_fns.append((f'OverrideVarsFromCheckpoints {rules}', fn))
 
   @property
@@ -337,11 +346,9 @@ class Checkpointer:
     sess.run(self._init_op)
     tf.logging.info('Initialized all vars.')
 
-    if self._restore_fns:
-      for msg, fn in self._restore_fns:
-        tf.logging.info(msg)
-        fn(sess)
-      tf.logging.info('Restored vars using checkpoint rules.')
+    for msg, fn in self._restore_fns:
+      tf.logging.info(msg)
+      fn(sess)
     return None
 
   def RestoreIfNeeded(self, sess):
@@ -474,7 +481,16 @@ class EagerCheckpointerV1(_EagerCheckpointer):
   def Restore(self, sess=None, force_reinitialize=None):
     """`sess` and `force_reinitialize` are unused in Eager context."""
     assert sess is None
-    return self._RestoreFromLatestCheckpoint(sess)
+    path = self._RestoreFromLatestCheckpoint(sess)
+    if path:
+      tf.logging.info('Eager checkpoint is restored with path: %s', path)
+      return path
+    # No checkpoint is loaded, we need to initialize the variables,
+    # and apply the init_from_checkpoint_rules if applicable.
+    for msg, fn in self._restore_fns:
+      tf.logging.info(msg)
+      fn(sess)
+    return path
 
   def RestoreGlobalStepIfNeeded(self, sess=None):
     """`sess` is unused in Eager context."""
@@ -503,7 +519,9 @@ class EagerCheckpointerV1(_EagerCheckpointer):
 
     assert not self._save_only
     tf.logging.info('Load from checkpoint (V1) %s.', checkpoint_path)
-    self._saver.restore(sess=None, save_path=checkpoint_path)
+    load_status = self._saver.restore(sess=None, save_path=checkpoint_path)
+    # Check all model vars are matched from the checkpoint
+    load_status.assert_existing_objects_matched()
     tf.logging.info('Load checkpoint done.')
 
   def Save(self, sess=None, gsteps=None):

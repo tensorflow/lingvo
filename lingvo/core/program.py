@@ -539,7 +539,7 @@ class TrainProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         with contextlib.ExitStack() as stack:
           if py_utils.IsEagerMode():
-            stack.enter_context(py_utils.GradientTape())
+            stack.enter_context(py_utils.GradientTape(persistent=True))
           self._model.ConstructFPropBPropGraph()
       per_step_eval_metrics = self._eval_metrics.SetMetrics(
           self._task.eval_metrics, args)

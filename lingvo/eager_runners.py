@@ -45,7 +45,7 @@ class Trainer(base_runner.BaseRunner):
 
       @tf.function(autograph=False)
       def TrainFunc():
-        with py_utils.GradientTape():
+        with py_utils.GradientTape(persistent=True):
           model.ConstructFPropBPropGraph()
         return task.eval_metrics, task.per_example_tensors
 
@@ -146,7 +146,7 @@ class TrainSummaries(base_runner.BaseRunner):
       @tf.function(autograph=False)
       def ModelFunc():
         with self._summary_writer.as_default():
-          with py_utils.GradientTape():
+          with py_utils.GradientTape(persistent=True):
             model.ConstructFPropBPropGraph()
           return task.eval_metrics
 
