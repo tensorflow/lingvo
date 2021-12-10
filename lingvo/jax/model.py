@@ -388,10 +388,12 @@ class LanguageModel(BaseTask):
     """
     p = self.params
     batch_size = input_batch.ids.shape[0]
+    maxval = jnp.sum(1 - input_batch.paddings, axis=1).astype(jnp.int32)
+    minval = jnp.minimum(maxval, p.decoder.min_prefix_len)
     max_length = p.decoder.seqlen
     prefix_lengths = jax.random.randint(base_layer.next_prng_key(),
-                                        [batch_size], p.decoder.min_prefix_len,
-                                        max_length, input_batch.ids.dtype)
+                                        [batch_size], minval, maxval + 1,
+                                        input_batch.ids.dtype)
     decoder_state = self.lm.init_states(
         theta.lm, target_batch_size=batch_size, target_max_length=max_length)
     output_ids = jnp.zeros(shape=(batch_size, max_length), dtype=jnp.int32)
