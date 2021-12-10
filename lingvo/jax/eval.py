@@ -487,6 +487,7 @@ def decode_once_spmd_model(
   prng_key, init_key = jax.random.split(prng_key)
 
   if restore_checkpoint_dir and multi_host_checkpointing:
+    restore_checkpoint_parent_dir = restore_checkpoint_dir
     # TODO(zhouwk): add sanity check on number of subdirs and number of
     # processes and fail early if unequal.
     restore_checkpoint_dir = os.path.join(restore_checkpoint_dir,
@@ -531,7 +532,7 @@ def decode_once_spmd_model(
           step=restore_checkpoint_step)
       if multi_host_checkpointing:
         py_utils.sync_global_devices(
-            f'checkpointer:restored:{restore_checkpoint_dir}')
+            f'checkpointer:restored:{restore_checkpoint_parent_dir}')
     logging.info('partitioned_train_state: %s',
                  jax.tree_map(lambda x: x.shape, partitioned_train_state))
 
@@ -571,7 +572,7 @@ def decode_once_spmd_model(
     dir_path = os.path.join(basedir, s)
     if not tf.io.gfile.exists(dir_path):
       tf.io.gfile.makedirs(dir_path)
-      filenames = [os.path.join(basedir, s, filename) for s in dirnames]
+  filenames = [os.path.join(basedir, s, filename) for s in dirnames]
   if jax.process_index() == 0:
     for split, output_file in enumerate(filenames):
       logging.info('Writing decoder output to %s with %d entries', output_file,
