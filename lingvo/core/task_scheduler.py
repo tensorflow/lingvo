@@ -272,7 +272,7 @@ class RoundRobinScheduler(TaskScheduler):
   def __init__(self, params):
     super().__init__(params)
     assert isinstance(self.params.tasks, list)
-    self.tasks = sorted(self.params.tasks)
+    self.tasks = self.params.tasks
     self.n_tasks = len(self.tasks)
     self.cur_probs = [1. / self.n_tasks] * self.n_tasks  # For summary
     self.next_task_idx = 0

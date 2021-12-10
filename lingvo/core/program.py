@@ -1569,8 +1569,7 @@ class MultiTaskProgramSchedule:
   @classmethod
   def Params(cls):
     p = hyperparams.InstantiableParams(cls)
-    p.Define('program_schedule_dict', None,
-             'task_name -> ProgramScheduleParams')
+    p.Define('program_schedule_dict', {}, 'task_name -> ProgramScheduleParams')
     return p
 
 
@@ -1896,8 +1895,8 @@ def UpdateProgramSchedule(ps_params,
       datasets in ps_params.
     train_executions_per_eval: Optional[int], if not None, it will override
       train_executions_per_eval in ps_params.
-    train_steps_per_loop: Optional[int], if not None, it will override
-      train program's steps_per_loop.
+    train_steps_per_loop: Optional[int], if not None, it will override train
+      program's steps_per_loop.
     eval_steps_per_loop: Optional[int], if not None, it will override all the
       eval programs steps_per_loop. Currently list not supported.
     decode_steps_per_loop: Optional[int], if not None, it will override all the
