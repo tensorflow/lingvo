@@ -494,7 +494,12 @@ def decode_once_spmd_model(
                                           f'{jax.process_index():03d}')
 
   def get_shape_dtype(x):
-    y = jax.ShapeDtypeStruct(x.shape, x.dtype)
+    # The sample input batch we are getting shape from is only from
+    # the current process. Manually scale this to the global batch size
+    # by assuming all the hosts infeed the same data.
+    assert len(x.shape) >= 1
+    x_shape = (x.shape[0] * jax.process_count(),) + x.shape[1:]
+    y = jax.ShapeDtypeStruct(x_shape, x.dtype)
     return y
 
   sample_inputs = input_p[0].Instantiate().get_next()
