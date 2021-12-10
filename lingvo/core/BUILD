@@ -1,3 +1,4 @@
+load("//lingvo:lingvo.bzl", "py_strict_test")
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cuda_py_test",
@@ -2426,6 +2427,7 @@ py_test(
         ":checkpointer_lib",
         ":py_utils",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
     ],
 )
@@ -2629,5 +2631,23 @@ py_test(
         ":var_tmp_wrappers",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
+    ],
+)
+
+py_strict_test(
+    name = "checkpointer_eager_test",
+    srcs = ["checkpointer_eager_test.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_model",
+        ":base_model_params",
+        ":checkpointer_lib",
+        ":learner",
+        ":optimizer",
+        ":py_utils",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        "//lingvo:model_registry",
     ],
 )
