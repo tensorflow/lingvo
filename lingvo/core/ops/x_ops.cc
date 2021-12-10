@@ -532,57 +532,47 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
     False, the output `topk_hyps` is just empty string with the shape [b, k].
 )doc")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
+      shape_inference::ShapeHandle a;
+      shape_inference::DimensionHandle merged;
+
       // Validate input tensor shapes.
       if (c->Rank(c->input(0)) != 2) {
         return errors::InvalidArgument(
             "input tensor `hyps` must have rank 2, got shape: ",
             c->DebugString(c->input(0)));
       }
-      const auto t = c->Value(c->Dim(c->input(0), 0));
-      const auto b_times_k = c->Value(c->Dim(c->input(0), 1));
+      const auto t = c->Dim(c->input(0), 0);
+      const auto b_times_k = c->Dim(c->input(0), 1);
       for (int i = 0; i < 5; ++i) {
-        if (c->Rank(c->input(i)) != 2 ||
-            c->Value(c->Dim(c->input(i), 0)) != t ||
-            c->Value(c->Dim(c->input(i), 1)) != b_times_k) {
-          return errors::InvalidArgument(
-              "input[", i, "] must have shape [", t, ", ", b_times_k,
-              "], got shape: ", c->DebugString(c->input(i)));
-        }
+        const auto input_i = c->input(i);
+        TF_RETURN_IF_ERROR(c->WithRank(input_i, 2, &a));
+        TF_RETURN_IF_ERROR(c->Merge(c->Dim(input_i, 0), t, &merged));
+        TF_RETURN_IF_ERROR(c->Merge(c->Dim(input_i, 1), b_times_k, &merged));
       }
       bool populate_topk;
       TF_RETURN_IF_ERROR(c->GetAttr("populate_topk_hyps", &populate_topk));
       if (populate_topk) {
-        if (c->Rank(c->input(5)) != 2 ||
-            c->Value(c->Dim(c->input(5), 0)) != t ||
-            c->Value(c->Dim(c->input(5), 1)) != b_times_k) {
-          return errors::InvalidArgument(
-              "input[5] `scores` must have shape [", t, ", ", b_times_k,
-              "], got shape: ", c->DebugString(c->input(5)));
-        }
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(5), 2, &a));
+        TF_RETURN_IF_ERROR(c->Merge(c->Dim(c->input(5), 0), t, &merged));
+        TF_RETURN_IF_ERROR(
+            c->Merge(c->Dim(c->input(5), 1), b_times_k, &merged));
+
         for (int i = 6; i < 8; ++i) {
-          if (c->Rank(c->input(i)) != 3 ||
-              c->Value(c->Dim(c->input(i), 0)) != t ||
-              c->Value(c->Dim(c->input(i), 1)) != b_times_k) {
-            return errors::InvalidArgument(
-                "input[", i, "] must have shape [", t, ", ", b_times_k,
-                ", ?], got shape: ", c->DebugString(c->input(i)));
-          }
+          TF_RETURN_IF_ERROR(c->WithRank(c->input(i), 3, &a));
+          TF_RETURN_IF_ERROR(c->Merge(c->Dim(c->input(i), 0), t, &merged));
+          TF_RETURN_IF_ERROR(
+              c->Merge(c->Dim(c->input(i), 1), b_times_k, &merged));
         }
-        if (c->Value(c->Dim(c->input(6), 2)) !=
-            c->Value(c->Dim(c->input(7), 2))) {
-          return errors::InvalidArgument(
-              "input tensors `atten_probs` and `eos_atten_probs` must have the "
-              "same shape, got shapes: atten_probs.shape=",
-              c->DebugString(c->input(6)),
-              ", eos_atten_probs.shape=", c->DebugString(c->input(7)));
-        }
+
+        TF_RETURN_WITH_CONTEXT_IF_ERROR(
+            c->Merge(c->Dim(c->input(6), 2), c->Dim(c->input(7), 2), &merged),
+            "Input tensors `atten_probs` and `eos_atten_probs` must have the "
+            "same shape, got shapes: atten_probs.shape=",
+            c->DebugString(c->input(6)),
+            ", eos_atten_probs.shape=", c->DebugString(c->input(7)));
       }
       for (int i : {9, 10}) {
-        if (c->Rank(c->input(i)) != 0) {
-          return errors::InvalidArgument(
-              "input tensor ", i,
-              " must have rank 0, got shape: ", c->DebugString(c->input(i)));
-        }
+        TF_RETURN_IF_ERROR(c->WithRank(c->input(i), 0, &a));
       }
 
       // Infer output tensor shapes.
@@ -598,16 +588,11 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
         return errors::InvalidArgument("Requires max_seq_length > 0, got: ",
                                        max_length);
       }
-      shape_inference::DimensionOrConstant b = c->UnknownDim();
-      if (b_times_k > 0) {
-        b = b_times_k / k;
-        if (b_times_k % k) {
-          return errors::InvalidArgument(
-              "num_hyps (b * k) does not divide num_hyps_per_beam (k):  "
-              "num_hyps=",
-              b_times_k, ", num_hyps_per_beam=", k);
-        }
-      }
+
+      shape_inference::DimensionHandle b;
+      TF_RETURN_IF_ERROR(
+          c->Divide(b_times_k, k, /* evenly_divisible= */ true, &b));
+
       c->set_output(0, c->Matrix(b_times_k, max_length));
       c->set_output(1, c->Vector(b_times_k));
       c->set_output(2, c->Vector(b_times_k));
