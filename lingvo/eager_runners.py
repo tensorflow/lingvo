@@ -205,14 +205,16 @@ class Evaler(base_runner.BaseRunner):
         self._task.params.eval.load_checkpoint_from)
 
     if self._eval_path:
-      self._EvalOnce(self._eval_path)
+      self._EvalOnce(path=self._eval_path)
       py_utils.UpdateProcessedCheckpoints(self._eval_dir, self._eval_path)
     elif self._task.params.eval.eval_all_checkpoints:
-      self._RunOnAllCheckpoints(self._EvalOnce, self._eval_dir)
+      self._RunOnAllCheckpoints(
+          runner_fn=self._EvalOnce, runner_dir=self._eval_dir)
     else:
-      self._RunOnLatestCheckpoints(self._EvalOnce, self._eval_dir)
+      self._RunOnLatestCheckpoints(
+          runner_fn=self._EvalOnce, runner_dir=self._eval_dir)
 
-  def _EvalOnce(self, path):
+  def _EvalOnce(self, sess=None, path=''):
     """Eval a single checkpoint."""
     with self._cluster:
       # Attempt to restore the checkpoint
@@ -337,12 +339,14 @@ class Decoder(base_runner.BaseRunner):
         self._task.params.eval.load_checkpoint_from)
 
     if self._decode_path:
-      self._DecodeOnce(self._decode_path)
+      self._DecodeOnce(path=self._decode_path)
       py_utils.UpdateProcessedCheckpoints(self._decoder_dir, self._decode_path)
     elif self._task.params.eval.decode_all_checkpoints:
-      self._RunOnAllCheckpoints(self._DecodeOnce, self._decoder_dir)
+      self._RunOnAllCheckpoints(
+          runner_fn=self._DecodeOnce, runner_dir=self._decoder_dir)
     else:
-      self._RunOnLatestCheckpoints(self._DecodeOnce, self._decoder_dir)
+      self._RunOnLatestCheckpoints(
+          runner_fn=self._DecodeOnce, runner_dir=self._decoder_dir)
 
   @classmethod
   def GetDecodeOutPath(cls, decoder_dir, checkpoint_id):
@@ -350,7 +354,7 @@ class Decoder(base_runner.BaseRunner):
     out_dir = cls._GetTtlDir(decoder_dir, duration='7d')
     return os.path.join(out_dir, 'decoder_out_%09d' % checkpoint_id)
 
-  def _DecodeOnce(self, path):
+  def _DecodeOnce(self, sess=None, path=''):
     """Decode a single checkpoint."""
     with self._cluster:
       # Attempt to restore the checkpoint

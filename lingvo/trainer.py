@@ -415,11 +415,15 @@ class RunnerManager:
     cluster.input.replicas = FLAGS.input_replicas
     cluster.input.targets = FLAGS.input_targets
 
-    cluster.evaler.name = FLAGS.evaler_job
+    if py_utils.IsEagerMode():
+      cluster.evaler.name = '/job:localhost'
+      cluster.decoder.name = '/job:localhost'
+    else:
+      cluster.evaler.name = FLAGS.evaler_job
+      cluster.decoder.name = FLAGS.decoder_job
+
     cluster.evaler.replicas = FLAGS.evaler_replicas
     cluster.evaler.gpus_per_replica = FLAGS.evaler_gpus
-
-    cluster.decoder.name = FLAGS.decoder_job
     cluster.decoder.replicas = FLAGS.decoder_replicas
     cluster.decoder.gpus_per_replica = FLAGS.decoder_gpus
 
