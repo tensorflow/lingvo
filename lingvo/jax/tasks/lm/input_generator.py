@@ -15,12 +15,15 @@
 # ==============================================================================
 """Language model input generator."""
 
+from typing import List
+
 from absl import logging
 from lingvo.core import base_input_generator
 from lingvo.core import layers
 from lingvo.core import ops
 from lingvo.jax import base_input
 from lingvo.jax import py_utils
+from lingvo.jax import pytypes
 import tensorflow.compat.v2 as tf
 
 InstantiableParams = py_utils.InstantiableParams
@@ -305,3 +308,86 @@ class SyntheticLmData(base_input_generator.BaseInputGenerator):
     input_batch.segment_pos = tf.tile(
         tf.range(0, p.seq_len)[tf.newaxis, :], [p.batch_size, 1])
     return input_batch
+
+
+class TextInput(base_input.BaseInput):
+  """Input generator reading plain text used for eval.
+
+  Each row in the batch corresponds to a line in the input file. This input
+  raises out of range after all input data are returned at least once. Depends
+  on the number of infeed hosts and batch size, duplicate input is returned
+  to pad to full, synchronized batches on all infeed hosts.
+  """
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define('input_file', None, 'String, path of a (small) input file.')
+    p.Define('tokenizer', None, 'Lingvo tokenizer param.')
+    p.Define('max_sequence_length', 512,
+             'Maximum number of tokens to be present in a single example.')
+    p.Define(
+        'num_samples', 0, 'Number of items contained in the input. 0 for '
+        'dynamically determined (slower).')
+    return p
+
+  def __init__(self, p: InstantiableParams) -> None:
+    super().__init__(p)
+    self.tokenizer = p.tokenizer.Instantiate()
+    self._dataset = self._gen_dataset()
+    self._iterator = iter(self._dataset)
+
+  def get_next(self) -> NestedMap:
+    """Returns a batch with .ids, .paddings, and .labels."""
+    ret = self._iterator.get_next()
+    return tf.nest.map_structure(lambda x: x.numpy(), ret)
+
+  def reset(self) -> None:
+    self._iterator = iter(self._dataset)
+
+  @property
+  def num_samples(self):
+    """Number of samples contained in the dataset."""
+    p = self.params
+    if p.num_samples > 0:
+      return p.num_samples
+    lines = tf.data.TextLineDataset(p.input_file)
+    p.num_samples = len(list(lines.as_numpy_iterator()))
+    return p.num_samples
+
+  def _num_to_truncate(self):
+    """Smallest multiple of global batch size that covers the entire data."""
+    p = self.params
+    n = p.num_infeed_hosts * p.batch_size
+    num_global_batches = (self.num_samples + n - 1) // n
+    return num_global_batches * n
+
+  def ids_to_strings(self, ids: pytypes.NpTensor,
+                     lengths: pytypes.NpTensor) -> List[str]:
+    bytes_list = self.tokenizer.IdsToStrings(ids, lengths).numpy()
+    return [b.decode('utf-8') for b in bytes_list]
+
+  def _to_nested_map(self, text) -> py_utils.NestedMap:
+    ids, labels, paddings = self.tokenizer.StringsToIds(
+        text, max_length=self.params.max_sequence_length)
+    # Unfortunately some tokenizers don't return the correct paddings.
+    # We recompute it by looking at when the labels sequence terminates.
+    indices = tf.where(tf.math.equal(labels, self.tokenizer.eos_id))
+    lengths = tf.math.segment_min(indices[:, 1], indices[:, 0]) + 1
+    new_paddings = tf.cast(
+        1.0 - tf.sequence_mask(
+            lengths,
+            maxlen=self.params.max_sequence_length,
+            dtype=paddings.dtype),
+        dtype=paddings.dtype)
+    return py_utils.NestedMap(ids=ids, labels=labels, paddings=new_paddings)
+
+  def _gen_dataset(self) -> tf.data.Dataset:
+    p = self.params
+    lines = tf.data.TextLineDataset(p.input_file)
+    num_repeat = self._num_to_truncate() // self.num_samples + 1
+    lines = lines.repeat(num_repeat).take(self._num_to_truncate())
+    lines = lines.shard(
+        num_shards=p.num_infeed_hosts, index=p.infeed_host_index)
+    lines = lines.batch(p.batch_size)
+    return lines.map(self._to_nested_map)
