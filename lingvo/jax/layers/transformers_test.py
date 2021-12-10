@@ -1103,6 +1103,114 @@ class TransformersTest(test_util.JaxTestCase):
             initial_vars, cached_states, inputs_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=9)))
+  def test_transformer_encoder_decoder_extendstep(
+      self, use_encoder_ngrams, use_decoder_ngrams, use_encoder_vq_ngrams,
+      use_decoder_vq_ngrams, use_rotary_position_emb, use_dconv,
+      share_embedding_and_softmax, share_input_and_target_embedding,
+      use_separate_encoder_stacked_transformer_tpl):
+    vocab_size = 8
+    num_layers = 2
+    num_encoder_layers = 3
+    num_heads = 2
+    dim_per_head = 8
+    ngram_emb_dim = 4
+    encoder_ngrammer_params = None
+    decoder_ngrammer_params = None
+    if use_encoder_vq_ngrams:
+      encoder_ngrammer_params = ngrammer.VQNgrammer.Params().Set(
+          ngram_vocab_size=64,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          num_clusters=2,
+          dim_per_head=dim_per_head)
+    if use_encoder_ngrams:
+      encoder_ngrammer_params = ngrammer.Ngrammer.Params().Set(
+          ngram_vocab_size=64,
+          unigram_vocab_size=vocab_size,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          dim_per_head=dim_per_head)
+    if use_decoder_vq_ngrams:
+      decoder_ngrammer_params = ngrammer.VQNgrammer.Params().Set(
+          ngram_vocab_size=64,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          num_clusters=2,
+          dim_per_head=dim_per_head)
+    if use_decoder_ngrams:
+      decoder_ngrammer_params = ngrammer.Ngrammer.Params().Set(
+          ngram_vocab_size=64,
+          unigram_vocab_size=vocab_size,
+          ngram_emb_dim=ngram_emb_dim,
+          num_heads=num_heads,
+          concat_ngrams=True,
+          dim_per_head=dim_per_head)
+    p = transformers.TransformerEncoderDecoder.Params().Set(
+        name='jax_transformer_encoder_decoder',
+        model_dims=num_heads * dim_per_head,
+        hidden_dims=4 * num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_layers=num_layers,
+        num_encoder_layers=num_encoder_layers,
+        masked_lm=False,
+        packed_input=False,
+        ngrammer_tpl=decoder_ngrammer_params,
+        encoder_ngrammer_tpl=encoder_ngrammer_params,
+        vocab_size=vocab_size)
+    if not share_embedding_and_softmax:
+      p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
+      p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
+    if not share_input_and_target_embedding:
+      if p.separate_embedding_tpl is not None:
+        p.separate_target_embedding_tpl = p.separate_embedding_tpl.Copy()
+    if use_separate_encoder_stacked_transformer_tpl:
+      # Over-ride the StackedTransformer by using StackedTransformerRepeated.
+      p.encoder_stacked_transformer_tpl = (
+          transformers.StackedTransformerRepeated.Params().Set(
+              num_layers=4, num_heads=4, model_dims=16, hidden_dims=32))
+    # Rotary position embedding.
+    params = p.stacked_transformer_tpl.transformer_layer_params_tpl
+    params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
+    seq_len = 8
+    batch_size = 2
+    transformer_enc_dec = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_enc_dec.instantiate_variables(prng_key)
+    npy_inputs = np.random.randint(
+        vocab_size, size=(batch_size, seq_len)).astype('int32')
+    npy_input_paddings = np.random.randint(0, 2, size=(batch_size, seq_len))
+    npy_targets = np.random.randint(
+        vocab_size, size=(batch_size, seq_len)).astype('int32')
+    inputs = jnp.asarray(npy_inputs)
+    input_paddings = jnp.asarray(npy_input_paddings)
+    targets = jnp.asarray(npy_targets)
+    context_params = base_layer.JaxContext.Params().Set(do_eval=True)
+    with base_layer.JaxContext.new_context(
+        params=context_params,
+        prng_key=prng_key,
+        global_step=jnp.array(0, dtype=jnp.uint32)):
+      transformer_enc_dec.prepare_fprop()
+      initial_states = transformer_enc_dec.init_states(initial_vars, inputs,
+                                                       input_paddings,
+                                                       batch_size, seq_len)
+      fprop_outputs = transformer_enc_dec.fprop(initial_vars, inputs,
+                                                input_paddings, targets,
+                                                jnp.zeros_like(targets))
+      logits = fprop_outputs.logits
+      cached_states = initial_states
+      for t in range(seq_len):
+        targets_prefix = targets[:, t]
+        if use_decoder_ngrams or use_decoder_vq_ngrams:
+          if t > 0:
+            targets_prefix = targets[:, t - 1:t + 1]
+        cached_states, xent_output = transformer_enc_dec.extend_step(
+            initial_vars, cached_states, targets_prefix)
+        self.assertAllClose(logits[:, t, :], xent_output.logits)
+
 
 if __name__ == '__main__':
   absltest.main()

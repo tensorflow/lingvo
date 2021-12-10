@@ -58,7 +58,7 @@ def compute_attention_masks_for_fprop(
     cross_segment_mask: Optional[JTensor] = None,
     fold_padding_with_segment_mask: Optional[bool] = False,
 ) -> Tuple[JTensor, Union[JTensor, None]]:
-  """Computes attention mask from paddings, segment masks etc for FProp.
+  """Computes attention mask from paddings, segment masks etc for fprop.
 
   Args:
     inputs: Input sequence JTensor of shape [B, T, H].
@@ -1694,11 +1694,12 @@ class TransformerLm(base_layer.BaseLayer):
     p.Define('num_heads', 0,
              'The number of attention heads in transformer layers.')
     p.Define('stacked_transformer_tpl', StackedTransformer.Params(),
-             'StackedTransformer params tpl.')
+             'StackedTransformer params tpl for the TransformerLm.')
     p.Define(
         'softmax_tpl',
         embedding_softmax.SingleShardSharedEmbeddingSoftmax.Params(),
-        'The softmax layer params. The softmax and embedding lookup'
+        'The softmax layer params. By default the softmax layer is of type '
+        'SingleSharedEmbeddingSoftmax so the softmax and embedding lookup '
         'share parameters in this case.')
     p.Define('vocab_size', 0, 'Size of the vocabulary for LM.')
     p.Define('packed_input', False, 'Whether the inputs are packed.')
@@ -1858,6 +1859,17 @@ class TransformerLm(base_layer.BaseLayer):
 
   def init_states(self, theta: NestedMap, *args: Any,
                   **kwargs: Any) -> NestedMap:
+    """Initialize the cache for the autoregressive decoding.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      *args: Other arguments.
+      **kwargs: Other keyword arguments.
+
+    Returns:
+      A `.NestedMap` corresponding to the cache.
+    """
     return NestedMap(
         step=jnp.array(0, dtype=jnp.uint32),
         transformer=self.transformer.init_states(theta.transformer, *args,
@@ -1971,7 +1983,7 @@ class TransformerLm(base_layer.BaseLayer):
         segment_pos = jnp.tile(
             jnp.arange(seq_length, dtype=jnp.int32)[None, :], [batch, 1])
 
-      # Add ngrams.
+      # Add NGrammer to the source embeddings.
       if p.ngrammer_tpl is not None:
         input_emb = self.ngrammer.fprop(
             theta.ngrammer,
@@ -2018,9 +2030,9 @@ class TransformerLm(base_layer.BaseLayer):
         self.transformer.x_layers with key - [T, B, N, H]. value - [T, B, N, H].
         cached_states.step corresponds to the current time step being decoded.
       inputs: Target sequence of shape [B] or [B, P] corresponding to target
-        sequence at index time_step. Note that the shape [B, P] corresponds to
-        a prefix which is useful for decoding in some special architectures
-        such as Primer or Ngrammer.
+        sequence at index time_step. Note that the shape [B, P] corresponds to a
+        prefix which is useful for decoding in some special architectures such
+        as Primer or Ngrammer.
 
     Returns:
       cached_states: A `.NestedMap` object containing the updated states. The
@@ -2066,6 +2078,370 @@ class TransformerLm(base_layer.BaseLayer):
         cached_states.transformer,
         inputs[:, 0, :],
         time_step=time_step)
+    cached_states.transformer = updated_cache
+    cached_states.step += 1
+    outputs = self.final_ln.fprop(theta.final_ln, outputs)
+    xent_output = self.compute_loss(theta, outputs)
+    return cached_states, xent_output
+
+
+class TransformerEncoderDecoder(TransformerLm):
+  """Transformer encoder decoder class.
+
+  This uses the default settings of the TransformerLm class with some additional
+  parameters to over-ride the settings for the encoder. More specifically,
+  one can use a different Transformer stack for the encoder by setting
+  `encoder_stacked_transformer_tpl`, one can set the number of encoder layers
+  to be different from the number of decoder layers by setting
+  `num_encoder_layers`, separate out the embedding table for inputs and targets
+  by setting `separate_target_embedding_tpl`, and a separate NGrammer layer for
+  the encoder by setting `encoder_ngrammer_tpl`. More custom encoder config can
+  be added by adding appropriate Params.
+  """
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    """Parameterization of the Transformer encoder-decoder model."""
+    p = super().Params()
+    p.Define(
+        'encoder_stacked_transformer_tpl', None,
+        'Optional StackedTransformer params tpl for the encoder. '
+        'By default this is set to None, so it assumes the same stack '
+        'is used for the encoder and the decoder. Set this to over-ride '
+        'the encoder stack.')
+    p.Define(
+        'num_encoder_layers', None, 'The number of encoder layers.'
+        'If this is set to None, then the number of encoder layers will be'
+        'inferred from `num_layers`.')
+    p.Define(
+        'encoder_ngrammer_tpl', None,
+        'Params for the Ngrammer layer for the encoder. This param is shared'
+        'between the Ngrammer layer as well as the VQNgrammer layer. If this is'
+        'None then the Ngrammer layer is not used.')
+    p.Define(
+        'separate_target_embedding_tpl', None, 'Optional separate '
+        'embedding layer for the target ids. By default this is set to '
+        'None, so the inputs, targets and softmax share the same set of '
+        'embeddings.')
+
+    return p
+
+  def init_states(self, theta: NestedMap, inputs: JTensor,
+                  input_paddings: JTensor, *args: Any,
+                  **kwargs: Any) -> NestedMap:
+    """Initialize the cache for autoregressive decoding.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Input ids. An int32 JTensor of shape [B, S].
+      input_paddings: A 0/1 JTensor of shape [B, S] with 1 denoting padding
+        correspdonding to the input sequence.
+      *args: Other arguments.
+      **kwargs: Other keyword arguments.
+
+    Returns:
+      A `.NestedMap` corresponding to the cache.
+    """
+    cache = super().init_states(theta, *args, **kwargs)
+    p = self.params
+    # Get the input embeddings.
+    if self.params.separate_embedding_tpl is not None:
+      input_emb = self.embedding_lookup.fprop(theta.embedding_lookup, inputs)
+    else:
+      input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
+    _, seq_length = inputs.shape
+
+    # Fold the paddings with the segment mask for decoding.
+    input_segment_ids = jnp.asarray(1 - input_paddings, jnp.int32)
+
+    # Add NGrammer to the source embeddings.
+    # During decoding inputs are not packed.
+    p = self.params
+    if p.encoder_ngrammer_tpl is not None:
+      input_emb = self.encoder_ngrammer.fprop(
+          theta.encoder_ngrammer,
+          input_ids=inputs,
+          input_embs=input_emb,
+          paddings=input_paddings)
+
+    if p.position_emb_tpl is not None:
+      position_emb = self.position_emb.fprop(
+          theta.position_emb, seq_length=seq_length)
+      inputs = input_emb + position_emb
+    else:
+      inputs = input_emb
+
+    inputs = input_emb + position_emb
+    input_segment_mask = attentions.segment_mask(
+        input_segment_ids, dtype=inputs.dtype)
+    encoder_output = self.encoder.fprop(
+        theta.encoder, inputs, input_paddings, segment_mask=input_segment_mask)
+    encoder_output = self.encoder_ln.fprop(theta.encoder_ln, encoder_output)
+    cache.encoder_output = encoder_output
+    cache.input_paddings = input_paddings
+    return cache
+
+  def __init__(self, params):
+    # This will create a decoder (LM) with key transformer.
+    super().__init__(params)
+    p = self.params
+
+    # Create the encoder.
+    if p.encoder_stacked_transformer_tpl is not None:
+      # Use the user specified StackedTransformer for the encoder, assuming
+      # everything is set up appropriately.
+      encoder_params = p.encoder_stacked_transformer_tpl
+    else:
+      # Otherwise inherit from the TransformerLm StackedTransformer and set
+      # things up for encoder, like disabling masking and cross attention.
+      encoder_params = p.stacked_transformer_tpl.Copy()
+      encoder_params.cross_attention = False
+      encoder_params.name = 'encoder'
+      # Encoder will get same number of layers as decoder, unless
+      # `num_encoder_layers` is specified, in which case that over-rides
+      # `num_layers`.
+      num_layers = p.num_layers
+      if p.num_encoder_layers is not None:
+        num_layers = p.num_encoder_layers
+      encoder_params.num_layers = num_layers
+      encoder_params.num_heads = p.num_heads
+      encoder_params.model_dims = p.model_dims
+      encoder_params.hidden_dims = p.hidden_dims
+      encoder_params.mask_self_attention = False
+      encoder_params.packed_input = p.packed_input
+      encoder_params.fold_padding_with_segment_mask = False
+    self.create_child('encoder', encoder_params)
+
+    # Optional separate target embedding layer.
+    if p.separate_target_embedding_tpl is not None:
+      params = p.separate_target_embedding_tpl.Copy()
+      params.vocab_size = p.vocab_size
+      params.embedding_dims = p.model_dims
+      self.create_child('target_embedding_lookup', params)
+
+    # Note that an Ngrammer layer is already created for decoder from __super__.
+    if p.encoder_ngrammer_tpl is not None:
+      self.create_child('encoder_ngrammer', p.encoder_ngrammer_tpl)
+
+    # Encoder output layer norm.
+    params = normalizations.LayerNorm.Params().Set(input_dims=p.model_dims)
+    self.create_child('encoder_ln', params)
+
+  def fprop(
+      self,
+      theta: NestedMap,
+      inputs: JTensor,
+      input_paddings: JTensor,
+      targets: JTensor,
+      target_paddings: JTensor,
+      labels: Optional[NestedMap] = None,
+      input_segment_ids: Optional[JTensor] = None,
+      input_segment_pos: Optional[JTensor] = None,
+      target_segment_ids: Optional[JTensor] = None,
+      target_segment_pos: Optional[JTensor] = None,
+  ) -> NestedMap:
+    """Computes xent loss given the sequence model inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Input ids. An int32 JTensor of shape [B, S].
+      input_paddings: A 0/1 JTensor of shape [B, S] with 1 denoting padding
+        correspdonding to the input sequence.
+      targets: Target ids. An int32 JTensor of shape [B, T].
+      target_paddings: A 0/1 JTensor of shape [B, T] with 1 denoting padding
+        corresponding to the target sequence.
+      labels: A `.NestedMap` containing the following fields: class_weights, a
+        JTensor with shape [batch, seqlen] containing weights for each target
+        word. class_ids, a JTensor with shape [B, T] of int32 dtype containing
+        the target class labels. class_probabilities, a JTensor with shape [B,
+        T, V] of float values indicating class-membership probabilities.
+      input_segment_ids: A JTensor of shape [B,S]. The segment that each input
+        token belongs to.
+      input_segment_pos: A JTensor of shape [B, S]. The position of each input
+        token within a segment.
+      target_segment_ids: A JTensor of shape [B,T]. The segment that each target
+        token belongs to.
+      target_segment_pos: A JTensor of shape [B, T]. The position of each target
+        token within a segment.
+
+    Returns:
+      Returns xent_output, where
+      `xent_output` is a `.NestedMap` as defined by `SoftmaxLayer`'s return. In
+      addition, per_sequence_xent is added which equal to the sum of xent loss
+      for tokens in a sequence.
+    """
+    # Get the input embeddings.
+    if self.params.separate_embedding_tpl is not None:
+      input_emb = self.embedding_lookup.fprop(theta.embedding_lookup, inputs)
+    else:
+      input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
+
+    batch, seq_length = inputs.shape
+    _, target_seq_length = targets.shape
+
+    if input_segment_ids is None:
+      assert input_segment_pos is None
+      # Fold the paddings with the segment mask.
+      input_segment_ids = jnp.asarray(1 - input_paddings, jnp.int32)
+      input_segment_pos = jnp.tile(
+          jnp.arange(seq_length, dtype=jnp.int32)[None, :], [batch, 1])
+
+    # Add NGrammer to the source embeddings.
+    p = self.params
+    if p.encoder_ngrammer_tpl is not None:
+      input_emb = self.encoder_ngrammer.fprop(
+          theta.encoder_ngrammer,
+          input_ids=inputs,
+          input_embs=input_emb,
+          paddings=input_paddings,
+          segment_pos=input_segment_pos)
+
+    if p.position_emb_tpl is not None:
+      position_emb = self.position_emb.fprop(
+          theta.position_emb, seq_length=seq_length, position=input_segment_pos)
+      inputs = input_emb + position_emb
+    else:
+      inputs = input_emb
+
+    inputs_segment_mask = attentions.segment_mask(
+        input_segment_ids, dtype=inputs.dtype)
+    encoder_output = self.encoder.fprop(
+        theta.encoder, inputs, input_paddings, segment_mask=inputs_segment_mask)
+    encoder_output = self.encoder_ln.fprop(theta.encoder_ln, encoder_output)
+
+    # Get the target embeddings.
+    if self.params.separate_target_embedding_tpl is not None:
+      # If a separate target embedding is provided, use it.
+      target_emb = self.target_embedding_lookup.fprop(
+          theta.target_embedding_lookup, targets)
+    elif self.params.separate_embedding_tpl is not None:
+      # Embedding parameters are shared with inputs and targets in this case,
+      # but not with the softmax.
+      target_emb = self.embedding_lookup.fprop(theta.embedding_lookup, targets)
+    else:
+      # Embedding parameters are shared with inputs, targets and softmax.
+      target_emb = self.softmax.emb_lookup(theta.softmax, targets)
+
+    if p.ngrammer_tpl is not None:
+      target_emb = self.ngrammer.fprop(
+          theta.ngrammer,
+          input_ids=targets,
+          input_embs=target_emb,
+          paddings=target_paddings,
+          segment_pos=target_segment_pos)
+
+    if p.position_emb_tpl is not None:
+      targets_position_emb = self.position_emb.fprop(
+          theta.position_emb,
+          seq_length=target_seq_length,
+          position=target_segment_pos)
+      targets = target_emb + targets_position_emb
+    else:
+      targets = target_emb
+
+    if target_segment_ids is None:
+      assert target_segment_pos is None
+      # Fold the paddings with the segment mask.
+      target_segment_ids = jnp.asarray(1 - target_paddings, jnp.int32)
+      target_segment_pos = jnp.tile(
+          jnp.arange(target_seq_length, dtype=jnp.int32)[None, :], [batch, 1])
+
+    # Cross attention.
+    cross_segment_mask = attentions.segment_mask(target_segment_ids,
+                                                 input_segment_ids,
+                                                 targets.dtype)
+    target_segment_mask = attentions.causal_segment_mask(
+        target_segment_ids, targets.dtype)
+    output = self.transformer.fprop(
+        theta.transformer,
+        targets,
+        target_paddings,
+        target_segment_mask,
+        cross_inputs=encoder_output,
+        cross_paddings=input_paddings,
+        cross_segment_mask=cross_segment_mask)
+
+    # Final layer norm.
+    output = self.final_ln.fprop(theta.final_ln, output)
+
+    return self.compute_loss(theta, output, labels)
+
+  def extend_step(self, theta: NestedMap, cached_states: NestedMap,
+                  targets: JTensor) -> Tuple[NestedMap, NestedMap]:
+    """Autoregressive cached decoding of the Transformer encoder decoder.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      cached_states: A `.NestedMap` object containing tensors which are the
+        results of previous attentions, used for cached decoding.
+        cached_states.transformer.x_layers is a list corresponding to
+        self.transformer.x_layers with key - [T, B, N, H]. value - [T, B, N, H].
+        cached_states.step corresponds to the current time step being decoded.
+        In addition, for the TransformerEncoderDecoder class, we also cache the
+        output of the encoder since that need not be computed afresh for every
+        time step.
+      targets: Target sequence of shape [B] or [B, P] corresponding to target
+        sequence at index time_step. Note that the shape [B, P] corresponds to a
+        prefix which is useful for decoding in some special architectures such
+        as Primer or Ngrammer.
+
+    Returns:
+      cached_states: A `.NestedMap` object containing the updated states. The
+        cached_states.step is incremented to the next time step, and
+        cached_states.transformer is updated with the keys and values of the
+        current time step.
+      xent_output: A `.NestedMap` object containing the log probabilities and
+        probabilities.
+    """
+    p = self.params
+    # Fetch encoder output from the cache.
+    encoder_output = cached_states.encoder_output
+    input_paddings = cached_states.input_paddings
+
+    # During autoregressive decoding inputs and targets are not packed.
+    if len(targets.shape) == 1:
+      targets = targets[:, jnp.newaxis]
+
+    # Get the target embeddings.
+    if self.params.separate_target_embedding_tpl is not None:
+      # If a separate target embedding is provided, use it.
+      target_emb = self.target_embedding_lookup.fprop(
+          theta.target_embedding_lookup, targets)
+    elif self.params.separate_embedding_tpl is not None:
+      # Embedding parameters are shared with inputs and targets in this case,
+      # but not with the softmax.
+      target_emb = self.embedding_lookup.fprop(theta.embedding_lookup, targets)
+    else:
+      # Embedding parameters are shared with inputs, targets and softmax.
+      target_emb = self.softmax.emb_lookup(theta.softmax, targets)
+
+    time_step = cached_states.step
+    if p.ngrammer_tpl is not None:
+      target_emb = self.ngrammer.fprop(
+          theta.ngrammer, targets, target_emb, paddings=None, segment_pos=None)
+      targets = targets[:, -1][:, jnp.newaxis]
+      target_emb = target_emb[:, -1, :][:, jnp.newaxis, :]
+
+    # Add position embeddings to target.
+    if p.position_emb_tpl is not None:
+      # During autoregressive decoding inputs are not packed.
+      segment_pos = jnp.zeros((targets.shape[0], 1)) + time_step
+      target_position_emb = self.position_emb.fprop(
+          theta.position_emb, seq_length=1, position=segment_pos)
+      targets = target_emb + target_position_emb
+    else:
+      targets = target_emb
+
+    updated_cache, outputs = self.transformer.extend_step(
+        theta.transformer,
+        cached_states.transformer,
+        targets[:, 0, :],
+        time_step=time_step,
+        cross_inputs=encoder_output,
+        cross_paddings=input_paddings)
     cached_states.transformer = updated_cache
     cached_states.step += 1
     outputs = self.final_ln.fprop(theta.final_ln, outputs)

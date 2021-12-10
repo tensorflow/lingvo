@@ -133,7 +133,9 @@ def evaluate_pmap_model(
       for split, _ in enumerate(eval_input_p)
   ]
 
-  num_steps = [-1 if p.reset_for_eval else 1 for p in eval_input_p]
+  num_steps = [
+      -1 if p.reset_for_eval else p.eval_loop_num_batches for p in eval_input_p
+  ]
   last_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
   with contextlib.ExitStack() as exit_stack:
     eval_summary_writers = [

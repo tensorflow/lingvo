@@ -49,6 +49,50 @@ _PARTITIONED_SUBDIR = 'partitioned'
 _CHECKPOINT_PREFIX = 'ckpt'
 
 
+def compute_xent_loss_helper(
+    predictions: NestedMap, input_batch: NestedMap,
+    return_predictions: bool) -> Tuple[Metrics, Dict[str, Any]]:
+  """Helper for computing the xent loss for Language model and Sequence model.
+
+  Args:
+    predictions: A `.NestedMap` containing the keys `per_example_argmax`,
+      `total_loss`, `avg_xent`, `aux_loss`, `total_weight` which corresponds to
+      the output of the Softmax layer.
+    input_batch: A `.NestedMap` object containing input tensors which contains
+      the keys `labels` and `weights` which corresponds to the labels and the
+      `weights` for each token in the sequence.
+    return_predictions: Whether to return predictions, which can be more
+      expensive.
+
+  Returns:
+    - A dict or NestedMap containing str keys and (metric, weight) pairs as
+      values, where one of the entries is expected to correspond to the loss.
+    - A dict containing arbitrary tensors describing something about each
+      training example, where the first dimension of each tensor is the batch
+      index. The base class just returns an empty dict.
+  """
+  labels = input_batch.labels
+  weights = input_batch.weights
+  predicted_labels = predictions.per_example_argmax.astype(labels.dtype)
+  num_preds = predictions.total_weight
+  mean_acc = jnp.sum(
+      (labels == predicted_labels) * weights) / jnp.maximum(num_preds, 1)
+  metric_weight = jnp.array(num_preds, predictions.avg_xent.dtype)
+  metrics = NestedMap(
+      total_loss=(predictions.total_loss, metric_weight),
+      avg_xent=(predictions.avg_xent, metric_weight),
+      aux_loss=(predictions.aux_loss, jnp.array(1.0,
+                                                predictions.aux_loss.dtype)),
+      log_pplx=(predictions.avg_xent, metric_weight),
+      fraction_of_correct_next_step_preds=(mean_acc, metric_weight),
+      num_predictions=(num_preds, jnp.array(1.0, num_preds.dtype)),
+  )
+  per_example_output = NestedMap()
+  if return_predictions:
+    per_example_output = predictions
+  return metrics, per_example_output
+
+
 class BaseTask(base_layer.BaseLayer):
   """A jax task."""
 
@@ -343,26 +387,8 @@ class LanguageModel(BaseTask):
         training example, where the first dimension of each tensor is the batch
         index.
     """
-    labels = input_batch.labels
-    weights = input_batch.weights
-    predicted_labels = predictions.per_example_argmax.astype(labels.dtype)
-    num_preds = predictions.total_weight
-    mean_acc = jnp.sum(
-        (labels == predicted_labels) * weights) / jnp.maximum(num_preds, 1)
-    metric_weight = jnp.array(num_preds, predictions.avg_xent.dtype)
-    metrics = py_utils.NestedMap(
-        total_loss=(predictions.total_loss, metric_weight),
-        avg_xent=(predictions.avg_xent, metric_weight),
-        aux_loss=(predictions.aux_loss,
-                  jnp.array(1.0, predictions.aux_loss.dtype)),
-        log_pplx=(predictions.avg_xent, metric_weight),
-        fraction_of_correct_next_step_preds=(mean_acc, metric_weight),
-        num_predictions=(num_preds, jnp.array(1.0, num_preds.dtype)),
-    )
-    per_example_output = py_utils.NestedMap()
-    if self.params.return_predictions:
-      per_example_output = predictions
-    return metrics, per_example_output
+    return compute_xent_loss_helper(predictions, input_batch,
+                                    self.params.return_predictions)
 
   def decode(self, theta: NestedMap, input_batch: NestedMap) -> NestedMap:
     """Decodes input_batch with model weights 'theta'.
@@ -459,6 +485,70 @@ class LanguageModel(BaseTask):
           'original': original_strs[idx],
       }))
     return ret
+
+
+class SequenceModel(BaseTask):
+  """Sequence Model base task."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define('model', layers.TransformerEncoderDecoder.Params(),
+             'Sequence model layer for this task.')
+    p.Define(
+        'return_predictions', False, 'Whether to return predictions during'
+        'eval. Returning predictions is more expensive, but may be useful'
+        'for debugging.')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+
+    # Construct the model.
+    model_p = p.model.Copy()
+    self.create_child('model', model_p)
+
+  def compute_predictions(self, theta, input_batch):
+    """Computes predictions for `input_batch`."""
+    p = self.params
+    if p.model.packed_input:
+      packed_input_kwargs = {
+          'input_segment_ids': input_batch.src.segment_ids,
+          'input_segment_pos': input_batch.src.segment_pos,
+          'target_segment_ids': input_batch.tgt.segment_ids,
+          'target_segment_pos': input_batch.tgt.segment_pos,
+      }
+    else:
+      packed_input_kwargs = {}
+    labels = NestedMap(
+        class_ids=input_batch.tgt.labels, class_weights=input_batch.tgt.weights)
+    return self.model.fprop(
+        theta=theta.model,
+        inputs=input_batch.src.ids,
+        input_paddings=input_batch.src.paddings,
+        targets=input_batch.tgt.ids,
+        target_paddings=input_batch.tgt.paddings,
+        labels=labels,
+        **packed_input_kwargs)
+
+  def compute_loss(self, theta, predictions, input_batch):
+    """Computes the loss and other metrics for the given predictions.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values of this task.
+      predictions: The output of `ComputePredictions`.
+      input_batch: A `.NestedMap` object containing input tensors to this tower.
+
+    Returns:
+      - A dict or NestedMap containing str keys and (metric, weight) pairs as
+        values, where one of the entries is expected to corresponds to the loss.
+      - A dict containing arbitrary tensors describing something about each
+        training example, where the first dimension of each tensor is the batch
+        index.
+    """
+    return compute_xent_loss_helper(predictions, input_batch.tgt,
+                                    self.params.return_predictions)
 
 
 class ClassificationTask(BaseTask):
