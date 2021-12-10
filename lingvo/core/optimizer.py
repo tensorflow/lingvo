@@ -47,6 +47,11 @@ class Base(base_layer.BaseLayer):
         'Whether to use bfloat16 dtype for gradients all-reduce. '
         'This applies to TPU only.')
     p.Define('add_summary_in_apply', True, 'Whether to add summary in Apply.')
+    p.Define(
+        'clear_variable_scope', None,
+        'Whether to clear variable scope for slot variables. This defaults to '
+        'True in graph mode for compatibility with old checkpoints and False '
+        'in eager mode.')
     return p
 
   def __init__(self, params):
@@ -109,14 +114,21 @@ class Base(base_layer.BaseLayer):
         return self._optimizer.apply_gradients(
             [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
 
-    # Many optimizers, e.g., Adam, Adagrad, etc., create
-    # variables. We need to ensure name scope and variable scope are
-    # cleared. Otherwise, tpu.batch_parallel does not work.
-    with tf.name_scope(None):
-      with tf.variable_scope(
-          tf.VariableScope(use_resource=True,
-                           reuse=self.VarReuseForSlotVars())):
-        var_update_op = _Apply()
+    clear_variable_scope = self.params.clear_variable_scope
+    if clear_variable_scope is None:
+      clear_variable_scope = not py_utils.IsEagerMode()
+    if clear_variable_scope:
+      # Many optimizers, e.g., Adam, Adagrad, etc., create
+      # variables. We need to ensure name scope and variable scope are
+      # cleared. Otherwise, tpu.batch_parallel does not work.
+      with tf.name_scope(None):
+        with tf.variable_scope(
+            tf.VariableScope(
+                use_resource=True, reuse=self.VarReuseForSlotVars())):
+          var_update_op = _Apply()
+    else:
+      var_update_op = _Apply()
+
     if self.params.add_summary_in_apply:
       lr_value = GetLrValue(lr)
       self.AddSummary(lr_value, self._optimizer, var_grad)
@@ -604,14 +616,20 @@ class DistributedShampoo(Base):
       return self._optimizer.apply_gradients(
           [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
 
-    # Many optimizers, e.g., Adam, Adagrad, etc., create
-    # variables. We need to ensure name scope and variable scope are
-    # cleared. Otherwise, tpu.batch_parallel does not work.
-    with tf.name_scope(None):
-      with tf.variable_scope(
-          tf.VariableScope(use_resource=True,
-                           reuse=self.VarReuseForSlotVars())):
-        var_update_op = _Apply()
+    clear_variable_scope = self.params.clear_variable_scope
+    if clear_variable_scope is None:
+      clear_variable_scope = not py_utils.IsEagerMode()
+    if clear_variable_scope:
+      # Many optimizers, e.g., Adam, Adagrad, etc., create
+      # variables. We need to ensure name scope and variable scope are
+      # cleared. Otherwise, tpu.batch_parallel does not work.
+      with tf.name_scope(None):
+        with tf.variable_scope(
+            tf.VariableScope(
+                use_resource=True, reuse=self.VarReuseForSlotVars())):
+          var_update_op = _Apply()
+    else:
+      var_update_op = _Apply()
 
     if self.params.add_summary_in_apply:
       lr_value = GetLrValue(lr)
