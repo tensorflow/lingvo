@@ -1410,3 +1410,26 @@ class ReshapeLayer(base_layer.BaseLayer):
     """
     p = self.params
     return tf.nest.map_structure(lambda t: tf.reshape(t, p.shape), inp)
+
+
+class ConcatLayer(base_layer.BaseLayer):
+  """Concatenate the inputs on axis."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('axis', None, 'The axis to concat on.')
+    return p
+
+  def FProp(self, theta, *inps):
+    """Concatenate the inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values.
+      *inps: Tensor inputs to reshape.
+
+    Returns:
+      A concatenated tensor.
+    """
+    assert self.params.axis is not None
+    return tf.concat(inps, axis=self.params.axis)

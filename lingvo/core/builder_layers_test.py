@@ -744,6 +744,20 @@ class BuilderLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(self.evaluate(tf.shape(x)), [2, 2])
       self.assertAllEqual(self.evaluate(tf.shape(y)), [2, 2, 1])
 
+  def testConcatLayer(self):
+    g = tf.Graph()
+    with g.as_default():
+      p = layers.ConcatLayer.Params().Set(name='test', axis=1)
+      l = p.Instantiate()
+      x = tf.constant([[1.0, 2.0], [3.0, 4.0]])
+      y = tf.constant([[41.0, 42.0], [43.0, 44.0]])
+      y = l.FPropDefaultTheta(x, y)
+
+    with self.session(graph=g):
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllEqual(
+          self.evaluate(y), [[1.0, 2.0, 41.0, 42.0], [3.0, 4.0, 43.0, 44.0]])
+
 
 if __name__ == '__main__':
   tf.test.main()

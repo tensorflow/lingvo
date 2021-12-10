@@ -357,3 +357,8 @@ class Base:
     """Reshape inputs to the shape provided."""
     return builder_layers.ReshapeLayer.Params().Set(name=name,
                                                     shape=shape)
+
+  def _Concat(self, name, axis):
+    """Concat the inputs on axis."""
+    return builder_layers.ConcatLayer.Params().Set(name=name,
+                                                   axis=axis)
