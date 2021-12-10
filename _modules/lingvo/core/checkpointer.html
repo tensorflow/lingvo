@@ -258,6 +258,13 @@
       <span class="k">return</span> <span class="n">res_rules</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
+        <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetVariablesDict</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;self._model cannot be None in eager mode.&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">all_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">()</span>
 
     <span class="c1"># Add graph nodes to restore specific variables based on</span>
     <span class="c1"># init_from_checkpoint_rules.</span>
@@ -267,14 +274,16 @@
         <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
         <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
           <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-          <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span>
-                                                    <span class="n">rules</span><span class="p">)</span>
+          <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">{</span><span class="n">rules</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s1">&#39;self._model cannot be None when using init_from_checkpoint_rules.&#39;</span><span class="p">)</span>
       <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span>
       <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-      <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">rules</span><span class="p">)</span>
+      <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">{</span><span class="n">rules</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
 
   <span class="nd">@property</span>
@@ -402,11 +411,9 @@
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_op</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialized all vars.&#39;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Restored vars using checkpoint rules.&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+      <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="Checkpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
@@ -539,7 +546,16 @@
 <div class="viewcode-block" id="EagerCheckpointerV1.Restore"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` and `force_reinitialize` are unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+    <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreFromLatestCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Eager checkpoint is restored with path: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">path</span>
+    <span class="c1"># No checkpoint is loaded, we need to initialize the variables,</span>
+    <span class="c1"># and apply the init_from_checkpoint_rules if applicable.</span>
+    <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+      <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">path</span></div>
 
 <div class="viewcode-block" id="EagerCheckpointerV1.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
@@ -568,7 +584,9 @@
 
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint (V1) </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
+    <span class="n">load_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
+    <span class="c1"># Check all model vars are matched from the checkpoint</span>
+    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EagerCheckpointerV1.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
