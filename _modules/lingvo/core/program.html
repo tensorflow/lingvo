@@ -1634,8 +1634,7 @@
 <div class="viewcode-block" id="MultiTaskProgramSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiTaskProgramSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;program_schedule_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;task_name -&gt; ProgramScheduleParams&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;program_schedule_dict&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s1">&#39;task_name -&gt; ProgramScheduleParams&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
@@ -1961,8 +1960,8 @@
 <span class="sd">      datasets in ps_params.</span>
 <span class="sd">    train_executions_per_eval: Optional[int], if not None, it will override</span>
 <span class="sd">      train_executions_per_eval in ps_params.</span>
-<span class="sd">    train_steps_per_loop: Optional[int], if not None, it will override</span>
-<span class="sd">      train program&#39;s steps_per_loop.</span>
+<span class="sd">    train_steps_per_loop: Optional[int], if not None, it will override train</span>
+<span class="sd">      program&#39;s steps_per_loop.</span>
 <span class="sd">    eval_steps_per_loop: Optional[int], if not None, it will override all the</span>
 <span class="sd">      eval programs steps_per_loop. Currently list not supported.</span>
 <span class="sd">    decode_steps_per_loop: Optional[int], if not None, it will override all the</span>
