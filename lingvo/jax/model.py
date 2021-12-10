@@ -132,22 +132,6 @@ class BaseTask(base_layer.BaseLayer):
         'all the inputs are replicated. For sharding inputs, this is a '
         '`NestedMap` with keys `map_1d`, `map_2d`, ..., etc.,'
         'which specifies how to shard the inputs of that dimension.')
-    tp.Define(
-        'decoder_inputs_split_mapping', None, 'The PartitionSpec for decoder'
-        'inputs such as partially completed sequence. This is only relevant'
-        'for SPMD sharded models. By default it is None, which means all the'
-        'inputs are replicated. For sharding the decoder inputs, this is a '
-        '`NestedMap` with keys `map_1d`, `map_2d` ..., etc., which specifies'
-        'how to shard the decoder inputs corresponding to that dimension.')
-    tp.Define(
-        'decoder_states_split_mapping', None, 'The PartitionSpec for cached'
-        'decoder states such as keys, values, steps etc. This is only relevant'
-        'for SPMD sharded models. By default it is None, which means all the'
-        'inputs are replicated. For sharding the decoder states, this is a '
-        '`NestedMap` with keys `map_1d`, `map_2d` ..., etc., which specifies'
-        'how to shard the decoder states corresponding to that dimension.')
-
-    # TODO(yonghui): Add other hyper-params.
     return p
 
   def __init__(self, params: InstantiableParams) -> None:

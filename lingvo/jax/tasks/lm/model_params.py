@@ -51,15 +51,6 @@ def set_sharding_annotations_v1(model_p: InstantiableParams,
   model_p.train.inputs_split_mapping = NestedMap(
       map_1d=((replica_axis, data_axis),),
       map_2d=((replica_axis, data_axis), None))
-  model_p.train.decoder_inputs_split_mapping = NestedMap(
-      map_1d=((replica_axis, data_axis),))
-  model_p.train.decoder_states_split_mapping = NestedMap(
-      map_0d=None,
-      map_4d=(None, (replica_axis, data_axis), mdl_axis, None),
-      # 5d inputs are for the decoder states of shape [layers, seq_len,
-      # batch_size, num_heads, dims_per_head]
-      map_5d=(None, None, (replica_axis, data_axis), mdl_axis, None),
-  )
   model_p.mesh_axis_names = mesh_axis_names
   model_p.lm = model_p.lm.cls.set_sharding_params_v1(
       model_p.lm,
