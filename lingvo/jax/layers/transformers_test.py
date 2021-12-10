@@ -348,19 +348,26 @@ class TransformersTest(test_util.JaxTestCase):
   @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
   def test_transformer_moe_dense_layer(self, mask_self_attention, packed_input,
                                        cross_attention):
-    block_p = transformers.TransformerMoeDense.Params().Set(
+    # Comparing scan over blocks of layers and regular loop
+    block_p = transformers.StackedTransformer.Params().Set(
         name='transformer_block',
-        model_dims=16,
-        hidden_dims=64,
-        num_heads=8,
+        enable_while_loop=True,
+        num_layers=0,
+        num_blocks=1,
+        num_layers_per_block=2,
+        model_dims=3,
+        hidden_dims=6,
+        num_heads=1,
         mask_self_attention=mask_self_attention,
         packed_input=packed_input,
         cross_attention=cross_attention,
         num_experts=4,
-        num_groups=1)
+        num_groups=1,
+        moe_layers=[0])
     stack_p = transformers.StackedTransformer.Params().Set(
         name='transformer_stack',
-        num_layers=2,
+        enable_while_loop=False,
+        num_layers=2,  # moe + dense
         model_dims=block_p.model_dims,
         hidden_dims=block_p.hidden_dims,
         num_heads=block_p.num_heads,
@@ -371,11 +378,19 @@ class TransformersTest(test_util.JaxTestCase):
         num_groups=block_p.num_groups,
         moe_layers=[0])
 
+    moe_p = stack_p.moe_layer_tpl
+    moe_p.expert_capacity_dim = 2
+    moe_p.expert_capacity_factor = 0
+
+    moe_p = block_p.moe_layer_tpl
+    moe_p.expert_capacity_dim = 2
+    moe_p.expert_capacity_factor = 0
+
     transformer_block = block_p.Instantiate()
     transformer_stack = stack_p.Instantiate()
 
-    seq_len = np.random.randint(10, 32)
-    batch_size = 10
+    seq_len = 4
+    batch_size = 3
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = transformer_block.instantiate_variables(prng_key)
     npy_inputs = np.random.normal(
@@ -724,7 +739,8 @@ class TransformersTest(test_util.JaxTestCase):
         decoder_outputs = decoder_outputs.at[t].set(encoded)
 
     decoder_out_transposed = jnp.transpose(decoder_outputs, [1, 0, 2])
-    logging.info('initial_vars in transformer layer = %s', initial_vars)
+    # TODO(lepikhin): remove noisy test logging
+    # logging.info('initial_vars in transformer layer = %s', initial_vars)
     np_fprop_outputs = test_utils.to_np(fprop_outputs)
     np_decoder_outputs = test_utils.to_np(decoder_out_transposed)
     self.assertAllClose(np_fprop_outputs, np_decoder_outputs, atol=1e-5)

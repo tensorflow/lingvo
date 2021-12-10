@@ -61,6 +61,18 @@ def cum_sum(elements, axis=0, exclusive=False, reverse=False):
     return result
 
 
+def _create_over_capacity_ratio_summary(mask, position_in_expert, capacity,
+                                        name):
+  _ = name  # TODO(lepikhin): consider inlined summary
+  masked_position_in_expert = mask * position_in_expert
+  ge_capacity = jnp.greater_equal(masked_position_in_expert, capacity)
+  over_capacity = jnp.sum(ge_capacity).astype(jnp.float32)
+  denom = jnp.sum(mask).astype(jnp.float32)
+  over_capacity_ratio = over_capacity / jnp.maximum(
+      jnp.array(1.0, dtype=jnp.float32), denom)
+  return over_capacity_ratio
+
+
 # Close adaptation of the original gshard_layers.Top2GatingOnLogits TPU-specific
 # implementation of the Algorithm 2 from the http://arxiv.org/abs/2006.16668
 #
@@ -82,7 +94,7 @@ def top2_gating_on_logits(paddings,
                           legacy_mtf_behavior=True,
                           capacity_factor=None,
                           importance=None,
-                          mask_dtype=None):
+                          mask_dtype=jnp.int32):
   """Computes Top-2 gating for Mixture-of-Experts.
 
   This function takes gating logits, potentially sharded across tpu cores as
@@ -129,18 +141,23 @@ def top2_gating_on_logits(paddings,
       tensors, mask_dtype overrides dtype for such tensors
 
   Returns:
-    A tuple (aux_loss, combine_tensor, dispatch_tensor).
+    A tuple (aux_loss, combine_tensor, dispatch_tensor, over_capacity ratios).
 
     - aux_loss: auxiliary loss, for equalizing the expert assignment ratios.
     - combine_tensor: a G`SEC tensor for combining expert outputs.
     - dispatch_tensor: a G`SEC tensor, scattering/dispatching inputs to experts.
+    - over_capacity ratios: tuple that represents the ratio of tokens that
+      were not dispatched due to lack of capcity for top_1 and top_2 expert
+      respectively, e.g. (over_capacity_1, over_capacity_2)
   """
+  assert (capacity_factor or expert_capacity_dim)
   if mask_dtype is None:
+    assert fprop_dtype != jnp.bfloat16, 'Using bfloat16 for mask is an error.'
     mask_dtype = fprop_dtype
 
   raw_gates = jax.nn.softmax(logits, axis=-1)  # along E dim
   if raw_gates.dtype != fprop_dtype:
-    raw_gates = raw_gates.asdtype(fprop_dtype)
+    raw_gates = raw_gates.astype(fprop_dtype)
 
   if capacity_factor is not None:
     # Determine expert capacity automatically depending on the input size
@@ -156,7 +173,7 @@ def top2_gating_on_logits(paddings,
           'group_size_dim=%r experts_dim=%r)', expert_capacity_dim,
           capacity_factor, group_size_dim, experts_dim)
 
-  # TODO(zhangqiaorjc): Add summary.
+  capacity = jnp.array(expert_capacity_dim, dtype=jnp.int32)
 
   # top-1 index: GS tensor
   index_1 = jnp.argmax(raw_gates, axis=-1)
@@ -243,6 +260,12 @@ def top2_gating_on_logits(paddings,
   aux_loss = jnp.mean(density_1_proxy * density_1)  # element-wise
   aux_loss *= (experts_dim * experts_dim)  # const coefficients
 
+  # Add the over capacity ratio for expert 1
+  over_capacity_1 = _create_over_capacity_ratio_summary(mask_1,
+                                                        position_in_expert_1,
+                                                        capacity,
+                                                        'over_capacity_1')
+
   mask_1 *= jnp.less(position_in_expert_1,
                      expert_capacity_dim).astype(mask_1.dtype)
   position_in_expert_1 = jnp.einsum('GSE,GSE->GS', position_in_expert_1, mask_1)
@@ -278,6 +301,10 @@ def top2_gating_on_logits(paddings,
 
   position_in_expert_2 = cum_sum(
       mask_2, exclusive=True, axis=-2) + jnp.expand_dims(mask_1_count, -2)
+  over_capacity_2 = _create_over_capacity_ratio_summary(mask_2,
+                                                        position_in_expert_2,
+                                                        capacity,
+                                                        'over_capacity_2')
 
   mask_2 *= jnp.less(position_in_expert_2,
                      expert_capacity_dim).astype(mask_2.dtype)
@@ -323,4 +350,5 @@ def top2_gating_on_logits(paddings,
   # GSEC tensor
   dispatch_tensor = combine_tensor.astype(bool).astype(fprop_dtype)
 
-  return aux_loss, combine_tensor, dispatch_tensor
+  return aux_loss, combine_tensor, dispatch_tensor, (over_capacity_1,
+                                                     over_capacity_2)
