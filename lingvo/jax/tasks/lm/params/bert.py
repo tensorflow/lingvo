@@ -213,3 +213,13 @@ class BertSpmdL66H12kBiggerBatch8x8x16(BertSpmdL33H12kBiggerBatch):
   # Save a checkpoint every n steps.
   CHECKPOINT_EVERY_N_STEPS = 200
   CHECKPOINT_SAVE_MAX_TO_KEEP = 20
+
+
+@model_registry.register_model
+class BertSpmdL66H12kBiggerBatch8x8x8(BertSpmdL66H12kBiggerBatch8x8x16):
+  r"""200B model using 512 global batch size and 1024 chips.
+
+  Global batch size = 8 * 8 * 8 * 1 = 512
+  """  # pylint: disable=line-too-long
+  PERCORE_BATCH_SIZE = 1
+  MESH_SHAPE = [1, 64, 8]
