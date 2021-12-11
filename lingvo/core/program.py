@@ -1910,6 +1910,10 @@ def UpdateProgramSchedule(ps_params,
     ps_params after overriden.
   """
   assert ps_params
+  if issubclass(ps_params.cls, MultiTaskProgramSchedule):
+    tf.logging.info(
+        'UpdateProgramSchedule does not support MultiTaskProgramSchedule.')
+    return ps_params
   if dataset_list is not None:
     ps_params.dataset_names = dataset_list
     # Dict for all the override datasets:
