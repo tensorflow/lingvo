@@ -382,7 +382,7 @@ class ExecutorTpu(base_runner.BaseRunner):
       else:
         self._save_only_checkpointer = checkpointer.Checkpointer(
             self._checkpoint_dir,
-            model=None,
+            models=[program.GetModel() for program in self._programs],
             init_op=self._initialize_global_vars,
             train_params=train_cfg.train,
             save_only=True)

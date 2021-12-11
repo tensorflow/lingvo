@@ -442,7 +442,7 @@ class TransformersTest(test_util.JaxTestCase):
           cross_segment_mask=cross_segment_mask)
     block_np_outputs = test_utils.to_np(block_outputs)
     stack_np_outputs = test_utils.to_np(stack_outputs)
-    self.assertAllClose(stack_np_outputs, block_np_outputs)
+    self.assertAllClose(stack_np_outputs, block_np_outputs, atol=1e-5)
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
   def test_stacked_transformer_layer(self, mask_self_attention, packed_input,

@@ -343,7 +343,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def _GetSelfVariablesDict(self):
     """Returns a dict of variables from the model, excluding its children."""
     res = {}
-    for var in self._private_vars.values():
+    for var in py_utils.Flatten(self._private_vars.values()):
       res[var.name] = var
     return res
 

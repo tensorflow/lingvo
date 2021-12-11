@@ -50,7 +50,8 @@ class SaverWrapper:
     """
     self._logdir = logdir
     self._save_path = os.path.join(self._logdir, 'ckpt')
-    self._use_custom_saver = FLAGS.use_custom_saver and not variables_to_restore_dict
+    self._use_custom_saver = (
+        FLAGS.use_custom_saver and not variables_to_restore_dict)
 
     self._keep_latest_n = train_params.save_max_to_keep
     self._keep_every_n_hours = train_params.save_keep_checkpoint_every_n_hours
@@ -130,7 +131,7 @@ class Checkpointer:
 
   def __init__(self,
                train_dir,
-               model,
+               models,
                init_op=None,
                train_params=None,
                save_only=False):
@@ -138,7 +139,9 @@ class Checkpointer:
 
     Args:
      train_dir: Training directory for saving checkpoints.
-     model: A BaseModel instance or None.
+     models: One or a list of BaseModel instances. Cannot be empty. If there are
+       more than one models and `train_params` is None, the save intervals will
+       be only determined by the first model.
      init_op: The initialize variables op. If unset, it will call
        tf.global_variables_initializer().
      train_params: If specified, use these training params instead of those in
@@ -155,20 +158,14 @@ class Checkpointer:
 
     self._save_path = os.path.join(self._train_dir, 'ckpt')
 
+    if not isinstance(models, (list, tuple)):
+      models = [models]
+    self._models = models
+
     if train_params:
       self._train_params = train_params
-      self._model = None
     else:
-      assert model
-      self._train_params = model.params.train
-      self._model = model
-
-    if self._save_only:
-      self._params = None
-    else:
-      self._params = model.params
-      self._model_tasks = model.tasks
-      self._model = model
+      self._train_params = models[0].params.train
 
     self._next_checkpoint_seconds = 0
     self._save_interval_seconds = self._train_params.save_interval_seconds
@@ -176,8 +173,9 @@ class Checkpointer:
     self._prev_ckpt_step = None
     self._saver = self._GetSaver()
 
-    self._uninitialized_vars = tf.report_uninitialized_variables(
-        tf.global_variables())
+    if not py_utils.IsEagerMode():
+      self._uninitialized_vars = tf.report_uninitialized_variables(
+          tf.global_variables())
 
     # TODO(b/160786085): Move this logic into Overriding vars logic itself,
     # which requires refactoring things out of py_utils to avoid circular deps.
@@ -193,33 +191,26 @@ class Checkpointer:
       return res_rules
 
     self._restore_fns = []
-    if py_utils.IsEagerMode():
-      if self._model:
-        all_vars = list(self._model.GetVariablesDict().values())
-      else:
-        raise TypeError('self._model cannot be None in eager mode.')
-    else:
-      all_vars = tf.global_variables()
+    all_vars = list(_GetSaveableVariablesDict(self._models).values())
 
     # Add graph nodes to restore specific variables based on
     # init_from_checkpoint_rules.
     # TODO(b/159267006): Move this back to Restore().
-    if self._model:
-      for task in self._model.tasks:
-        tp = task.params.train
+    if not self._save_only:
+      for model in self._models:
+        for task in model.tasks:
+          tp = task.params.train
+          if tp.init_from_checkpoint_rules:
+            rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
+            fn = py_utils.OverrideVarsFromCheckpoints(all_vars, rules)
+            self._restore_fns.append(
+                (f'OverrideVarsFromCheckpoints {rules}', fn))
+
+        tp = model.params.train
         if tp.init_from_checkpoint_rules:
           rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
           fn = py_utils.OverrideVarsFromCheckpoints(all_vars, rules)
           self._restore_fns.append((f'OverrideVarsFromCheckpoints {rules}', fn))
-
-    if self._params and self._params.train.init_from_checkpoint_rules:
-      if self._model is None:
-        raise TypeError(
-            'self._model cannot be None when using init_from_checkpoint_rules.')
-      tp = self._params.train
-      rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-      fn = py_utils.OverrideVarsFromCheckpoints(all_vars, rules)
-      self._restore_fns.append((f'OverrideVarsFromCheckpoints {rules}', fn))
 
   @property
   def checkpoint_dir(self):
@@ -228,11 +219,14 @@ class Checkpointer:
   def _GetSaver(self):
     """Returns a saver."""
     do_eval = cluster_factory.Current().do_eval
-    if not self._save_only and self._model.ema and do_eval:
-      tf.logging.info('Using EMA for evaluation.')
-      variables_to_restore = self._model.ema.variables_to_restore(
-          self._model.variables_for_ema)
-    else:
+    variables_to_restore = {}
+    if not self._save_only and do_eval:
+      for model in self._models:
+        if model.ema:
+          tf.logging.info('Using EMA for evaluation.')
+          variables_to_restore.update(
+              model.ema.variables_to_restore(model.variables_for_ema))
+    if not variables_to_restore:
       variables_to_restore = None
     return SaverWrapper(
         self._train_dir,
@@ -439,11 +433,10 @@ class _EagerCheckpointer(Checkpointer):
     """
     # This cannot be None because in Eager mode the models are necessary to
     # get saveable variables.
-    assert models
-    if not isinstance(models, list):
+    if not isinstance(models, (list, tuple)):
       models = [models]
     self._models = models
-    super().__init__(train_dir, models[0], init_op, train_params, save_only)
+    super().__init__(train_dir, models, init_op, train_params, save_only)
 
   def RestoreIfNeeded(self, sess):
     raise TypeError('Not supported in Eager mode')
