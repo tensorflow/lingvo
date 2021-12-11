@@ -416,7 +416,8 @@ class _Cluster:
       A 2D array (python list of python lists) of strings. ret[i, j]
       is the j-th visible device on i-th visible replica.
     """
-    if self.job_spec.tpus_per_replica:
+    from lingvo.core import py_utils  # pylint: disable=g-import-not-at-top
+    if self.job_spec.tpus_per_replica and not py_utils.IsEagerMode():
       ret = np.empty((1, self.num_devices_per_split), np.object)
       for i in range(self.num_devices_per_split):
         ret[0, i] = tf.tpu.core(i)
