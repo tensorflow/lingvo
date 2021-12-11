@@ -408,7 +408,7 @@
 <div class="viewcode-block" id="BaseLayer._GetSelfVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._GetSelfVariablesDict">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSelfVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a dict of variables from the model, excluding its children.&quot;&quot;&quot;</span>
     <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
       <span class="n">res</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
     <span class="k">return</span> <span class="n">res</span></div>
 

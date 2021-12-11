@@ -115,7 +115,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">logdir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_use_custom_saver</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_custom_saver</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">variables_to_restore_dict</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_use_custom_saver</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_custom_saver</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">variables_to_restore_dict</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">=</span> <span class="n">train_params</span><span class="o">.</span><span class="n">save_max_to_keep</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span> <span class="o">=</span> <span class="n">train_params</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span>
@@ -195,7 +196,7 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">train_dir</span><span class="p">,</span>
-               <span class="n">model</span><span class="p">,</span>
+               <span class="n">models</span><span class="p">,</span>
                <span class="n">init_op</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -203,7 +204,9 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">     train_dir: Training directory for saving checkpoints.</span>
-<span class="sd">     model: A BaseModel instance or None.</span>
+<span class="sd">     models: One or a list of BaseModel instances. Cannot be empty. If there are</span>
+<span class="sd">       more than one models and `train_params` is None, the save intervals will</span>
+<span class="sd">       be only determined by the first model.</span>
 <span class="sd">     init_op: The initialize variables op. If unset, it will call</span>
 <span class="sd">       tf.global_variables_initializer().</span>
 <span class="sd">     train_params: If specified, use these training params instead of those in</span>
@@ -220,20 +223,14 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">models</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_models</span> <span class="o">=</span> <span class="n">models</span>
+
     <span class="k">if</span> <span class="n">train_params</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span> <span class="o">=</span> <span class="n">train_params</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">model</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">params</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_model_tasks</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">tasks</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span> <span class="o">=</span> <span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_seconds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_interval_seconds</span>
@@ -241,8 +238,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
 
     <span class="c1"># TODO(b/160786085): Move this logic into Overriding vars logic itself,</span>
     <span class="c1"># which requires refactoring things out of py_utils to avoid circular deps.</span>
@@ -258,33 +256,26 @@
       <span class="k">return</span> <span class="n">res_rules</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
-        <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetVariablesDict</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;self._model cannot be None in eager mode.&#39;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">all_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">()</span>
+    <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_GetSaveableVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 
     <span class="c1"># Add graph nodes to restore specific variables based on</span>
     <span class="c1"># init_from_checkpoint_rules.</span>
     <span class="c1"># TODO(b/159267006): Move this back to Restore().</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
-        <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+          <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
+          <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
+            <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">{</span><span class="n">rules</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
+
+        <span class="n">tp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
         <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
           <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
           <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">{</span><span class="n">rules</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-            <span class="s1">&#39;self._model cannot be None when using init_from_checkpoint_rules.&#39;</span><span class="p">)</span>
-      <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span>
-      <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-      <span class="n">fn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="sa">f</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">{</span><span class="n">rules</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="p">))</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">checkpoint_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -293,11 +284,14 @@
 <div class="viewcode-block" id="Checkpointer._GetSaver"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a saver.&quot;&quot;&quot;</span>
     <span class="n">do_eval</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">do_eval</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span> <span class="ow">and</span> <span class="n">do_eval</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Using EMA for evaluation.&#39;</span><span class="p">)</span>
-      <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">variables_for_ema</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span> <span class="ow">and</span> <span class="n">do_eval</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Using EMA for evaluation.&#39;</span><span class="p">)</span>
+          <span class="n">variables_to_restore</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+              <span class="n">model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">variables_for_ema</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">variables_to_restore</span><span class="p">:</span>
       <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">SaverWrapper</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
@@ -504,11 +498,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># This cannot be None because in Eager mode the models are necessary to</span>
     <span class="c1"># get saveable variables.</span>
-    <span class="k">assert</span> <span class="n">models</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">models</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_models</span> <span class="o">=</span> <span class="n">models</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">init_op</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">init_op</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">)</span>
 
 <div class="viewcode-block" id="_EagerCheckpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer._EagerCheckpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Not supported in Eager mode&#39;</span><span class="p">)</span></div></div>
