@@ -1975,6 +1975,10 @@
 <span class="sd">    ps_params after overriden.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">ps_params</span>
+  <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">ps_params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">MultiTaskProgramSchedule</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s1">&#39;UpdateProgramSchedule does not support MultiTaskProgramSchedule.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ps_params</span>
   <span class="k">if</span> <span class="n">dataset_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">ps_params</span><span class="o">.</span><span class="n">dataset_names</span> <span class="o">=</span> <span class="n">dataset_list</span>
     <span class="c1"># Dict for all the override datasets:</span>
