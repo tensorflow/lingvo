@@ -22,7 +22,9 @@ $ bazel run -c opt \
     --job_log_dir=/tmp/jax_log_dir/exp01 --alsologtostderr
 """
 
+import os
 import random
+import re
 import time
 from typing import Optional, Sequence
 
@@ -165,7 +167,18 @@ def main(argv: Sequence[str]) -> None:
         restore_checkpoint_step=FLAGS.restore_checkpoint_step)
 
 
+_TASK_HANDLE_RE = re.compile(r'(?:logs\.)?(\d+)\.(.*)\.([^.]+)\.\d+')
+
+
 if __name__ == '__main__':
+  # Only dump from Borg task 0.
+  if 'BORG_TASK_HANDLE' in os.environ:
+    handle = os.getenv('BORG_TASK_HANDLE')
+    task_id, _, _ = _TASK_HANDLE_RE.match(handle).groups()
+    if int(task_id) == 0:
+      dump_dir = os.getenv('XLA_DUMP_TO')
+      os.environ['XLA_FLAGS'] = f'--xla_dump_to={dump_dir}'
+
   # Provide access to --jax_backend_target and --jax_xla_backend flags.
   jax.config.config_with_absl()
 
