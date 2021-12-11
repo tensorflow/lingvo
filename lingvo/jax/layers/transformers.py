@@ -212,10 +212,15 @@ class TransformerFeedForward(base_layer.BaseLayer):
         '(1.0 - residual_dropout_prob).')
     p.Define('add_skip_connection', True, 'Whether to add residual connection')
     p.Define(
-        'residual_weight', 1.0,
-        'Weight of the residual connection. Output = fn(x) * residual_weight + x.'
-    )
-    p.Define('pre_layer_norm', True, 'Whether to apply LN pre or post')
+        'residual_weight', 1.0, 'Weight of the residual connection. '
+        'Output = fn(x) * residual_weight + x.')
+    p.Define(
+        'norm_policy', 'pre',
+        'Policy for applying normaliztion wrt. transformations. '
+        'Options are: '
+        '(1) "pre", applied before transformation.'
+        '(2) "post", applied after transformation.'
+        '(3) "primer_hybrid", applied before and after transformation.')
     p.weight_split_dims_mapping = py_utils.Params()
     wp = p.weight_split_dims_mapping
     wp.Define('ffn0', None,
@@ -252,10 +257,18 @@ class TransformerFeedForward(base_layer.BaseLayer):
     wp = p.weight_split_dims_mapping
     ap = p.activation_split_dims_mapping
     # Create Layer Norm
-    ln_p = p.ln_tpl.Copy()
-    ln_p.name = 'fflayer_ln'
-    ln_p.input_dims = p.input_dims
-    self.create_child('layer_norm', ln_p)
+    if p.norm_policy == 'primer_hybrid':
+      ln_p = p.ln_tpl.Copy()
+      ln_p.input_dims = p.input_dims
+      self.create_child('pre_layer_norm', ln_p)
+      self.create_child('post_layer_norm', ln_p)
+    elif p.norm_policy in ['pre', 'post']:
+      ln_p = p.ln_tpl.Copy()
+      ln_p.name = 'fflayer_ln'
+      ln_p.input_dims = p.input_dims
+      self.create_child('layer_norm', ln_p)
+    else:
+      raise ValueError('Unrecognized norm_policy: %s' % p.norm_policy)
 
     if p.activation.startswith('GATED_'):
       activation = 'NONE'
@@ -312,7 +325,10 @@ class TransformerFeedForward(base_layer.BaseLayer):
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
     p = self.params
-    if p.pre_layer_norm:
+    if p.norm_policy == 'primer_hybrid':
+      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
+                                                    inputs)
+    elif p.norm_policy == 'pre':
       inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
     else:
       inputs_normalized = inputs
@@ -361,7 +377,10 @@ class TransformerFeedForward(base_layer.BaseLayer):
       projected_inputs = projected_inputs * p.residual_weight + inputs
 
     # Apply Layer norm if not applied
-    if not p.pre_layer_norm:
+    if p.norm_policy == 'primer_hybrid':
+      projected_inputs = self.post_layer_norm.fprop(theta.post_layer_norm,
+                                                    projected_inputs)
+    elif p.norm_policy == 'post':
       projected_inputs = self.layer_norm.fprop(theta.layer_norm,
                                                projected_inputs)
     return projected_inputs
@@ -413,7 +432,13 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
         'residual_weight', 1.0, 'Weight applied on residual connection.'
         'Final output is residual_weight * residual_fn(x) + x.'
         'Only in effect when add_skip_connection is True.')
-    p.Define('pre_layer_norm', True, 'Pre or post layer norm.')
+    p.Define(
+        'norm_policy', 'pre',
+        'Policy for applying normaliztion wrt. transformations. '
+        'Options are: '
+        '(1) "pre", applied before transformation.'
+        '(2) "post", applied after transformation.'
+        '(3) "primer_hybrid", applied before and after transformation.')
     p.Define('residual_droppath_prob', 0.0,
              'Probability at which we drop the entire residual path.')
     p.Define('num_experts', 0, 'Total number of experts in this layer.')
@@ -483,10 +508,18 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     assert p.num_groups > 0
     assert p.expert_weight_shards > 0
 
-    params = p.ln_tpl.Copy()
-    params.name = 'layer_norm'
-    params.input_dims = p.input_dims
-    self.create_child('layer_norm', params)
+    if p.norm_policy == 'primer_hybrid':
+      params = p.ln_tpl.Copy()
+      params.input_dims = p.input_dims
+      self.create_child('pre_layer_norm', params)
+      self.create_child('post_layer_norm', params)
+    elif p.norm_policy in ['pre', 'post']:
+      params = p.ln_tpl.Copy()
+      params.name = 'layer_norm'
+      params.input_dims = p.input_dims
+      self.create_child('layer_norm', params)
+    else:
+      raise ValueError('Unrecognized norm_policy: %s' % p.norm_policy)
 
     dropout_tpl = p.residual_dropout_tpl.Copy()
     dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
@@ -582,7 +615,10 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     output_dims = p.input_dims
 
     # TODO(zhangqiaorjc): Handle input of shape [batch, seq_len, g, model/g]?
-    if p.pre_layer_norm:
+    if p.norm_policy == 'primer_hybrid':
+      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
+                                                    inputs)
+    elif p.norm_policy == 'pre':
       inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
     else:
       inputs_normalized = inputs
@@ -710,7 +746,9 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
       else:
         out = inputs + after_residual * p.residual_weight
 
-    if not p.pre_layer_norm:
+    if p.norm_policy == 'primer_hybrid':
+      out = self.post_layer_norm.fprop(theta.post_layer_norm, out)
+    elif p.norm_policy == 'post':
       out = self.layer_norm.fprop(theta.layer_norm, out)
 
     # Add loss to a global collection. We don't return the loss to the caller
@@ -732,6 +770,9 @@ class Transformer(base_layer.BaseLayer):
     p.Define('hidden_dims', 0, 'Hidden dimension of FFN layer.')
     p.Define('num_heads', None, 'Num of heads in self attention.')
     p.Define(
+        'dim_per_head', None, 'Dimension of each attention head. If None then '
+        'dim_per_head == hidden_dim // num_heads.')
+    p.Define(
         'dropout_tpl', stochastics.Dropout.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
@@ -752,6 +793,13 @@ class Transformer(base_layer.BaseLayer):
         'attention is enabled and this is set to None, then cross'
         'attention params will be inherited from tr_atten_tpl.')
     p.Define('ln_tpl', normalizations.LayerNorm.Params(), 'Layer norm params.')
+    p.Define(
+        'norm_policy', 'pre',
+        'Policy for applying normaliztion wrt. transformations. '
+        'Options are: '
+        '(1) "pre", applied before transformation.'
+        '(2) "post", applied after transformation.'
+        '(3) "primer_hybrid", applied before and after transformation.')
     p.Define('tr_atten_tpl',
              attentions.DotProductAttention.Params().Set(),
              'DotProductAttention Layer params.')
@@ -766,10 +814,18 @@ class Transformer(base_layer.BaseLayer):
     p = self.params
 
     # Initialize Layer Norm
-    params = p.ln_tpl.Copy()
-    params.name = 'layer_norm'
-    params.input_dims = p.input_dims
-    self.create_child('layer_norm', params)
+    if p.norm_policy == 'primer_hybrid':
+      params = p.ln_tpl.Copy()
+      params.input_dims = p.input_dims
+      self.create_child('pre_layer_norm', params)
+      self.create_child('post_layer_norm', params)
+    elif p.norm_policy in ['pre', 'post']:
+      params = p.ln_tpl.Copy()
+      params.name = 'layer_norm'
+      params.input_dims = p.input_dims
+      self.create_child('layer_norm', params)
+    else:
+      raise ValueError('Unrecognized norm_policy: %s' % p.norm_policy)
 
     # Initialize multi-headed self-attention
     params = p.tr_atten_tpl.Copy()
@@ -777,6 +833,7 @@ class Transformer(base_layer.BaseLayer):
     params.input_dim = p.input_dims
     params.hidden_dim = p.input_dims
     params.num_heads = p.num_heads
+    params.dim_per_head = p.dim_per_head
     params.atten_dropout_prob = p.atten_dropout_prob
     self.create_child('self_attention', params)
 
@@ -800,6 +857,7 @@ class Transformer(base_layer.BaseLayer):
       params.input_dim = p.input_dims
       params.hidden_dim = p.input_dims
       params.num_heads = p.num_heads
+      params.dim_per_head = p.dim_per_head
       params.atten_dropout_prob = p.atten_dropout_prob
       # Note that cross attention should not use any position embeddings.
       if params.use_rotary_position_emb:
@@ -819,6 +877,7 @@ class Transformer(base_layer.BaseLayer):
       params.hidden_dims = p.hidden_dims
       params.relu_dropout_prob = p.relu_dropout_prob
       params.residual_dropout_prob = p.residual_dropout_prob
+      params.norm_policy = p.norm_policy
       self.create_child('ff_layer', params)
 
   def init_states(self, theta: NestedMap, target_batch_size: int,
@@ -862,7 +921,14 @@ class Transformer(base_layer.BaseLayer):
       atten_probs: A NestedMap with keys `self_atten` <float>[B, N, T, T].
     """
     # Layer normalize input
-    inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
+    p = self.params
+    if p.norm_policy == 'primer_hybrid':
+      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
+                                                    inputs)
+    elif p.norm_policy == 'pre':
+      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
+    else:
+      inputs_normalized = inputs
 
     # Compute self-attention, key/value vectors are the input itself
     atten_output, self_atten_probs = self.self_attention.fprop(
@@ -872,6 +938,11 @@ class Transformer(base_layer.BaseLayer):
         inputs_normalized,
         atten_mask=attention_mask)
     atten_probs = NestedMap(self_atten=self_atten_probs)
+    if p.norm_policy == 'primer_hybrid':
+      atten_output = self.post_layer_norm.fprop(theta.post_layer_norm,
+                                                atten_output)
+    elif p.norm_policy == 'post':
+      atten_output = self.layer_norm.fprop(theta.layer_norm, atten_output)
     # Residual dropout and connection
     atten_output = self.residual_dropout.fprop(theta.residual_dropout,
                                                atten_output)
@@ -942,8 +1013,13 @@ class Transformer(base_layer.BaseLayer):
     if not self.params.mask_self_attention:
       raise ValueError('extend_step should only be called with causal masking.')
 
+    p = self.params
     # Layer normalize input
-    inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
+    if p.norm_policy == 'primer_hybrid':
+      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
+                                                    inputs)
+    elif p.norm_policy == 'pre':
+      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
 
     # Self-attention layer.
     updated_states, atten_output = self.self_attention.extend_step(
@@ -952,6 +1028,11 @@ class Transformer(base_layer.BaseLayer):
         inputs_normalized,
         atten_mask=attention_mask,
         time_step=time_step)
+    if p.norm_policy == 'primer_hybrid':
+      atten_output = self.post_layer_norm.fprop(theta.post_layer_norm,
+                                                atten_output)
+    elif p.norm_policy == 'post':
+      atten_output = self.layer_norm.fprop(theta.layer_norm, atten_output)
 
     # Residual dropout and connection
     atten_output = self.residual_dropout.fprop(theta.residual_dropout,
@@ -1011,6 +1092,9 @@ class StackedTransformer(base_layer.BaseLayer):
     p.Define('hidden_dims', 0,
              'The hidden layer dimension of FFN in Transformer layers.')
     p.Define('num_heads', 0, 'Number of attention heads.')
+    p.Define(
+        'dim_per_head', None, 'Dimension of each attention head. If None then '
+        'dim_per_head == hidden_dim // num_heads.')
     p.Define('dropout_prob', 0.0,
              'Apply dropout at this prob at various places.')
     p.Define(
@@ -1087,7 +1171,7 @@ class StackedTransformer(base_layer.BaseLayer):
       moe_p.residual_dropout_tpl = ff_p.residual_dropout_tpl.Copy()
       moe_p.residual_dropout_prob = ff_p.residual_dropout_prob
       moe_p.add_skip_connection = ff_p.add_skip_connection
-      moe_p.pre_layer_norm = ff_p.pre_layer_norm
+      moe_p.norm_policy = ff_p.norm_policy
       moe_p.num_experts = p.num_experts
       moe_p.num_groups = p.num_groups
       moe_p.min_group_size = p.min_group_size
@@ -1100,6 +1184,7 @@ class StackedTransformer(base_layer.BaseLayer):
       p_i.cross_attention = p.cross_attention
       p_i.mask_self_attention = p.mask_self_attention
       p_i.num_heads = p.num_heads
+      p_i.dim_per_head = p.dim_per_head
       p_i.input_dims = p.model_dims
       p_i.packed_input = p.packed_input
       p_i.atten_dropout_prob = p.dropout_prob
@@ -1512,6 +1597,9 @@ class TransformerLm(base_layer.BaseLayer):
     p.Define('num_layers', 0, 'The number of transformer layers.')
     p.Define('num_heads', 0,
              'The number of attention heads in transformer layers.')
+    p.Define(
+        'dim_per_head', None, 'Dimension of each attention head. If None then '
+        'dim_per_head == hidden_dim // num_heads.')
     p.Define('stacked_transformer_tpl', StackedTransformer.Params(),
              'StackedTransformer params tpl for the TransformerLm.')
     p.Define(
@@ -1694,6 +1782,7 @@ class TransformerLm(base_layer.BaseLayer):
     params.num_blocks = p.num_blocks
     params.num_layers_per_block = p.num_layers_per_block
     params.num_heads = p.num_heads
+    params.dim_per_head = p.dim_per_head
     params.model_dims = p.model_dims
     params.hidden_dims = p.hidden_dims
     if p.masked_lm:

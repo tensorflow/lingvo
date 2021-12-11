@@ -442,7 +442,9 @@ class DotProductAttention(base_layer.BaseLayer):
         'input_dim is a dict, keys must be key, value and query.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     p.Define('num_heads', 1, 'Num of attention heads.')
-    # dim_per_head == hidden_dim // num_heads
+    p.Define(
+        'dim_per_head', None, 'Dimension of each attention head. If None then '
+        'dim_per_head == hidden_dim // num_heads.')
     p.Define('dropout_tpl', stochastics.Dropout.Params(),
              'Params for dropout layer.')
     p.Define('atten_dropout_prob', 0.0,
@@ -516,9 +518,11 @@ class DotProductAttention(base_layer.BaseLayer):
     assert p.input_dim, 'input_dim is {}'.format(p.input_dim)
     assert p.hidden_dim, 'hidden_dim is {}'.format(p.hidden_dim)
 
-    dim_per_head = p.hidden_dim // p.num_heads
-    assert dim_per_head * p.num_heads == p.hidden_dim, (
-        f'{dim_per_head} * {p.num_heads} != {p.hidden_dim}')
+    dim_per_head = p.dim_per_head
+    if dim_per_head is None:
+      dim_per_head = p.hidden_dim // p.num_heads
+      assert dim_per_head * p.num_heads == p.hidden_dim, (
+          f'{dim_per_head} * {p.num_heads} != {p.hidden_dim}')
 
     if p.device_mesh is not None:
       assert p.weight_split_dims_mapping is not None

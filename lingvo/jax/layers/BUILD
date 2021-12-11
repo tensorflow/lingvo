@@ -482,6 +482,7 @@ py_strict_test(
 
 py_strict_test(
     name = "transformers_test",
+    size = "large",
     srcs = ["transformers_test.py"],
     python_version = "PY3",
     # TODO(BF-JAX): Consider splitting this module into

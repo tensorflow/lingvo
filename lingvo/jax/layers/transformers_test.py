@@ -1227,6 +1227,45 @@ class TransformersTest(test_util.JaxTestCase):
             initial_vars, cached_states, targets_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
+  @parameterized.parameters(['pre', 'post', 'primer_hybrid'])
+  def test_transformer_layer_norm_policies(self, norm_policy):
+    p = transformers.Transformer.Params().Set(
+        name='jax_transformer_layer',
+        input_dims=32,
+        hidden_dims=128,
+        num_heads=8,
+        mask_self_attention=True,
+        packed_input=True,
+        cross_attention=False,
+        norm_policy=norm_policy)
+    seq_len = np.random.randint(10, 32)
+    batch_size = 10
+    transformer_layer = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_layer.instantiate_variables(prng_key)
+    npy_inputs = np.random.normal(
+        1.0, 0.5, [batch_size, seq_len, p.input_dims]).astype('float32')
+    inputs = jnp.asarray(npy_inputs)
+    npy_paddings = np.random.randint(0, 1,
+                                     [batch_size, seq_len]).astype('float32')
+    paddings = jnp.asarray(npy_paddings)
+    attention_mask = attentions.convert_paddings_to_mask(paddings)
+    causal_mask = attentions.causal_mask(inputs)
+    attention_mask = jnp.minimum(attention_mask, causal_mask)
+    segment_ids = np.random.random_integers(0, 2, [batch_size, seq_len])
+    segment_mask = attentions.segment_mask(segment_ids, dtype=np.float32)
+    attention_mask = jnp.minimum(attention_mask, segment_mask)
+
+    with base_layer.JaxContext.new_context(
+        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+      outputs, _ = transformer_layer.fprop(
+          initial_vars, inputs, paddings, attention_mask=attention_mask)
+    logging.info('initial_vars in transformer layer = %s', initial_vars)
+
+    np_outputs = test_utils.to_np(outputs)
+    # Plumbing test.
+    self.assertAllClose(np_outputs, np_outputs, atol=1e-5)
+
 
 if __name__ == '__main__':
   absltest.main()
