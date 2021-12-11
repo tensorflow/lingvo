@@ -15,6 +15,7 @@
 # ==============================================================================
 """Language model input generator."""
 
+import ast
 from typing import List
 
 from absl import logging
@@ -329,6 +330,9 @@ class TextInput(base_input.BaseInput):
     p.Define(
         'num_samples', 0, 'Number of items contained in the input. 0 for '
         'dynamically determined (slower).')
+    p.Define(
+        'bytes_repr', True, 'Whether the texts are written as bytes '
+        r"representation, e.g. b'Q: Who directed?\n\nA:'")
     return p
 
   def __init__(self, p: InstantiableParams) -> None:
@@ -382,9 +386,24 @@ class TextInput(base_input.BaseInput):
         dtype=paddings.dtype)
     return py_utils.NestedMap(ids=ids, labels=labels, paddings=new_paddings)
 
+  def _remove_bytes_repr(self, ds):
+
+    def eval_bytes(s):
+      return ast.literal_eval(s.numpy().decode())
+
+    def tf_eval_bytes(x):
+      x_shape = x.shape
+      y = tf.py_function(eval_bytes, [x], tf.string)
+      y.set_shape(x_shape)
+      return y
+
+    return ds.map(tf_eval_bytes)
+
   def _gen_dataset(self) -> tf.data.Dataset:
     p = self.params
     lines = tf.data.TextLineDataset(p.input_file)
+    if p.bytes_repr:
+      lines = self._remove_bytes_repr(lines)
     num_repeat = self._num_to_truncate() // self.num_samples + 1
     lines = lines.repeat(num_repeat).take(self._num_to_truncate())
     lines = lines.shard(
