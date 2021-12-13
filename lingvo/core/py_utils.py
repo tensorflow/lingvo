@@ -6660,3 +6660,20 @@ def MergeDuplicateIds(ids, paddings, extra_tensors=None):
       ret_tensors[key] = tf.gather_nd(tensor, ids_indices) * tf.cast(
           tensor_mask, tensor.dtype)
   return ret_ids, ret_paddings, ret_tensors
+
+
+def DecodeProtoField(serialized_protos, message_type, field_name, output_type):
+  """Decodes a non-repeated field in a proto.
+
+  Args:
+    serialized_protos: A string Tensor of shape [batch].
+    message_type: Name of the proto message type.
+    field_name: Name of the field.
+    output_type: A DType for the output.
+
+  Returns:
+    A Tensor of shape [batch].
+  """
+  _, [output] = tf.io.decode_proto(serialized_protos, message_type,
+                                   [field_name], [output_type])
+  return tf.squeeze(output, -1)
