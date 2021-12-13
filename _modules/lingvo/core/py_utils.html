@@ -6725,6 +6725,23 @@
       <span class="n">ret_tensors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">ids_indices</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">tensor_mask</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">ret_ids</span><span class="p">,</span> <span class="n">ret_paddings</span><span class="p">,</span> <span class="n">ret_tensors</span></div>
+
+
+<div class="viewcode-block" id="DecodeProtoField"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.DecodeProtoField">[docs]</a><span class="k">def</span> <span class="nf">DecodeProtoField</span><span class="p">(</span><span class="n">serialized_protos</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span> <span class="n">output_type</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Decodes a non-repeated field in a proto.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    serialized_protos: A string Tensor of shape [batch].</span>
+<span class="sd">    message_type: Name of the proto message type.</span>
+<span class="sd">    field_name: Name of the field.</span>
+<span class="sd">    output_type: A DType for the output.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Tensor of shape [batch].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">_</span><span class="p">,</span> <span class="p">[</span><span class="n">output</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_proto</span><span class="p">(</span><span class="n">serialized_protos</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span>
+                                   <span class="p">[</span><span class="n">field_name</span><span class="p">],</span> <span class="p">[</span><span class="n">output_type</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
