@@ -150,6 +150,11 @@
       <span class="n">TraverseLayer</span><span class="p">(</span><span class="n">layer_i</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
     <span class="k">return</span>
 
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">layer_i</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">TraverseLayer</span><span class="p">(</span><span class="n">layer_i</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+    <span class="k">return</span>
+
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
     <span class="n">fn</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
     <span class="c1"># Traverse all children in alphabetical order.</span>
