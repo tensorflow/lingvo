@@ -85,6 +85,11 @@ def TraverseLayer(layer, fn):
       TraverseLayer(layer_i, fn)
     return
 
+  if isinstance(layer, (dict, py_utils.NestedMap)):
+    for _, layer_i in layer.items():
+      TraverseLayer(layer_i, fn)
+    return
+
   with tf.name_scope(layer.params.name):
     fn(layer)
     # Traverse all children in alphabetical order.
