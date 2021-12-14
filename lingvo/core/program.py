@@ -404,9 +404,8 @@ class InputBenchmark(BaseProgram):
     p.Define('measurement_loops', 5, 'How many loops to measure across.')
     return p
 
-  def __init__(self, params, shared_model=None, **kwargs):
-    super().__init__(
-        params, shared_model=shared_model, input_benchmark_only=True, **kwargs)
+  def __init__(self, params, **kwargs):
+    super().__init__(params, input_benchmark_only=True, **kwargs)
     self._program_name = 'InputBenchmark'
 
   def BuildTpuSubgraph(self):
@@ -436,8 +435,8 @@ class InputBenchmark(BaseProgram):
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
-  def __init__(self, params, shared_model=None, **kwargs):
-    super().__init__(params, shared_model=shared_model, **kwargs)
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
     p = self.params
@@ -722,8 +721,8 @@ class TrainProgram(BaseProgram):
 class EvalProgram(BaseProgram):
   """Evaluation program."""
 
-  def __init__(self, params, shared_model=None, **kwargs):
-    super().__init__(params, shared_model=shared_model, **kwargs)
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
     self._program_name = 'EvalProgram'
     p = self.params
     if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
@@ -944,8 +943,8 @@ class DecodeProgram(BaseProgram):
              'The list of email addresses to send result summaries to.')
     return p
 
-  def __init__(self, params, shared_model=None, **kwargs):
-    super().__init__(params, shared_model=shared_model, **kwargs)
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
     self._program_name = 'DecodeProgram'
     self._decode_out_dict_lst = []
 
@@ -1367,8 +1366,8 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     p.Define('decode_steps_per_loop', 0, '')
     return p
 
-  def __init__(self, params, shared_model=None, **kwargs):
-    super().__init__(params, shared_model=shared_model, **kwargs)
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
     if py_utils.IsEagerMode():
       raise NotImplementedError(
           'MLPerfTrainDecodeProgram is not supported in eager mode.')
@@ -1611,14 +1610,9 @@ class SimpleProgramSchedule:
                'Maximum number of steps to reach target accuracy')
     return p
 
-  def __init__(self,
-               params,
-               shared_model=None,
-               trial=base_trial.NoOpTrial(),
-               **kwargs):
+  def __init__(self, params, **kwargs):
     self.params = params.Copy()
     p = self.params
-    self._shared_model = shared_model
     self._programs = []
     self.train_program = None
 
@@ -1632,8 +1626,7 @@ class SimpleProgramSchedule:
       p.train_program.num_splits_per_client = p.num_splits_per_client
       p.train_program.task_name = p.task_name
       p.train_program.ml_perf = p.ml_perf.Copy()
-      self.train_program = p.train_program.Instantiate(
-          shared_model=shared_model, trial=trial, **kwargs)
+      self.train_program = p.train_program.Instantiate(**kwargs)
       self._programs.append(self.train_program)
     elif py_utils.ExponentialMovingAverage():
       # When EMA is used, the train program must be added to self._programs
@@ -1653,9 +1646,7 @@ class SimpleProgramSchedule:
 
     self.eval_programs = []
     for eval_program in p.eval_programs:
-      self.eval_programs.append(
-          eval_program.Instantiate(
-              shared_model=shared_model, trial=trial, **kwargs))
+      self.eval_programs.append(eval_program.Instantiate(**kwargs))
     self._programs += self.eval_programs
 
     if p.ml_perf is not None:
@@ -2027,10 +2018,9 @@ class MLPerfProgramSchedule:
 
     return p
 
-  def __init__(self, params, shared_model=None, **kwargs):
+  def __init__(self, params, **kwargs):
     self.params = params.Copy()
     p = self.params
-    self._shared_model = shared_model
 
     # Propagate run-time parameters to programs:
     p.train_program.logdir = p.logdir
@@ -2050,8 +2040,7 @@ class MLPerfProgramSchedule:
     p.train_program.task_name = p.task_name
     p.train_program.ml_perf = p.ml_perf.Copy()
 
-    self.train_program = p.train_program.Instantiate(
-        shared_model=shared_model, **kwargs)
+    self.train_program = p.train_program.Instantiate(**kwargs)
     self._programs = []
     self._programs.append(self.train_program)
 

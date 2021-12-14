@@ -1250,7 +1250,7 @@ class SingleTaskModel(SingleTaskBase):
 
     return p
 
-  def __init__(self, params):
+  def __init__(self, params, **kwargs):
     assert issubclass(params.cls, SingleTaskModel)
     assert params.task
     p = params.Copy()  # Make a copy to avoid modifying the input.
@@ -1266,7 +1266,7 @@ class SingleTaskModel(SingleTaskBase):
     p.train.ema_decay = p.task.train.ema_decay
     p.train.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
 
-    super().__init__(p)
+    super().__init__(p, **kwargs)
     self.CreateChild('_task', self.params.task)
 
   def _CreateChildrenVariables(self):
@@ -1292,8 +1292,8 @@ class MultiTaskSubModel(SingleTaskBase):
              'enclosing model.')
     return p
 
-  def __init__(self, params, shared_model=None):
-    super().__init__(params)
+  def __init__(self, params, shared_model=None, **kwargs):
+    super().__init__(params, **kwargs)
     p = self.params
     self._model = shared_model
     self._task = self._model.children.Get(p.task_name)
@@ -1334,9 +1334,9 @@ class MultiTaskModel(BaseModel):
   def TaskNames(params):
     return sorted(task_name for task_name, _ in params.task_params.IterParams())
 
-  def __init__(self, params):
+  def __init__(self, params, **kwargs):
     assert issubclass(params.cls, MultiTaskModel)
-    super().__init__(params)
+    super().__init__(params, **kwargs)
     p = self.params
     assert len(p.task_params) > 1
 
