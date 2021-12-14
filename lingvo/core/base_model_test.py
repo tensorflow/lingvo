@@ -313,8 +313,8 @@ class DistillationTaskTest(test_utils.TestCase):
 class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
 
   def testInit(self):
-    p = base_model.SingleTaskModel.Params()
-    p.task = BaseTaskTest.TestParams()
+    task = BaseTaskTest.TestParams()
+    p = base_model.SingleTaskModel.Params(task)
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.task.train.learner = learner.Learner.Params().Set(name='loss')
     model = p.Instantiate()
@@ -325,11 +325,11 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(model.tasks[0], model.SampleTask(None))
 
   def testExponentialMovingAverage(self):
-    p = base_model.SingleTaskModel.Params()
-    p.task = BaseTaskTest.TestParams()
-    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    p.task.train.ema_decay = 0.9
-    p.task.train.ema_decay_moving_vars = False
+    task = BaseTaskTest.TestParams()
+    task.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    task.train.ema_decay = 0.9
+    task.train.ema_decay_moving_vars = False
+    p = base_model.SingleTaskModel.Params(task)
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
     model.ConstructFPropBPropGraph()
@@ -340,11 +340,11 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
       self.assertIsNone(model.ema.average(mean))
 
   def testExponentialMovingAverageIncludingMovingVars(self):
-    p = base_model.SingleTaskModel.Params()
-    p.task = BaseTaskTest.TestParams()
-    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    p.task.train.ema_decay = 0.9
-    p.task.train.ema_decay_moving_vars = True
+    task = BaseTaskTest.TestParams()
+    task.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    task.train.ema_decay = 0.9
+    task.train.ema_decay_moving_vars = True
+    p = base_model.SingleTaskModel.Params(task)
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
     model.ConstructFPropBPropGraph()
@@ -360,8 +360,8 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
       ('AdamV2', optimizer.AdamV2.Params()),
   )
   def testModuleVarsTracking(self, optimizer_params):
-    p = base_model.SingleTaskModel.Params()
-    p.task = BaseTaskTest.TestParams()
+    task = BaseTaskTest.TestParams()
+    p = base_model.SingleTaskModel.Params(task)
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.task.train.learner = learner.Learner.Params().Set(
         name='loss', optimizer=optimizer_params)
@@ -384,11 +384,11 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     ], [x.name for x in model.variables])
 
   def testModuleVarsTrackingEMA(self):
-    p = base_model.SingleTaskModel.Params()
-    p.task = BaseTaskTest.TestParams()
-    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    p.task.train.ema_decay = 0.9
-    p.task.train.ema_decay_moving_vars = True
+    task = BaseTaskTest.TestParams()
+    task.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    task.train.ema_decay = 0.9
+    task.train.ema_decay_moving_vars = True
+    p = base_model.SingleTaskModel.Params(task)
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
     model.ConstructFPropBPropGraph()

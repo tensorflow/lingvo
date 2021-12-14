@@ -97,8 +97,8 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
           train_task_params.task_name = k
           train_task_params.input = multi_task_train_cfg.input.Get(k).Copy()
         else:
-          train_task_params = base_model.SingleTaskModel.Params()
-          train_task_params.task = multi_task_train_cfg.task_params.Get(k)
+          task = multi_task_train_cfg.task_params.Get(k)
+          train_task_params = base_model.SingleTaskModel.Params(task)
           train_task_params.input = multi_task_train_cfg.input.Get(k)
         train_task_params.name = k + '_executor_train_task'
         train_task_params.cluster = multi_task_train_cfg.cluster
@@ -121,8 +121,8 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
             eval_task_params.task_name = k
             eval_task_params.input = multi_task_eval_cfg.input.Get(k).Copy()
           else:
-            eval_task_params = base_model.SingleTaskModel.Params()
-            eval_task_params.task = multi_task_eval_cfg.task_params.Get(k)
+            task = multi_task_eval_cfg.task_params.Get(k)
+            eval_task_params = base_model.SingleTaskModel.Params(task)
             eval_task_params.input = multi_task_eval_cfg.input.Get(k)
           eval_task_params.name = (
               k + '_' + eval_dataset_name + '_executor_eval_task')

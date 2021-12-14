@@ -1221,32 +1221,34 @@ class SingleTaskModel(SingleTaskBase):
   """Model that consists of a single task."""
 
   @classmethod
-  def Params(cls, task_params=None):
+  def Params(cls, task_params):
     p = super().Params()
     p.Define(
         'task', None,
         '`InstantiableParams` object for a `BaseTask` or its derivatives.')
 
-    if task_params is not None:
-      # Copy over model parameters from the task parameters.
-      p.task = task_params
-      base_layer.BaseLayer.CopyBaseParams(p.task, p)
-      tp = p.train
-      tp.start_up_delay_steps = p.task.train.start_up_delay_steps
-      tp.max_steps = p.task.train.max_steps
-      tp.tpu_steps_per_loop = p.task.train.tpu_steps_per_loop
-      tp.tpu_device_order_mode = p.task.train.tpu_device_order_mode
-      tp.tpu_computation_shape = p.task.train.tpu_computation_shape
-      # init_from_checkpoint_rules does not need to be copied.
-      tp.early_stop = p.task.train.early_stop
-      tp.enqueue_max_steps = p.task.train.enqueue_max_steps
-      tp.save_interval_seconds = p.task.train.save_interval_seconds
-      tp.save_interval_steps = p.task.train.save_interval_steps
-      tp.save_max_to_keep = p.task.train.save_max_to_keep
-      tp.save_keep_checkpoint_every_n_hours = (
-          p.task.train.save_keep_checkpoint_every_n_hours)
-      tp.summary_interval_steps = p.task.train.summary_interval_steps
-      tp.async_checkpointing = p.task.train.async_checkpointing
+    assert task_params is not None
+    # Copy over model parameters from the task parameters.
+    p.task = task_params
+    base_layer.BaseLayer.CopyBaseParams(p.task, p)
+    tp = p.train
+    tp.start_up_delay_steps = p.task.train.start_up_delay_steps
+    tp.max_steps = p.task.train.max_steps
+    tp.tpu_steps_per_loop = p.task.train.tpu_steps_per_loop
+    tp.tpu_device_order_mode = p.task.train.tpu_device_order_mode
+    tp.tpu_computation_shape = p.task.train.tpu_computation_shape
+    # init_from_checkpoint_rules does not need to be copied.
+    tp.early_stop = p.task.train.early_stop
+    tp.enqueue_max_steps = p.task.train.enqueue_max_steps
+    tp.save_interval_seconds = p.task.train.save_interval_seconds
+    tp.save_interval_steps = p.task.train.save_interval_steps
+    tp.save_max_to_keep = p.task.train.save_max_to_keep
+    tp.save_keep_checkpoint_every_n_hours = (
+        p.task.train.save_keep_checkpoint_every_n_hours)
+    tp.summary_interval_steps = p.task.train.summary_interval_steps
+    tp.async_checkpointing = p.task.train.async_checkpointing
+    tp.ema_decay = p.task.train.ema_decay
+    tp.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
 
     return p
 
@@ -1263,8 +1265,9 @@ class SingleTaskModel(SingleTaskBase):
       if not p.task.input:
         tf.logging.warning('Model input generator is not defined')
       p.input = p.task.input
-    p.train.ema_decay = p.task.train.ema_decay
-    p.train.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
+    if (p.train.ema_decay != p.task.train.ema_decay or
+        p.train.ema_decay_moving_vars != p.task.train.ema_decay_moving_vars):
+      raise ValueError('Model EMA settings does not match task.')
 
     super().__init__(p, **kwargs)
     self.CreateChild('_task', self.params.task)

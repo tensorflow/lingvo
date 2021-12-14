@@ -124,10 +124,10 @@ class IdentityRegressionModel(base_model.SingleTaskModel):
 
   @classmethod
   def Params(cls):
-    p = super().Params()
+    task = IdentityRegressionTask.Params()
+    p = super().Params(task)
     p.name = 'IdentityRegressionModel'
     p.input = CountingInputGenerator.Params()
-    p.task = IdentityRegressionTask.Params()
     return p
 
   def ProcessFPropResults(self, sess, global_step, metrics,

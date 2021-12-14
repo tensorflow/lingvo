@@ -109,7 +109,9 @@ class BaseTrainerTest(test_utils.TestCase):
     cfg.input.num_samples = 2
     cfg.input.batch_size = 2
     cfg.train.max_steps = 2
-    cfg.task.train.ema_decay = 0.9999
+    ema_decay = 0.9999
+    cfg.task.train.ema_decay = ema_decay
+    cfg.train.ema_decay = ema_decay
     return cfg
 
 

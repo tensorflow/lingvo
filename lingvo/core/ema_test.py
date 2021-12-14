@@ -48,10 +48,10 @@ class EmaTest(test_utils.TestCase):
     return p
 
   def testBatchNormLayer(self):
-    p = base_model.SingleTaskModel.Params()
-    p.task = self.TestParams(layers.BatchNormLayer.Params().Set(dim=1))
-    p.task.train.ema_decay = 0.9
-    p.task.train.ema_decay_moving_vars = True
+    task = self.TestParams(layers.BatchNormLayer.Params().Set(dim=1))
+    task.train.ema_decay = 0.9
+    task.train.ema_decay_moving_vars = True
+    p = base_model.SingleTaskModel.Params(task)
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
     task = model._task
