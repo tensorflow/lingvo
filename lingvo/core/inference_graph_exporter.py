@@ -347,6 +347,8 @@ class InferenceGraphExporter:
     Raises:
       ValueError: if the model does not support the listed subgraphs.
     """
+    if py_utils.IsEagerMode():
+      raise ValueError('InferenceGraph exporter does not work in Eager mode.')
     assert issubclass(model_cfg.cls, base_model.BaseModel)
     if device_options.dtype_override and device_options.fprop_dtype_override:
       raise ValueError(
