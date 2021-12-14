@@ -24,6 +24,7 @@ pytype_strict_library(
         ":linears",
         ":ngrammer",
         ":normalizations",
+        ":objectives",
         ":pipeline",
         ":poolings",
         ":recurrent",
@@ -159,6 +160,18 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "objectives",
+    srcs = ["quantizer_objectives.py"],
+    srcs_version = "PY3",
+    deps = [
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+    ],
+)
+
+pytype_strict_library(
     name = "stats",
     srcs = ["stats.py"],
     srcs_version = "PY3",
@@ -209,6 +222,19 @@ pytype_strict_library(
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
         # Implicit numpy dependency.
+    ],
+)
+
+pytype_strict_library(
+    name = "quantizer",
+    srcs = ["quantizer.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":objectives",
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
     ],
 )
 
@@ -473,6 +499,39 @@ py_strict_test(
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "quantizer_test",
+    srcs = ["quantizer_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":objectives",
+        ":quantizer",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+        "//lingvo/core:layers",
+        "//lingvo/jax:test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "quantizer_objectives_test",
+    srcs = ["quantizer_objectives_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":objectives",
+        # Implicit absl.logging dependency.
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
+        "//lingvo/jax:test_utils",
+        # Implicit numpy dependency.
     ],
 )
 
