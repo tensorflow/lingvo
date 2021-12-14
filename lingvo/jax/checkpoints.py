@@ -305,7 +305,7 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
         logging.warn('Found incompletely saved checkpoints %s; deleting them',
                      tmp_checkpoint_dirnames)
         for x in tmp_checkpoint_dirnames:
-          tf.io.gfile.rmtree(x)
+          tf.io.gfile.rmtree(os.path.join(checkpoint_dir, x))
     # Note we must barrier across all processes after the tmp directory delete.
     py_utils.sync_global_devices('Wait for checkpoint tmp dir deletions to '
                                  'finish.')
