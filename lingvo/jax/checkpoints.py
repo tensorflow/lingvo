@@ -16,6 +16,7 @@
 """Checkpointing-related utilities to handle TrainState instances."""
 
 import asyncio
+from concurrent import futures
 import enum
 import os
 import re
@@ -274,6 +275,14 @@ def _extract_nested_prefix_names(
           right_separator=right_separator))
 
 
+def _mkdir_path(name, tmp_dir):
+  # Tensorstore does not want a trailing / in dirname.
+  path = os.path.join(tmp_dir, name).rstrip('/')
+  # Avoid recursively create parent dir.
+  tf.io.gfile.mkdir(path)
+  return path
+
+
 def _save_checkpoint_gda(train_state: train_states.TrainState,
                          checkpoint_dir: str, overwrite: bool,
                          max_checkpoints: int, step: int) -> None:
@@ -339,13 +348,11 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
   nested_names = _extract_nested_prefix_names(train_state)
   flattened_nested_names, _ = jax.tree_util.tree_flatten(nested_names)
 
-  ckpt_paths = []
-  for name in flattened_nested_names:
-    # Tensorstore does not want a trailing / in dirname.
-    path = os.path.join(checkpoint_step_tmp_dir, name).rstrip('/')
-    # Avoid recursively create parent dir.
-    tf.io.gfile.mkdir(path)
-    ckpt_paths.append(path)
+  with futures.ThreadPoolExecutor() as executor:
+    ckpt_paths = list(
+        executor.map(_mkdir_path, flattened_nested_names,
+                     [checkpoint_step_tmp_dir] * len(flattened_nested_names)))
+
   tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
 
   leaves, _ = jax.tree_util.tree_flatten(train_state)
