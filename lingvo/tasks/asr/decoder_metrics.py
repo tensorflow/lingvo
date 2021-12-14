@@ -224,6 +224,9 @@ class DecoderMetrics(base_layer.BaseLayer):
           'sacc': metrics.AverageMetric(),  # Sentence accuracy.
           'ter': metrics.AverageMetric(),  # Token error rate.
           'oracle_norm_wer': metrics.AverageMetric(),
+          'oracle/ins': metrics.AverageMetric(),
+          'oracle/sub': metrics.AverageMetric(),
+          'oracle/del': metrics.AverageMetric(),
       })
 
     return base_metrics
