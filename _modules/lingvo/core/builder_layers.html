@@ -1498,6 +1498,50 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inps</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">axis</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SliceLayer"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SliceLayer">[docs]</a><span class="k">class</span> <span class="nc">SliceLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Slice the inputs using numpy notation.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SliceLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SliceLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of ints of triples to construct slices from. &#39;</span>
+        <span class="s1">&#39;Do not set this param directly, prefer using &#39;</span>
+        <span class="s1">&#39;SliceHelper instead.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="SliceLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SliceLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Slice the inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values.</span>
+<span class="sd">      inp: A tensor or `.NestedMap` object containing inputs to reshape.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tensor or `.NestedMap` with the same structure as the input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">key</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="o">*</span><span class="n">k</span><span class="p">))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">inp</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SliceHelper"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SliceHelper">[docs]</a><span class="k">class</span> <span class="nc">SliceHelper</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;A helper for the SliceLayer above. Usage: SliceHelper()[:, 0].&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">step</span><span class="p">))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">SliceLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
