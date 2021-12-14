@@ -1227,7 +1227,7 @@ class TransformersTest(test_util.JaxTestCase):
             initial_vars, cached_states, targets_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
-  @parameterized.parameters(['pre', 'post', 'primer_hybrid'])
+  @parameterized.parameters(['pre', 'primer_hybrid'])
   def test_transformer_layer_norm_policies(self, norm_policy):
     p = transformers.Transformer.Params().Set(
         name='jax_transformer_layer',

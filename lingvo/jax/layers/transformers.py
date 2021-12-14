@@ -219,8 +219,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
         'Policy for applying normaliztion wrt. transformations. '
         'Options are: '
         '(1) "pre", applied before transformation.'
-        '(2) "post", applied after transformation.'
-        '(3) "primer_hybrid", applied before and after transformation.')
+        '(2) "primer_hybrid", applied before and after transformation.')
     p.weight_split_dims_mapping = py_utils.Params()
     wp = p.weight_split_dims_mapping
     wp.Define('ffn0', None,
@@ -262,7 +261,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
       ln_p.input_dims = p.input_dims
       self.create_child('pre_layer_norm', ln_p)
       self.create_child('post_layer_norm', ln_p)
-    elif p.norm_policy in ['pre', 'post']:
+    elif p.norm_policy == 'pre':
       ln_p = p.ln_tpl.Copy()
       ln_p.name = 'fflayer_ln'
       ln_p.input_dims = p.input_dims
@@ -364,6 +363,11 @@ class TransformerFeedForward(base_layer.BaseLayer):
     if paddings is not None:
       projected_inputs *= (1.0 - paddings)
 
+    # Apply Primer normalization before dropout.
+    if p.norm_policy == 'primer_hybrid':
+      projected_inputs = self.post_layer_norm.fprop(theta.post_layer_norm,
+                                                    projected_inputs)
+
     # Apply residual dropout
     projected_inputs = self.residual_dropout.fprop(theta.residual_dropout,
                                                    projected_inputs)
@@ -376,13 +380,6 @@ class TransformerFeedForward(base_layer.BaseLayer):
     if p.add_skip_connection:
       projected_inputs = projected_inputs * p.residual_weight + inputs
 
-    # Apply Layer norm if not applied
-    if p.norm_policy == 'primer_hybrid':
-      projected_inputs = self.post_layer_norm.fprop(theta.post_layer_norm,
-                                                    projected_inputs)
-    elif p.norm_policy == 'post':
-      projected_inputs = self.layer_norm.fprop(theta.layer_norm,
-                                               projected_inputs)
     return projected_inputs
 
 
@@ -437,8 +434,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
         'Policy for applying normaliztion wrt. transformations. '
         'Options are: '
         '(1) "pre", applied before transformation.'
-        '(2) "post", applied after transformation.'
-        '(3) "primer_hybrid", applied before and after transformation.')
+        '(2) "primer_hybrid", applied before and after transformation.')
     p.Define('residual_droppath_prob', 0.0,
              'Probability at which we drop the entire residual path.')
     p.Define('num_experts', 0, 'Total number of experts in this layer.')
@@ -513,7 +509,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
       params.input_dims = p.input_dims
       self.create_child('pre_layer_norm', params)
       self.create_child('post_layer_norm', params)
-    elif p.norm_policy in ['pre', 'post']:
+    elif p.norm_policy == 'pre':
       params = p.ln_tpl.Copy()
       params.name = 'layer_norm'
       params.input_dims = p.input_dims
@@ -736,6 +732,10 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     combined_output = combined_output.reshape((bs, s_len, output_dims))
     # Apply padding.
     combined_output *= (1.0 - jnp.expand_dims(paddings, -1)).astype(fprop_dtype)
+    # Primer normalization before dropout.
+    if p.norm_policy == 'primer_hybrid':
+      combined_output = self.post_layer_norm.fprop(theta.post_layer_norm,
+                                                   combined_output)
     # Residual dropout.
     after_residual = self.residual_dropout.fprop(theta.residual_dropout,
                                                  combined_output)
@@ -745,11 +745,6 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
                                            after_residual)
       else:
         out = inputs + after_residual * p.residual_weight
-
-    if p.norm_policy == 'primer_hybrid':
-      out = self.post_layer_norm.fprop(theta.post_layer_norm, out)
-    elif p.norm_policy == 'post':
-      out = self.layer_norm.fprop(theta.layer_norm, out)
 
     # Add loss to a global collection. We don't return the loss to the caller
     # to avoid the change of the api here.
@@ -798,8 +793,7 @@ class Transformer(base_layer.BaseLayer):
         'Policy for applying normaliztion wrt. transformations. '
         'Options are: '
         '(1) "pre", applied before transformation.'
-        '(2) "post", applied after transformation.'
-        '(3) "primer_hybrid", applied before and after transformation.')
+        '(2) "primer_hybrid", applied before and after transformation.')
     p.Define('tr_atten_tpl',
              attentions.DotProductAttention.Params().Set(),
              'DotProductAttention Layer params.')
@@ -819,7 +813,7 @@ class Transformer(base_layer.BaseLayer):
       params.input_dims = p.input_dims
       self.create_child('pre_layer_norm', params)
       self.create_child('post_layer_norm', params)
-    elif p.norm_policy in ['pre', 'post']:
+    elif p.norm_policy == 'pre':
       params = p.ln_tpl.Copy()
       params.name = 'layer_norm'
       params.input_dims = p.input_dims
@@ -941,8 +935,7 @@ class Transformer(base_layer.BaseLayer):
     if p.norm_policy == 'primer_hybrid':
       atten_output = self.post_layer_norm.fprop(theta.post_layer_norm,
                                                 atten_output)
-    elif p.norm_policy == 'post':
-      atten_output = self.layer_norm.fprop(theta.layer_norm, atten_output)
+
     # Residual dropout and connection
     atten_output = self.residual_dropout.fprop(theta.residual_dropout,
                                                atten_output)
@@ -952,6 +945,9 @@ class Transformer(base_layer.BaseLayer):
     if self.params.cross_attention:
       assert cross_inputs is not None
       assert cross_attention_mask is not None
+      # TODO(davidso): integrate primer_hybrid normalization with
+      #.               cross_attention.
+      assert p.norm_policy != 'primer_hybrid'
 
       cross_atten_output, cross_atten_probs = self.cross_attention.fprop(
           theta.cross_attention,
@@ -1031,8 +1027,6 @@ class Transformer(base_layer.BaseLayer):
     if p.norm_policy == 'primer_hybrid':
       atten_output = self.post_layer_norm.fprop(theta.post_layer_norm,
                                                 atten_output)
-    elif p.norm_policy == 'post':
-      atten_output = self.layer_norm.fprop(theta.layer_norm, atten_output)
 
     # Residual dropout and connection
     atten_output = self.residual_dropout.fprop(theta.residual_dropout,
